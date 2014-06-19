@@ -1,6 +1,6 @@
 /*
 File: NodePanel.java ; This file is part of Twister.
-Version: 2.013
+Version: 3.001
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -195,7 +195,7 @@ public class NodePanel extends JPanel{
                         if(resp.equals("Continue")){
                             if(!checkExistingName(parent, tname.getText())){
                                 String query = "";
-                                try{query = client.execute("renameResource", new Object[]{parent.getID(),
+                                try{query = client.execute("rename_resource", new Object[]{parent.getID(),
                                                                                             tname.getText()}).toString();
                                 } catch(Exception e){
                                     CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,NodePanel.this,
@@ -269,7 +269,7 @@ public class NodePanel extends JPanel{
                                 path = "/";
                             }
                             String query = "{'"+resp+"':''}";
-                            query = client.execute("setResource", new Object[]{name,path,query}).toString();
+                            query = client.execute("set_resource", new Object[]{name,path,query}).toString();
                             if(query.equals("true")){
                                 parent.addProperty(resp, "");
                                 updateProperties(true);
@@ -292,7 +292,7 @@ public class NodePanel extends JPanel{
      */
     private void updatePaths(DefaultMutableTreeNode tnode, Node node){
         try{
-            Object respons = client.execute("getResource", new Object[]{node.getID()});
+            Object respons = client.execute("get_resource", new Object[]{node.getID()});
             if(!(respons instanceof HashMap)){
                 CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,NodePanel.this,
                                                   "ERROR", respons.toString());
@@ -358,7 +358,7 @@ public class NodePanel extends JPanel{
                         try{
                             if(!jTextField1.getOldValue().equals(jTextField1.getText())){
                                 if(parent.getPropery(jTextField1.getText())==null){
-                                    String resp = client.execute("renameResource", new Object[]{parent.getID()+":"+jTextField1.getOldValue(),
+                                    String resp = client.execute("rename_resource", new Object[]{parent.getID()+":"+jTextField1.getOldValue(),
                                                                                                 jTextField1.getText()}).toString();
                                     if(resp.equals("true")){
                                         parent.addProperty(jTextField1.getText(), parent.getProperties().remove(jTextField1.getOldValue()).toString());
@@ -388,7 +388,7 @@ public class NodePanel extends JPanel{
                         }
                         String name = "/"+parent.getName();
                         String query = "{'"+key+"':'"+value+"'}";
-                        try{String resp = client.execute("setResource", new Object[]{name,path,query}).toString();
+                        try{String resp = client.execute("set_resource", new Object[]{name,path,query}).toString();
                             if(resp.equals("true")){
                                 parent.addProperty(key,value);
                                 RunnerRepository.window.mainpanel.p4.getTB().setSavedState(treenode,false);
@@ -406,7 +406,7 @@ public class NodePanel extends JPanel{
                     public void actionPerformed(ActionEvent ev){
                         try{
                             if(jTextField1.getText().equals(""))return;
-                            String s = client.execute("deleteResource", new Object[]{parent.getID()+":"+
+                            String s = client.execute("delete_resource", new Object[]{parent.getID()+":"+
                                                                     jTextField1.getText()}).toString();
                             if(s.equals("true")){
                                 parent.getProperties().remove(jTextField1.getText());
@@ -442,7 +442,7 @@ public class NodePanel extends JPanel{
                 sb.append("/");            
             }
             sb.setLength(sb.length()-1);
-            String s = client.execute("getResource", new Object[]{sb.toString()}).toString();
+            String s = client.execute("get_resource", new Object[]{sb.toString()}).toString();
             if(s.equalsIgnoreCase("false")||s.indexOf("*ERROR*")!=-1){
                 return false;
             } else {
@@ -472,7 +472,7 @@ public class NodePanel extends JPanel{
                 }
                 String name = parent.getName();
                 String query = "{'epnames':'"+sb.toString()+"'}";
-                try{String resp = client.execute("setResource", new Object[]{name,path,query}).toString();
+                try{String resp = client.execute("set_resource", new Object[]{name,path,query}).toString();
                     if(resp.equals("true")){
                         parent.setEPs(sb.toString());
                         RunnerRepository.window.mainpanel.p4.getTB().setSavedState(treenode,false);

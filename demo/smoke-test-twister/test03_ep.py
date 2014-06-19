@@ -15,7 +15,7 @@ import random
 
 def test(PROXY, USER, EP):
 
-    ep_list = PROXY.listEPs()
+    ep_list = PROXY.list_eps()
     if not ep_list:
         print('Failure! Cannot get EP list!')
         return 'Fail'
@@ -35,7 +35,7 @@ def test(PROXY, USER, EP):
         if epname == EP: continue
         #
         print ':::', USER, '-', epname, ':::'
-        suites = PROXY.listSuites(epname).split(',') or []
+        suites = PROXY.list_suites(epname).split(',') or []
         print 'Suites:', suites
         #
         print 'EP files:', PROXY.getEpFiles(epname)
@@ -49,21 +49,21 @@ def test(PROXY, USER, EP):
         print 'Exec status ?', PROXY.getEpStatus(epname)
         print '-----\n'
 
-    print 'EP variable', ep_list[1], ' ABC:', PROXY.getEpVariable(ep_list[1], 'abc')
-    r = PROXY.setEpVariable(ep_list[1], 'abc', random.randrange(1, 100))
+    print 'EP variable', ep_list[1], ' ABC:', PROXY.get_ep_variable(ep_list[1], 'abc')
+    r = PROXY.set_ep_variable(ep_list[1], 'abc', random.randrange(1, 100))
     if not r:
         print('Failure! Cannot set EP variable!')
         return 'Fail'
-    print 'EP variable', ep_list[1], ' ABC:', PROXY.getEpVariable(ep_list[1], 'abc')
+    print 'EP variable', ep_list[1], ' ABC:', PROXY.get_ep_variable(ep_list[1], 'abc')
 
     time.sleep(0.5)
 
-    print 'EP variable', ep_list[-1], ' XYZ:', PROXY.getEpVariable(ep_list[-1], 'xyz')
-    r = PROXY.setEpVariable(ep_list[-1], 'xyz', random.randrange(1, 100))
+    print 'EP variable', ep_list[-1], ' XYZ:', PROXY.get_ep_variable(ep_list[-1], 'xyz')
+    r = PROXY.set_ep_variable(ep_list[-1], 'xyz', random.randrange(1, 100))
     if not r:
         print('Failure! Cannot set EP variable!')
         return 'Fail'
-    print 'EP variable', ep_list[-1], ' XYZ:', PROXY.getEpVariable(ep_list[-1], 'xyz')
+    print 'EP variable', ep_list[-1], ' XYZ:', PROXY.get_ep_variable(ep_list[-1], 'xyz')
 
     time.sleep(0.5)
 

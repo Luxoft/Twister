@@ -1,7 +1,7 @@
 
 # File: CeRpyc.py ; This file is part of Twister.
 
-# version: 3.010
+# version: 3.011
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -22,6 +22,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+""" RPYC interface to clients """
 
 import os
 import sys
@@ -70,21 +71,21 @@ class CeRpycService(rpyc.Service):
     conn_lock = thread.allocate_lock()
 
 
-    def exposed_getLogLevel(self):
+    def exposed_get_log_level(self):
         """
         This doesn't require login.
         """
-        logFull('CeRpyc:exposed_getLogLevel')
+        logFull('CeRpyc:exposed_get_log_level')
         return getLogLevel()
 
 
-    def exposed_setLogLevel(self, Level):
+    def exposed_set_log_level(self, level):
         """
         Dinamically set log level.
         This doesn't require login.
         """
-        logFull('CeRpyc:exposed_setLogLevel')
-        return setLogLevel(Level)
+        logFull('CeRpyc:exposed_set_log_level')
+        return setLogLevel(level)
 
 
     @classmethod
@@ -133,12 +134,14 @@ class CeRpycService(rpyc.Service):
 
         hello = self.conns[str_addr].get('hello', '')
         stime = self.conns[str_addr].get('time', time.time())
-        if hello: hello += ' - '
+        if hello:
+            hello += ' - '
 
         # Unregister the eventual EPs for this connection
         if self.conns[str_addr].get('checked') and self.conns[str_addr].get('user'):
             eps = self.conns[str_addr].get('eps')
-            if eps: self.unregisterEps(eps)
+            if eps:
+                self.unregister_eps(eps)
 
         # Delete everything for this address
         try:
@@ -167,7 +170,8 @@ class CeRpycService(rpyc.Service):
             user = self._check_login()
         else:
             user = usr
-        if not user: return False
+        if not user:
+            return False
 
         found = False
 
@@ -185,7 +189,8 @@ class CeRpycService(rpyc.Service):
                         found = str_addr
                         break
                 # Check (Hello & Ep)
-                elif (hello and epname) and data.get('hello') and data['hello'].split(':') and data['hello'].split(':')[0] == hello:
+                elif (hello and epname) and data.get('hello') and \
+                data['hello'].split(':') and data['hello'].split(':')[0] == hello:
                     # If this connection has registered EPs
                     eps = data.get('eps')
                     if eps and epname in eps:
@@ -203,7 +208,7 @@ class CeRpycService(rpyc.Service):
         return found
 
 
-    def exposed_cherryAddr(self):
+    def exposed_cherry_addr(self):
         """
         Returns the CherryPy IP and PORT, for the Central Engine.
         This might be used to create an XML-RPC connection, using this addr.
@@ -231,12 +236,15 @@ class CeRpycService(rpyc.Service):
         # logInfo('Hello `{} - {}` !'.format(hello, str_addr))
 
         # Delete the invalid extra meta-data
-        if 'conn' in extra:     del extra['conn']
-        if 'user' in extra:     del extra['user']
-        if 'checked' in extra:  del extra['checked']
+        if 'conn' in extra:
+            del extra['conn']
+        if 'user' in extra:
+            del extra['user']
+        if 'checked' in extra:
+            del extra['checked']
         if 'eps' in extra:
             # Register the VALID eps...
-            self.registerEps(extra['eps'])
+            self.register_eps(extra['eps'])
             del extra['eps']
 
         with self.conn_lock:
@@ -288,220 +296,247 @@ class CeRpycService(rpyc.Service):
 # # #
 
 
-    def exposed_encryptText(self, text):
+    def exposed_encrypt_text(self, text):
         """
         Encrypt a piece of text, using AES.
         """
-        logFull('CeRpyc:exposed_encryptText')
-        if not text: return ''
+        logFull('CeRpyc:exposed_encrypt_text')
+        if not text:
+            return ''
         user = self._check_login()
-        if not user: return False
-        return self.project.encryptText(user, text)
+        if not user:
+            return False
+        return self.project.encrypt_text(user, text)
 
 
-    def exposed_decryptText(self, text):
+    def exposed_decrypt_text(self, text):
         """
         Decrypt a piece of text, using AES.
         """
-        logFull('CeRpyc:exposed_decryptText')
-        if not text: return ''
+        logFull('CeRpyc:exposed_decrypt_text')
+        if not text:
+            return ''
         user = self._check_login()
-        if not user: return False
-        return self.project.decryptText(user, text)
+        if not user:
+            return False
+        return self.project.decrypt_text(user, text)
 
 
-    def exposed_usrManager(self, cmd, name='', *args, **kwargs):
+    def exposed_usr_manager(self, cmd, name='', *args, **kwargs):
         """
         Manage users, groups and permissions.
         """
-        logFull('CeRpyc:exposed_usrManager')
+        logFull('CeRpyc:exposed_usr_manager')
         user = self._check_login()
-        if not user: return False
-        return self.project.usersAndGroupsManager(user, cmd, name, args, kwargs)
+        if not user:
+            return False
+        return self.project.users_and_groups_mngr(user, cmd, name, args, kwargs)
 
 
-    def exposed_listUsers(self, active=False):
+    def exposed_list_users(self, active=False):
         """
         Function called from the CLI, to list the users that are using Twister.
         """
-        logFull('CeRpyc:exposed_listUsers')
-        return self.project.listUsers(active)
+        logFull('CeRpyc:exposed_list_users')
+        return self.project.list_users(active)
 
 
-    def exposed_getUserVariable(self, variable):
+    def exposed_get_user_variable(self, variable):
         """
         Send a user variable
         """
-        logFull('CeRpyc:exposed_getUserVariable')
+        logFull('CeRpyc:exposed_get_user_variable')
         user = self._check_login()
-        if not user: return False
-        data = self.project.getUserInfo(user, variable)
-        if not data: return False
+        if not user:
+            return False
+        data = self.project.get_user_info(user, variable)
+        if not data:
+            return False
         return data
 
 
-    def exposed_setUserVariable(self, key, variable):
+    def exposed_set_user_variable(self, key, variable):
         """
         Create or overwrite a user variable
         """
-        logFull('CeRpyc:exposed_setUserVariable')
+        logFull('CeRpyc:exposed_set_user_variable')
         user = self._check_login()
-        if not user: return False
-        return self.project.setUserInfo(user, key, variable)
+        if not user:
+            return False
+        return self.project.set_user_info(user, key, variable)
 
 
-    def exposed_getEpVariable(self, epname, variable):
+    def exposed_get_ep_variable(self, epname, variable):
         """
         Send an EP variable
         """
-        logFull('CeRpyc:exposed_getEpVariable')
+        logFull('CeRpyc:exposed_get_ep_variable')
         user = self._check_login()
-        if not user: return False
-        data = self.project.getEpInfo(user, epname)
-        if not data: return False
+        if not user:
+            return False
+        data = self.project.get_ep_info(user, epname)
+        if not data:
+            return False
         return data.get(variable, False)
 
 
-    def exposed_setEpVariable(self, epname, variable, value):
+    def exposed_set_ep_variable(self, epname, variable, value):
         """
         Create or overwrite an EP variable
         """
-        logFull('CeRpyc:exposed_setEpVariable')
+        logFull('CeRpyc:exposed_set_ep_variable')
         user = self._check_login()
-        if not user: return False
-        return self.project.setEpInfo(user, epname, variable, value)
+        if not user:
+            return False
+        return self.project.set_ep_info(user, epname, variable, value)
 
 
-    def exposed_listSuites(self, epname):
+    def exposed_list_suites(self, epname):
         """
         List all suites for 1 EP, in the current project
         """
-        logFull('CeRpyc:exposed_listSuites')
+        logFull('CeRpyc:exposed_list_suites')
         user = self._check_login()
-        if not user: return False
-        if not epname: return False
-        suiteList = [str(k)+':'+v['name'] for k, v in self.project.getEpInfo(user, epname)['suites'].items()]
+        if not user:
+            return False
+        if not epname:
+            return False
+        suiteList = [str(k)+':'+v['name'] for k, v in self.project.get_ep_info(user, epname)['suites'].items()]
         return ','.join(suiteList)
 
 
-    def exposed_getSuiteVariable(self, epname, suite, variable):
+    def exposed_get_suite_variable(self, epname, suite, variable):
         """
         Send a Suite variable
         """
-        logFull('CeRpyc:exposed_getSuiteVariable')
+        logFull('CeRpyc:exposed_get_suite_variable')
         user = self._check_login()
-        if not user: return False
-        data = self.project.getSuiteInfo(user, epname, suite)
-        if not data: return False
+        if not user:
+            return False
+        data = self.project.get_suite_info(user, epname, suite)
+        if not data:
+            return False
         return data.get(variable, False)
 
 
-    def exposed_getFileVariable(self, epname, file_id, variable):
+    def exposed_get_file_variable(self, epname, file_id, variable):
         """
         Send a file variable
         """
-        logFull('CeRpyc:exposed_getFileVariable')
+        logFull('CeRpyc:exposed_get_file_variable')
         user = self._check_login()
-        if not user: return False
-        data = self.project.getFileInfo(user, epname, file_id)
-        if not data: return False
+        if not user:
+            return False
+        data = self.project.get_file_info(user, epname, file_id)
+        if not data:
+            return False
         return data.get(variable, False)
 
 
-    def exposed_setFileVariable(self, epname, filename, variable, value):
+    def exposed_set_file_variable(self, epname, filename, variable, value):
         """
         Create or overwrite a file variable
         """
-        logFull('CeRpyc:exposed_setFileVariable')
+        logFull('CeRpyc:exposed_set_file_variable')
         user = self._check_login()
-        if not user: return False
-        return self.project.setFileInfo(user, epname, filename, variable, value)
+        if not user:
+            return False
+        return self.project.set_file_info(user, epname, filename, variable, value)
 
 
-    def exposed_getDependencyInfo(self, dep_id):
-        logFull('CeRpyc:exposed_getDependencyInfo')
+    def exposed_get_dependency_info(self, dep_id):
+        """ get infromation about dependencies """
+        logFull('CeRpyc:exposed_get_dependency_info')
         user = self._check_login()
-        if not user: return False
-        return self.project.getDependencyInfo(user, dep_id)
+        if not user:
+            return False
+        return self.project.get_dependency_info(user, dep_id)
 
 
 # # #   Persistence   # # #
 
 
-    def exposed_readFile(self, fpath, flag='r', fstart=0, type='fs'):
+    def exposed_read_file(self, fpath, flag='r', fstart=0, type='fs'):
         """
         Read a file from TWISTER PATH, user's home folder, or ClearCase.
         Flag r/ rb = ascii/ binary.
         """
         user = self._check_login()
-        if not user: return False
-        resp = self.project.readFile(user, fpath, flag, fstart, type)
+        if not user:
+            return False
+        resp = self.project.read_file(user, fpath, flag, fstart, type)
         if resp and resp.startswith('*ERROR*'):
             logWarning(resp)
         return resp
 
 
-    def exposed_writeFile(self, fpath, fdata, flag='w', type='fs'):
+    def exposed_write_file(self, fpath, fdata, flag='w', type='fs'):
         """
         Write a file in user's home folder, or ClearCase.
         Flag w/ wb = ascii/ binary.
         """
         user = self._check_login()
-        if not user: return False
-        resp = self.project.writeFile(user, fpath, fdata, flag, type)
+        if not user:
+            return False
+        resp = self.project.write_file(user, fpath, fdata, flag, type)
         if resp != True:
             logWarning(resp)
         return resp
 
 
-    def exposed_listSettings(self, config='', x_filter=''):
+    def exposed_list_settings(self, config='', x_filter=''):
         """
         List all available settings, for 1 config of a user.
         """
         user = self._check_login()
-        if not user: return False
-        return self.project.listSettings(user, config, x_filter)
+        if not user:
+            return False
+        return self.project.list_settings(user, config, x_filter)
 
 
-    def exposed_getSettingsValue(self, config, key):
+    def exposed_get_settings_value(self, config, key):
         """
         Fetch a value from 1 config of a user.
         """
         user = self._check_login()
-        if not user: return False
-        return self.project.getSettingsValue(user, config, key)
+        if not user:
+            return False
+        return self.project.get_settings_value(user, config, key)
 
 
-    def exposed_setSettingsValue(self, config, key, value):
+    def exposed_set_settings_value(self, config, key, value):
         """
         Set a value for a key in the config of a user.
         """
         user = self._check_login()
-        if not user: return False
-        return self.project.setSettingsValue(user, config, key, value)
+        if not user:
+            return False
+        return self.project.set_settings_value(user, config, key, value)
 
 
-    def exposed_delSettingsKey(self, config, key, index=0):
+    def exposed_del_settings_key(self, config, key, index=0):
         """
         Del a key from the config of a user.
         """
         user = self._check_login()
-        if not user: return False
-        return self.project.delSettingsKey(user, config, key, index)
+        if not user:
+            return False
+        return self.project.del_settings_key(user, config, key, index)
 
 
-    def exposed_setPersistentSuite(self, suite, info={}, order=-1):
+    def exposed_set_persistent_suite(self, suite, info={}, order=-1):
         """
         Create a new suite, using the INFO, at the position specified.\n
         This function writes in TestSuites.XML file.\n
         The changes will be available at the next START.
         """
         user = self._check_login()
-        if not user: return False
-        return self.project.setPersistentSuite(user, suite, info, order)
+        if not user:
+            return False
+        return self.project.set_persistent_suite(user, suite, info, order)
 
 
-    def exposed_delPersistentSuite(self, suite):
+    def exposed_del_persistent_suite(self, suite):
         """
         Delete an XML suite, using a name ; if there are more suites with the same name,
         only the first one is deleted.\n
@@ -509,22 +544,24 @@ class CeRpycService(rpyc.Service):
         The changes will be available at the next START.
         """
         user = self._check_login()
-        if not user: return False
-        return self.project.delPersistentSuite(user, suite)
+        if not user:
+            return False
+        return self.project.del_persistent_suite(user, suite)
 
 
-    def exposed_setPersistentFile(self, suite, fname, info={}, order=-1):
+    def exposed_set_persistent_file(self, suite, fname, info={}, order=-1):
         """
         Create a new file in a suite, using the INFO, at the position specified.\n
         This function writes in TestSuites.XML file.\n
         The changes will be available at the next START.
         """
         user = self._check_login()
-        if not user: return False
-        return self.project.setPersistentFile(user, suite, fname, info, order)
+        if not user:
+            return False
+        return self.project.set_persistent_file(user, suite, fname, info, order)
 
 
-    def exposed_delPersistentFile(self, suite, fname):
+    def exposed_del_persistent_file(self, suite, fname):
         """
         Delete an XML file from a suite, using a name ; if there are more files
         with the same name, only the first one is deleted.\n
@@ -532,66 +569,72 @@ class CeRpycService(rpyc.Service):
         The changes will be available at the next START.
         """
         user = self._check_login()
-        if not user: return False
-        return self.project.delPersistentFile(user, suite, fname)
+        if not user:
+            return False
+        return self.project.del_persistent_file(user, suite, fname)
 
 
 # # #   Global Variables and Config Files   # # #
 
 
-    def exposed_getGlobalVariable(self, var_path):
+    def exposed_get_global_variable(self, var_path):
         """
         Global variables
         """
-        logFull('CeRpyc:exposed_getGlobalVariable')
+        logFull('CeRpyc:exposed_get_global_variable')
         user = self._check_login()
-        if not user: return False
-        return self.project.getGlobalVariable(user, var_path, False)
+        if not user:
+            return False
+        return self.project.get_global_variable(user, var_path, False)
 
 
-    def exposed_setGlobalVariable(self, var_path, value):
+    def exposed_set_global_variable(self, var_path, value):
         """
         Global variables
         """
-        logFull('CeRpyc:exposed_setGlobalVariable')
+        logFull('CeRpyc:exposed_set_global_variable')
         user = self._check_login()
-        if not user: return False
-        return self.project.setGlobalVariable(user, var_path, value)
+        if not user:
+            return False
+        return self.project.set_global_variable(user, var_path, value)
 
 
-    def exposed_getConfig(self, cfg_path, var_path):
+    def exposed_get_config(self, cfg_path, var_path):
         """
         Config files
         """
-        logFull('CeRpyc:exposed_getConfig')
+        logFull('CeRpyc:exposed_get_config')
         user = self._check_login()
-        if not user: return False
-        return self.project.getGlobalVariable(user, var_path, cfg_path)
+        if not user:
+            return False
+        return self.project.get_global_variable(user, var_path, cfg_path)
 
 
 # # #   Register / Start / Stop EPs   # # #
 
 
-    def exposed_listEPs(self):
+    def exposed_list_eps(self):
         """
         All known EPs for a user, read from project.
         The user is identified automatically.
         """
-        logFull('CeRpyc:exposed_listEPs')
+        logFull('CeRpyc:exposed_list_eps')
         user = self._check_login()
-        if not user: return False
-        eps = self.project.getUserInfo(user, 'eps').keys()
+        if not user:
+            return False
+        eps = self.project.get_user_info(user, 'eps').keys()
         return list(eps) # Best to make a copy
 
 
     @classmethod
-    def exposed_registeredEps(self, user=None):
+    def exposed_registered_eps(self, user=None):
         """
         Return all registered EPs for all user clients.
         The user MUST be given as a parameter.
         """
-        logFull('CeRpyc:exposed_registeredEps')
-        if not user: return False
+        logFull('CeRpyc:exposed_registered_eps')
+        if not user:
+            return False
         eps = []
 
         for str_addr, data in self.conns.iteritems():
@@ -600,21 +643,23 @@ class CeRpycService(rpyc.Service):
             if user is not None and user == data.get('user') and data.get('checked'):
                 # If this connection has registered EPs, append them
                 e = data.get('eps')
-                if e: eps.extend(e)
+                if e:
+                    eps.extend(e)
 
         return sorted(set(eps))
 
 
-    def registerEps(self, eps):
+    def register_eps(self, eps):
         """
         Private function to register all EPs for a client.
         Only a VALID client will be able to register EPs!
         The user is identified automatically.
         """
-        logFull('CeRpyc:registerEps')
+        logFull('CeRpyc:register_eps')
         str_addr = self._get_addr()
         user = self._check_login()
-        if not user: return False
+        if not user:
+            return False
 
         if not str_addr:
             logError('*ERROR* Cannot identify the remote address!')
@@ -639,7 +684,7 @@ class CeRpycService(rpyc.Service):
         # And the EPs will be automatically un-registered.
         with self.conn_lock:
             for epname in eps:
-                self.project._registerEp(user, epname)
+                self.project._register_ep(user, epname)
 
             # Before register, find the clients that have already registered these EPs!
             for c_addr, data in self.conns.iteritems():
@@ -650,7 +695,8 @@ class CeRpycService(rpyc.Service):
                 if user == data['user']:
                     # This current Addr might be an EP, not a client
                     # If this connection has registered EPs
-                    if not data.get('eps'): continue
+                    if not data.get('eps'):
+                        continue
                     old_eps   = set(data.get('eps'))
                     new_eps   = set(eps)
                     diff_eps  = old_eps - new_eps
@@ -667,15 +713,16 @@ class CeRpycService(rpyc.Service):
         return True
 
 
-    def unregisterEps(self, eps=[]):
+    def unregister_eps(self, eps=[]):
         """
         Private, helper function to un-register some EPs for a client.
         The user is identified automatically.
         """
-        logFull('CeRpyc:unregisterEps')
+        logFull('CeRpyc:unregister_eps')
         str_addr = self._get_addr()
         user = self._check_login()
-        if not user: return False
+        if not user:
+            return False
 
         if not str_addr:
             logError('*ERROR* Cannot identify the remote address!')
@@ -691,14 +738,14 @@ class CeRpycService(rpyc.Service):
 
         with self.conn_lock:
             for epname in eps:
-                self.project._unregisterEp(user, epname)
+                self.project._unregister_ep(user, epname)
 
             data = self.conns[str_addr]
             ee = data.get('eps') or sorted(eps)
             if not ee:
                 return True
 
-        remaining = self.exposed_registeredEps(user)
+        remaining = self.exposed_registered_eps(user)
         if remaining == ee:
             logInfo('Un-registered all EPs for user `{}`\n\t-> Client from `{}` -- {}.'\
                     ' No more EPs left for `{}` !'.format(user, str_addr, ee, user))
@@ -708,17 +755,18 @@ class CeRpycService(rpyc.Service):
 
 
     @classmethod
-    def exposed_startEP(self, epname, usr=None):
+    def exposed_start_ep(self, epname, usr=None):
         """
         Start EP for client.
         This must work from any ExecManager instance.
         """
-        logFull('CeRpyc:exposed_startEP')
+        logFull('CeRpyc:exposed_start_ep')
         if isinstance(self, CeRpycService):
             user = self._check_login()
         else:
             user = usr
-        if not user: return False
+        if not user:
+            return False
 
         addr = self._findConnection(user, hello='client', epname=epname)
 
@@ -739,17 +787,18 @@ class CeRpycService(rpyc.Service):
 
 
     @classmethod
-    def exposed_stopEP(self, epname, usr=None):
+    def exposed_stop_ep(self, epname, usr=None):
         """
         Stop EP for client.
         This must work from any ExecManager instance.
         """
-        logFull('CeRpyc:exposed_stopEP')
+        logFull('CeRpyc:exposed_stop_ep')
         if isinstance(self, CeRpycService):
             user = self._check_login()
         else:
             user = usr
-        if not user: return False
+        if not user:
+            return False
 
         addr = self._findConnection(user, hello='client', epname=epname)
 
@@ -772,136 +821,147 @@ class CeRpycService(rpyc.Service):
 # # #   EP and File statuses   # # #
 
 
-    def exposed_queueFile(self, suite, fname):
+    def exposed_queue_file(self, suite, fname):
         """
         Queue a file at the end of a suite, during runtime.
         If there are more suites with the same name, the first one is used.
         """
-        logFull('CeRpyc:exposed_queueFile')
+        logFull('CeRpyc:exposed_queue_file')
         user = self._check_login()
-        if not user: return False
-        return self.project.queueFile(user, suite, fname)
+        if not user:
+            return False
+        return self.project.queue_file(user, suite, fname)
 
 
-    def exposed_deQueueFiles(self, data):
+    def exposed_dequeue_files(self, data):
         """
         Remove a file from the files queue.
         """
-        logFull('CeRpyc:exposed_deQueueFiles')
+        logFull('CeRpyc:exposed_dequeue_files')
         user = self._check_login()
-        if not user: return False
-        return self.project.deQueueFiles(user, data)
+        if not user:
+            return False
+        return self.project.de_queue_files(user, data)
 
 
-    def exposed_getEpStatus(self, epname):
+    def exposed_get_ep_status(self, epname):
         """
         Return execution status for one EP. (stopped, paused, running, invalid)
         """
-        logFull('CeRpyc:exposed_getEpStatus')
+        logFull('CeRpyc:exposed_get_ep_status')
         user = self._check_login()
-        if not user: return False
+        if not user:
+            return False
 
-        if epname not in self.project.getUserInfo(user, 'eps'):
+        if epname not in self.project.get_user_info(user, 'eps'):
             logDebug('*ERROR* Invalid EP name `{}` !'.format(epname))
             return False
 
-        data = self.project.getEpInfo(user, epname)
-        reversed = dict((v,k) for k,v in execStatus.iteritems())
+        data = self.project.get_ep_info(user, epname)
+        reversed = dict((v, k) for k, v in EXEC_STATUS.iteritems())
         return reversed[data.get('status', 8)]
 
 
-    def exposed_getEpStatusAll(self):
+    def exposed_get_ep_status_all(self):
         """
         Return execution status for all EPs. (stopped, paused, running, invalid)
         """
-        logFull('CeRpyc:exposed_getEpStatusAll')
+        logFull('CeRpyc:exposed_get_ep_status_all')
         user = self._check_login()
-        if not user: return False
+        if not user:
+            return False
 
-        data = self.project.getUserInfo(user)
-        reversed = dict((v,k) for k,v in execStatus.iteritems())
+        data = self.project.get_user_info(user)
+        reversed = dict((v, k) for k, v in EXEC_STATUS.iteritems())
         return reversed[data.get('status', 8)]
 
 
-    def exposed_setEpStatus(self, epname, new_status, msg=''):
+    def exposed_set_ep_status(self, epname, new_status, msg=''):
         """
         Set execution status for one EP. (0, 1, 2, or 3)
         Returns a string (stopped, paused, running).
         The `message` parameter can explain why the status has changed.
         """
-        logFull('CeRpyc:exposed_setEpStatus')
+        logFull('CeRpyc:exposed_set_ep_status')
         user = self._check_login()
-        if not user: return False
-        return self.project.setExecStatus(user, epname, new_status, msg)
+        if not user:
+            return False
+        return self.project.set_exec_status(user, epname, new_status, msg)
 
 
-    def exposed_setEpStatusAll(self, new_status, msg=''):
+    def exposed_set_ep_status_all(self, new_status, msg=''):
         """
         Set execution status for all EPs. (STATUS_STOP, STATUS_PAUSED, STATUS_RUNNING)
         Returns a string (stopped, paused, running).
         The `message` parameter can explain why the status has changed.
         """
-        logFull('CeRpyc:exposed_setEpStatusAll')
+        logFull('CeRpyc:exposed_set_ep_status_all')
         user = self._check_login()
-        if not user: return False
-        return self.project.setExecStatusAll(user, new_status, msg)
+        if not user:
+            return False
+        return self.project.set_exec_status_all(user, new_status, msg)
 
 
-    def exposed_getFileStatusAll(self, epname=None, suite=None):
+    def exposed_get_file_status_all(self, epname=None, suite=None):
         """
         Returns a list with all statuses, for all files, in order.
-        The status of one file can be obtained with ce.getFileVariable.
+        The status of one file can be obtained with ce.get_file_variable.
         """
-        logFull('CeRpyc:exposed_getFileStatusAll')
+        logFull('CeRpyc:exposed_get_file_status_all')
         user = self._check_login()
-        if not user: return False
-        return self.project.getFileStatusAll(user, epname, suite)
+        if not user:
+            return False
+        return self.project.get_file_status_all(user, epname, suite)
 
 
-    def exposed_setFileStatus(self, epname, file_id, new_status=10, time_elapsed=0.0):
+    def exposed_set_file_status(self, epname, file_id, new_status=10, time_elapsed=0.0):
         """
         Set status for one file and write in log summary.
         Called from the Runner.
         """
-        logFull('CeRpyc:exposed_setFileStatus')
+        logFull('CeRpyc:exposed_set_file_status')
         user = self._check_login()
-        if not user: return False
-        return self.project.setFileStatus(user, epname, file_id, new_status, time_elapsed)
+        if not user:
+            return False
+        return self.project.set_file_status(user, epname, file_id, new_status, time_elapsed)
 
 
-    def exposed_setFileStatusAll(self, epname, new_status):
+    def exposed_set_file_status_all(self, epname, new_status):
         """
         Reset file status for all files of one EP.
         Called from the Runner.
         """
-        logFull('CeRpyc:exposed_setFileStatusAll')
+        logFull('CeRpyc:exposed_set_file_status_all')
         user = self._check_login()
-        if not user: return False
-        return self.project.setFileStatusAll(user, epname, new_status)
+        if not user:
+            return False
+        return self.project.set_file_status_all(user, epname, new_status)
 
 
 # # #   Download Files and Libraries   # # #
 
 
-    def exposed_listLibraries(self, all=True):
+    def exposed_list_libraries(self, all=True):
         """
         Returns the list of exposed libraries, from CE libraries folder.
         This list will be used to syncronize the libs on all EP computers.
         """
-        logFull('CeRpyc:exposed_listLibraries')
+        logFull('CeRpyc:exposed_list_libraries')
         user = self._check_login()
-        if not user: return False
-        return self.project.getLibrariesList(user, all)
+        if not user:
+            return False
+        return self.project.get_libraries_list(user, all)
 
 
-    def exposed_downloadLibrary(self, name):
+    def exposed_download_library(self, name):
         """
         Sends required library to the EP, to be syncronized.
         The library can be global for all users, or per user.
         """
-        logFull('CeRpyc:exposed_downloadLibrary')
+        logFull('CeRpyc:exposed_download_library')
         user = self._check_login()
-        if not user: return False
+        if not user:
+            return False
 
         # Global lib path
         glob_lib_path = (TWISTER_PATH + '/lib/' + name).replace('//', '/')
@@ -938,15 +998,15 @@ class CeRpycService(rpyc.Service):
                 return io.getvalue()
 
         # Auto detect if ClearCase Test Config Path is active
-        ccConfig = self.project.getClearCaseConfig(user, 'libs_path')
+        ccConfig = self.project.get_clearcase_config(user, 'libs_path')
         if ccConfig:
             view = ccConfig['view']
             path = ccConfig['path'].rstrip('/')
             lib_path = path +'/'+ name
-            sz = self.project.clearFs.fileSize
+            sz = self.project.clearFs.file_size
             # Folder
             if sz == 4096:
-                resp = self.project.clearFs.targzUserFolder(user +':'+ view, lib_path)
+                resp = self.project.clearFs.targz_user_folder(user +':'+ view, lib_path)
                 # Read as ROOT
                 if resp.startswith('*ERROR*'):
                     return _download_file(glob_lib_path)
@@ -954,7 +1014,7 @@ class CeRpycService(rpyc.Service):
                 return resp
             # File
             else:
-                resp = self.project.clearFs.readUserFile(user +':'+ view, lib_path)
+                resp = self.project.clearFs.read_user_file(user +':'+ view, lib_path)
                 # Read as ROOT
                 if resp.startswith('*ERROR*'):
                     return _download_file(glob_lib_path)
@@ -963,10 +1023,10 @@ class CeRpycService(rpyc.Service):
 
         # Normal system path
         else:
-            lib_path = self.project.getUserInfo(user, 'libs_path').rstrip('/') +'/'+ name
+            lib_path = self.project.get_user_info(user, 'libs_path').rstrip('/') +'/'+ name
             # If is file, read the file directly
             if os.path.isfile(lib_path):
-                resp = self.project.localFs.readUserFile(user, lib_path)
+                resp = self.project.localFs.read_user_file(user, lib_path)
                 # Read as ROOT
                 if resp.startswith('*ERROR*'):
                     return _download_file(glob_lib_path)
@@ -974,7 +1034,7 @@ class CeRpycService(rpyc.Service):
                 return resp
             # If is folder, compress in memory and return the data
             else:
-                resp = self.project.localFs.targzUserFolder(user, lib_path)
+                resp = self.project.localFs.targz_user_folder(user, lib_path)
                 # Read as ROOT
                 if resp.startswith('*ERROR*'):
                     return _download_file(glob_lib_path)
@@ -982,43 +1042,50 @@ class CeRpycService(rpyc.Service):
                 return resp
 
 
-    def exposed_getEpFiles(self, epname):
+    def exposed_get_ep_files(self, epname):
         """
         Returns all files that must be run on one EP.
         """
-        logFull('CeRpyc:exposed_getEpFiles')
+        logFull('CeRpyc:exposed_get_ep_files')
         user = self._check_login()
-        if not user: return False
-        try: data = self.project.getEpFiles(user, epname)
-        except: data = False
+        if not user:
+            return False
+        try:
+            data = self.project.get_ep_files(user, epname)
+        except:
+            data = False
         return data
 
 
-    def exposed_getSuiteFiles(self, epname, suite):
+    def exposed_get_suite_files(self, epname, suite):
         """
         Returns all files that must be run on one Suite ID.
         """
-        logFull('CeRpyc:exposed_getSuiteFiles')
+        logFull('CeRpyc:exposed_get_suite_files')
         user = self._check_login()
-        if not user: return False
-        try: data = self.project.getSuiteFiles(user, epname, suite)
-        except: data = False
+        if not user:
+            return False
+        try:
+            data = self.project.get_suite_files(user, epname, suite)
+        except:
+            data = False
         return data
 
 
-    def exposed_downloadFile(self, epname, file_info):
+    def exposed_download_file(self, epname, file_info):
         """
         Sends requested file to the EP, to be executed.
         """
-        logFull('CeRpyc:exposed_downloadFile')
+        logFull('CeRpyc:exposed_download_file')
         user = self._check_login()
-        if not user: return False
+        if not user:
+            return False
 
-        if epname not in self.project.getUserInfo(user, 'eps'):
+        if epname not in self.project.get_user_info(user, 'eps'):
             logDebug('*ERROR* Invalid EP name `{}` !'.format(epname))
             return False
 
-        tests_path = self.project.getUserInfo(user, 'tests_path')
+        tests_path = self.project.get_user_info(user, 'tests_path')
 
         # If this is a test file path
         if os.path.isfile(tests_path + os.sep + file_info):
@@ -1027,7 +1094,7 @@ class CeRpycService(rpyc.Service):
         # If this is a file ID
         else:
             file_id = file_info
-            data = self.project.getFileInfo(user, epname, file_id)
+            data = self.project.get_file_info(user, epname, file_id)
             if not data:
                 logError('*ERROR* Invalid File ID `{}` !'.format(file_id))
                 return False
@@ -1035,11 +1102,11 @@ class CeRpycService(rpyc.Service):
             filename = data['file']
 
             # Auto detect if ClearCase Test Config Path is active
-            ccConfig = self.project.getClearCaseConfig(user, 'tests_path')
+            ccConfig = self.project.get_clearcase_config(user, 'tests_path')
             if ccConfig and data.get('clearcase'):
                 view = ccConfig['view']
                 # Read ClearCase TestCase file
-                text = self.project.readFile(user, filename, type='clearcase:' + view)
+                text = self.project.read_file(user, filename, type='clearcase:' + view)
                 tags = re.findall('^[ ]*?[#]*?[ ]*?<(?P<tag>\w+)>([ -~\n]+?)</(?P=tag)>', text, re.MULTILINE)
                 # File description
                 descr = '<br>\n'.join(['<b>' + title + '</b> : ' + descr.replace('<', '&lt;') for title, descr in tags])
@@ -1048,7 +1115,7 @@ class CeRpycService(rpyc.Service):
                     pos = descr.find(cctag) + len(cctag)
                     rev = descr[pos:].strip()
                     # Set TC Revision variable
-                    self.project.setFileInfo(user, epname, file_id, 'twister_tc_revision', rev)
+                    self.project.set_file_info(user, epname, file_id, 'twister_tc_revision', rev)
                 logDebug('Execution process `{}:{}` requested ClearCase file `{}`.'.format(user, epname, filename))
                 return text
             # End of ClearCase hack !
@@ -1062,32 +1129,34 @@ class CeRpycService(rpyc.Service):
 
         logDebug('Execution process `{}:{}` requested file `{}`.'.format(user, epname, filename))
 
-        return self.project.localFs.readUserFile(user, filename, 'rb')
+        return self.project.localFs.read_user_file(user, filename, 'rb')
 
 
 # # #   Plugins   # # #
 
 
-    def exposed_listPlugins(self):
+    def exposed_list_plugins(self):
         """
         List all user plugins.
         """
-        logFull('CeRpyc:exposed_listPlugins')
+        logFull('CeRpyc:exposed_list_plugins')
         user = self._check_login()
-        if not user: return False
+        if not user:
+            return False
         parser = PluginParser(user)
         pluginsList = parser.getPlugins()
         logFull('List Plug-ins: user `{}` has: {}.'.format(user, pluginsList))
         return pluginsList.keys()
 
 
-    def exposed_runPlugin(self, plugin, args):
+    def exposed_run_plugin(self, plugin, args):
         """
         Exposed API for running plug-ins from Execution Processes.
         """
-        logFull('CeRpyc:exposed_runPlugin')
+        logFull('CeRpyc:exposed_run_plugin')
         user = self._check_login()
-        if not user: return False
+        if not user:
+            return False
 
         # If argument is a valid dict, pass
         try:
@@ -1098,7 +1167,7 @@ class CeRpycService(rpyc.Service):
         if not 'command' in args:
             return '*ERROR* Invalid dictionary for plugin `{}` : {} !'.format(plugin, args)
 
-        plugin_p = self.project._buildPlugin(user, plugin)
+        plugin_p = self.project._build_plugin(user, plugin)
 
         if not plugin_p:
             msg = '*ERROR* Plugin `{}` does not exist for user `{}`!'.format(plugin, user)
@@ -1117,203 +1186,252 @@ class CeRpycService(rpyc.Service):
 # # #   Logs   # # #
 
 
-    def exposed_getLogFile(self, read, fstart, filename):
+    def exposed_get_log_file(self, read, fstart, filename):
         """
         Used to show the logs.
         """
-        logFull('CeRpyc:exposed_getLogFile')
+        logFull('CeRpyc:exposed_get_log_file')
         user = self._check_login()
-        if not user: return False
-        return self.project.getLogFile(user, read, fstart, filename)
+        if not user:
+            return False
+        return self.project.get_log_file(user, read, fstart, filename)
 
 
-    def exposed_logMessage(self, logType, logMessage):
+    def exposed_log_message(self, log_type, log_message):
         """
         This function is exposed in all tests and all logs are centralized in the HOME of the user.
         In order for the user to be able to access the logs written by CE, which runs as ROOT,
         CE will start a small process in the name of the user and the process will write the logs.
         """
-        logFull('CeRpyc:exposed_logMessage')
+        logFull('CeRpyc:exposed_log_message')
         user = self._check_login()
-        if not user: return False
-        return self.project.logMessage(user, logType, logMessage)
+        if not user:
+            return False
+        return self.project.log_message(user, log_type, log_message)
 
 
-    def exposed_logLIVE(self, epname, logMessage):
+    def exposed_log_live(self, epname, log_message):
         """
         Writes CLI messages in a big log, so all output can be checked LIVE.
         """
-        logFull('CeRpyc:exposed_logLIVE')
+        logFull('CeRpyc:exposed_log_live')
         user = self._check_login()
-        if not user: return False
-        return self.project.logLIVE(user, epname, logMessage)
+        if not user:
+            return False
+        return self.project.log_live(user, epname, log_message)
 
 
-    def exposed_resetLog(self, logName):
+    def exposed_reset_log(self, log_name):
         """
         Resets one log.
         """
-        logFull('CeRpyc:exposed_resetLog')
+        logFull('CeRpyc:exposed_reset_log')
         user = self._check_login()
-        if not user: return False
-        return self.project.resetLog(user, logName)
+        if not user:
+            return False
+        return self.project.reset_log(user, log_name)
 
 
-    def exposed_resetLogs(self):
+    def exposed_reset_logs(self):
         """
         All logs defined in master config are erased.\n
         """
-        logFull('CeRpyc:exposed_resetLogs')
+        logFull('CeRpyc:exposed_reset_logs')
         user = self._check_login()
-        if not user: return False
-        return self.project.resetLogs(user)
+        if not user:
+            return False
+        return self.project.reset_logs(user)
 
 
 # # #   Resource Allocator   # # #
 
 
-    def exposed_getResource(self, query):
-        logFull('CeRpyc:exposed_getResource')
+    def exposed_get_resource(self, query):
+        """ get resource information """
+        logFull('CeRpyc:exposed_get_resource')
         user = self._check_login()
-        if not user: return False
-        try: return self.project.ra.getResource(query=query, props={'__user': user})
-        except: return False
+        if not user:
+            return False
+        try:
+            return self.project.ra.get_resource(query=query, props={'__user': user})
+        except:
+            return False
 
 
-    def exposed_setResource(self, name, parent=None, props={}):
-        logFull('CeRpyc:exposed_setResource')
+    def exposed_set_resource(self, name, parent=None, props={}):
+        """ apply changes to resource """
+        logFull('CeRpyc:exposed_set_resource')
         user = self._check_login()
-        if not user: return False
-        props = dict(props) ; props.update({'__user': user})
-        return self.project.ra.setResource(name, parent, props)
+        if not user:
+            return False
+        props = dict(props)
+        props.update({'__user': user})
+        return self.project.ra.set_resource(name, parent, props)
 
 
-    def exposed_renameResource(self, res_query, new_name):
-        logFull('CeRpyc:exposed_renameResource')
+    def exposed_rename_resource(self, res_query, new_name):
+        """ rename resource """
+        logFull('CeRpyc:exposed_rename_resource')
         user = self._check_login()
-        if not user: return False
-        return self.project.ra.renameResource(res_query, new_name, props={'__user': user})
+        if not user:
+            return False
+        return self.project.ra.rename_resource(res_query, new_name, props={'__user': user})
 
 
-    def exposed_deleteResource(self, query):
-        logFull('CeRpyc:exposed_deleteResource')
+    def exposed_delete_resource(self, query):
+        """ delete resource """
+        logFull('CeRpyc:exposed_delete_resource')
         user = self._check_login()
-        if not user: return False
-        return self.project.ra.deleteResource(query, props={'__user': user})
+        if not user:
+            return False
+        return self.project.ra.delete_resource(query, props={'__user': user})
 
 
-    def exposed_getSut(self, query):
-        logFull('CeRpyc:exposed_getSut')
+    def exposed_get_sut(self, query):
+        """ get SUT content """
+        logFull('CeRpyc:exposed_get_sut')
         user = self._check_login()
-        if not user: return False
-        try: return self.project.ra.getSut(query=query, props={'__user': user})
-        except: return False
+        if not user:
+            return False
+        try:
+            return self.project.ra.get_sut(query=query, props={'__user': user})
+        except:
+            return False
 
 
-    def exposed_setSut(self, name, parent=None, props={}):
-        logFull('CeRpyc:exposed_setSut')
+    def exposed_set_sut(self, name, parent=None, props={}):
+        """ create SUT """
+        logFull('CeRpyc:exposed_set_sut')
         user = self._check_login()
-        if not user: return False
-        props = dict(props) ; props.update({'__user': user})
-        return self.project.ra.setSut(name, parent, props)
+        if not user:
+            return False
+        props = dict(props)
+        props.update({'__user': user})
+        return self.project.ra.set_sut(name, parent, props)
 
 
-    def exposed_renameSut(self, res_query, new_name):
-        logFull('CeRpyc:exposed_renameSut')
+    def exposed_rename_sut(self, res_query, new_name):
+        """ rename SUT """
+        logFull('CeRpyc:exposed_rename_sut')
         user = self._check_login()
-        if not user: return False
-        return self.project.ra.renameSut(res_query, new_name, props={'__user': user})
+        if not user:
+            return False
+        return self.project.ra.rename_sut(res_query, new_name, props={'__user': user})
 
 
-    def exposed_deleteSut(self, query):
-        logFull('CeRpyc:exposed_deleteSut')
+    def exposed_delete_sut(self, query):
+        """ delete SUT """
+        logFull('CeRpyc:exposed_delete_sut')
         user = self._check_login()
-        if not user: return False
-        return self.project.ra.deleteSut(query, props={'__user': user})
+        if not user:
+            return False
+        return self.project.ra.delete_sut(query, props={'__user': user})
 
 
-    def exposed_isResourceReserved(self, query):
-        logFull('CeRpyc:exposed_isResourceReserved')
+    def exposed_is_resource_reserved(self, query):
+        """ check if resource is reserved """
+        logFull('CeRpyc:exposed_is_resource_reserved')
         #user = self._check_login()
         #if not user: return False
-        return self.project.ra.isResourceReserved(query)
+        return self.project.ra.is_resource_reserved(query)
 
 
-    def exposed_isSutReserved(self, query):
-        logFull('CeRpyc:exposed_isSutReserved')
+    def exposed_is_sut_reserved(self, query):
+        """ check if SUT is reserved """
+        logFull('CeRpyc:exposed_is_sut_reserved')
         #user = self._check_login()
         #if not user: return False
-        return self.project.ra.isSutReserved(query)
+        return self.project.ra.is_sut_reserved(query)
 
 
-    def exposed_reserveResource(self, query):
-        logFull('CeRpyc:exposed_reserveResource')
+    def exposed_reserve_resource(self, query):
+        """ reserve resource """
+        logFull('CeRpyc:exposed_reserve_resource')
         user = self._check_login()
-        if not user: return False
-        return self.project.ra.reserveResource(query, props={'__user': user})
+        if not user:
+            return False
+        return self.project.ra.reserve_resource(query, props={'__user': user})
 
 
-    def exposed_reserveSut(self, query):
-        logFull('CeRpyc:exposed_reserveSut')
+    def exposed_reserve_sut(self, query):
+        """ reserve SUT """
+        logFull('CeRpyc:exposed_reserve_sut')
         user = self._check_login()
-        if not user: return False
-        return self.project.ra.reserveSut(query, props={'__user': user})
+        if not user:
+            return False
+        return self.project.ra.reserve_sut(query, props={'__user': user})
 
 
-    def exposed_saveAndReleaseReservedResource(self, query):
-        logFull('CeRpyc:exposed_saveAndReleaseReservedResource')
+    def exposed_save_rel_res_res(self, query):
+        """ save and release resource """
+        logFull('CeRpyc:exposed_save_rel_res_res')
         user = self._check_login()
-        if not user: return False
-        return self.project.ra.saveAndReleaseReservedResource(query, props={'__user': user})
+        if not user:
+            return False
+        return self.project.ra.save_release_reserved_resource(query, props={'__user': user})
 
 
-    def exposed_saveReservedResource(self, query):
-        logFull('CeRpyc:exposed_saveReservedResource')
+    def exposed_save_reserved_resource(self, query):
+        """ save reserved resource and keep it reserved """
+        logFull('CeRpyc:exposed_save_reserved_resource')
         user = self._check_login()
-        if not user: return False
-        return self.project.ra.saveReservedResource(query, props={'__user': user})
+        if not user:
+            return False
+        return self.project.ra.save_reserved_resource(query, props={'__user': user})
 
 
-    def exposed_saveReservedResourceAs(self, name, query):
-        logFull('CeRpyc:exposed_saveReservedResourceAs')
+    def exposed_save_reserved_res_as(self, name, query):
+        """" save resource with a different name """
+        logFull('CeRpyc:exposed_save_reserved_res_as')
         user = self._check_login()
-        if not user: return False
-        return self.project.ra.saveReservedResourceAs(name, query, props={'__user': user})
+        if not user:
+            return False
+        return self.project.ra.save_reserved_resource_as(name, query, props={'__user': user})
 
 
-    def exposed_saveReservedSutAs(self, name, query):
-        logFull('CeRpyc:exposed_saveReservedSutAs')
+    def exposed_save_reserved_sut_as(self, name, query):
+        """ save SUT with a different name """
+        logFull('CeRpyc:exposed_save_reserved_sut_as')
         user = self._check_login()
-        if not user: return False
-        return self.project.ra.saveReservedSutAs(name, query, props={'__user': user})
+        if not user:
+            return False
+        return self.project.ra.save_reserved_sut_as(name, query, props={'__user': user})
 
 
-    def exposed_saveReservedSut(self, query):
-        logFull('CeRpyc:exposed_saveReservedSut')
+    def exposed_save_reserved_sut(self, query):
+        """ save SUT and keep it reserved """
+        logFull('CeRpyc:exposed_save_reserved_sut')
         user = self._check_login()
-        if not user: return False
-        return self.project.ra.saveReservedSut(query, props={'__user': user})
+        if not user:
+            return False
+        return self.project.ra.save_reserved_sut(query, props={'__user': user})
 
 
-    def exposed_saveAndReleaseReservedSut(self, query):
-        logFull('CeRpyc:exposed_saveAndReleaseReservedSut')
+    def exposed_save_rel_res_sut(self, query):
+        """ save SUT changes and release """
+        logFull('CeRpyc:exposed_save_rel_res_sut')
         user = self._check_login()
-        if not user: return False
-        return self.project.ra.saveAndReleaseReservedSut(query, props={'__user': user})
+        if not user:
+            return False
+        return self.project.ra.save_release_reserved_sut(query, props={'__user': user})
 
 
-    def exposed_discardAndReleaseReservedResource(self, query):
-        logFull('CeRpyc:exposed_discardAndReleaseReservedResource')
+    def exposed_disc_rel_res_res(self, query):
+        """ drop changes and release resource """
+        logFull('CeRpyc:exposed_disc_rel_res_res')
         user = self._check_login()
-        if not user: return False
-        return self.project.ra.discardAndReleaseReservedResource(query, props={'__user': user})
+        if not user:
+            return False
+        return self.project.ra.discard_release_reserved_res(query, props={'__user': user})
 
 
-    def exposed_discardAndReleaseReservedSut(self, query):
-        logFull('CeRpyc:exposed_discardAndReleaseReservedSut')
+    def exposed_disc_rel_res_sut(self, query):
+        """ drop changes and release SUT """
+        logFull('CeRpyc:exposed_disc_rel_res_sut')
         user = self._check_login()
-        if not user: return False
-        return self.project.ra.discardAndReleaseReservedSut(query, props={'__user': user})
+        if not user:
+            return False
+        return self.project.ra.discard_release_reserved_sut(query, props={'__user': user})
 
 
 # Eof()

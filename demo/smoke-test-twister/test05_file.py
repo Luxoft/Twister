@@ -25,7 +25,7 @@ STATUS_WAITING  = 9  # Is waiting for another test
 
 def test(PROXY, USER):
 
-    ep_list = PROXY.listEPs()
+    ep_list = PROXY.list_eps()
 
     for epname in ep_list:
 
@@ -37,18 +37,18 @@ def test(PROXY, USER):
 
         for file_id in ep_files:
 
-            print 'File variable ?', PROXY.getFileVariable(epname, file_id, 'xyz')
-            r = PROXY.setFileVariable(epname, file_id, 'xyz', random.randrange(1, 100))
+            print 'File variable ?', PROXY.get_file_variable(epname, file_id, 'xyz')
+            r = PROXY.set_file_variable(epname, file_id, 'xyz', random.randrange(1, 100))
             if not r:
                 print('Failure! Cannot set file variable for `%s`!' % file_id)
                 return 'Fail'
 
             print 'Set variable for `{}`: `{}`'.format(file_id, r)
-            print 'File variable ?', PROXY.getFileVariable(epname, file_id, 'xyz')
+            print 'File variable ?', PROXY.get_file_variable(epname, file_id, 'xyz')
 
 
         # Get all statuses for this EP. It's a string
-        status_before = PROXY.getFileStatusAll(epname)
+        status_before = PROXY.get_file_status_all(epname)
         if not status_before: continue
 
         if len(ep_files) != len(status_before):
@@ -63,7 +63,7 @@ def test(PROXY, USER):
         print(msg) ; logMsg('logRunning', msg) ; logMsg('logDebug', msg)
         time.sleep(1)
 
-        r = PROXY.setFileStatusAll(epname, STATUS_SKIPPED)
+        r = PROXY.set_file_status_all(epname, STATUS_SKIPPED)
         # If success, the return must be True
         if not r:
             print('Failure! Cannot set file variable for all files!')
@@ -83,19 +83,19 @@ def test(PROXY, USER):
             if file_status == -1:
                 file_status = STATUS_PENDING
 
-            r = PROXY.setFileStatus(epname, file_id, int(file_status))
+            r = PROXY.set_file_status(epname, file_id, int(file_status))
             # If success, the return must be True
             if r:
-                print('setFileStatus for {} - {} success.'.format(epname, file_id))
+                print('set_file_status for {} - {} success.'.format(epname, file_id))
             else:
-                print('Failure! Cannot setFileStatus for {} - {}!'.format(epname, file_id))
+                print('Failure! Cannot set_file_status for {} - {}!'.format(epname, file_id))
                 return 'Fail'
 
         msg = 'ALL STATUSES RESTORED SUCCESSFULLY.\n'
         print(msg) ; logMsg('logRunning', msg) ; logMsg('logDebug', msg)
         time.sleep(1)
 
-        print 'Status All for {} ?'.format(epname), PROXY.getFileStatusAll(epname)
+        print 'Status All for {} ?'.format(epname), PROXY.get_file_status_all(epname)
 
         print '\n----- -----'
 

@@ -1,7 +1,7 @@
 
 # File: CeReports.py ; This file is part of Twister.
 
-# version: 2.010
+# version: 3.001
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -65,6 +65,7 @@ if mako.__version__ < '0.7':
 
 
 class ReportingServer(object):
+    """ Generate reports """
 
     db_parser = {}
     glob_fields  = {}
@@ -90,7 +91,7 @@ class ReportingServer(object):
             return False
 
         # Get the path to DB.XML
-        db_file = self.project.getUserInfo(usr, 'db_config')
+        db_file = self.project.get_user_info(usr, 'db_config')
         if not db_file:
             logError('Report Server: Null DB.XML file for user `{}`! Nothing to do!'.format(usr))
             return False
@@ -108,9 +109,11 @@ class ReportingServer(object):
             # Redirect links, that don't contain reports
             # Folders, that don't go anywhere, are just labels for reports
             self.glob_links[usr] = [{'link': 'Home', 'folder': '', 'type': 'link'}] +\
-                           [{'link': k, 'folder': v.get('folder', ''), 'type': 'link'} for k, v in self.glob_reports[usr].iteritems() ] +\
-                           [{'link': k, 'folder': '', 'type': 'redir'} for k in self.glob_redirects[usr] ] +\
-                           [{'link': 'Help', 'folder': '', 'type': 'link'}]
+                   [{'link': k, 'folder': v.get('folder', ''), 'type': 'link'}\
+                   for k, v in self.glob_reports[usr].iteritems() ] +\
+                   [{'link': k, 'folder': '', 'type': 'redir'}\
+                   for k in self.glob_redirects[usr] ] +\
+                   [{'link': 'Help', 'folder': '', 'type': 'link'}]
 
             self.connect_db(usr)
 
@@ -123,7 +126,7 @@ class ReportingServer(object):
         db_config = self.db_parser[usr].db_config
 
         # Decode database password
-        db_password = self.project.decryptText( usr, db_config.get('password') )
+        db_password = self.project.decrypt_text( usr, db_config.get('password') )
         if not db_password:
             logError('Report Server: Cannot decrypt the database password for user `{}`!'.format(usr))
             db_password = '0'
@@ -137,10 +140,11 @@ class ReportingServer(object):
     # Report link 1
     @cherrypy.expose
     def index(self, usr=''):
+        """ Index page """
         logFull('CeReports:index')
 
         if not usr:
-            users = self.project.listUsers()
+            users = self.project.list_users()
             output = Template(filename=TWISTER_PATH + '/server/template/rep_base.htm')
             return output.render(title='Users', usr='#' + '#'.join(users), links=[])
 
@@ -155,18 +159,21 @@ class ReportingServer(object):
     # Report link 2
     @cherrypy.expose
     def home(self, usr=''):
+        """ Get reporting link 2 """
         logFull('CeReports:home')
         return self.index(usr=usr)
 
     # Report link 3
     @cherrypy.expose
     def report(self, usr=''):
+        """ Get reporting link 3 """
         logFull('CeReports:report')
         return self.index(usr=usr)
 
     # Report link 4
     @cherrypy.expose
     def reporting(self, usr=''):
+        """ Get reporting link 4 """
         logFull('CeReports:reporting')
         return self.index(usr=usr)
 
@@ -174,8 +181,10 @@ class ReportingServer(object):
     # Help link
     @cherrypy.expose
     def help(self, usr=''):
+        """ Help page """
         logFull('CeReports:help')
-        if not usr: return '<br><b>Error! This link should be accessed by passing a username, eg: /help/some_user<b/>'
+        if not usr:
+            return '<br><b>Error! This link should be accessed by passing a username, eg: /help/some_user<b/>'
 
         if not os.path.isdir(userHome(usr) + '/twister/config'):
             return '<br><b>Error! Username `{}` doesn\'t have a Twister config folder!</b>'.format(usr)
@@ -188,15 +197,18 @@ class ReportingServer(object):
     # Reporting link
     @cherrypy.expose
     def rep(self, report=None, usr=None, **args):
+        """ Generate report """
         logFull('CeReports:rep')
 
-        if not usr: return '<br><b>Error! This link should be accessed by passing a username, eg: /rep/some_user<b/>'
+        if not usr:
+            return '<br><b>Error! This link should be accessed by passing a username, eg: /rep/some_user<b/>'
 
         if not os.path.isdir(userHome(usr) + '/twister/config'):
             return '<br><b>Error! Username `{}` doesn\'t have a Twister config folder!</b>'.format(usr)
 
         self.load_config(usr) # Re-load all Database XML
-        if usr not in self.conn: self.connect_db(usr)
+        if usr not in self.conn:
+            self.connect_db(usr)
 
         cherrypy.response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
         cherrypy.response.headers['Pragma']  = 'no-cache'
@@ -211,7 +223,9 @@ class ReportingServer(object):
 
         if report not in self.glob_reports[usr]:
             output = Template(filename=TWISTER_PATH + '/server/template/rep_error.htm')
-            return output.render(title='Missing report', usr=usr, links=self.glob_links[usr], msg='Report `<b>{}</b>` is not defined!'.format(report))
+            return output.render(title='Missing report', usr=usr,
+                links=self.glob_links[usr],
+                msg='Report `<b>{}</b>` is not defined!'.format(report))
 
         # All info about the report, from DB XML
         report_dict = self.glob_reports[usr][report]
@@ -236,7 +250,9 @@ class ReportingServer(object):
                 if not u_field:
                     output = Template(filename=TWISTER_PATH + '/server/template/rep_error.htm')
                     return output.render(links=self.glob_links[usr], title=report, usr=usr,
-                        msg='Cannot build query!<br><br>Field `<b>{}</b>` is not defined in the fields section!'.format(opt.replace('@', '')))
+                        msg='Cannot build query!<br><br>Field `<b>{}</b>` '\
+                            'is not defined in the fields section!'
+                            .format(opt.replace('@', '')))
 
                 this_option['type'] = u_field.get('type')
                 this_option['label'] = u_field.get('label')
@@ -249,7 +265,9 @@ class ReportingServer(object):
                     if not u_query:
                         output = Template(filename=TWISTER_PATH + '/server/template/rep_error.htm')
                         return output.render(links=self.glob_links[usr], title=report, usr=usr,
-                            msg='Cannot build query!<br><br>Field `<b>{}</b>` doesn\'t have a query!'.format(opt.replace('@', '')))
+                            msg='Cannot build query!<br><br>Field `<b>{}</b>`'\
+                                ' doesn\'t have a query!'
+                                .format(opt.replace('@', '')))
 
                     # Execute User Query
                     try:
@@ -262,7 +280,9 @@ class ReportingServer(object):
 
                         output = Template(filename=TWISTER_PATH + '/server/template/rep_error.htm')
                         return output.render(links=self.glob_links[usr], title=report, usr=usr,
-                            msg='Error in query `{}`!<br><br><b>MySQL Error {}</b>: {}!'.format(u_query, e.args[0], e.args[1]))
+                            msg='Error in query `{}`!<br><br><b>MySQL Error '\
+                                '{}</b>: {}!'
+                                .format(u_query, e.args[0], e.args[1]))
 
                     try:
                         u_vals = self.curs[usr].fetchall()
@@ -290,7 +310,8 @@ class ReportingServer(object):
                 else:
                     output = Template(filename=TWISTER_PATH + '/server/template/rep_error.htm')
                     return output.render(title=report, links=self.glob_links[usr], usr=usr,
-                        msg='Field `<b>{}</b>` is of unknown type: <b>{}</b>!'.format(opt.replace('@', ''), this_option['type']))
+                        msg='Field `<b>{}</b>` is of unknown type: <b>{}</b>!'
+                            .format(opt.replace('@', ''), this_option['type']))
 
                 u_options[opt] = this_option
 
@@ -308,7 +329,8 @@ class ReportingServer(object):
         for field in vars_to_replace:
             # The value chosen by the user
             u_select = cherrypy.request.params.get(field)
-            if not u_select: u_select = ''
+            if not u_select:
+                u_select = ''
             ajax_links.append(field +'='+ u_select)
             # Replace @variables@ with user chosen value
             query = query.replace(field, str(u_select))
@@ -371,17 +393,21 @@ class ReportingServer(object):
             #DEBUG.write(report +' -> '+ user_choices +' -> '+ query_compr + '\n\n') ; DEBUG.flush()
 
         output = Template(filename=TWISTER_PATH + '/server/template/rep_base.htm')
-        return output.render(usr=usr, title=report, links=self.glob_links[usr], ajax_link=ajax_link, user_choices=user_choices,
-            report=descr, chart=report_dict['type'])
+        return output.render(usr=usr, title=report, links=self.glob_links[usr],
+                             ajax_link=ajax_link, user_choices=user_choices,
+                             report=descr, chart=report_dict['type'])
 
 
     # JSON link
     @cherrypy.expose
     def json(self, report, usr, **args):
+        """ Generate json format """
         logFull('CeReports:json')
 
         if not usr:
-            output = {'aaData':[], 'error':'Error! This link should be accessed by passing a username, eg: /json/some_report/some_user'}
+            output = {'aaData':[], 'error':'Error! This link should be '\
+                      'accessed by passing a username, eg: ' \
+                      '/json/some_report/some_user'}
             return json.dumps(output, indent=2)
 
         if not os.path.isdir(userHome(usr) + '/twister/config'):
@@ -389,7 +415,8 @@ class ReportingServer(object):
             return json.dumps(output, indent=2)
 
         self.load_config(usr) # Re-load all Database XML
-        if usr not in self.conn: self.connect_db(usr)
+        if usr not in self.conn:
+            self.connect_db(usr)
 
         cherrypy.response.headers['Content-Type']  = 'application/json; charset=utf-8'
         cherrypy.response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
@@ -421,7 +448,8 @@ class ReportingServer(object):
             except:
                 pass
 
-            output = {'aaData':[], 'error':'Error in query `{}`! MySQL Error {}: {}!'.format(query, e.args[0], e.args[1])}
+            output = {'aaData':[], 'error':'Error in query `{}`! MySQL Error {}: {}!'
+                .format(query, e.args[0], e.args[1])}
             return json.dumps(output, indent=2)
 
         headers = [desc[0] for desc in self.curs[usr].description]
@@ -451,18 +479,21 @@ class ReportingServer(object):
                 except:
                     pass
 
-                output = {'aaData':[], 'error':'Error in query total `{}`! MySQL Error {}: {}!'.format(query_total, e.args[0], e.args[1])}
+                output = {'aaData':[], 'error':'Error in query total `{}`! MySQL Error {}: {}!'
+                    .format(query_total, e.args[0], e.args[1])}
                 return json.dumps(output, indent=2)
 
             headers_tot = [desc[0] for desc in self.curs[usr].description]
             rows_tot = self.curs[usr].fetchall()
 
             if len(headers) != len(headers_tot):
-                output = {'aaData':[], 'error':'The first query has {} columns and the second has {} columns!'.format(len(headers), len(headers_tot))}
+                output = {'aaData':[], 'error':'The first query has {} columns and the second has {} columns!'
+                    .format(len(headers), len(headers_tot))}
                 return json.dumps(output, indent=2)
 
             if len(rows) != len(rows_tot):
-                output = {'aaData':[], 'error':'The first query has {} rows and the second has {} rows!'.format(len(rows), len(rows_tot))}
+                output = {'aaData':[], 'error':'The first query has {} rows and the second has {} rows!'
+                    .format(len(rows), len(rows_tot))}
                 return json.dumps(output, indent=2)
 
             # Will calculate the new rows like this:
@@ -475,10 +506,14 @@ class ReportingServer(object):
                 tot_row = list(rows_tot[i])
 
                 # Null and None values must be numbers
-                if not row[0]: row = (0.0, row[1])
-                if not row[1]: row = (row[0], 0.0)
-                if not tot_row[0]: tot_row[0] = 0.0
-                if not tot_row[1]: tot_row[1] = 0.1
+                if not row[0]:
+                    row = (0.0, row[1])
+                if not row[1]:
+                    row = (row[0], 0.0)
+                if not tot_row[0]:
+                    tot_row[0] = 0.0
+                if not tot_row[1]:
+                    tot_row[1] = 0.1
 
                 # Calculate percent...
                 percent = '%.2f' % ( float(row[1]) / tot_row[1] * 100.0 )
@@ -505,14 +540,16 @@ class ReportingServer(object):
                 except:
                     pass
 
-                output = {'aaData':[], 'error':'Error in query compare `{}`! MySQL Error {}: {}!'.format(query_total, e.args[0], e.args[1])}
+                output = {'aaData':[], 'error':'Error in query compare `{}`! '\
+                    'MySQL Error {}: {}!'.format(query_total, e.args[0], e.args[1])}
                 return json.dumps(output, indent=2)
 
             headers_tot = [desc[0] for desc in self.curs[usr].description]
             rows_tot = self.curs[usr].fetchall()
 
             if len(headers) != len(headers_tot): # Must be the same number of columns
-                output = {'aaData':[], 'error':'The first query has {} columns and the second has {} columns!'.format(len(headers), len(headers_tot))}
+                output = {'aaData':[], 'error':'The first query has {} columns and the second has {} columns!'
+                    .format(len(headers), len(headers_tot))}
                 return json.dumps(output, indent=2)
 
             headers_len = len(headers)
@@ -522,10 +559,14 @@ class ReportingServer(object):
             for i in range(rows_max_size):
                 r1 = rows[i:i+1]
                 r2 = rows_tot[i:i+1]
-                if not r1: r1 = [' ' for i in range(headers_len)]
-                else: r1 = r1[0]
-                if not r2: r2 = [' ' for i in range(headers_len)]
-                else: r2 = r2[0]
+                if not r1:
+                    r1 = [' ' for i in range(headers_len)]
+                else:
+                    r1 = r1[0]
+                if not r2:
+                    r2 = [' ' for i in range(headers_len)]
+                else:
+                    r2 = r2[0]
                 calc_rows.append( tuple(r1) +(' <---> ',)+ tuple(r2) )
 
             # Update headers: must contain both headers.
@@ -554,6 +595,7 @@ class ReportingServer(object):
     # Error page
     @cherrypy.expose
     def error(self, **args):
+        """ Generate error page """
         logFull('CeReports:error')
         output = Template(filename=TWISTER_PATH + '/server/template/rep_error.htm')
         return output.render(title='Error 404', links=[], msg='Sorry, this page does not exist!')
@@ -561,6 +603,7 @@ class ReportingServer(object):
     # Error page
     @cherrypy.expose
     def default(self, **args):
+        """ Generate default template """
         logFull('CeReports:default')
         output = Template(filename=TWISTER_PATH + '/server/template/rep_error.htm')
         return output.render(title='Error 404', links=[], msg='Sorry, this page does not exist!')

@@ -1,6 +1,6 @@
 /*
 File: JiraPlugin.java ; This file is part of Twister.
-Version: 2.004
+Version: 2.005
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -250,7 +250,7 @@ public class JiraPlugin extends BasePlugin implements TwisterPluginInterface {
 			params.put("server", p.tfJiraServer.getText());			
 			params.put("user", p.tfUsername.getText());
 			params.put("passwd", new String(p.tfPassword.getPassword()));	
-			Object ob =  client.execute("runPlugin", new Object[]{variables.get("user"),
+			Object ob =  client.execute("run_plugin", new Object[]{variables.get("user"),
 					 getName(),params});
 			Object[] result=null;
 			try{result = (Object[])ob;}
@@ -304,7 +304,7 @@ public class JiraPlugin extends BasePlugin implements TwisterPluginInterface {
 			params.put("server", p.tfJiraServer.getText());
 			params.put("user", p.tfUsername.getText());
 
-			Object[] result = (Object[]) client.execute("runPlugin", new Object[]{variables.get("user"),
+			Object[] result = (Object[]) client.execute("run_plugin", new Object[]{variables.get("user"),
 					 getName(),params});
 			if (result!=null){									
 				issueTypes = result;
@@ -332,7 +332,7 @@ public class JiraPlugin extends BasePlugin implements TwisterPluginInterface {
 			params.put("server", p.tfJiraServer.getText());
 			params.put("user", p.tfUsername.getText());
 			
-			Object[] result = (Object[]) client.execute("runPlugin", new Object[]{variables.get("user"),
+			Object[] result = (Object[]) client.execute("run_plugin", new Object[]{variables.get("user"),
 					 getName(),params});
 			if (result != null){
 				priorities = result;
@@ -361,7 +361,7 @@ public class JiraPlugin extends BasePlugin implements TwisterPluginInterface {
 			params.put("server", p.tfJiraServer.getText());
 			params.put("user", p.tfUsername.getText());
 			
-			Object[] result = (Object[]) client.execute("runPlugin", new Object[]{variables.get("user"),
+			Object[] result = (Object[]) client.execute("run_plugin", new Object[]{variables.get("user"),
 					 getName(),params});
 			if (result!=null){		
 				statuses = result;
@@ -394,7 +394,7 @@ public class JiraPlugin extends BasePlugin implements TwisterPluginInterface {
 			params.put("user", p.tfUsername.getText());
 			params.put("project", projKey);			
 			
-			Object[] result = (Object[]) client.execute("runPlugin", new Object[]{variables.get("user"),
+			Object[] result = (Object[]) client.execute("run_plugin", new Object[]{variables.get("user"),
 					 getName(),params});
 			if (!result.equals("empty")){
 				versions = result;
@@ -428,7 +428,7 @@ public class JiraPlugin extends BasePlugin implements TwisterPluginInterface {
 			params.put("user", p.tfUsername.getText());
 			params.put("project", projKey);	
 			
-			Object[] result = (Object[]) client.execute("runPlugin", new Object[]{variables.get("user"),
+			Object[] result = (Object[]) client.execute("run_plugin", new Object[]{variables.get("user"),
 					 getName(),params});
 			if (!result.equals("empty")){
 				components  = result;
@@ -497,7 +497,7 @@ public class JiraPlugin extends BasePlugin implements TwisterPluginInterface {
 		params.put("query", query);
 		try {
 			System.out.println("\n\t - attempting to get issues by query "+hashToString(params));			
-			Object[] rawIssues = (Object[]) client.execute("runPlugin", new Object[]{variables.get("user"),
+			Object[] rawIssues = (Object[]) client.execute("run_plugin", new Object[]{variables.get("user"),
 					 getName(),params});
 			if (rawIssues != null){
 			    issues = new LinkedList(Arrays.asList(rawIssues));
@@ -528,7 +528,7 @@ public class JiraPlugin extends BasePlugin implements TwisterPluginInterface {
 			params.put("server", p.tfJiraServer.getText());		
 			params.put("user", p.tfUsername.getText());
 			params.put("key", issueKey);			
-			Object[] result = (Object[]) client.execute("runPlugin", new Object[]{variables.get("user"),
+			Object[] result = (Object[]) client.execute("run_plugin", new Object[]{variables.get("user"),
 					 getName(),params});
 			if (result != null){	
 				if (result[0] instanceof String){
@@ -559,7 +559,7 @@ public class JiraPlugin extends BasePlugin implements TwisterPluginInterface {
 			params.put("user", p.tfUsername.getText());
 			params.put("issue", removeNullFields(issue));
 //			System.out.println(params);
-			Object[] result = (Object[]) client.execute("runPlugin", new Object[]{variables.get("user"),
+			Object[] result = (Object[]) client.execute("run_plugin", new Object[]{variables.get("user"),
 					 getName(),params});
 			if (result != null){
 				// add the newly created issue to the list of issues
@@ -599,7 +599,7 @@ public class JiraPlugin extends BasePlugin implements TwisterPluginInterface {
 			params.put("user", p.tfUsername.getText());
 			params.put("issue", removeNullFields(issue));
 			
-			Object[] result = (Object[]) client.execute("runPlugin", new Object[]{variables.get("user"),
+			Object[] result = (Object[]) client.execute("run_plugin", new Object[]{variables.get("user"),
 					 getName(),params});
 			if (result != null){
 				updateIssue((HashMap) result[0]);
@@ -641,7 +641,7 @@ public class JiraPlugin extends BasePlugin implements TwisterPluginInterface {
             }
 			
 			
-			String resp = client.execute("writeFile", new Object[]{remotePath+"/"+file.getName(),content,"w"}).toString();
+			String resp = client.execute("write_file", new Object[]{remotePath+"/"+file.getName(),content,"w"}).toString();
             if(resp.indexOf("*ERROR*")!=-1){
                 CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,p,"ERROR", resp);
             }
@@ -699,7 +699,7 @@ public class JiraPlugin extends BasePlugin implements TwisterPluginInterface {
 		try {
 			System.out.println("\n\t - attempting to update attachments of issue "+issueKey);
 			
-			boolean result = (boolean) client.execute("runPlugin", new Object[]{variables.get("user"),
+			boolean result = (boolean) client.execute("run_plugin", new Object[]{variables.get("user"),
 					getName(),params});
 			if (result){
 				System.out.println("Attach successful to issue "+issueKey);
@@ -728,7 +728,7 @@ public class JiraPlugin extends BasePlugin implements TwisterPluginInterface {
 				params.put("command", "editcomment");
 				params.put("id", (String) comment.get("id"));				
 								
-				Object[] result = (Object[]) client.execute("runPlugin", new Object[]{variables.get("user"),
+				Object[] result = (Object[]) client.execute("run_plugin", new Object[]{variables.get("user"),
 						 getName(),params});
 				if (result != null){
 					System.out.println("Comment edited.");
@@ -744,7 +744,7 @@ public class JiraPlugin extends BasePlugin implements TwisterPluginInterface {
 				params.put("command", "comment");
 				params.put("key", issueKey);				
 								
-				Object[] result = (Object[]) client.execute("runPlugin", new Object[]{variables.get("user"),
+				Object[] result = (Object[]) client.execute("run_plugin", new Object[]{variables.get("user"),
 						 getName(),params});
 				if (result != null){
 					System.out.println("Comment creation successful.");
@@ -776,7 +776,7 @@ public class JiraPlugin extends BasePlugin implements TwisterPluginInterface {
 			params.put("user", p.tfUsername.getText());
 			params.put("key", issueKey);
 			
-			Object[] result = (Object[]) client.execute("runPlugin", new Object[]{variables.get("user"),
+			Object[] result = (Object[]) client.execute("run_plugin", new Object[]{variables.get("user"),
 					 getName(),params});
 			if (result!=null){									
 				actions = result;

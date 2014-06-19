@@ -1,7 +1,7 @@
 
 # File: TestCaseRunnerClasses.py ; This file is part of Twister.
 
-# version: 3.003
+# version: 3.004
 
 # Copyright (C) 2012-2014, Luxoft
 
@@ -141,8 +141,8 @@ class TCRunTcl(object):
             globs['getResourceStatus'])
         self.tcl.createcommand('allocResource',
             globs['allocResource'])
-        self.tcl.createcommand('reserveResource',
-            globs['reserveResource'])
+        self.tcl.createcommand('reserve_resource',
+            globs['reserve_resource'])
         self.tcl.createcommand('freeResource',
             globs['freeResource'])
 
@@ -377,11 +377,11 @@ def getResource(*arg, **kw):
 def setResource(*arg, **kw):
     return commonLib.setResource(*arg, **kw)
 
-def getSut(*arg, **kw):
-    return commonLib.getSut(*arg, **kw)
+def get_sut(*arg, **kw):
+    return commonLib.get_sut(*arg, **kw)
 
-def setSut(*arg, **kw):
-    return commonLib.setSut(*arg, **kw)
+def set_sut(*arg, **kw):
+    return commonLib.set_sut(*arg, **kw)
 
 END_OF_PYTHON_CODE
 """  %  (fpath, str([self.filename] + params), TWISTER_PATH, fdir)

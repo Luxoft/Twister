@@ -1,6 +1,6 @@
 /*
 File: XMLBuilder.java ; This file is part of Twister.
-Version: 2.023
+Version: 3.001
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -261,7 +261,7 @@ public class XMLBuilder{
                     try{
                         if(ep.equals("")){
                             System.out.print("Getting anonym ep for "+suite.get(i).getName());
-                            ep=RunnerRepository.getRPCClient().execute("findAnonimEp", new Object[]{RunnerRepository.user}).toString();
+                            ep=RunnerRepository.getRPCClient().execute("find_anonim_ep", new Object[]{RunnerRepository.user}).toString();
                             suite.get(i).setEpId(new String[]{ep,suite.get(i).getEpId()[1]});
                             System.out.println(" got ep: "+ep);
                         }

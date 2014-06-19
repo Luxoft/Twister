@@ -80,9 +80,9 @@ def test(PROXY, USER):
     print('Testing Central Engine encrypt / decrypt...\n')
     for i in range(10):
         d = binascii.hexlify(os.urandom(4))
-        r1 = PROXY.encryptText(d)
+        r1 = PROXY.encrypt_text(d)
         print('Encrypt:\n{} -> {}'.format(d, r1))
-        r2 = PROXY.decryptText(r1)
+        r2 = PROXY.decrypt_text(r1)
         if r2 != d:
             print('Invalid decrypt!')
             return 'Fail'

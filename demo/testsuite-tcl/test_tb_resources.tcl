@@ -35,7 +35,7 @@ proc Test {} {
     puts "Meta 2:: [getResource /tb_tcl1:meta2]\n"
 
     puts "Check status 1:: [getResourceStatus $id1]"
-    puts "Reserve resource:: [reserveResource $id1]"
+    puts "Reserve resource:: [reserve_resource $id1]"
     puts "Check status 2:: [getResourceStatus $id1]\n"
 
     puts "Delete resource:: [deleteResource $id1]"

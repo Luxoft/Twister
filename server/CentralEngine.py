@@ -1,6 +1,6 @@
 #!/usr/bin/env python2.7
 
-# version: 3.003
+# version: 3.004
 
 # File: CentralEngine.py ; This file is part of Twister.
 
@@ -53,14 +53,15 @@ if TWISTER_PATH not in sys.path:
     sys.path.append(TWISTER_PATH)
 
 
-from common.tsclogging import *
+from common.tsclogging import logError, logDebug, logWarning, logCritical, \
+    logInfo
 from common.tsclogging import setLogLevel
 from server.CeProject  import Project
 from server.CeXmlRpc   import CeXmlRpc
 from server.CeRpyc     import CeRpycService
 from common import iniparser
-from CeFs import LocalFS
-from CeClearCaseFs import ClearCaseFs
+from server.CeFs import LocalFS
+from server.CeClearCaseFs import ClearCaseFs
 
 #
 
@@ -70,32 +71,32 @@ if __name__ == "__main__":
         logWarning('Twister Server should run as ROOT! If it doesn\'t, '
                    'it won\'t be able to read config files and write logs for all users!')
 
-    serverPort = sys.argv[1:2]
+    SERVER_PORT = sys.argv[1:2]
 
-    if not serverPort:
+    if not SERVER_PORT:
         logCritical('Twister Server: Must start with parameter PORT number!')
         exit(1)
     else:
         try:
-            serverPort = int(serverPort[0])
+            SERVER_PORT = int(SERVER_PORT[0])
         except Exception:
             logCritical('Twister Server: Must start with parameter PORT number!')
             exit(1)
 
     # Read verbosity from configuration
-    cfg_path = '{}/config/server_init.ini'.format(TWISTER_PATH)
-    verbosity = 20
-    if os.path.isfile(cfg_path):
-        cfg = iniparser.ConfigObj(cfg_path)
-        verbosity = cfg.get('verbosity', 20)
-        del cfg
+    CFG_PATH = '{}/config/server_init.ini'.format(TWISTER_PATH)
+    VERBOSITY = 20
+    if os.path.isfile(CFG_PATH):
+        CFG = iniparser.ConfigObj(CFG_PATH)
+        VERBOSITY = CFG.get('verbosity', 20)
+        del CFG
 
-    r = setLogLevel(verbosity)
-    if not r:
+    RET = setLogLevel(VERBOSITY)
+    if not RET:
         logError('Log: The Log level will default to INFO.')
 
     # RPyc config
-    config = {
+    CONFIG = {
         'allow_pickle': True,
         'allow_getattr': True,
         'allow_setattr': True,
@@ -104,46 +105,46 @@ if __name__ == "__main__":
         }
 
     # Diff RPyc port
-    rpycPort = serverPort + 10
+    RPYC_PORT = SERVER_PORT + 10
     try:
-        rpycServer = ThreadPoolServer(CeRpycService, port=rpycPort, protocol_config=config)
-        rpycServer.logger.setLevel(30)
+        RPYC_SERVER = ThreadPoolServer(CeRpycService, port=RPYC_PORT, protocol_config=CONFIG)
+        RPYC_SERVER.logger.setLevel(30)
     except Exception:
-        logCritical('Twister Server: Cannot launch the RPyc server on port `{}`!'.format(rpycPort))
+        logCritical('Twister Server: Cannot launch the RPyc server on port `{}`!'.format(RPYC_PORT))
         exit(1)
 
     # Project manager does everything
-    proj = Project()
-    proj.rsrv = rpycServer
-    proj.localFs = LocalFS(proj)
-    proj.clearFs = ClearCaseFs(proj)
+    PROJ = Project()
+    PROJ.rsrv = RPYC_SERVER
+    PROJ.localFs = LocalFS(PROJ)
+    PROJ.clearFs = ClearCaseFs(PROJ)
     # CE is the XML-RPC interface
-    ce = CeXmlRpc(proj)
+    CE = CeXmlRpc(PROJ)
 
     def close():
         """ Close server. """
-        rpycServer.close()
-        del proj.manager
+        RPYC_SERVER.close()
+        del PROJ.manager
 
-    proj.ip_port = ('127.0.0.1', serverPort)
-    ce.web = proj.web
-    ce.ra  = proj.ra
-    ce.report = proj.report
+    PROJ.ip_port = ('127.0.0.1', SERVER_PORT)
+    CE.web = PROJ.web
+    CE.ra  = PROJ.ra
+    CE.report = PROJ.report
 
     # EE Manager is the helper for EPs and Clients
     # Inject the project as variable for EE
-    rpycServer.service.inject_object('project', proj)
-    rpycServer.service.inject_object('cherry', ce)
+    RPYC_SERVER.service.inject_object('project', PROJ)
+    RPYC_SERVER.service.inject_object('cherry', CE)
 
     # Start rpyc server
-    thread.start_new_thread(rpycServer.start, ())
-    logInfo('RPYC Serving on 0.0.0.0:{}'.format(rpycPort))
+    thread.start_new_thread(RPYC_SERVER.start, ())
+    logInfo('RPYC Serving on 0.0.0.0:{}'.format(RPYC_PORT))
 
 
     # CherryPy config
-    conf = {'global': {
+    CONF = {'global': {
             'server.socket_host': '0.0.0.0',
-            'server.socket_port': serverPort,
+            'server.socket_port': SERVER_PORT,
             'server.thread_pool': 90,
             'engine.autoreload.on': False,
             'log.screen': False,
@@ -162,6 +163,6 @@ if __name__ == "__main__":
 
     # Start !
     cherrypy.engine.signal_handler.handlers['SIGTERM'] = close
-    cherrypy.quickstart(ce, '/', config=conf)
+    cherrypy.quickstart(CE, '/', config=CONF)
 
 #

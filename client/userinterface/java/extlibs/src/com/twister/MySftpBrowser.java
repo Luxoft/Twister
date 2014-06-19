@@ -1,7 +1,7 @@
 package com.twister;
 /*
 File: MySftpBrowser.java ; This file is part of Twister.
-Version: 2.010
+Version: 3.001
 Copyright (C) 2012 , Luxoft
 
 Authors: Andrei Costachi <acostachi@luxoft.com>
@@ -195,7 +195,7 @@ public class MySftpBrowser extends JFrame {
 			sb.append(s);
 		}
 		try {
-			Object ob = client.execute("listFiles", new Object[]{sb.toString(),true,false});
+			Object ob = client.execute("list_files", new Object[]{sb.toString(),true,false});
 			if(ob.toString().indexOf("*ERROR*")==-1){
 				return sb.toString();
 			} else {
@@ -302,7 +302,7 @@ public class MySftpBrowser extends JFrame {
 	private String getUserHome(){
 		Object ob;
 		try {
-			ob = client.execute("getUserHome", new Object[]{});
+			ob = client.execute("get_user_home", new Object[]{});
 			if(ob.toString().indexOf("*ERROR*")!=-1){
 	            CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,this,"ERROR", ob.toString());
 	            return "";
@@ -325,9 +325,9 @@ public class MySftpBrowser extends JFrame {
 			model.setRowCount(0);
 			Object ob = null;
 			if(tag == null){
-				ob =client.execute("listFiles", new Object[]{currentlocation,true,false});
+				ob =client.execute("list_files", new Object[]{currentlocation,true,false});
 			} else {
-				ob = client.execute("listFiles", new Object[]{currentlocation,true,false,"clearcase:"+tag});
+				ob = client.execute("list_files", new Object[]{currentlocation,true,false,"clearcase:"+tag});
 			}
             if(ob.toString().indexOf("*ERROR*")!=-1){
                 CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,this,"ERROR", ob.toString());

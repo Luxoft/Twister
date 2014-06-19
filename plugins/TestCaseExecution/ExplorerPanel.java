@@ -1,6 +1,6 @@
 /*
 File: ExplorerPanel.java ; This file is part of Twister.
-Version: 2.016
+Version: 3.001
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -216,7 +216,7 @@ public class ExplorerPanel extends JPanel{
     //call CE to generate index based on tc tags.
     public void generateIndex(){
         try{String result = RunnerRepository.getRPCClient().execute(
-                                "generateIndex", new Object[] {}).toString();
+                                "generate_index", new Object[] {}).toString();
             if(result.indexOf("*ERROR*")!=-1){
                 CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,this,"ERROR", result);
             }
@@ -244,7 +244,7 @@ public class ExplorerPanel extends JPanel{
         progress.pack();
         progress.setVisible(true);
         try{Object result = RunnerRepository.getRPCClient().execute(
-                                "searchIndex", new Object[] {filename+"&"+tags});
+                                "search_index", new Object[] {filename+"&"+tags});
             if(result.toString().indexOf("*ERROR*")!=-1){
                 CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,this,"ERROR", result.toString());
                 progress.dispose();
@@ -281,7 +281,7 @@ public class ExplorerPanel extends JPanel{
                             + tree.getSelectionPath().getLastPathComponent()
                                     .toString();
                     String result = RunnerRepository.getRPCClient().execute(
-                            "getTestDescription", new Object[] { thefile })
+                            "get_test_description", new Object[] { thefile })
                             + "";
                     Container pan1 = (Container) RunnerRepository.window.mainpanel.p1.splitPane
                             .getComponent(1);

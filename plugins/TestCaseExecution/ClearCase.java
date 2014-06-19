@@ -1,6 +1,6 @@
 /*
 File: ClearCase.java ; This file is part of Twister.
-Version: 2.022
+Version: 2.023
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -101,7 +101,7 @@ public class ClearCase extends JPanel{
             progress.setVisible(true);   
         }
         try{
-            String result = RunnerRepository.getRPCClient().execute("runPlugin", new Object[]{RunnerRepository.user,
+            String result = RunnerRepository.getRPCClient().execute("run_plugin", new Object[]{RunnerRepository.user,
                                                                      "ClearCase",hash}).toString();
             if(!withoutprogressbar)progress.dispose();
             if(result.length()>0&&result.charAt(0)=='\"')result = result.substring(1,result.length()-1);
@@ -1193,7 +1193,7 @@ public class ClearCase extends JPanel{
 //         hash.put("command", "get_path_tree");
 //         hash.put("path", root);
 //         String result = "";
-//         try{result= RunnerRepository.getRPCClient().execute("runPlugin", new Object[]{RunnerRepository.user,
+//         try{result= RunnerRepository.getRPCClient().execute("run_plugin", new Object[]{RunnerRepository.user,
 //                                                                      "ClearCase",hash}).toString();
 //             System.out.println(result);}
 //         catch(Exception e){

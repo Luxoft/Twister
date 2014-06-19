@@ -1,7 +1,7 @@
 
 # File: UserService.py ; This file is part of Twister.
 
-# version: 3.009
+# version: 3.010
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -326,10 +326,11 @@ class UserService(rpyc.Service):
                 # If filter is active and file doesn't match, ignore
                 if filter and os.path.isfile(long_path) and long_path not in filter:
                     continue
+
                 # Ignore hidden files
                 if hidden and fname[0] == '.':
                     continue
-                log.warning( long_path )
+                #log.warning('gigi {}'.format(long_path) )
                 # Meta info
                 try:
                     fstat = os.stat(long_path)

@@ -1,7 +1,7 @@
 
 # File: CeFs.py ; This file is part of Twister.
 
-# version: 3.014
+# version: 3.015
 
 # Copyright (C) 2012-2014, Luxoft
 
@@ -22,6 +22,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""
+Local file system; used to help workign with files where user is owner
+"""
 
 import os, sys
 import time
@@ -51,8 +54,10 @@ __all__ = ['LocalFS']
 
 
 def singleton(cls):
+    """ Lauch single instance"""
     instances = {}
     def getinstance(*args, **kwargs):
+        """ Return new/existing instance """
         if cls not in instances:
             instances[cls] = cls(*args, **kwargs)
         return instances[cls]
@@ -77,7 +82,7 @@ class LocalFS(object):
 
 
     def _kill(self, user):
-
+        """ Stop service """
         ps   = local['ps']
         grep = local['grep']
 
@@ -91,16 +96,18 @@ class LocalFS(object):
             li = line.strip().decode('utf').split()
             PID = int(li[1])
             del li[2:5]
-            if '/bin/sh' in li: continue
-            if '/bin/grep' in li: continue
-            logDebug('User {}: Killing ugly zombie `{}`.'.format(user,' '.join(li)))
+            if '/bin/sh' in li:
+                continue
+            if '/bin/grep' in li:
+                continue
+            logDebug('User {}: Killing ugly zombie `{}`.'.format(user, ' '.join(li)))
             try:
                 os.kill(PID, 9)
             except:
                 pass
 
 
-    def _usrService(self, user, op='read'):
+    def _usr_service(self, user, op='read'):
         """
         Launch a user service.
         """
@@ -116,7 +123,7 @@ class LocalFS(object):
             if conn:
                 try:
                     conn.ping(data='Hello', timeout=30.0)
-                    # logDebug('Reuse old {} User Service connection for `{}` OK.'.format(op, user))
+                    #logDebug('Reuse old {} User Service connection for `{}` OK.'.format(op, user))
                     return conn
                 except Exception as e:
                     logWarning('Cannot reuse {} User Service for `{}`: `{}`.'.format(op, user, e))
@@ -182,7 +189,7 @@ class LocalFS(object):
 
             if not success:
                 logError('Error on starting User Service for `{}`!'.format(user))
-                return False
+                return None
 
             # Save the process inside the block.  99% of the time, this block is executed instantly!
             self._services[user] = {'proc': proc, 'conn_read': conn_read, 'conn_write': conn_write, 'port': port}
@@ -195,13 +202,13 @@ class LocalFS(object):
     # ----- USER ---------------------------------------------------------------
 
 
-    def fileSize(self, user, fpath):
+    def file_size(self, user, fpath):
         """
         Get file size for 1 file. Client access via RPyc.
         """
         if not fpath:
             return False
-        srvr = self._usrService(user)
+        srvr = self._usr_service(user)
         if srvr:
             try:
                 return srvr.root.file_size(fpath)
@@ -211,13 +218,13 @@ class LocalFS(object):
             return -1
 
 
-    def readUserFile(self, user, fpath, flag='r', fstart=0):
+    def read_user_file(self, user, fpath, flag='r', fstart=0):
         """
         Read 1 file. Client access via RPyc.
         """
         if not fpath:
             return False
-        srvr = self._usrService(user)
+        srvr = self._usr_service(user)
         if srvr:
             try:
                 return srvr.root.read_file(fpath, flag, fstart)
@@ -229,13 +236,13 @@ class LocalFS(object):
             return False
 
 
-    def writeUserFile(self, user, fpath, fdata, flag='w'):
+    def write_user_file(self, user, fpath, fdata, flag='w'):
         """
         Read 1 file. Client access via RPyc.
         """
         if not fpath:
             return False
-        srvr = self._usrService(user, 'write')
+        srvr = self._usr_service(user, 'write')
         if len(fdata) > 20*1000*1000:
             err = '*ERROR* File data too long `{}`: {}; User {}.'.format(fpath, len(fdata), user)
             logWarning(err)
@@ -251,50 +258,56 @@ class LocalFS(object):
             return False
 
 
-    def copyUserFile(self, user, fpath, newpath):
+    def copy_user_file(self, user, fpath, newpath):
+        """ copy an user file """
         if not fpath:
             return False
-        srvr = self._usrService(user, 'write')
+        srvr = self._usr_service(user, 'write')
         if srvr:
             return srvr.root.copy_file(fpath, newpath)
         else:
             return False
 
 
-    def moveUserFile(self, user, fpath, newpath):
+    def move_user_file(self, user, fpath, newpath):
+        """ move/rename a user file """
         if not fpath:
             return False
-        srvr = self._usrService(user, 'write')
+        srvr = self._usr_service(user, 'write')
         if srvr:
             return srvr.root.move_file(fpath, newpath)
         else:
             return False
 
 
-    def deleteUserFile(self, user, fpath):
+    def delete_user_file(self, user, fpath):
+        """ delete user file """
         if not fpath:
             return False
-        srvr = self._usrService(user)
+        srvr = self._usr_service(user)
         if srvr:
             return srvr.root.delete_file(fpath)
         else:
             return False
 
 
-    def createUserFolder(self, user, fdir):
+    def create_user_folder(self, user, fdir):
+        """ create a folder in user client directory """
         if not fdir:
             return False
-        srvr = self._usrService(user)
+        srvr = self._usr_service(user)
         if srvr:
             return srvr.root.create_folder(fdir)
         else:
             return False
 
 
-    def listUserFiles(self, user, fdir, hidden=True, recursive=True, filter=[]):
+    def list_user_files(self, user, fdir, hidden=True, recursive=True, filter=[]):
+        """ list the files in user directory """
         if not fdir:
             return False
-        srvr = self._usrService(user)
+
+        srvr = self._usr_service(user)
         if srvr:
             try:
                 files = srvr.root.list_files(fdir, hidden, recursive, filter)
@@ -307,20 +320,22 @@ class LocalFS(object):
             return False
 
 
-    def deleteUserFolder(self, user, fdir):
+    def delete_user_folder(self, user, fdir):
+        """ Delete user folder """
         if not fdir:
             return False
-        srvr = self._usrService(user)
+        srvr = self._usr_service(user)
         if srvr:
             return srvr.root.delete_folder(fdir)
         else:
             return False
 
 
-    def targzUserFolder(self, user, fdir):
+    def targz_user_folder(self, user, fdir):
+        """ Archive a folder """
         if not fdir:
             return False
-        srvr = self._usrService(user)
+        srvr = self._usr_service(user)
         if srvr:
             return srvr.root.targz_folder(fdir)
         else:
@@ -331,7 +346,7 @@ class LocalFS(object):
 
 
     @staticmethod
-    def sysFileSize(fpath):
+    def sys_file_size(fpath):
         """
         Get file size for 1 file. ROOT access.
         """
@@ -348,7 +363,7 @@ class LocalFS(object):
 
 
     @staticmethod
-    def readSystemFile(fpath, flag='r', fstart=0):
+    def read_system_file(fpath, flag='r', fstart=0):
         """
         Read 1 file. ROOT access.
         """
@@ -380,7 +395,7 @@ class LocalFS(object):
 
 
     @staticmethod
-    def writeSystemFile(fpath, fdata, flag='a'):
+    def write_system_file(fpath, fdata, flag='a'):
         """
         Write data in a file. ROOT access.
         Overwrite or append, ascii or binary.
@@ -409,33 +424,37 @@ class LocalFS(object):
             return err
 
 
-    def deleteSystemFile(self, fname):
+    def delete_system_file(self, fname):
+        """ Dummy method """
         pass
 
 
-    def createSystemFolder(self, fdir):
+    def create_system_folder(self, fdir):
+        """ Dummy method """
         pass
 
 
-    def listSystemFiles(self, fdir):
+    def list_system_files(self, fdir):
+        """ Dummy method """
         pass
 
 
-    def deleteSystemFolder(self, fdir):
+    def delete_system_folder(self, fdir):
+        """ Dummy method """
         pass
 
 #
 
 if __name__ == '__main__':
 
-    fs1 = LocalFS()
-    fs2 = LocalFS()
+    FS_1 = LocalFS()
+    FS_2 = LocalFS()
 
-    assert fs1 == fs2, 'Not equal!'
-    assert fs1 is fs2, 'Not identical!'
+    assert FS_1 == FS_2, 'Not equal!'
+    assert FS_1 is FS_2, 'Not identical!'
 
-    print(fs1)
-    print(fs2)
+    print(FS_1)
+    print(FS_2)
     print('Ok.')
 
 

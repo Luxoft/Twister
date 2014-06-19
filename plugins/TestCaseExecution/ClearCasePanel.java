@@ -1,6 +1,6 @@
 /*
 File: ClearCasePanel.java ; This file is part of Twister.
-Version: 2.020
+Version: 3.001
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -268,7 +268,7 @@ public class ClearCasePanel{
                                                     .toString();
                                     System.out.println("thefile: "+thefile);
                                     String result = RunnerRepository.getRPCClient().execute(
-                                                                                    "getTestDescription", new Object[] { thefile })
+                                                                                    "get_test_description", new Object[] { thefile })
                                                                                     + "";
                                     System.out.println("Result: "+result);
                                     Container pan1 = (Container) RunnerRepository.window.mainpanel.p1.splitPane.getComponent(1);
@@ -487,7 +487,7 @@ public class ClearCasePanel{
                     hm.put("file_name",remotefilename);
                     System.out.println("get_test_file: "+remotefilename);
                     String respons = RunnerRepository.window.mainpanel.getP5().sendCommand(hm,false);
-//                     String respons = RunnerRepository.getRPCClient().execute("runPlugin", new Object[]{RunnerRepository.user,"ClearCase",hm}).toString();
+//                     String respons = RunnerRepository.getRPCClient().execute("run_plugin", new Object[]{RunnerRepository.user,"ClearCase",hm}).toString();
                     System.out.println(respons);
                     File file2 = new File(localfilename);
                     
@@ -523,7 +523,7 @@ public class ClearCasePanel{
                     hm.put("content",content);
                     System.out.println("set_test_file: "+remotefilename);
                     String response = RunnerRepository.window.mainpanel.getP5().sendCommand(hm,false);
-//                     String response = RunnerRepository.getRPCClient().execute("runPlugin", new Object[]{RunnerRepository.user,"ClearCase",hm}).toString();
+//                     String response = RunnerRepository.getRPCClient().execute("run_plugin", new Object[]{RunnerRepository.user,"ClearCase",hm}).toString();
                     System.out.println(response);
                     file2.delete();
 //                     

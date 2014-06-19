@@ -2,7 +2,7 @@
 File: GITPlugin.java ; This file is part of Twister.
 
 Copyright (C) 2012 , Luxoft
-Version: 2.006
+Version: 3.001
 Authors: Andrei Costachi <acostachi@luxoft.com>
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -212,7 +212,7 @@ public class GITPlugin extends BasePlugin implements TwisterPluginInterface {
         root = new DefaultMutableTreeNode("root", true);
         String dir = tsnapshot.getText();
         Object ob = null;
-        try{ob = client.execute("fileSize", new Object[]{dir});
+        try{ob = client.execute("file_size", new Object[]{dir});
             if(ob.toString().indexOf("*ERROR*")!=-1){
             	dir = variables.get("remoteuserhome")+"/twister/config/";
                 //CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,p,"ERROR", ob.toString());
@@ -222,7 +222,8 @@ public class GITPlugin extends BasePlugin implements TwisterPluginInterface {
             if(ob!=null)System.out.println("Server response: "+ob.toString());
         }
         
-        try{ob = client.execute("listFiles", new Object[]{dir,true});
+        System.out.println("List files IGT plugin");
+        try{ob = client.execute("list_files", new Object[]{dir,true});
             if(ob.toString().indexOf("*ERROR*")!=-1){
                 CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,p,"ERROR", ob.toString());
             }
@@ -415,7 +416,8 @@ public class GITPlugin extends BasePlugin implements TwisterPluginInterface {
 			//getList(root,c,true);
 			//getList(root,home,true);
 			Object ob = null;
-	        try{ob = client.execute("listFiles", new Object[]{home,true});
+            System.out.println("List files GIT");
+	        try{ob = client.execute("list_files", new Object[]{home,true});
 	            if(ob.toString().indexOf("*ERROR*")!=-1){
 	                CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,p,"ERROR", ob.toString());
 	            }
@@ -535,7 +537,7 @@ public class GITPlugin extends BasePlugin implements TwisterPluginInterface {
 			String folder = tsnapshot.getText();
 			
 			Object ob = null;
-			try{ob = client.execute("fileSize", new Object[]{folder});
+			try{ob = client.execute("file_size", new Object[]{folder});
             	if(ob.toString().indexOf("*ERROR*")!=-1){
             		exists = false;
             	}
@@ -561,7 +563,7 @@ public class GITPlugin extends BasePlugin implements TwisterPluginInterface {
 				}
 			}
 			String param="command=snapshot";
-			String result = client.execute("runPlugin", new Object[]{variables.get("user"),
+			String result = client.execute("run_plugin", new Object[]{variables.get("user"),
 																	 getName(),param})+"";
 			if(result.equals("true")){
 				frame.setVisible(false);
@@ -592,7 +594,7 @@ public class GITPlugin extends BasePlugin implements TwisterPluginInterface {
 				param = "command=update&overwrite=false";}
 			else{
 				param = "command=update&overwrite=true";}
-			String result = client.execute("runPlugin", new Object[]{variables.get("user"),
+			String result = client.execute("run_plugin", new Object[]{variables.get("user"),
 																	 getName(),param})+"";
 			if(result.equals("true")){
 				frame.setVisible(false);

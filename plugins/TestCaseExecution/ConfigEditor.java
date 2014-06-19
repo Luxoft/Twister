@@ -1,6 +1,6 @@
 /*
 File: ConfigEditor.java ; This file is part of Twister.
-Version: 2.017
+Version: 3.001
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -335,7 +335,7 @@ public class ConfigEditor extends JPanel{
                         }
                     }
                     try{
-                        String resp = RunnerRepository.getRPCClient().execute("unlockConfig", new Object[]{remotelocation}).toString();
+                        String resp = RunnerRepository.getRPCClient().execute("unlock_config", new Object[]{remotelocation}).toString();
                         if(resp.indexOf("*ERROR*")!=-1){
                             CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,ConfigEditor.this,"ERROR", resp);
                         } else {
@@ -536,7 +536,7 @@ public class ConfigEditor extends JPanel{
             StringBuffer sb = ((StringWriter)outWriter).getBuffer();
             String content = sb.toString();
             content = DatatypeConverter.printBase64Binary(content.getBytes());
-            String resp = RunnerRepository.getRPCClient().execute("writeFile", new Object[]{"~/twister/config/.default_config.xml",content}).toString();
+            String resp = RunnerRepository.getRPCClient().execute("write_file", new Object[]{"~/twister/config/.default_config.xml",content}).toString();
             if(resp.indexOf("*ERROR*")!=-1){
                 CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,ConfigEditor.this,"ERROR", resp);
             }
@@ -568,7 +568,7 @@ public class ConfigEditor extends JPanel{
         String response = "";
         if(filepath.equals("default")){
             try{
-                response = RunnerRepository.getRPCClient().execute("readFile", new Object[]{"~/twister/config/bindings.xml"}).toString();
+                response = RunnerRepository.getRPCClient().execute("read_file", new Object[]{"~/twister/config/bindings.xml"}).toString();
                 response = new String(DatatypeConverter.parseBase64Binary(response));
                 save.setEnabled(true);
             } catch(Exception e){
@@ -579,7 +579,7 @@ public class ConfigEditor extends JPanel{
             try{
                 filepath = filepath.replace(RunnerRepository.TESTCONFIGPATH, "");
                 if(filepath.charAt(0) == '/')filepath = filepath.substring(1);
-                response = RunnerRepository.getRPCClient().execute("getBinding", new Object[]{RunnerRepository.user,filepath}).toString();
+                response = RunnerRepository.getRPCClient().execute("get_binding", new Object[]{RunnerRepository.user,filepath}).toString();
             }
                 catch(Exception e){
                     System.out.println("Could not get binding for:"+filepath+" from CE");
@@ -628,7 +628,7 @@ public class ConfigEditor extends JPanel{
                     ((DefaultTreeModel)tree.getModel()).insertNodeInto(treenode, root,root.getChildCount());
                     
                     if(filename.equals("default_binding")){//default binding section with config
-                        String response = RunnerRepository.getRPCClient().execute("readFile", new Object[]{"~/twister/config/.default_config.xml"}).toString();
+                        String response = RunnerRepository.getRPCClient().execute("read_file", new Object[]{"~/twister/config/.default_config.xml"}).toString();
                         response = new String(DatatypeConverter.parseBase64Binary(response));
                         if(response.indexOf("*ERROR*")!=-1){
                             CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,ConfigEditor.this,"ERROR", response);
@@ -733,7 +733,7 @@ public class ConfigEditor extends JPanel{
     private String getPathForSut(String sutid){
         String sutpath = "";
         Object ob = null;
-        try{ob = sutconfig.client.execute("getSut", new Object[]{sutid,RunnerRepository.user,RunnerRepository.user});
+        try{ob = sutconfig.client.execute("get_sut", new Object[]{sutid,RunnerRepository.user,RunnerRepository.user});
             if(ob instanceof HashMap){
                 HashMap subhash= (HashMap)ob;
                 sutpath = subhash.get("path").toString();
@@ -815,7 +815,7 @@ public class ConfigEditor extends JPanel{
                 StreamResult result = new StreamResult(writer);
                 transformer.transform(source, result);
                 String binding = writer.toString();
-                String resp = RunnerRepository.getRPCClient().execute("setBinding", new Object[]{RunnerRepository.user,remotelocation,binding}).toString();
+                String resp = RunnerRepository.getRPCClient().execute("set_binding", new Object[]{RunnerRepository.user,remotelocation,binding}).toString();
                 if(resp.indexOf("*ERROR*")!=-1){
                     CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,ConfigEditor.this,"ERROR", resp);
                 }
@@ -865,7 +865,7 @@ public class ConfigEditor extends JPanel{
             transformer.transform(source, result);
             String content =  writer.toString();
             content = DatatypeConverter.printBase64Binary(content.getBytes());
-            String resp = RunnerRepository.getRPCClient().execute("writeFile", new Object[]{"~/twister/config/bindings.xml",content}).toString();
+            String resp = RunnerRepository.getRPCClient().execute("write_file", new Object[]{"~/twister/config/bindings.xml",content}).toString();
             if(resp.indexOf("*ERROR*")!=-1){
                 CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,ConfigEditor.this,"ERROR", resp);
             }
@@ -1690,7 +1690,7 @@ public class ConfigEditor extends JPanel{
             StringBuffer sb = ((StringWriter)outWriter).getBuffer();
             String content = sb.toString();
             content = DatatypeConverter.printBase64Binary(content.getBytes());
-            String resp = RunnerRepository.getRPCClient().execute("saveConfigFile", new Object[]{remotelocation,content}).toString();
+            String resp = RunnerRepository.getRPCClient().execute("save_config_file", new Object[]{remotelocation,content}).toString();
             if(resp.indexOf("*ERROR*")!=-1){
                 CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,ConfigEditor.this,"ERROR", resp);
             }

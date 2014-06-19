@@ -1,6 +1,6 @@
 /*
 File: ServiceConsole.java ; This file is part of Twister.
-Version: 2.004
+Version: 2.005
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -107,7 +107,7 @@ public class ServiceConsole extends BasePlugin implements TwisterPluginInterface
 	private String [] getServices(){
 		String result;
 		try {
-			result = client.execute("serviceManagerCommand",
+			result = client.execute("service_mngr_command",
 			        new Object[]{"list"}).toString();
 			return result.split(",");       
 		} catch (XmlRpcException e) {
@@ -250,11 +250,11 @@ public class ServiceConsole extends BasePlugin implements TwisterPluginInterface
 		
 		public void getLog(){
 			try {
-				String result = client.execute("serviceManagerCommand",
+				String result = client.execute("service_mngr_command",
 				        new Object[]{"get log",getTitle(),0,0}).toString();
 				long curentpos = Long.parseLong(result);
 				if(curentpos>lastindex){
-					result = client.execute("serviceManagerCommand",
+					result = client.execute("service_mngr_command",
 					        new Object[]{"get log",getTitle(),1,lastindex+""}).toString();
 					lastindex = curentpos;
 			        byte mydata[]=null;
@@ -262,7 +262,7 @@ public class ServiceConsole extends BasePlugin implements TwisterPluginInterface
 			        catch(Exception e){e.printStackTrace();}
 					text.append(new String(mydata));
 				} else if(curentpos<lastindex){
-					result = client.execute("serviceManagerCommand",
+					result = client.execute("service_mngr_command",
 					        new Object[]{"get log",getTitle(),1,0}).toString();
 					lastindex = curentpos;
 					byte mydata[]=null;

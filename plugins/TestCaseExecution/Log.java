@@ -1,6 +1,6 @@
 /*
 File: Log.java ; This file is part of Twister.
-Version: 2.010
+Version: 3.001
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -132,11 +132,11 @@ public class Log extends JPanel{
             try{Thread.sleep(1000);
                 if(container.isShowing()){
                     if(response==length){
-                        try{result = RunnerRepository.getRPCClient().execute("getLogFile",
+                        try{result = RunnerRepository.getRPCClient().execute("get_log_file",
                                                                     new Object[]{RunnerRepository.getUser(),
                                                                                     "0","0",log}).toString();
                         } catch (Exception e){
-                            System.out.println("Could not get log content(getLogFile) from CE! Log->updateLog()");
+                            System.out.println("Could not get log content(get_log_file) from CE! Log->updateLog()");
                             continue;
                         }
                         if(result.indexOf("*ERROR*")!=-1){
@@ -146,7 +146,7 @@ public class Log extends JPanel{
                         response = Long.parseLong(result);
                     }
                     if(response>length){
-                        result = RunnerRepository.getRPCClient().execute("getLogFile",
+                        result = RunnerRepository.getRPCClient().execute("get_log_file",
                                                                     new Object[]{RunnerRepository.getUser(),
                                                                                     "1",length+"",log})+"";
                         readText(result);
@@ -266,7 +266,7 @@ public class Log extends JPanel{
                                                     , "Clear Log!",null);
         if(resp == JOptionPane.OK_OPTION){
             clearScreen();
-            try{String result = RunnerRepository.getRPCClient().execute("resetLog",
+            try{String result = RunnerRepository.getRPCClient().execute("reset_log",
                                                                     new Object[]{RunnerRepository.getUser(),
                                                                                  log})+"";}
             catch(Exception e){e.printStackTrace();}

@@ -1,6 +1,6 @@
 /*
 File: RolesManager.java ; This file is part of Twister.
-Version: 2.003
+Version: 3.001
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -151,7 +151,7 @@ public class RolesManager extends JFrame {
                 }
                 if(sb.length()>0)sb.setLength(sb.length()-1);
                 try {
-					String st = client.execute("usersAndGroupsManager", new Object[]{"set group",groupnamefield.getText(),sb.toString()}).toString();
+					String st = client.execute("users_and_groups_mngr", new Object[]{"set group",groupnamefield.getText(),sb.toString()}).toString();
 					if(st.equals("true")){
 						um.populateGroups();
 						um.populateUsersTable();
@@ -166,7 +166,7 @@ public class RolesManager extends JFrame {
 	
 	public void populateRoleList(){
 		try {
-			Object[] st = (Object [])client.execute("usersAndGroupsManager", new Object[]{"list roles"});
+			Object[] st = (Object [])client.execute("users_and_groups_mngr", new Object[]{"list roles"});
 			
 			DefaultListModel listModel = new DefaultListModel();
 			for(Object o:st){

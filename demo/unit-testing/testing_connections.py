@@ -75,8 +75,8 @@ class Test1(unittest.TestCase):
             c = self.makeConnection('client::' + str(i))
             if not c: continue
             print( c.root.echo('Hi there! Serial client `{}` here!'.format(c._config['connid'])) )
-            c.root.listEPs()
-            c.root.listLibraries()
+            c.root.list_eps()
+            c.root.list_libraries()
             c.close() ; del c
             conns.append(True)
         print('Made `{}` serial client connections.'.format(len(conns)))
@@ -92,8 +92,8 @@ class Test1(unittest.TestCase):
             time.sleep(0.5)
             if not c: return False
             print( c.root.echo('Hi there! Parallel client `{}` here!'.format(c._config['connid'])) )
-            c.root.listEPs()
-            c.root.listLibraries()
+            c.root.list_eps()
+            c.root.list_libraries()
             c.close() ; del c
             return True
 

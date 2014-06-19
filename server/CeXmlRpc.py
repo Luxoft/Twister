@@ -1,7 +1,7 @@
 
 # File: CeXmlRpc.py ; This file is part of Twister.
 
-# version: 2.045
+# version: 3.001
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -54,8 +54,10 @@ import MySQLdb
 from rpyc import connect as rpycConnect
 
 import pickle
-try: import simplejson as json
-except Exception as e: import json
+try:
+    import simplejson as json
+except Exception as e:
+    import json
 
 import cherrypy
 from cherrypy import _cptools
@@ -92,6 +94,7 @@ class CeXmlRpc(_cptools.XMLRPCController):
 
     @cherrypy.expose
     def default(self, *vpath, **params):
+        """ defaultconnection """
         user_agent = cherrypy.request.headers['User-Agent'].lower()
         if 'xmlrpc' in user_agent or 'xml rpc' in user_agent:
             resp = super(CeXmlRpc, self).default(*vpath, **params)
@@ -118,7 +121,7 @@ class CeXmlRpc(_cptools.XMLRPCController):
 
 
     @cherrypy.expose
-    def getTwisterPath(self):
+    def get_twister_path(self):
         '''
         Returns the Twister Path.
         '''
@@ -127,7 +130,7 @@ class CeXmlRpc(_cptools.XMLRPCController):
 
 
     @cherrypy.expose
-    def getRpycPort(self):
+    def get_rpyc_port(self):
         '''
         Returns the Twister RPyc Port.
         '''
@@ -135,7 +138,7 @@ class CeXmlRpc(_cptools.XMLRPCController):
 
 
     @cherrypy.expose
-    def getSysInfo(self):
+    def get_sys_info(self):
         '''
         Returns some system information.
         '''
@@ -143,7 +146,7 @@ class CeXmlRpc(_cptools.XMLRPCController):
 
 
     @cherrypy.expose
-    def getUserHome(self):
+    def get_user_home(self):
         '''
         Returns some system information.
         '''
@@ -152,39 +155,41 @@ class CeXmlRpc(_cptools.XMLRPCController):
 
 
     @cherrypy.expose
-    def getLogsPath(self, user):
+    def get_logs_path(self, user):
         '''
         Returns the path to Logs files.
         '''
-        return self.project.getUserInfo(user, 'logs_path')
+        return self.project.get_user_info(user, 'logs_path')
 
 
     @cherrypy.expose
-    def encryptText(self, text):
+    def encrypt_text(self, text):
         """
         Encrypt a piece of text, using AES.\n
         This function is called from the Java GUI.
         """
-        logFull('CeXmlRpc:encryptText')
-        if not text: return ''
+        logFull('CeXmlRpc:encrypt_text')
+        if not text:
+            return ''
         cherry_user = cherrypy.session.get('username')
-        return self.project.encryptText(cherry_user, text)
+        return self.project.encrypt_text(cherry_user, text)
 
 
     @cherrypy.expose
-    def decryptText(self, text):
+    def decrypt_text(self, text):
         """
         Decrypt a piece of text, using AES.\n
         This function is called from the Java GUI.
         """
-        logFull('CeXmlRpc:decryptText')
-        if not text: return ''
+        logFull('CeXmlRpc:decrypt_text')
+        if not text:
+            return ''
         cherry_user = cherrypy.session.get('username')
-        return self.project.decryptText(cherry_user, text)
+        return self.project.decrypt_text(cherry_user, text)
 
 
     @cherrypy.expose
-    def generateIndex(self):
+    def generate_index(self):
         """
         Store in a json file the tags from each test case file
         """
@@ -198,7 +203,7 @@ class CeXmlRpc(_cptools.XMLRPCController):
 
 
     @cherrypy.expose
-    def searchIndex(self, query):
+    def search_index(self, query):
         """
         Search for a query in the file index
         """
@@ -212,11 +217,11 @@ class CeXmlRpc(_cptools.XMLRPCController):
             logWarning(result)
             return result
 
-        tests_path = self.project.getUserInfo(user, 'tests_path')
+        tests_path = self.project.get_user_info(user, 'tests_path')
         if not result:
             return {'path':tests_path, 'data':'tests', 'folder':True, 'children':[]}
 
-        allFiles = self.project.localFs.listUserFiles(user, tests_path, True, True, result)
+        allFiles = self.project.localFs.list_user_files(user, tests_path, True, True, result)
         return allFiles
 
 
@@ -224,12 +229,12 @@ class CeXmlRpc(_cptools.XMLRPCController):
 
 
     @cherrypy.expose
-    def findCcXmlTag(self, TagOrView):
+    def find_cc_xml_tag(self, tag_or_view):
         """
         Transform 1 ClearCase.XML tag name into a ClearCase view + path.
         """
         user = cherrypy.session.get('username')
-        ccConfigs = ClearCaseParser(user).getConfigs(TagOrView)
+        ccConfigs = ClearCaseParser(user).getConfigs(tag_or_view)
         if ccConfigs and 'view' in ccConfigs and 'actv' in ccConfigs:
             return ccConfigs['view'] + ':' + ccConfigs['actv']
         else:
@@ -237,35 +242,35 @@ class CeXmlRpc(_cptools.XMLRPCController):
 
 
     @cherrypy.expose
-    def fileSize(self, fpath, type='fs'):
+    def file_size(self, fpath, type='fs'):
         """
         Returns file size.
         If the file is from TWISTER PATH, use System file size,
         else get file size from user's home folder.
         """
         user = cherrypy.session.get('username')
-        resp = self.project.fileSize(user, fpath, type)
+        resp = self.project.file_size(user, fpath, type)
         if not isinstance(resp, long):
             logWarning(resp)
         return resp
 
 
     @cherrypy.expose
-    def readFile(self, fpath, flag='r', fstart=0, type='fs'):
+    def read_file(self, fpath, flag='r', fstart=0, type='fs'):
         """
         Read a file from TWISTER PATH, user's home folder, or ClearCase.
         Flag r/ rb = ascii/ binary.
         """
         user = cherrypy.session.get('username')
         logDebug('GUI ReadFile: user {}; flag {}; path {}; start {}; {}'.format(user, flag, fpath, fstart, type))
-        resp = self.project.readFile(user, fpath, flag, fstart, type)
+        resp = self.project.read_file(user, fpath, flag, fstart, type)
         if resp.startswith('*ERROR*'):
             logWarning(resp)
         return binascii.b2a_base64(resp)
 
 
     @cherrypy.expose
-    def writeFile(self, fpath, fdata, flag='w', type='fs'):
+    def write_file(self, fpath, fdata, flag='w', type='fs'):
         """
         Write a file in user's home folder, or ClearCase.
         Flag w/ wb = ascii/ binary.
@@ -276,53 +281,52 @@ class CeXmlRpc(_cptools.XMLRPCController):
         # If this is NOT a binary file, fix the newline
         if not 'b' in flag:
             fdata = fdata.replace('\r', '')
-        resp = self.project.writeFile(user, fpath, fdata, flag, type)
+        resp = self.project.write_file(user, fpath, fdata, flag, type)
         if resp != True:
             logWarning(resp)
         return resp
 
 
     @cherrypy.expose
-    def deleteFile(self, fpath, type='fs'):
+    def delete_file(self, fpath, type='fs'):
         """
         Delete a file in user's home folder, or ClearCase.
         """
         user = cherrypy.session.get('username')
-        return self.project.deleteFile(user, fpath, type)
+        return self.project.delete_file(user, fpath, type)
 
 
     @cherrypy.expose
-    def createFolder(self, fdir, type='fs'):
+    def create_folder(self, fdir, type='fs'):
         """
         Create a file in user's home folder, or ClearCase.
         """
         user = cherrypy.session.get('username')
-        return self.project.createFolder(user, fdir, type)
+        return self.project.create_folder(user, fdir, type)
 
 
     @cherrypy.expose
-    def listFiles(self, fdir, hidden=True, recursive=True, type='fs'):
+    def list_files(self, fdir, hidden=True, recursive=True, type='fs'):
         """
         List files from user's home folder, or ClearCase.
         """
         user = cherrypy.session.get('username')
-        return self.project.listFiles(user, fdir, hidden, recursive, type)
-
+        return self.project.list_files(user, fdir, hidden, recursive, type)
 
     @cherrypy.expose
-    def deleteFolder(self, fdir, type='fs'):
+    def delete_folder(self, fdir, type='fs'):
         """
         Delete a folder from user's home folder, or ClearCase.
         """
         user = cherrypy.session.get('username')
-        return self.project.deleteFolder(user, fdir, type)
+        return self.project.delete_folder(user, fdir, type)
 
 
 # # #
 
 
     @cherrypy.expose
-    def listProjects(self, type='project'):
+    def list_projects(self, type='project'):
         """
         List projects/ predefined projects.
         Magically return the CC paths, if CC is enabled.
@@ -332,7 +336,7 @@ class CeXmlRpc(_cptools.XMLRPCController):
 
         if type == 'predefined':
             # Auto detect if ClearCase Test Config Path is active
-            ccConfig = self.project.getClearCaseConfig(user, 'predefined_path')
+            ccConfig = self.project.get_clearcase_config(user, 'predefined_path')
             if ccConfig:
                 view = ccConfig['view']
                 actv = ccConfig['actv']
@@ -340,15 +344,15 @@ class CeXmlRpc(_cptools.XMLRPCController):
                 if not fdir:
                     return '*ERROR* User `{}` did not set ClearCase Project Path!'.format(user)
                 user_view_actv = '{}:{}:{}'.format(user, view, actv)
-                resp = self.project.clearFs.listUserFiles(user_view_actv, fdir)
+                resp = self.project.clearFs.list_user_files(user_view_actv, fdir)
             else:
-                fdir = self.project.getUserInfo(user, 'predefined_path')
-                resp = self.project.localFs.listUserFiles(user, fdir)
+                fdir = self.project.get_user_info(user, 'predefined_path')
+                resp = self.project.localFs.list_user_files(user, fdir)
             return resp
 
         else:
             # Auto detect if ClearCase Test Config Path is active
-            ccConfig = self.project.getClearCaseConfig(user, 'projects_path')
+            ccConfig = self.project.get_clearcase_config(user, 'projects_path')
             if ccConfig:
                 view = ccConfig['view']
                 actv = ccConfig['actv']
@@ -356,22 +360,22 @@ class CeXmlRpc(_cptools.XMLRPCController):
                 if not fdir:
                     return '*ERROR* Empty path for CC `{}:{}:{}`!'.format(user, view, actv)
                 user_view_actv = '{}:{}:{}'.format(user, view, actv)
-                resp = self.project.clearFs.listUserFiles(user_view_actv, fdir)
+                resp = self.project.clearFs.list_user_files(user_view_actv, fdir)
             else:
-                fdir = self.project.getUserInfo(user, 'projects_path')
-                resp = self.project.localFs.listUserFiles(user, fdir)
+                fdir = self.project.get_user_info(user, 'projects_path')
+                resp = self.project.localFs.list_user_files(user, fdir)
             return resp
 
 
     @cherrypy.expose
-    def readProjectFile(self, fpath):
+    def read_project_file(self, fpath):
         """
         Read a project file - returns a string.
         """
         user = cherrypy.session.get('username')
         # Auto detect if ClearCase Test Config Path is active
-        logDebug('GUI readProjectFile {} {}'.format(user, fpath))
-        ccConfig = self.project.getClearCaseConfig(user, 'projects_path')
+        logDebug('GUI read_project_file {} {}'.format(user, fpath))
+        ccConfig = self.project.get_clearcase_config(user, 'projects_path')
         if ccConfig:
             view = ccConfig['view']
             actv = ccConfig['actv']
@@ -379,20 +383,20 @@ class CeXmlRpc(_cptools.XMLRPCController):
             if not path:
                 return '*ERROR* User `{}` did not set ClearCase Project Path!'.format(user)
             user_view_actv = '{}:{}:{}'.format(user, view, actv)
-            return self.project.clearFs.readUserFile(user_view_actv, path +'/'+ fpath)
+            return self.project.clearFs.read_user_file(user_view_actv, path +'/'+ fpath)
         else:
-            dpath = self.project.getUserInfo(user, 'projects_path').rstrip('/')
-            return self.project.localFs.readUserFile(user, dpath +'/'+ fpath)
+            dpath = self.project.get_user_info(user, 'projects_path').rstrip('/')
+            return self.project.localFs.read_user_file(user, dpath +'/'+ fpath)
 
 
     @cherrypy.expose
-    def saveProjectFile(self, fpath, content):
+    def save_project_file(self, fpath, content):
         """
         Write a project file - returns a True/ False.
         """
         user = cherrypy.session.get('username')
         # Auto detect if ClearCase Test Config Path is active
-        ccConfig = self.project.getClearCaseConfig(user, 'projects_path')
+        ccConfig = self.project.get_clearcase_config(user, 'projects_path')
         if ccConfig:
             view = ccConfig['view']
             actv = ccConfig['actv']
@@ -400,20 +404,20 @@ class CeXmlRpc(_cptools.XMLRPCController):
             if not path:
                 return '*ERROR* User `{}` did not set ClearCase Project Path!'.format(user)
             user_view_actv = '{}:{}:{}'.format(user, view, actv)
-            return self.project.clearFs.writeUserFile(user_view_actv, path +'/'+ fpath, content)
+            return self.project.clearFs.write_user_file(user_view_actv, path +'/'+ fpath, content)
         else:
-            dpath = self.project.getUserInfo(user, 'projects_path').rstrip('/')
-            return self.project.localFs.writeUserFile(user, dpath +'/'+ fpath, content)
+            dpath = self.project.get_user_info(user, 'projects_path').rstrip('/')
+            return self.project.localFs.write_user_file(user, dpath +'/'+ fpath, content)
 
 
     @cherrypy.expose
-    def deleteProjectFile(self, fpath):
+    def delete_project_file(self, fpath):
         """
         Delete project file - returns a True/ False.
         """
         user = cherrypy.session.get('username')
         # Auto detect if ClearCase Test Config Path is active
-        ccConfig = self.project.getClearCaseConfig(user, 'projects_path')
+        ccConfig = self.project.get_clearcase_config(user, 'projects_path')
         if ccConfig:
             view = ccConfig['view']
             actv = ccConfig['actv']
@@ -421,14 +425,14 @@ class CeXmlRpc(_cptools.XMLRPCController):
             if not path:
                 return '*ERROR* User `{}` did not set ClearCase Project Path!'.format(user)
             user_view_actv = '{}:{}:{}'.format(user, view, actv)
-            return self.project.clearFs.deleteUserFile(user_view_actv, path +'/'+ fpath)
+            return self.project.clearFs.delete_user_file(user_view_actv, path +'/'+ fpath)
         else:
-            dpath = self.project.getUserInfo(user, 'projects_path').rstrip('/')
-            return self.project.localFs.deleteUserFile(user, dpath +'/'+ fpath)
+            dpath = self.project.get_user_info(user, 'projects_path').rstrip('/')
+            return self.project.localFs.delete_user_file(user, dpath +'/'+ fpath)
 
 
     @cherrypy.expose
-    def listTestCases(self, type='fs'):
+    def list_test_cases(self, type='fs'):
         """
         List normal files/ clearcase files.
         Need option to switch from normal FS to CC.
@@ -436,7 +440,7 @@ class CeXmlRpc(_cptools.XMLRPCController):
         # Check the username from CherryPy connection
         user = cherrypy.session.get('username')
         if type == 'clearcase':
-            if 'ClearCase' in self.listPlugins(user):
+            if 'ClearCase' in self.list_plugins(user):
                 # Get all ClearCase data from clearcase XML
                 ccConfigs = ClearCaseParser(user).getConfigs()
                 if not 'tests_path' in ccConfigs:
@@ -451,66 +455,67 @@ class CeXmlRpc(_cptools.XMLRPCController):
                 if not path:
                     return '*ERROR* User `{}` did not set ClearCase Tests Path!'.format(user)
                 user_view_actv = '{}:{}:{}'.format(user, view, actv)
-                return self.project.clearFs.listUserFiles(user_view_actv, path)
+                return self.project.clearFs.list_user_files(user_view_actv, path)
             else:
                 err = '*ERROR* User `{}` is trying to list a ClearCase path, but plug-in is not enabled!'.format(user)
                 logWarning(err)
                 return err
         else:
-            tests_path = self.project.getUserInfo(user, 'tests_path')
-            return self.project.localFs.listUserFiles(user, tests_path)
+            tests_path = self.project.get_user_info(user, 'tests_path')
+            return self.project.localFs.list_user_files(user, tests_path)
 
 
 # # #
 
 
     @cherrypy.expose
-    def serviceManagerCommand(self, command, name='', *args, **kwargs):
+    def service_mngr_command(self, command, name='', *args, **kwargs):
         """
         Send commands to Service Manager.\n
         Valid commands are: list, start, stop, status, get config, save config, get log.
         """
-        logFull('CeXmlRpc:serviceManagerCommand')
+        logFull('CeXmlRpc:service_mngr_command')
         # Check the username from CherryPy connection
         user = cherrypy.session.get('username')
         user_roles = self.project.authenticate(user)
-        if not user_roles: return False
+        if not user_roles:
+            return False
         if 'CHANGE_SERVICES' not in user_roles['roles']:
             logDebug('Privileges ERROR! Username `{user}` cannot use Service Manager!'.format(**user_roles))
             return False
-        return self.project.manager.sendCommand(command, name, args, kwargs)
+        return self.project.manager.send_command(command, name, args, kwargs)
 
 
     @cherrypy.expose
-    def usersAndGroupsManager(self, cmd, name='', *args, **kwargs):
+    def users_and_groups_mngr(self, cmd, name='', *args, **kwargs):
         """
         Manage users, groups and permissions.
         """
-        logFull('CeXmlRpc:usersAndGroupsManager')
+        logFull('CeXmlRpc:users_and_groups_mngr')
         user = cherrypy.session.get('username')
-        return self.project.usersAndGroupsManager(user, cmd, name, args, kwargs)
+        return self.project.users_and_groups_mngr(user, cmd, name, args, kwargs)
 
 
     @cherrypy.expose
-    def runUserScript(self, script_path):
+    def run_user_script(self, script_path):
         """
         Executes a script.
         Returns a string containing the text printed by the script.\n
         This function is called from the Java GUI.
         """
-        logFull('CeXmlRpc:runUserScript')
+        logFull('CeXmlRpc:run_user_script')
         return execScript(script_path)
 
 
     @cherrypy.expose
-    def runDBSelect(self, user, field_id):
+    def run_db_select(self, user, field_id):
         """
         Selects from database.
         This function is called from the Java GUI.
         """
-        logFull('CeXmlRpc:runDBSelect')
+        logFull('CeXmlRpc:run_db_select')
         # Get the path to DB.XML
-        db_file = self.project.getUserInfo(user, 'db_config')
+        db_file = self.project.get_user_info(user, 'db_config')
         if not db_file:
             errMessage = 'Null DB.XML file for user `{}`! Nothing to do!'.format(user)
             logError(errMessage)
@@ -523,7 +528,7 @@ class CeXmlRpc(_cptools.XMLRPCController):
         del dbparser
 
         # Decode database password
-        db_password = self.project.decryptText( user, db_config.get('password') )
+        db_password = self.project.decrypt_text( user, db_config.get('password') )
         if not db_password:
             errMessage = 'Cannot decrypt the database password user `{}`!'.format(user)
             logError(errMessage)
@@ -549,16 +554,16 @@ class CeXmlRpc(_cptools.XMLRPCController):
 
 
     @cherrypy.expose
-    def sendMail(self, user, force=False):
+    def send_mail(self, user, force=False):
         """
         Send e-mail after the suites are run.\n
         Server must be in the form `adress:port`.\n
         Username and password are used for authentication.\n
         This function is called every time the Central Engine stops.
         """
-        logFull('CeXmlRpc:sendMail user `{}`.'.format(user))
+        logFull('CeXmlRpc:send_mail user `{}`.'.format(user))
         try:
-            ret = self.project.sendMail(user, force)
+            ret = self.project.send_mail(user, force)
             return ret
         except Exception as e:
             trace = traceback.format_exc()[34:].strip()
@@ -567,7 +572,7 @@ class CeXmlRpc(_cptools.XMLRPCController):
 
 
     @cherrypy.expose
-    def commitToDatabase(self, user):
+    def commit_to_database(self, user):
         """
         For each File from each EP, from each Suite, the results of the tests are saved to database,
         exactly as the user defined them in Database.XML.\n
@@ -575,7 +580,7 @@ class CeXmlRpc(_cptools.XMLRPCController):
         """
         logDebug('CE: Preparing to save into database for user `{}`...'.format(user))
         time.sleep(2) # Wait all the logs
-        ret = self.project.saveToDatabase(user)
+        ret = self.project.save_to_database(user)
 
         if ret:
             logDebug('CE: Saving to database was successful!')
@@ -588,54 +593,54 @@ class CeXmlRpc(_cptools.XMLRPCController):
 
 
     @cherrypy.expose
-    def listSettings(self, config='', x_filter=''):
+    def list_settings(self, config='', x_filter=''):
         """
         List all available settings, for 1 config of a user.
         """
         user = cherrypy.session.get('username')
-        return self.project.listSettings(user, config, x_filter)
+        return self.project.list_settings(user, config, x_filter)
 
 
     @cherrypy.expose
-    def getSettingsValue(self, config, key):
+    def get_settings_value(self, config, key):
         """
         Fetch a value from 1 config of a user.
         """
         user = cherrypy.session.get('username')
-        return self.project.getSettingsValue(user, config, key)
+        return self.project.get_settings_value(user, config, key)
 
 
     @cherrypy.expose
-    def setSettingsValue(self, config, key, value):
+    def set_settings_value(self, config, key, value):
         """
         Set a value for a key in the config of a user.
         """
         user = cherrypy.session.get('username')
-        return self.project.setSettingsValue(user, config, key, value)
+        return self.project.set_settings_value(user, config, key, value)
 
 
     @cherrypy.expose
-    def delSettingsKey(self, config, key, index=0):
+    def del_settings_key(self, config, key, index=0):
         """
         Del a key from the config of a user.
         """
         user = cherrypy.session.get('username')
-        return self.project.delSettingsKey(config, key, index)
+        return self.project.del_settings_key(config, key, index)
 
 
     @cherrypy.expose
-    def setPersistentSuite(self, suite, info={}, order=-1):
+    def set_persistent_suite(self, suite, info={}, order=-1):
         """
         Create a new suite, using the INFO, at the position specified.\n
         This function writes in TestSuites.XML file.\n
         The changes will be available at the next START.
         """
         user = cherrypy.session.get('username')
-        return self.project.setPersistentSuite(user, suite, info, order)
+        return self.project.set_persistent_suite(user, suite, info, order)
 
 
     @cherrypy.expose
-    def delPersistentSuite(self, suite):
+    def del_persistent_suite(self, suite):
         """
         Delete an XML suite, using a name ; if there are more suites with the same name,
         only the first one is deleted.\n
@@ -643,22 +648,22 @@ class CeXmlRpc(_cptools.XMLRPCController):
         The changes will be available at the next START.
         """
         user = cherrypy.session.get('username')
-        return self.project.delPersistentSuite(user, suite)
+        return self.project.del_persistent_suite(user, suite)
 
 
     @cherrypy.expose
-    def setPersistentFile(self, suite, fname, info={}, order=-1):
+    def set_persistent_file(self, suite, fname, info={}, order=-1):
         """
         Create a new file in a suite, using the INFO, at the position specified.\n
         This function writes in TestSuites.XML file.\n
         The changes will be available at the next START.
         """
         user = cherrypy.session.get('username')
-        return self.project.setPersistentFile(user, suite, fname, info, order)
+        return self.project.set_persistent_file(user, suite, fname, info, order)
 
 
     @cherrypy.expose
-    def delPersistentFile(self, suite, fname):
+    def del_persistent_file(self, suite, fname):
         """
         Delete an XML file from a suite, using a name ; if there are more files
         with the same name, only the first one is deleted.\n
@@ -666,7 +671,7 @@ class CeXmlRpc(_cptools.XMLRPCController):
         The changes will be available at the next START.
         """
         user = cherrypy.session.get('username')
-        return self.project.delPersistentFile(user, suite, fname)
+        return self.project.del_persistent_file(user, suite, fname)
 
 
 # --------------------------------------------------------------------------------------------------
@@ -675,44 +680,45 @@ class CeXmlRpc(_cptools.XMLRPCController):
 
 
     @cherrypy.expose
-    def listUsers(self, active=False):
+    def list_users(self, active=False):
         """
         Function called from the CLI,
         to list the users that are using Twister.
         """
-        logFull('CeXmlRpc:listUsers')
-        data = self.project.listUsers(active)
+        logFull('CeXmlRpc:list_users')
+        data = self.project.list_users(active)
         return data
 
 
     @cherrypy.expose
-    def getUserVariable(self, user, variable):
+    def get_user_variable(self, user, variable):
         """
         Function called from the Execution Process,
         to get information that is available only here, or are hard to get.
         """
-        logFull('CeXmlRpc:getUserVariable user `{}`.'.format(user))
-        data = self.project.getUserInfo(user, variable)
-        if data is None: data = False
+        logFull('CeXmlRpc:get_user_variable user `{}`.'.format(user))
+        data = self.project.get_user_info(user, variable)
+        if data is None:
+            data = False
         return data
 
 
     @cherrypy.expose
-    def setUserVariable(self, user, key, variable):
+    def set_user_variable(self, user, key, variable):
         """
         Function called from the Execution Process,
         to set information that is available only here, or are hard to get.
         """
-        logFull('CeXmlRpc:setUserVariable user `{}`.'.format(user))
-        return self.project.setUserInfo(user, key, variable)
+        logFull('CeXmlRpc:set_user_variable user `{}`.'.format(user))
+        return self.project.set_user_info(user, key, variable)
 
 
     @cherrypy.expose
-    def hasClients(self, user):
+    def has_clients(self, user):
         """
         Find local, or remote clients.
         """
-        logFull('CeXmlRpc:hasClients user `{}`.'.format(user))
+        logFull('CeXmlRpc:has_clients user `{}`.'.format(user))
         if self.project.rsrv.service._findConnection(usr=user, hello='client'):
             return True
         else:
@@ -720,36 +726,36 @@ class CeXmlRpc(_cptools.XMLRPCController):
 
 
     @cherrypy.expose
-    def searchEP(self, user, epname):
+    def search_ep(self, user, epname):
         """
         Search one EP and return True or False.
         """
-        logFull('CeXmlRpc:searchEP user `{}`.'.format(user))
-        epDict = self.project.getUserInfo(user, 'eps')
+        logFull('CeXmlRpc:search_ep user `{}`.'.format(user))
+        epDict = self.project.get_user_info(user, 'eps')
         return epname in epDict
 
 
     @cherrypy.expose
-    def findAnonimEp(self, user):
+    def find_anonim_ep(self, user):
         """
         Find a local, free EP to be used as Anonim EP.
         """
-        logFull('CeXmlRpc:findAnonimEp user `{}`.'.format(user))
+        logFull('CeXmlRpc:find_anonim_ep user `{}`.'.format(user))
         return self.project._find_anonim_ep(user)
 
 
     @cherrypy.expose
-    def listEPs(self, user):
+    def list_eps(self, user):
         """
         Returns all EPs for current user.
         """
-        logFull('CeXmlRpc:listEPs user `{}`.'.format(user))
-        epList = self.project.getUserInfo(user, 'eps') or {}
+        logFull('CeXmlRpc:list_eps user `{}`.'.format(user))
+        epList = self.project.get_user_info(user, 'eps') or {}
         return ','.join(epList.keys())
 
 
     @cherrypy.expose
-    def getEpVariable(self, user, epname, variable, compress=False):
+    def get_ep_variable(self, user, epname, variable, compress=False):
         """
         This function is called from the Execution Process,
         to get information that is available only here, or are hard to get:
@@ -757,11 +763,13 @@ class CeXmlRpc(_cptools.XMLRPCController):
         - what the user selected in the Java GUI (release, build, comments, etc)
         - the name of the suite, the test files, etc.
         """
-        logFull('CeXmlRpc:getEpVariable user `{}`.'.format(user))
-        data = self.project.getEpInfo(user, epname)
-        if not data: return False
+        logFull('CeXmlRpc:get_ep_variable user `{}`.'.format(user))
+        data = self.project.get_ep_info(user, epname)
+        if not data:
+            return False
         value = data.get(variable, False)
-        if value is None: return False
+        if value is None:
+            return False
         if compress:
             return pickle.dumps(value)
         else:
@@ -769,43 +777,45 @@ class CeXmlRpc(_cptools.XMLRPCController):
 
 
     @cherrypy.expose
-    def setEpVariable(self, user, epname, variable, value):
+    def set_ep_variable(self, user, epname, variable, value):
         """
         This function is called from the Execution Process,
         to inject values inside the EP classes.\n
         The values can saved in the Database, when commiting.\n
         Eg: the OS, the IP, or other information can be added this way.
         """
-        logFull('CeXmlRpc:setEpVariable user `{}`.'.format(user))
-        return self.project.setEpInfo(user, epname, variable, value)
+        logFull('CeXmlRpc:set_ep_variable user `{}`.'.format(user))
+        return self.project.set_ep_info(user, epname, variable, value)
 
 
     @cherrypy.expose
-    def listSuites(self, user, epname):
+    def list_suites(self, user, epname):
         """
         Returns all Suites for one EP from current user.
         """
-        logFull('CeXmlRpc:listSuites user `{}`.'.format(user))
-        if not self.searchEP(user, epname):
+        logFull('CeXmlRpc:list_suites user `{}`.'.format(user))
+        if not self.search_ep(user, epname):
             logError('CE ERROR! EP `%s` is not in the list of defined EPs: `%s`!' %\
-                     (str(epname), self.listEPs(user)) )
+                     (str(epname), self.list_eps(user)) )
             return False
 
-        suiteList   = [str(k)+':'+v['name'] for k, v in self.project.getEpInfo(user, epname)['suites'].items()]
+        suiteList   = [str(k)+':'+v['name'] for k, v in self.project.get_ep_info(user, epname)['suites'].items()]
         return ','.join(suiteList)
 
 
     @cherrypy.expose
-    def getSuiteVariable(self, user, epname, suite, variable, compress=False):
+    def get_suite_variable(self, user, epname, suite, variable, compress=False):
         """
         Function called from the Execution Process,
         to get information that is available only here, or are hard to get.
         """
-        logFull('CeXmlRpc:getSuiteVariable user `{}`.'.format(user))
-        data = self.project.getSuiteInfo(user, epname, suite)
-        if not data: return False
+        logFull('CeXmlRpc:get_suite_variable user `{}`.'.format(user))
+        data = self.project.get_suite_info(user, epname, suite)
+        if not data:
+            return False
         value = data.get(variable, False)
-        if value is None: return False
+        if value is None:
+            return False
         if compress:
             return pickle.dumps(value)
         else:
@@ -813,158 +823,163 @@ class CeXmlRpc(_cptools.XMLRPCController):
 
 
     @cherrypy.expose
-    def getFileVariable(self, user, epname, file_id, variable):
+    def get_file_variable(self, user, epname, file_id, variable):
         """
         Get information about a test file: dependencies, runnable, status, etc.
         """
-        logFull('CeXmlRpc:getFileVariable user `{}`.'.format(user))
-        data = self.project.getFileInfo(user, epname, file_id)
-        if not data: return False
+        logFull('CeXmlRpc:get_file_variable user `{}`.'.format(user))
+        data = self.project.get_file_info(user, epname, file_id)
+        if not data:
+            return False
         value = data.get(variable, False)
-        if value is None: return False
+        if value is None:
+            return False
         return value
 
 
     @cherrypy.expose
-    def setFileVariable(self, user, epname, filename, variable, value):
+    def set_file_variable(self, user, epname, filename, variable, value):
         """
         Set extra information for a Filename, like Crash detected, OS, IP.\n
         Can be called from the Runner.\n
         This change only happens in the memory structure and it is reset every time
-        Central Engine is start. If you need to make a persistent change, use setPersistentFile.
+        Central Engine is start. If you need to make a persistent change, use set_persistent_file.
         """
-        logFull('CeXmlRpc:setFileVariable user `{}`.'.format(user))
-        return self.project.setFileInfo(user, epname, filename, variable, value)
+        logFull('CeXmlRpc:set_file_variable user `{}`.'.format(user))
+        return self.project.set_file_info(user, epname, filename, variable, value)
 
 
     @cherrypy.expose
-    def setStartedBy(self, user, data):
+    def set_started_by(self, user, data):
         """
         Remember the user that started the Central Engine.\n
         Called from the Java GUI.
         """
-        logFull('CeXmlRpc:setStartedBy user `{}`.'.format(user))
+        logFull('CeXmlRpc:set_started_by user `{}`.'.format(user))
         name = data.split(';')[0]
         proj = ';'.join(data.split(';')[1:])
-        self.project.setUserInfo(user, 'started_by', str(name))
-        self.project.setUserInfo(user, 'proj_xml_name', str(proj))
+        self.project.set_user_info(user, 'started_by', str(name))
+        self.project.set_user_info(user, 'proj_xml_name', str(proj))
         return 1
 
 
     @cherrypy.expose
-    def getGlobalVariable(self, user, var_path):
+    def get_global_variable(self, user, var_path):
         """
         Send a global variable, using a path to the variable.
         """
-        logFull('CeXmlRpc:getGlobalVariable user `{}`.'.format(user))
-        return self.project.getGlobalVariable(user, var_path, False)
+        logFull('CeXmlRpc:get_global_variable user `{}`.'.format(user))
+        return self.project.get_global_variable(user, var_path, False)
 
 
     @cherrypy.expose
-    def setGlobalVariable(self, user, var_path, value):
+    def set_global_variable(self, user, var_path, value):
         """
         Set a global variable path, for a user.\n
         The change is not persistent.
         """
-        logFull('CeXmlRpc:setGlobalVariable user `{}`.'.format(user))
-        return self.project.setGlobalVariable(user, var_path, value)
+        logFull('CeXmlRpc:set_global_variable user `{}`.'.format(user))
+        return self.project.set_global_variable(user, var_path, value)
 
 
     @cherrypy.expose
-    def queueFile(self, user, suite, fname):
+    def queue_file(self, user, suite, fname):
         """
         Queue a file at the end of a suite, during runtime.
         If there are more suites with the same name, the first one is used.
         """
-        logFull('CeXmlRpc:queueFile user `{}`.'.format(user))
-        return self.project.queueFile(user, suite, fname)
+        logFull('CeXmlRpc:queue_file user `{}`.'.format(user))
+        return self.project.queue_file(user, suite, fname)
 
 
     @cherrypy.expose
-    def deQueueFiles(self, user, data):
+    def de_queue_files(self, user, data):
         """
         Remove a file from the files queue.
         """
-        logFull('CeXmlRpc:deQueueFiles user `{}`.'.format(user))
-        return self.project.deQueueFiles(user, data)
+        logFull('CeXmlRpc:de_queue_files user `{}`.'.format(user))
+        return self.project.de_queue_files(user, data)
 
 
     @cherrypy.expose
-    def listConfigs(self, user=None):
+    def list_configs(self, user=None):
         """
         Folders and Files from config folder.
         """
         if not user:
             user = cherrypy.session.get('username')
         # Auto detect if ClearCase Test Config Path is active
-        ccConfig = self.project.getClearCaseConfig(user, 'tcfg_path')
+        ccConfig = self.project.get_clearcase_config(user, 'tcfg_path')
         if ccConfig:
             view = ccConfig['view']
             actv = ccConfig['actv']
             path = ccConfig['path']
             user_view_actv = '{}:{}:{}'.format(user, view, actv)
-            return self.project.clearFs.listUserFiles(user_view_actv, path)
+            return self.project.clearFs.list_user_files(user_view_actv, path)
         else:
-            dirpath = self.project.getUserInfo(user, 'tcfg_path')
-            return self.project.localFs.listUserFiles(user, dirpath)
+            dirpath = self.project.get_user_info(user, 'tcfg_path')
+            return self.project.localFs.list_user_files(user, dirpath)
 
 
     @cherrypy.expose
-    def getConfig(self, user, cfg_path, var_path):
+    def get_config(self, user, cfg_path, var_path):
         """
         Send a config file, using the full path to a config file and
         the full path to a config variable in that file.
         Function used by EPs / tests.
         """
-        logFull('CeXmlRpc:getConfig user `{}`.'.format(user))
-        return self.project.getGlobalVariable(user, var_path, cfg_path)
+        logFull('CeXmlRpc:get_config user `{}`.'.format(user))
+        return self.project.get_global_variable(user, var_path, cfg_path)
 
 
     @cherrypy.expose
-    def isLockConfig(self, fpath):
+    def is_lock_config(self, fpath):
+        """ check if config is locked """
         cherry_user = cherrypy.session.get('username')
-        return self.project.isLockConfig(cherry_user, fpath)
+        return self.project.is_lock_config(cherry_user, fpath)
 
 
     @cherrypy.expose
-    def lockConfig(self, fpath):
+    def lock_config(self, fpath):
+        """ lock config """
         cherry_user = cherrypy.session.get('username')
-        return self.project.lockConfig(cherry_user, fpath)
+        return self.project.lock_config(cherry_user, fpath)
 
 
     @cherrypy.expose
-    def unlockConfig(self, fpath):
+    def unlock_config(self, fpath):
+        """ unlock config """
         cherry_user = cherrypy.session.get('username')
-        return self.project.unlockConfig(cherry_user, fpath)
+        return self.project.unlock_config(cherry_user, fpath)
 
 
     @cherrypy.expose
-    def readConfigFile(self, fpath):
+    def read_config_file(self, fpath):
         """
         Read config file - returns a base64 string.
         """
         user = cherrypy.session.get('username')
-        logDebug('GUI readConfigFile {} {}'.format(user, fpath))
+        logDebug('GUI read_config_file {} {}'.format(user, fpath))
         # Auto detect if ClearCase Test Config Path is active
-        ccConfig = self.project.getClearCaseConfig(user, 'tcfg_path')
+        ccConfig = self.project.get_clearcase_config(user, 'tcfg_path')
         if ccConfig:
             view = ccConfig['view']
             actv = ccConfig['actv']
             path = ccConfig['path']
             view_actv = view + ':' + actv
-            return self.readFile(path +'/'+ fpath, type='clearcase:' + view_actv)
+            return self.read_file(path +'/'+ fpath, type='clearcase:' + view_actv)
         else:
-            dirpath = self.project.getUserInfo(user, 'tcfg_path')
-            return self.readFile(dirpath + '/' + fpath)
+            dirpath = self.project.get_user_info(user, 'tcfg_path')
+            return self.read_file(dirpath + '/' + fpath)
 
 
     @cherrypy.expose
-    def saveConfigFile(self, fpath, content):
+    def save_config_file(self, fpath, content):
         """
         Save config file - returns a True/ False.
         """
         user = cherrypy.session.get('username')
-        lock = self.isLockConfig(fpath)
+        lock = self.is_lock_config(fpath)
         if lock and lock != user:
             err = '*ERROR* Config file `{}` is locked by `{}`! Cannot save!'.format(fpath, lock)
             logDebug(err)
@@ -976,25 +991,25 @@ class CeXmlRpc(_cptools.XMLRPCController):
             return err
 
         # Auto detect if ClearCase Test Config Path is active
-        ccConfig = self.project.getClearCaseConfig(user, 'tcfg_path')
+        ccConfig = self.project.get_clearcase_config(user, 'tcfg_path')
         if ccConfig:
             view = ccConfig['view']
             actv = ccConfig['actv']
             path = ccConfig['path']
             view_actv = view + ':' + actv
-            return self.writeFile(path +'/'+ fpath, content, 'w', type='clearcase:' + view_actv)
+            return self.write_file(path +'/'+ fpath, content, 'w', type='clearcase:' + view_actv)
         else:
-            dirpath = self.project.getUserInfo(user, 'tcfg_path')
-            return self.writeFile(dirpath + '/' + fpath, content)
+            dirpath = self.project.get_user_info(user, 'tcfg_path')
+            return self.write_file(dirpath + '/' + fpath, content)
 
 
     @cherrypy.expose
-    def deleteConfigFile(self, fpath):
+    def delete_config_file(self, fpath):
         """
         Delete config file - returns a True/ False.
         """
         user = cherrypy.session.get('username')
-        lock = self.isLockConfig(fpath)
+        lock = self.is_lock_config(fpath)
         # Cannot Delete a locked file!
         if lock:
             err = '*ERROR* Config file `{}` is locked by `{}`! Cannot delete!'.format(fpath, lock)
@@ -1002,23 +1017,23 @@ class CeXmlRpc(_cptools.XMLRPCController):
             return err
 
         # Unbind the config file, if it was binded
-        self.project.parsers[user].delBinding(fpath)
+        self.project.parsers[user].del_binding(fpath)
 
         # Auto detect if ClearCase Test Config Path is active
-        ccConfig = self.project.getClearCaseConfig(user, 'tcfg_path')
+        ccConfig = self.project.get_clearcase_config(user, 'tcfg_path')
         if ccConfig:
             view = ccConfig['view']
             actv = ccConfig['actv']
             path = ccConfig['path']
             user_view_actv = '{}:{}:{}'.format(user, view, actv)
-            return self.project.clearFs.deleteUserFile(user_view_actv, path +'/'+ fpath)
+            return self.project.clearFs.delete_user_file(user_view_actv, path +'/'+ fpath)
         else:
-            dirpath = self.project.getUserInfo(user, 'tcfg_path')
-            return self.project.localFs.deleteUserFile(user, dirpath +'/'+ fpath)
+            dirpath = self.project.get_user_info(user, 'tcfg_path')
+            return self.project.localFs.delete_user_file(user, dirpath +'/'+ fpath)
 
 
     @cherrypy.expose
-    def deleteConfigFolder(self, fpath):
+    def delete_config_folder(self, fpath):
         """
         Delete config file - returns a True/ False.
         """
@@ -1026,7 +1041,8 @@ class CeXmlRpc(_cptools.XMLRPCController):
         fpath = fpath.rstrip('/')
         fpath += '/'
 
-        def flattenFiles(parent_node, result):
+        def flatten_files(parent_node, result):
+            """ translate dictionary """
             # The node is valid ?
             if not parent_node:
                 return []
@@ -1038,46 +1054,46 @@ class CeXmlRpc(_cptools.XMLRPCController):
                 name = node['path']
                 if not node.get('folder') and name.startswith(fpath):
                     result.append(name)
-                flattenFiles(node, result)
+                flatten_files(node, result)
             return result
 
-        cfgs = self.listConfigs()
+        cfgs = self.list_configs()
 
-        for fdir in flattenFiles(cfgs, []):
+        for fdir in flatten_files(cfgs, []):
             # Unbind the config file, if it was binded
-            self.project.parsers[user].delBinding(fdir)
+            self.project.parsers[user].del_binding(fdir)
 
         # Auto detect if ClearCase Test Config Path is active
-        ccConfig = self.project.getClearCaseConfig(user, 'tcfg_path')
+        ccConfig = self.project.get_clearcase_config(user, 'tcfg_path')
         if ccConfig:
             view = ccConfig['view']
             actv = ccConfig['actv']
             path = ccConfig['path']
             user_view_actv = '{}:{}:{}'.format(user, view, actv)
-            return self.project.clearFs.deleteUserFolder(user_view_actv, path +'/'+ fpath)
+            return self.project.clearFs.delete_user_folder(user_view_actv, path +'/'+ fpath)
         else:
-            dirpath = self.project.getUserInfo(user, 'tcfg_path')
-            return self.project.localFs.deleteUserFolder(user, dirpath +'/'+ fpath)
+            dirpath = self.project.get_user_info(user, 'tcfg_path')
+            return self.project.localFs.delete_user_folder(user, dirpath +'/'+ fpath)
 
 
     @cherrypy.expose
-    def getBinding(self, user, fpath):
+    def get_binding(self, user, fpath):
         """
         Read a binding between a CFG and a SUT.
         The result is XML.
         """
         logDebug('User `{}` reads bindings for `{}`.'.format(user, fpath))
-        return self.project.parsers[user].getBinding(fpath)
+        return self.project.parsers[user].get_binding(fpath)
 
 
     @cherrypy.expose
-    def setBinding(self, user, fpath, content):
+    def set_binding(self, user, fpath, content):
         """
         Write a binding between a CFG and a SUT.
         Return True/ False.
         """
-        fdata = self.project.parsers[user].setBinding(fpath, content)
-        r = self.writeFile('~/twister/config/bindings.xml', binascii.b2a_base64(fdata))
+        fdata = self.project.parsers[user].set_binding(fpath, content)
+        r = self.write_file('~/twister/config/bindings.xml', binascii.b2a_base64(fdata))
         if r:
             logDebug('User `{}` writes bindings for `{}`.'.format(user, fpath))
         else:
@@ -1086,13 +1102,13 @@ class CeXmlRpc(_cptools.XMLRPCController):
 
 
     @cherrypy.expose
-    def delBinding(self, user, fpath):
+    def del_binding(self, user, fpath):
         """
         Delete a binding from bindings.xml.
         Return True/ False.
         """
         logDebug('User `{}` deletes bindings for `{}`.'.format(user, fpath))
-        return self.project.parsers[user].delBinding(fpath)
+        return self.project.parsers[user].del_binding(fpath)
 
 
 # --------------------------------------------------------------------------------------------------
@@ -1101,64 +1117,65 @@ class CeXmlRpc(_cptools.XMLRPCController):
 
 
     @cherrypy.expose
-    def resetProject(self, user):
+    def reset_project(self, user):
         """
         Reset project for 1 user.
         """
-        logFull('CeXmlRpc:resetProject user `{}`.'.format(user))
+        logFull('CeXmlRpc:reset_project user `{}`.'.format(user))
         twister_cache = userHome(user) + '/twister/.twister_cache'
         setFileOwner(user, twister_cache)
-        return self.project.resetProject(user)
+        return self.project.reset_project(user)
 
 
     @cherrypy.expose
-    def getExecStatus(self, user, epname):
+    def get_exec_status(self, user, epname):
         """
         Return execution status for one EP. (stopped, paused, running, invalid)\n
         Called from the EP.
         """
-        logFull('CeXmlRpc:getExecStatus user `{}`.'.format(user))
-        if not self.searchEP(user, epname):
+        logFull('CeXmlRpc:get_exec_status user `{}`.'.format(user))
+        if not self.search_ep(user, epname):
             logError('CE ERROR! EP `%s` is not in the list of defined EPs: `%s`!' %
-                     (str(epname), self.listEPs(user)) )
+                     (str(epname), self.list_eps(user)) )
             return False
 
-        data = self.project.getEpInfo(user, epname)
+        data = self.project.get_ep_info(user, epname)
 
         # Set EP last seen alive
-        self.project.setEpInfo(user, epname, 'last_seen_alive', datetime.datetime.today().strftime('%Y-%m-%d %H:%M:%S'))
+        self.project.set_ep_info(user, epname, 'last_seen_alive', \
+            datetime.datetime.today().strftime('%Y-%m-%d %H:%M:%S'))
         # Return a status, or stop
-        reversed = dict((v,k) for k,v in execStatus.iteritems())
+        reversed = dict((v, k) for k, v in EXEC_STATUS.iteritems())
         return reversed[data.get('status', 8)]
 
 
     @cherrypy.expose
-    def getExecStatusAll(self, user):
+    def get_exec_status_all(self, user):
         """
         Return execution status for all EPs. (stopped, paused, running, invalid)\n
         Called from the Java GUI.
         """
-        logFull('CeXmlRpc:getExecStatusAll user `{}`.'.format(user))
+        logFull('CeXmlRpc:get_exec_status_all user `{}`.'.format(user))
         # If this is a temporary run, return the statuses of the backup user!
         user_agent = cherrypy.request.headers['User-Agent'].lower()
         if 'xml rpc' in user_agent and (user+'_old') in self.project.users:
             user += '_old'
 
-        data = self.project.getUserInfo(user)
-        reversed = dict((v,k) for k,v in execStatus.iteritems())
+        data = self.project.get_user_info(user)
+        reversed = dict((v, k) for k, v in EXEC_STATUS.iteritems())
         status = reversed[data.get('status', 8)]
 
         # If start time is not define, then define it
         if not data.get('start_time'):
             start_time = datetime.datetime.today()
-            self.project.setUserInfo(user, 'start_time', start_time.strftime('%Y-%m-%d %H:%M:%S'))
+            self.project.set_user_info(user, 'start_time', start_time.strftime('%Y-%m-%d %H:%M:%S'))
         else:
             start_time = datetime.datetime.strptime(data['start_time'], '%Y-%m-%d %H:%M:%S')
 
         # If the engine is not stopped, update elapsed time
         if data.get('status', 8) != STATUS_STOP:
             elapsed_time = str(datetime.datetime.today() - start_time).split('.')[0]
-            self.project.setUserInfo(user, 'elapsed_time', elapsed_time)
+            self.project.set_user_info(user, 'elapsed_time', elapsed_time)
         else:
             elapsed_time = data.get('elapsed_time', 0)
 
@@ -1168,27 +1185,27 @@ class CeXmlRpc(_cptools.XMLRPCController):
 
 
     @cherrypy.expose
-    def setExecStatus(self, user, epname, new_status, msg=''):
+    def set_exec_status(self, user, epname, new_status, msg=''):
         """
         Set execution status for one EP. (0, 1, 2, or 3)\n
         Returns a string (stopped, paused, running).\n
         The `message` parameter can explain why the status has changed.\n
         Called from the EP.
         """
-        logFull('CeXmlRpc:setExecStatus user `{}`.'.format(user))
-        return self.project.setExecStatus(user, epname, new_status, msg)
+        logFull('CeXmlRpc:set_exec_status user `{}`.'.format(user))
+        return self.project.set_exec_status(user, epname, new_status, msg)
 
 
     @cherrypy.expose
-    def setExecStatusAll(self, user, new_status, msg=''):
+    def set_exec_status_all(self, user, new_status, msg=''):
         """
         Set execution status for all EPs. (STATUS_STOP, STATUS_PAUSED, STATUS_RUNNING).\n
         Returns a string (stopped, paused, running).\n
         The `message` parameter can explain why the status has changed.
         Called from the applet.
         """
-        logFull('CeXmlRpc:setExecStatusAll user `{}`.'.format(user))
-        return self.project.setExecStatusAll(user, new_status, msg)
+        logFull('CeXmlRpc:set_exec_status_all user `{}`.'.format(user))
+        return self.project.set_exec_status_all(user, new_status, msg)
 
 
 # --------------------------------------------------------------------------------------------------
@@ -1197,46 +1214,46 @@ class CeXmlRpc(_cptools.XMLRPCController):
 
 
     @cherrypy.expose
-    def getFileStatusAll(self, user, epname=None, suite=None):
+    def get_file_status_all(self, user, epname=None, suite=None):
         """
         Returns a list with all statuses, for all files, in order.\n
         The status of one file can be obtained with get File Variable.\n
         Called from the Java GUI.
         """
-        logFull('CeXmlRpc:getFileStatusAll user `{}`.'.format(user))
-        if epname and not self.searchEP(user, epname):
+        logFull('CeXmlRpc:get_file_status_all user `{}`.'.format(user))
+        if epname and not self.search_ep(user, epname):
             logError('CE ERROR! EP `%s` is not in the list of defined EPs: `%s`!' % \
-                (str(epname), self.listEPs(user)) )
+                (str(epname), self.list_eps(user)) )
             return ''
 
         # If this is a temporary run, return the statuses of the backup user!
         user_agent = cherrypy.request.headers['User-Agent'].lower()
         if 'xml rpc' in user_agent and (user+'_old') in self.project.users:
-            statuses = self.project.getFileStatusAll(user + '_old', epname, suite)
+            statuses = self.project.get_file_status_all(user + '_old', epname, suite)
             return ','.join(statuses)
 
-        statuses = self.project.getFileStatusAll(user, epname, suite)
+        statuses = self.project.get_file_status_all(user, epname, suite)
         return ','.join(statuses)
 
 
     @cherrypy.expose
-    def setFileStatus(self, user, epname, file_id, new_status=10, time_elapsed=0.0):
+    def set_file_status(self, user, epname, file_id, new_status=10, time_elapsed=0.0):
         """
         Set status for one file and write in log summary.\n
         Called from the Runner.
         """
-        logFull('CeXmlRpc:setFileStatus user `{}`.'.format(user))
-        return self.project.setFileStatus(user, epname, file_id, new_status, time_elapsed)
+        logFull('CeXmlRpc:set_file_status user `{}`.'.format(user))
+        return self.project.set_file_status(user, epname, file_id, new_status, time_elapsed)
 
 
     @cherrypy.expose
-    def setFileStatusAll(self, user, epname, new_status):
+    def set_file_status_all(self, user, epname, new_status):
         """
         Reset file status for all files of one EP.\n
         Called from the Runner.
         """
-        logFull('CeXmlRpc:setFileStatusAll user `{}`.'.format(user))
-        return self.project.setFileStatusAll(user, epname, new_status)
+        logFull('CeXmlRpc:set_file_status_all user `{}`.'.format(user))
+        return self.project.set_file_status_all(user, epname, new_status)
 
 
 # --------------------------------------------------------------------------------------------------
@@ -1245,19 +1262,20 @@ class CeXmlRpc(_cptools.XMLRPCController):
 
 
     @cherrypy.expose
-    def listPlugins(self, user):
+    def list_plugins(self, user):
         """
         List all user plugins.
         """
-        logFull('CeXmlRpc:listPlugins user `{}`.'.format(user))
+        logFull('CeXmlRpc:list_plugins user `{}`.'.format(user))
         parser = PluginParser(user)
         pluginsList = parser.getPlugins()
         return pluginsList.keys()
 
 
     @cherrypy.expose
-    def runPlugin(self, user, plugin, args):
-        logFull('CeXmlRpc:runPlugin user `{}`.'.format(user))
+    def run_plugin(self, user, plugin, args):
+        """ start plugin """
+        logFull('CeXmlRpc:run_plugin user `{}`.'.format(user))
 
         # If argument is a string
         if type(args) == type(str()):
@@ -1274,7 +1292,7 @@ class CeXmlRpc(_cptools.XMLRPCController):
         else:
             return '*ERROR* Invalid type of argument for plugin `%s` : %s !' % (plugin, type(args))
 
-        plugin_p = self.project._buildPlugin(user, plugin)
+        plugin_p = self.project._build_plugin(user, plugin)
 
         if not plugin_p:
             msg = '*ERROR* Plugin `{}` does not exist for user `{}`!'.format(plugin, user)
@@ -1291,54 +1309,55 @@ class CeXmlRpc(_cptools.XMLRPCController):
 
 
     @cherrypy.expose
-    def runTemporary(self, user, files_xml):
+    def run_temporary(self, user, files_xml):
         """
         This function allows the Central Engine to run a temporary Test-Suite XML file
         that contains any valid combination of suites and files.
         The temporary run does not affect the normal suites and files.
         The results are Not saved to database and No report is sent on e-mail.
         """
-        logFull('CeXmlRpc:runTemporary user `{}`.'.format(user))
+        logFull('CeXmlRpc:run_temporary user `{}`.'.format(user))
 
         # Cannot run temporary more than once
         if user + '_old' in self.project.users:
             logError('CE ERROR: User `{0}` is already running temporary!'.format(user))
             return '*ERROR!* User `{0}` is already running temporary!'.format(user)
         # If the user is already running something, DON'T run temporary
-        if self.project.getUserInfo(user, 'status'):
+        if self.project.get_user_info(user, 'status'):
             logError('*ERROR!* User `{0}` must be stopped, before running temporary!'.format(user))
             return '*ERROR!* User `{0}` must be stopped, before running temporary!'.format(user)
 
         # Backup all username data, under a different name
-        self.project.renameUser(user, user + '_old')
+        self.project.rename_user(user, user + '_old')
         # Create a temporary user
-        self.project.createUser(user, base_config='', files_config=files_xml)
+        self.project.create_user(user, base_config='', files_config=files_xml)
 
         # Update status for temporary user
-        self.project.setUserInfo(user, 'status', STATUS_RUNNING)
+        self.project.set_user_info(user, 'status', STATUS_RUNNING)
         # Update status for all active EPs
         active_eps = self.project.parsers[user].getActiveEps()
         for epname in active_eps:
-            self.project.setEpInfo(user, epname, 'status', STATUS_RUNNING)
+            self.project.set_ep_info(user, epname, 'status', STATUS_RUNNING)
 
         i = 0
-        while self.project.getUserInfo(user, 'status') == STATUS_RUNNING:
+        while self.project.get_user_info(user, 'status') == STATUS_RUNNING:
             if not i:
                 logWarning('Temporary user `{}` is running on EP list `{}`...'.format(user, active_eps))
             i += 1
-            if i == 12: i = 0
+            if i == 12:
+                i = 0
             time.sleep(1)
 
         # Delete temporary user
-        self.project.deleteUser(user)
+        self.project.delete_user(user)
         # Restore previous user
-        self.project.renameUser(user + '_old', user)
+        self.project.rename_user(user + '_old', user)
 
         return True
 
 
     @cherrypy.expose
-    def getLibrariesList(self, user='', all=True):
+    def get_libraries_list(self, user='', all=True):
         """
         Returns the list of exposed libraries, from CE libraries folder.\n
         This list will be used to syncronize the libs on all EP computers.\n
@@ -1346,16 +1365,16 @@ class CeXmlRpc(_cptools.XMLRPCController):
         """
         if not user:
             user = cherrypy.session.get('username')
-        return self.project.getLibrariesList(user, all)
+        return self.project.get_libraries_list(user, all)
 
 
     @cherrypy.expose
-    def getTestDescription(self, fname):
+    def get_test_description(self, fname):
         """
         Returns the title, description and all tags from a test file.\n
         Called from the Java GUI.
         """
-        logFull('CeXmlRpc:getTestDescription')
+        logFull('CeXmlRpc:get_test_description')
         if os.path.isfile(fname):
             # This function is defined in helpers.
             return getFileTags(fname)
@@ -1365,16 +1384,16 @@ class CeXmlRpc(_cptools.XMLRPCController):
         user_roles = self.project.authenticate(user)
 
         # Auto detect if ClearCase Test Config Path is active
-        ccConfig = self.project.getClearCaseConfig(user, 'tests_path')
+        ccConfig = self.project.get_clearcase_config(user, 'tests_path')
         if user_roles and ccConfig:
             view = ccConfig['view']
             actv = ccConfig['actv']
-            text = self.project.readFile(user, fname, type='clearcase:' + view)
+            text = self.project.read_file(user, fname, type='clearcase:' + view)
             tags = re.findall('^[ ]*?[#]*?[ ]*?<(?P<tag>\w+)>([ -~\n]+?)</(?P=tag)>', text, re.MULTILINE)
             result = '<br>\n'.join(['<b>' + title + '</b> : ' + descr.replace('<', '&lt;') for title, descr in tags])
             # Hack `cleartool ls` data
             user_view_actv = '{}:{}:{}'.format(user, view, actv)
-            data = self.project.clearFs.systemCommand(user_view_actv, 'cleartool ls {}'.format(fname))
+            data = self.project.clearFs.system_command(user_view_actv, 'cleartool ls {}'.format(fname))
             if data:
                 cctag = re.search('@@(.+?)\s', data)
                 if cctag:
@@ -1391,67 +1410,67 @@ class CeXmlRpc(_cptools.XMLRPCController):
 
 
     @cherrypy.expose
-    def getLogFile(self, user, read, fstart, filename):
+    def get_log_file(self, user, read, fstart, filename):
         """
         Called in the Java GUI to show the logs.
         """
-        logFull('CeXmlRpc:getLogFile user `{}`.'.format(user))
-        return self.project.getLogFile(user, read, fstart, filename)
+        logFull('CeXmlRpc:get_log_file user `{}`.'.format(user))
+        return self.project.get_log_file(user, read, fstart, filename)
 
 
     @cherrypy.expose
-    def logMessage(self, user, logType, logMessage):
+    def log_message(self, user, log_type, log_message):
         """
         This function is exposed in all tests, all logs are centralized in the HOME of the user.\n
         In order for the user to be able to access the logs written by CE, which runs as ROOT,
         CE will start a small process in the name of the user and the process will write the logs.
         """
-        logFull('CeXmlRpc:logMessage user `{}`.'.format(user))
-        return self.project.logMessage(user, logType, logMessage)
+        logFull('CeXmlRpc:log_message user `{}`.'.format(user))
+        return self.project.log_message(user, log_type, log_message)
 
 
     @cherrypy.expose
-    def logLIVE(self, user, epname, logMessage):
+    def log_live(self, user, epname, log_message):
         """
         Writes CLI messages in a big log, so all output can be checked LIVE.\n
         Called from the EP.
         """
-        logFull('CeXmlRpc:logLIVE user `{}`.'.format(user))
-        return self.project.logLIVE(user, epname, logMessage)
+        logFull('CeXmlRpc:log_live user `{}`.'.format(user))
+        return self.project.log_live(user, epname, log_message)
 
 
     @cherrypy.expose
-    def resetLog(self, user, logName):
+    def reset_log(self, user, log_name):
         """
         Resets one log.\n
         Called from the Java GUI.
         """
-        logFull('CeXmlRpc:resetLog user `{}`.'.format(user))
-        return self.project.resetLog(user, logName)
+        logFull('CeXmlRpc:reset_log user `{}`.'.format(user))
+        return self.project.reset_log(user, log_name)
 
 
     @cherrypy.expose
-    def resetLogs(self, user):
+    def reset_logs(self, user):
         """
         All logs defined in master config are erased.\n
         Called from the Java GUI and every time the project is reset.
         """
-        logFull('CeXmlRpc:resetLogs user `{}`.'.format(user))
-        return self.project.resetLogs(user)
+        logFull('CeXmlRpc:reset_logs user `{}`.'.format(user))
+        return self.project.reset_logs(user)
 
 
     @cherrypy.expose
-    def panicDetectConfig(self, user, command, data=None):
+    def panic_detect_config(self, user, command, data=None):
         """
         Configure Panic Detect.
         """
-        logFull('CeXmlRpc:panicDetectConfig user `{}`.'.format(user))
+        logFull('CeXmlRpc:panic_detect_config user `{}`.'.format(user))
         # If argument is a string
         if type(data) == type(str()):
             try:
                 _data = urlparse.parse_qs(data)
                 if _data:
-                    data = {k: v[0] if isinstance(v, list) else v for k,v in _data.iteritems()}
+                    data = {k: v[0] if isinstance(v, list) else v for k, v in _data.iteritems()}
             except:
                 msg = 'CE ERROR: PD cannot parse data: {d}!'.format(d=data)
                 logError(msg)
@@ -1467,7 +1486,7 @@ class CeXmlRpc(_cptools.XMLRPCController):
                 'command': command,
             }
 
-        return self.project.panicDetectConfig(user, args)
+        return self.project.panic_detect_config(user, args)
 
 
 # Eof()

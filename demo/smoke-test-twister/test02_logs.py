@@ -29,42 +29,42 @@ def test(PROXY):
         return 'Fail'
     print 'Reset logs:', r
 
-    print 'Logs path:', PROXY.getUserVariable('logs_path')
-    print 'Log types:', PROXY.getUserVariable('logs_types')
+    print 'Logs path:', PROXY.get_user_variable('logs_path')
+    print 'Log types:', PROXY.get_user_variable('logs_types')
     time.sleep(0.5)
     print
 
     print 'Writing in logRunning...'
-    r = PROXY.logMessage('logRunning', 'Run run run run run...\n')
+    r = PROXY.log_message('logRunning', 'Run run run run run...\n')
     if not r:
-        print('Failure! Cannot use logMessage!')
+        print('Failure! Cannot use log_message!')
         return 'Fail'
-    print 'Reading from logRunning: ', binascii.a2b_base64( PROXY.getLogFile(1, 0, 'log_running.log') )
+    print 'Reading from logRunning: ', binascii.a2b_base64( PROXY.get_log_file(1, 0, 'log_running.log') )
     time.sleep(0.5)
     print
 
     print 'Writing in logDebug...'
-    r = PROXY.logMessage('logDebug', 'Debug debug debug debug debug...\n')
+    r = PROXY.log_message('logDebug', 'Debug debug debug debug debug...\n')
     if not r:
         print('Failure! Cannot use logDebug!')
         return 'Fail'
-    print 'Reading from logDebug: ', binascii.a2b_base64( PROXY.getLogFile(1, 0, 'log_debug.log') )
+    print 'Reading from logDebug: ', binascii.a2b_base64( PROXY.get_log_file(1, 0, 'log_debug.log') )
     time.sleep(0.5)
     print
 
     print 'Writing in logTest...'
-    r = PROXY.logMessage('logTest', 'Test test test test test...\n')
+    r = PROXY.log_message('logTest', 'Test test test test test...\n')
     if not r:
         print('Failure! Cannot use logTest!')
         return 'Fail'
-    print 'Reading from logTest: ', binascii.a2b_base64( PROXY.getLogFile(1, 0, 'log_debug.log') )
+    print 'Reading from logTest: ', binascii.a2b_base64( PROXY.get_log_file(1, 0, 'log_debug.log') )
     time.sleep(0.5)
     print
 
-    print('EP NAMES: {}.\n\n'.format(PROXY.listEPs()))
+    print('EP NAMES: {}.\n\n'.format(PROXY.list_eps()))
 
-    for epname in PROXY.listEPs():
-        try: r = PROXY.logLIVE(epname, binascii.b2a_base64('Some log live message for `{}`...'.format(epname)))
+    for epname in PROXY.list_eps():
+        try: r = PROXY.log_live(epname, binascii.b2a_base64('Some log live message for `{}`...'.format(epname)))
         except: r = False
         if not r:
             print('Failure! Cannot use log Live!')

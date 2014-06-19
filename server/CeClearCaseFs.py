@@ -1,7 +1,7 @@
 
 # File: CeClearCaseFs.py ; This file is part of Twister.
 
-# version: 3.010
+# version: 3.011
 
 # Copyright (C) 2012-2014, Luxoft
 
@@ -22,6 +22,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""
+ClearCase file system; used to work with CC views
+"""
+
 
 import os, sys
 import time
@@ -59,8 +63,10 @@ __all__ = ['ClearCaseFs']
 #
 
 def singleton(cls):
+    """ Lauch single instance"""
     instances = {}
     def getinstance(*args, **kwargs):
+        """ Return new/existing instance """
         if cls not in instances:
             instances[cls] = cls(*args, **kwargs)
         return instances[cls]
@@ -86,6 +92,7 @@ class ClearCaseFs(object):
 
     @staticmethod
     def _kill(user):
+        """ Stop service """
 
         ps   = local['ps']
         grep = local['grep']
@@ -100,8 +107,10 @@ class ClearCaseFs(object):
             li = line.strip().decode('utf').split()
             PID = int(li[1])
             del li[2:5]
-            if '/bin/sh' in li: continue
-            if '/bin/grep' in li: continue
+            if '/bin/sh' in li:
+                continue
+            if '/bin/grep' in li:
+                continue
             logDebug('Killing ugly zombie `{}`.'.format(' '.join(li)))
             try:
                 os.kill(PID, 9)
@@ -109,7 +118,7 @@ class ClearCaseFs(object):
                 pass
 
 
-    def _usrService(self, user_view_actv):
+    def _usr_service(self, user_view_actv):
         """
         Launch a user service.
         Open a ClearCase view first.
@@ -136,6 +145,7 @@ class ClearCaseFs(object):
         with self._srv_lock:
 
             def pread():
+                """ Read file """
                 while 1:
                     try:
                         line = proc.readline().strip()
@@ -237,14 +247,15 @@ class ClearCaseFs(object):
                     success = True
                     break
                 except Exception as e:
-                    logWarning('Cannot connect to ClearCase Service for `{}` - Exception: `{}`! Retry...'.format(user_view, e))
+                    logWarning('Cannot connect to ClearCase Service for `{}` \
+                        - Exception: `{}`! Retry...'.format(user_view, e))
                 time.sleep(delay)
                 retry -= 1
                 delay += 0.75
 
             if not success:
                 logError('Error on starting ClearCase Service for `{}`!'.format(user_view))
-                return False
+                return None
 
             # Save the process inside the block.
             self._services[user_view] = {'proc': proc, 'conn': conn, 'port': port, 'actv': actv}
@@ -256,41 +267,41 @@ class ClearCaseFs(object):
     # ----- USER ---------------------------------------------------------------
 
 
-    def fileSize(self, user, fpath):
+    def file_size(self, user, fpath):
         """
         Get file size for 1 file. Client access via RPyc.
         """
         if not fpath:
             return False
-        srvr = self._usrService(user)
+        srvr = self._usr_service(user)
         if srvr:
             return srvr.root.file_size(fpath)
         else:
             return False
 
 
-    def readUserFile(self, user, fpath, flag='r', fstart=0):
+    def read_user_file(self, user, fpath, flag='r', fstart=0):
         """
         Read 1 file. Client access via RPyc.
         """
-        logDebug('Read {} {} {}'.format(user,fpath,fstart))
+        logDebug('Read {} {} {}'.format(user, fpath, fstart))
         if not fpath:
             return False
-        srvr = self._usrService(user)
+        srvr = self._usr_service(user)
         if srvr:
             return srvr.root.read_file(fpath, flag, fstart)
         else:
-            logError('Cannot read {} {} {}'.format(user,fpath,fstart))
+            logError('Cannot read {} {} {}'.format(user, fpath, fstart))
             return False
 
 
-    def writeUserFile(self, user, fpath, fdata, flag='w'):
+    def write_user_file(self, user, fpath, fdata, flag='w'):
         """
         Read 1 file. Client access via RPyc.
         """
         if not fpath:
             return False
-        srvr = self._usrService(user)
+        srvr = self._usr_service(user)
         if len(fdata) > 20*1000*1000:
             err = '*ERROR* File data too long `{}`: {}!'.format(fpath, len(fdata))
             logWarning(err)
@@ -301,50 +312,55 @@ class ClearCaseFs(object):
             return False
 
 
-    def copyUserFile(self, user, fpath, newpath):
+    def copy_user_file(self, user, fpath, newpath):
+        """ copy an user file """
         if not fpath:
             return False
-        srvr = self._usrService(user)
+        srvr = self._usr_service(user)
         if srvr:
             return srvr.root.copy_file(fpath, newpath)
         else:
             return False
 
 
-    def moveUserFile(self, user, fpath, newpath):
+    def move_user_file(self, user, fpath, newpath):
+        """ move/rename a user file """
         if not fpath:
             return False
-        srvr = self._usrService(user)
+        srvr = self._usr_service(user)
         if srvr:
             return srvr.root.move_file(fpath, newpath)
         else:
             return False
 
 
-    def deleteUserFile(self, user, fpath):
+    def delete_user_file(self, user, fpath):
+        """ delete user file """
         if not fpath:
             return False
-        srvr = self._usrService(user)
+        srvr = self._usr_service(user)
         if srvr:
             return srvr.root.delete_file(fpath)
         else:
             return False
 
 
-    def createUserFolder(self, user, fdir):
+    def create_user_folder(self, user, fdir):
+        """ create a folder in user client directory """
         if not fdir:
             return False
-        srvr = self._usrService(user)
+        srvr = self._usr_service(user)
         if srvr:
             return srvr.root.create_folder(fdir)
         else:
             return False
 
 
-    def listUserFiles(self, user, fdir, hidden=True, recursive=True):
+    def list_user_files(self, user, fdir, hidden=True, recursive=True):
+        """ list the files in user directory """
         if not fdir:
             return False
-        srvr = self._usrService(user)
+        srvr = self._usr_service(user)
         if srvr:
             files = srvr.root.list_files(fdir, hidden, recursive)
             return copy.copy(files)
@@ -352,20 +368,22 @@ class ClearCaseFs(object):
             return False
 
 
-    def deleteUserFolder(self, user, fdir):
+    def delete_user_folder(self, user, fdir):
+        """ Delete user folder """
         if not fdir:
             return False
-        srvr = self._usrService(user)
+        srvr = self._usr_service(user)
         if srvr:
             return srvr.root.delete_folder(fdir)
         else:
             return False
 
 
-    def targzUserFolder(self, user, fdir):
+    def targz_user_folder(self, user, fdir):
+        """ Archive a folder """
         if not fdir:
             return False
-        srvr = self._usrService(user)
+        srvr = self._usr_service(user)
         if srvr:
             return srvr.root.targz_folder(fdir)
         else:
@@ -375,10 +393,12 @@ class ClearCaseFs(object):
     # ----- COMMAND-------------------------------------------------------------
 
 
-    def systemCommand(self, user_view, cmd):
+    def system_command(self, user_view, cmd):
+        """ Execute a system command """
         proc = self._services.get(user_view, {}).get('proc')
         if proc:
             # Empty buffer
+            plog = []
             while 1:
                 try:
                     line = proc.readline().strip()
@@ -408,54 +428,61 @@ class ClearCaseFs(object):
 
 
     @staticmethod
-    def sysFileSize(fpath):
+    def sys_file_size(fpath):
+        """ Dummy Method """
         pass
 
 
     @staticmethod
-    def readSystemFile(fpath, flag='r', fstart=0):
+    def read_system_file(fpath, flag='r', fstart=0):
+        """ Dummy Method """
         pass
 
 
     @staticmethod
-    def writeSystemFile(fpath, fdata, flag='a'):
+    def write_system_file(fpath, fdata, flag='a'):
+        """ Dummy Method """
         pass
 
 
     @staticmethod
-    def deleteSystemFile(fname):
+    def delete_system_file(fname):
+        """ Dummy Method """
         pass
 
 
     @staticmethod
-    def createSystemFolder(fdir):
+    def create_system_folder(fdir):
+        """ Dummy Method """
         pass
 
 
     @staticmethod
-    def listSystemFiles(fdir):
+    def list_system_files(fdir):
+        """ Dummy Method """
         pass
 
 
     @staticmethod
-    def deleteSystemFolder(fdir):
+    def delete_system_folder(fdir):
+        """ Dummy Method """
         pass
 
 #
 
 if __name__ == '__main__':
 
-    fs1 = ClearCaseFs()
-    fs1._usrService('user:bogdan_twister')
+    FS_1 = ClearCaseFs()
+    FS_1._usr_service('user:bogdan_twister')
 
-    print fs1.listUserFiles('user:bogdan_twister', '/vob/metronext_DO_5/test_cases')
+    print FS_1.list_user_files('user:bogdan_twister', '/vob/metronext_DO_5/test_cases')
     print '---'
-    print fs1.readUserFile('user:bogdan_twister', '/vob/metronext_DO_5/test_cases/python/test_py_printnlogs.py')
+    print FS_1.read_user_file('user:bogdan_twister', '/vob/metronext_DO_5/test_cases/python/test_py_printnlogs.py')
     print '---'
 
-    print fs1.systemCommand('user:bogdan_twister', 'ls -la')
+    print FS_1.system_command('user:bogdan_twister', 'ls -la')
 
-    fs1._kill('user')
+    FS_1._kill('user')
 
 
 # Eof()

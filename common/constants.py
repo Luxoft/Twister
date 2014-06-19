@@ -1,5 +1,5 @@
 
-# version: 3.001
+# version: 3.002
 
 # Major list of constants.
 
@@ -52,7 +52,7 @@ ROLES = [
 
 # Status translations :
 
-execStatus = {'stopped':STATUS_STOP, 'paused':STATUS_PAUSED, 'running':STATUS_RUNNING, 'resume':STATUS_RESUME,
+EXEC_STATUS = {'stopped':STATUS_STOP, 'paused':STATUS_PAUSED, 'running':STATUS_RUNNING, 'resume':STATUS_RESUME,
 	'invalid':STATUS_INVALID}
 
 testStatus = {'pending':STATUS_PENDING, 'working':STATUS_WORKING, 'pass':STATUS_PASS, 'fail':STATUS_FAIL,

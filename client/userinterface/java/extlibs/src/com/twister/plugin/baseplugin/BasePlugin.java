@@ -1,6 +1,6 @@
 /*
 File: BasePlugin.java ; This file is part of Twister.
-Version: 2.004
+Version: 3.001
 Copyright (C) 2012 , Luxoft
 
 Authors: Andrei Costachi <acostachi@luxoft.com>
@@ -161,7 +161,7 @@ public class BasePlugin extends JPanel implements TwisterPluginInterface {
             }
             String content = builder.toString();
             content = DatatypeConverter.printBase64Binary(content.getBytes());
-            String resp = client.execute("writeFile", new Object[]{"~/twister/config/"+file.getName(),content,"w"}).toString();
+            String resp = client.execute("write_file", new Object[]{"~/twister/config/"+file.getName(),content,"w"}).toString();
             if(resp.indexOf("*ERROR*")!=-1){
                 CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,this,"ERROR", resp);
             }

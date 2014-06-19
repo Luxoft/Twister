@@ -1,6 +1,6 @@
 /*
 File: SutConfig.java ; This file is part of Twister.
-Version: 2.005
+Version: 3.001
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -68,13 +68,13 @@ public class SutConfig extends JPanel{
                                 SUT s = (SUT)tn.getUserObject();
                                 String eps = "";
                                 try{
-                                    String lock = client.execute("isSutLocked", new Object[]{s.getID()}).toString();
+                                    String lock = client.execute("is_sut_locked", new Object[]{s.getID()}).toString();
                                     if(!lock.equals("false")&&lock.indexOf("*ERROR*")==-1){
                                         s.setLock(lock);
                                     }else{
                                         s.setLock("");
                                     }
-                                    String resp = client.execute("isSutReserved", new Object[]{s.getID()}).toString();
+                                    String resp = client.execute("is_sut_reserved", new Object[]{s.getID()}).toString();
                                     if(!resp.equals("false")&&resp.indexOf("*ERROR*")==-1){
                                         s.setReserved(resp);
                                     } else {
@@ -85,7 +85,7 @@ public class SutConfig extends JPanel{
                                     e.printStackTrace();
                                 }
                                 
-                                try{HashMap hash= (HashMap)client.execute("getSut", new Object[]{s.getID(),RunnerRepository.user,RunnerRepository.user});
+                                try{HashMap hash= (HashMap)client.execute("get_sut", new Object[]{s.getID(),RunnerRepository.user,RunnerRepository.user});
                                     try{eps = ((HashMap)hash.get("meta")).get("_epnames_"+RunnerRepository.user).toString();}
                                     catch(Exception e){
                                         eps = "";
@@ -136,7 +136,7 @@ public class SutConfig extends JPanel{
         for(Object o:children){
             try{childid = o.toString();
                 System.out.println(childid+" - "+treenode.toString());
-                HashMap subhash= (HashMap)client.execute("getSut", new Object[]{childid,RunnerRepository.user,RunnerRepository.user});
+                HashMap subhash= (HashMap)client.execute("get_sut", new Object[]{childid,RunnerRepository.user,RunnerRepository.user});
                 String subpath = subhash.get("path").toString();
                 String subname = subpath.split("/")[subpath.split("/").length-1];
                 HashMap meta = (HashMap)subhash.get("meta");
@@ -187,7 +187,7 @@ public class SutConfig extends JPanel{
     public Node getTB(String id,Node parent){
         Object ob= null;
         try{
-            ob =  client.execute("getResource", new Object[]{id});
+            ob =  client.execute("get_resource", new Object[]{id});
             HashMap hash= (HashMap)ob;
 //             HashMap hash= (HashMap)client.execute("getResource", new Object[]{id});
             String path = hash.get("path").toString();

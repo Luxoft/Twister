@@ -26,7 +26,7 @@ def test():
 
 	py_res = 'tb_' + hexlify(urandom(4))
 	print 'Create a root SUT `{}`...'.format(py_res)
-	res_id = setSut(py_res, '/', {'meta1': 1, 'meta2': 2})
+	res_id = set_sut(py_res, '/', {'meta1': 1, 'meta2': 2})
 	print 'Ok.\n'
 
 	if not res_id:
@@ -50,7 +50,7 @@ def test():
 	if not r: return "FAIL"
 	print
 
-	print 'Update SUT::', setSut(py_res, '/', {'more-info': 'y'})
+	print 'Update SUT::', set_sut(py_res, '/', {'more-info': 'y'})
 	r = getSut(res_id)
 	print 'Check status::', r
 	if 'more-info' not in r['meta']: return "FAIL"
@@ -58,22 +58,22 @@ def test():
 
 	for i in range(1, 4):
 		tag = 'tag{}'.format(i)
-		r = setSut(py_res, '/', {tag: str(i)})
+		r = set_sut(py_res, '/', {tag: str(i)})
 		print 'Set tag `{}` = `{}` ... {}'.format(tag, i, r)
 		if not r: return "FAIL"
 
 		path = '/' + py_res + ':' + tag
-		r = renameSut(path, 'tagx')
+		r = rename_sut(path, 'tagx')
 		print 'Rename tag `{}` = `tagx` ... {}'.format(path, r)
 		if not r: return "FAIL"
 
 		path = '/' + py_res + ':tagx'
-		r = deleteSut(path)
+		r = delete_sut(path)
 		print 'Delete tag `{}` ... {}'.format(path, r)
 		if not r: return "FAIL"
 		print
 
-	print 'Delete SUT::', deleteSut(res_id)
+	print 'Delete SUT::', delete_sut(res_id)
 	r = getSut(res_id)
 	print 'Check info::', r
 	if r: return "FAIL"

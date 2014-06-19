@@ -8,7 +8,7 @@ This function should get a config, using the full path to config file and the fu
 <tags>bindings</tags>
 """
 
-bindings = PROXY.getUserVariable('bindings')
+bindings = PROXY.get_user_variable('bindings')
 
 print 'Bindings found :: {}\n'.format(bindings)
 

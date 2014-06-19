@@ -1,6 +1,6 @@
 /*
 File: GraficTest.java ; This file is part of Twister.
-Version: 2.008
+Version: 3.001
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -316,7 +316,7 @@ public class GraficTest extends JPanel{
             new Thread(){
                 public void run(){
                     try{
-                        String result = RunnerRepository.getRPCClient().execute("runTemporary",
+                        String result = RunnerRepository.getRPCClient().execute("run_temporary",
                                                             new Object[]{RunnerRepository.getUser(),
                                                                             filelocation})+"";
                         if(result.indexOf("ERROR")!=-1){

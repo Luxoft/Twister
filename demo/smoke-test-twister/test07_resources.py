@@ -51,9 +51,9 @@ def test():
 	if not r: return "FAIL"
 	print
 
-	print 'Reserving resource...', PROXY.reserveResource(res_id)
+	print 'Reserving resource...', PROXY.reserve_resource(res_id)
 	print 'Update resource::', setResource(py_res, '/', {'more-info': 'y'})
-	print 'Releasing resource...', PROXY.saveAndReleaseReservedResource(res_id)
+	print 'Releasing resource...', PROXY.save_release_reserved_res(res_id)
 
 	r = getResource(res_id)
 	print 'Check status::', r
@@ -62,10 +62,10 @@ def test():
 
 	for i in range(1, 4):
 
-		print 'Reserving resource...', PROXY.reserveResource(res_id)
+		print 'Reserving resource...', PROXY.reserve_resource(res_id)
 		tag = 'tag{}'.format(i)
 		r = setResource(py_res, '/', {tag: str(i)})
-		print 'Releasing resource...', PROXY.saveAndReleaseReservedResource(res_id)
+		print 'Releasing resource...', PROXY.save_release_reserved_res(res_id)
 		print 'Set tag `{}` = `{}` ... {}'.format(tag, i, r)
 		if not r:
 			print 'Could not save tag {}!'.format(tag)
@@ -87,7 +87,7 @@ def test():
 		print
 
 	print 'Check status 1::', getResourceStatus(res_id)
-	print 'Reserve resource::', reserveResource(res_id)
+	print 'Reserve resource::', reserve_resource(res_id)
 	print 'Check status 2::', getResourceStatus(res_id)
 	print
 

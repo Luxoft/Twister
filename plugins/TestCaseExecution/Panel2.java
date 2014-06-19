@@ -1,6 +1,6 @@
 /*
 File: Panel2.java ; This file is part of Twister.
-Version: 2.0019
+Version: 3.001
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -101,9 +101,9 @@ public class Panel2 extends JPanel{
     private void askCE(JButton play){
         try{String result="";
             Thread.sleep(1000);
-            try{result = RunnerRepository.getRPCClient().execute("getExecStatusAll",new Object[]{RunnerRepository.getUser()})+" ";}
+            try{result = RunnerRepository.getRPCClient().execute("get_exec_status_all",new Object[]{RunnerRepository.getUser()})+" ";}
             catch(Exception e){
-                System.out.println("Could not get running status(getExecStatusAll) from CE! Panel2->askCE()");
+                System.out.println("Could not get running status(get_exec_status_all) from CE! Panel2->askCE()");
                 return;
             }
             String startedtime = "   Started : "+result.split(";")[1];
@@ -199,7 +199,7 @@ public class Panel2 extends JPanel{
                 stop.setEnabled(true);
                 RunnerRepository.window.mainpanel.p1.edit.setEnabled(false);
             }
-            Object result1 = RunnerRepository.getRPCClient().execute("getFileStatusAll",
+            Object result1 = RunnerRepository.getRPCClient().execute("get_file_status_all",
                                                                 new Object[]{RunnerRepository.getUser()});
             if(result1!=null){                                    
                 if(((String)result1).indexOf(",")!=-1){
@@ -248,7 +248,7 @@ public class Panel2 extends JPanel{
         if (!resp.equals("NULL")) {
             if(resp.equals("Save to DB")){
                 System.out.println("Saving to DB");
-                try{RunnerRepository.getRPCClient().execute("commitToDatabase",
+                try{RunnerRepository.getRPCClient().execute("commit_to_database",
                                                       new Object[]{RunnerRepository.getUser()});}
                 catch(Exception e){
                     System.out.println("Could not comunicate with ce through RPC");
@@ -263,7 +263,7 @@ public class Panel2 extends JPanel{
      * stop CE from executing
      */
     public void stop(JButton play){
-        try{String status = (String)RunnerRepository.getRPCClient().execute("setExecStatusAll",
+        try{String status = (String)RunnerRepository.getRPCClient().execute("set_exec_status_all",
                                                                       new Object[]{RunnerRepository.getUser(),0});
             play.setText("Run");
             play.setIcon(new ImageIcon(RunnerRepository.playicon));
@@ -279,7 +279,7 @@ public class Panel2 extends JPanel{
             if(play.getText().equals("Run")){
                 for(int i=0;i<RunnerRepository.getTestSuiteNr();i++){clearProp(RunnerRepository.getTestSuita(i));}
                 RunnerRepository.window.mainpanel.getP2().sc.g.repaint();    
-                status = (String)RunnerRepository.getRPCClient().execute("setExecStatusAll",
+                status = (String)RunnerRepository.getRPCClient().execute("set_exec_status_all",
                                                                     new Object[]{RunnerRepository.getUser(),2});
                 if(status.indexOf("*ERROR*")!=-1){
                     CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,tabbed,"ERROR", status);
@@ -288,18 +288,18 @@ public class Panel2 extends JPanel{
                 }
                 String [] path = RunnerRepository.window.mainpanel.p1.sc.g.getUser().split("\\\\");
                 String file = path[path.length-1];
-                RunnerRepository.getRPCClient().execute("setStartedBy",
+                RunnerRepository.getRPCClient().execute("set_started_by",
                                                     new Object[]{RunnerRepository.getUser(),
                                                                  RunnerRepository.getUser()+";"+file});
                 play.setText("Pause");
                 play.setIcon(new ImageIcon(RunnerRepository.pauseicon));}
             else if(play.getText().equals("Resume")){
-                status = (String)RunnerRepository.getRPCClient().execute("setExecStatusAll",
+                status = (String)RunnerRepository.getRPCClient().execute("set_exec_status_all",
                                                                     new Object[]{RunnerRepository.getUser(),3});
                 play.setText("Pause");
                 play.setIcon(new ImageIcon(RunnerRepository.playicon));}
             else if(play.getText().equals("Pause")){
-                status = (String)RunnerRepository.getRPCClient().execute("setExecStatusAll",new Object[]{RunnerRepository.getUser(),1});
+                status = (String)RunnerRepository.getRPCClient().execute("set_exec_status_all",new Object[]{RunnerRepository.getUser(),1});
                 play.setText("Resume");
                 play.setIcon(new ImageIcon(RunnerRepository.playicon));}}
         catch(Exception e){e.printStackTrace();}}

@@ -25,7 +25,7 @@ def check(ra, _xml_file):
 
     try:
         res = ra.getResource('/')
-        sut = ra.getSut('/')
+        sut = ra.get_sut('/')
         try: del res['version']
         except: pass
         try: del res['name']

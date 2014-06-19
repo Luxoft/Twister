@@ -1,6 +1,6 @@
 /*
 File: Scheduler.java ; This file is part of Twister.
-Version: 2.004
+Version: 2.005
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -385,7 +385,7 @@ public class Scheduler extends BasePlugin implements TwisterPluginInterface {
 		
 		
 		Object ob = null;
-        try{ob = ceclient.execute("fileSize", new Object[]{variables.get("remoteusersdir")});
+        try{ob = ceclient.execute("file_size", new Object[]{variables.get("remoteusersdir")});
         } catch (Exception e) {
         	System.out.println("Could not get to "+
 					variables.get("remoteusersdir")+
@@ -432,7 +432,7 @@ public class Scheduler extends BasePlugin implements TwisterPluginInterface {
         
         String users[] = null;
         ArrayList<String> files = new ArrayList<String>();
-        try{ob = ceclient.execute("listFiles", new Object[]{variables.get("remoteusersdir")});
+        try{ob = ceclient.execute("list_files", new Object[]{variables.get("remoteusersdir")});
             if(ob.toString().indexOf("*ERROR*")!=-1){
                 CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,p,"ERROR", ob.toString());
                 users = new String[]{};
@@ -717,7 +717,7 @@ public class Scheduler extends BasePlugin implements TwisterPluginInterface {
 		
 		
 		Object ob = null;
-        try{ob = ceclient.execute("fileSize", new Object[]{variables.get("remoteusersdir")});
+        try{ob = ceclient.execute("file_size", new Object[]{variables.get("remoteusersdir")});
         } catch (Exception e) {
         	System.out.println("Could not get to "+
 					variables.get("remoteusersdir")+
@@ -726,7 +726,7 @@ public class Scheduler extends BasePlugin implements TwisterPluginInterface {
         }
         String users[] = null;
         ArrayList<String> files = new ArrayList<String>();
-        try{ob = ceclient.execute("listFiles", new Object[]{variables.get("remoteusersdir")});
+        try{ob = ceclient.execute("list_files", new Object[]{variables.get("remoteusersdir")});
             if(ob.toString().indexOf("*ERROR*")!=-1){
                 CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,p,"ERROR", ob.toString());
                 users = new String[]{};
