@@ -330,7 +330,6 @@ class UserService(rpyc.Service):
                 # Ignore hidden files
                 if hidden and fname[0] == '.':
                     continue
-                #log.warning('gigi {}'.format(long_path) )
                 # Meta info
                 try:
                     fstat = os.stat(long_path)
