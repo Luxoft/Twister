@@ -40,59 +40,60 @@ if getuid() != 0:
 
 
 __dir__ = split(__file__)[0]
-if __dir__: chdir(__dir__)
+if __dir__:
+    chdir(__dir__)
 
 
 
 
 if __name__ == "__main__":
-    usage = 'Usage: %prog --of_port <port>'
-    version = '%prog v1.0'
-    parser = OptionParser(usage=usage, version=version)
+    USAGE = 'Usage: %prog --of_port <port>'
+    VERSION = '%prog v1.0'
+    PARSER = OptionParser(usage=USAGE, version=VERSION)
 
     # script options
-    parser.add_option('-i', '--eth_interface', action='store', default=None,
+    PARSER.add_option('-i', '--eth_interface', action='store', default=None,
                         help='Ethernet interface: eth0 (default).')
-    parser.add_option('-o', '--of_port', action='store', default=6633,
+    PARSER.add_option('-o', '--of_port', action='store', default=6633,
                         help='OpenFlow port: 6633 (default).')
-    parser.add_option('-u', '--user', action='store', default=None,
+    PARSER.add_option('-u', '--user', action='store', default=None,
                         help='user: None (default).')
-    parser.add_option('-t', '--twister_path', action='store', default=None,
+    PARSER.add_option('-t', '--twister_path', action='store', default=None,
                         help='TWISTER_PATH: None (default).')
-    (options, args) = parser.parse_args()
+    (OPTIONS, ARGS) = PARSER.parse_args()
 
-    if not options.user:
+    if not OPTIONS.user:
         print('Cannot guess user name for this Execution Process! Exiting!')
 
         exit(1)
 
-    if not options.twister_path:
+    if not OPTIONS.twister_path:
         print('TWISTER_PATH environment variable is not set! exiting!')
 
         exit(1)
 
-    path.append(options.twister_path)
+    path.append(OPTIONS.twister_path)
 
     from ConfigParser import SafeConfigParser
 
     from services.PacketSniffer.PacketSniffer import Sniffer
 
     # load execution process configuration
-    _epConfig = dict()
-    epConfig = SafeConfigParser()
-    epConfig.read(options.twister_path + '/config/epname.ini')
-    for s in [_s for _s in epConfig.sections() if not _s == 'PACKETSNIFFERPLUGIN'
-                                                    and epConfig.has_option(_s, 'ENABLED')
-                                                    and epConfig.get(_s, 'ENABLED')]:
-        _epConfig.update([(s, {'CE_IP': epConfig.get(s, 'CE_IP'), 'CE_PORT': epConfig.get(s, 'CE_PORT')}), ])
+    _EP_CONFIG = dict()
+    EP_CONFIG = SafeConfigParser()
+    EP_CONFIG.read(OPTIONS.twister_path + '/config/epname.ini')
+    for s in [_s for _s in EP_CONFIG.sections() if not _s == 'PACKETSNIFFERPLUGIN'
+                                                    and EP_CONFIG.has_option(_s, 'ENABLED')
+                                                    and EP_CONFIG.get(_s, 'ENABLED')]:
+        _EP_CONFIG.update([(s, {'CE_IP': EP_CONFIG.get(s, 'CE_IP'), 'CE_PORT': EP_CONFIG.get(s, 'CE_PORT')}), ])
 
-    epConfig = list(_epConfig.itervalues())
+    EP_CONFIG = list(_EP_CONFIG.itervalues())
 
-    # initiate and start sniffer
-    sniffer = Sniffer(user=options.user, epConfig=epConfig,
-                        OFPort=options.of_port, iface=options.eth_interface)
+    # initiate and start SNIFFER
+    SNIFFER = Sniffer(user=OPTIONS.user, epConfig=EP_CONFIG,
+                        OFPort=OPTIONS.of_port, iface=OPTIONS.eth_interface)
 
     print 'Packet Sniffer start..'
 
-    sniffer.run()
+    SNIFFER.run()
 

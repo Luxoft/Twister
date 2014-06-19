@@ -41,7 +41,7 @@ tcl.eval('ixConnectToChassis 10.144.31.91')
 
 # # # # # # # #
 
-head = """
+HEAD = """
 from Tkinter import Tcl
 
 t = Tcl()
@@ -56,7 +56,7 @@ none  = None
 
 """
 
-tail = """
+TAIL = """
 
 def ix_exec(cmd):
     # This is used for executing custom TCL commands
@@ -210,14 +210,16 @@ def tcl_convert(variable):
     digit
         Any Unicode digit character. Note that this includes characters outside of the [0-9] range.
     double
-        Any of the valid forms for a double in Tcl, with optional surrounding whitespace. In case of under/overflow in the value,
+        Any of the valid forms for a double in Tcl, with optional surrounding \
+         whitespace. In case of under/overflow in the value,
         0 is returned and the varname will contain -1.
     false
         Any of the forms allowed to Tcl_GetBoolean where the value is false.
     graph
         Any Unicode printing character, except space.
     integer
-        Any of the valid forms for an ordinary integer in Tcl, with optional surrounding whitespace. In case of under/overflow in the value,
+        Any of the valid forms for an ordinary integer in Tcl, with optional \
+         surrounding whitespace. In case of under/overflow in the value,
         0 is returned and the varname will contain -1.
     lower
         Any Unicode lower case alphabet character.
@@ -232,7 +234,8 @@ def tcl_convert(variable):
     upper
         Any upper case alphabet character in the Unicode character set.
     wordchar
-        Any Unicode word character. That is any alphanumeric character, and any Unicode connector punctuation characters (e.g. underscore).
+        Any Unicode word character. That is any alphanumeric character, and \
+        any Unicode connector punctuation characters (e.g. underscore).
     xdigit
         Any hexadecimal digit character ([0-9A-Fa-f]).
     """
@@ -278,7 +281,7 @@ def tcl_convert(variable):
 
 # # # # # # # #
 
-ix_vars = {
+IX_VARS = {
     'from':     'ix_from',
     'for':      'ix_for',
     'while':    'ix_while',
@@ -290,26 +293,30 @@ ix_vars = {
 }
 
 def fix_tcl_var(variable):
-    global ix_vars
-    if variable in ix_vars:
-        return ix_vars[variable]
+    """ replace TCL variable """
+    global IX_VARS
+    if variable in IX_VARS:
+        return IX_VARS[variable]
     return variable
 
 def fix_tcl_func(func):
-    global ix_vars
+    """ change TCL function """
+    global IX_VARS
     func = func.replace('::', '_')
-    if func in ix_vars:
-        return ix_vars[func]
+    if func in IX_VARS:
+        return IX_VARS[func]
     return func
 
 # # # # # # # #
 
-functions = []
+FUNCTIONS = []
 
 for line in open('functions.txt').readlines():
 
-    if not line.strip(): continue
-    if '::' in line: continue
+    if not line.strip():
+        continue
+    if '::' in line:
+        continue
 
     func_name = line.strip() # TCL Function name
 
@@ -327,8 +334,10 @@ for line in open('functions.txt').readlines():
 
     try:
         # Enable TCL Function. RISK excuting the function!
-        try: tcl.eval(func_name)
-        except: pass
+        try:
+            tcl.eval(func_name)
+        except:
+            pass
 
         proc_args = tcl.eval('info args ' + func_name)
 
@@ -371,7 +380,8 @@ for line in open('functions.txt').readlines():
 
 
     if defaultArgs:
-        defaultArgs = '\n'.join([ '    if {0} is None: print "TCL argument `{0}` cannot be empty!"; return False'.format(x) for x in defaultArgs ])
+        defaultArgs = '\n'.join([ '    if {0} is None: print "TCL argument ' \
+        ' `{0}` cannot be empty!"; return False'.format(x) for x in defaultArgs ])
         tmpl = """
 def {py}({py_arg_l}):
     # TCL cmd :: {tcl} {tcl_arg_l}
@@ -382,7 +392,7 @@ def {py}({py_arg_l}):
             tcl_arg=tcl_args, tcl_arg_l=tcl_args_long, le='{} '*leng, def_arg=defaultArgs)
 
     else:
-                tmpl = """
+        tmpl = """
 def {py}({py_arg_l}):
     # TCL cmd :: {tcl} {tcl_arg_l}
     r = t.eval("{tcl} {le}".format({py_arg}))
@@ -391,14 +401,14 @@ def {py}({py_arg_l}):
             tcl_arg=tcl_args, tcl_arg_l=tcl_args_long, le='{} '*leng)
 
 
-    functions.append(tmpl)
+    FUNCTIONS.append(tmpl)
 
 #
 
-output = open('TscIxPythonLib.py', 'w')
-output.write(head)
-output.write('\n'.join(functions))
-output.write(tail)
-output.close()
+OUTPUT = open('TscIxPythonLib.py', 'w')
+OUTPUT.write(HEAD)
+OUTPUT.write('\n'.join(FUNCTIONS))
+OUTPUT.write(TAIL)
+OUTPUT.close()
 
 # Eof()
