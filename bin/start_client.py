@@ -2,7 +2,7 @@
 
 # File: start_client.py ; This file is part of Twister.
 
-# version: 3.017
+# version: 3.018
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -337,7 +337,7 @@ class TwisterClient(object):
                 if ep_host in socket.gethostbyaddr(self.host_name)[-1]:
                     logPrint('EP `{}` has an IP match ({}), so is valid.'.format(ep, ep_host))
                     ep_list.append(ep)
-            except Exception as e:
+            except Exception:
                 pass
 
             logPrint('EP `{}` doesn\'t match with required HOST `{}`, '\
@@ -472,7 +472,7 @@ class TwisterClient(object):
         for ce_path, ep_names in epsToRegister.items():
             if not ep_names:
                 continue
-            thread.start_new_thread( self.lazy_register, (ce_path, ep_names) )
+            thread.start_new_thread(self.lazy_register, (ce_path, ep_names))
 
         logPrint('Register EPs function finished.'\
               '\n\tIf not all CE connections are made, they will be created asynchronously.\n')
@@ -513,13 +513,12 @@ class TwisterClientService(rpyc.Service):
         """
         Runs when the connection has already closed (to finalize the service).
         """
-        global CLIENT
         connid = self._conn._config['connid']
 
         try:
             self.connections.pop(connid)
             CLIENT.register_eps()
-        except Exception as e:
+        except Exception:
             trace = traceback.format_exc()[34:].strip()
             logPrint('ClientService: Disconnect Error: `{}`!'.format(trace))
 
@@ -553,7 +552,6 @@ class TwisterClientService(rpyc.Service):
         """
         Add a new EP in the EP structure.
         """
-        global CLIENT
         try:
             CLIENT.add_ep(self, epname, ce_ip, ce_port)
             return True
@@ -567,8 +565,6 @@ class TwisterClientService(rpyc.Service):
         """
         Start 1 EP.
         """
-        global CLIENT
-
         if epname not in CLIENT.ep_names:
             logPrint('*ERROR* Cannot start! Unknown EP name : `{}` !'.format(epname))
             return False
@@ -598,8 +594,6 @@ class TwisterClientService(rpyc.Service):
         """
         Stop 1 EP.
         """
-        global CLIENT
-
         if epname not in CLIENT.ep_names:
             logPrint('*ERROR* Cannot stop! Unknown EP name : `{}` !'.format(epname))
             return False
@@ -685,9 +679,10 @@ class TwisterClientService(rpyc.Service):
         for line in pipe.stdout.read().splitlines():
             try:
                 os.kill(int(line.split()[0]), 9)
-            except Exception as e:
+            except Exception:
                 pass
         del pipe
+        return True
 
 
     def exposed_create_folder(self, folder):
@@ -807,13 +802,10 @@ class TwisterClientService(rpyc.Service):
                     sutName = '.'.join(['.'.join(sutPath.split('.')[:-1]  + ['user'])])
                     with open(os.path.join(sutsPath, sutPath), 'r') as f:
                         suts.append((sutName, json.load(f)))
-                except Exception as e:
+                except Exception:
                     traceback.format_exc()[34:].strip()
-        except Exception as e:
-            traceback.format_exc()[34:].strip()
+        except Exception:
             suts = None
-
-        #logPrint('Found SUTS {}'.format(suts))
 
         return suts
 
@@ -829,8 +821,7 @@ class TwisterClientService(rpyc.Service):
             sutPaths = [p for p in os.listdir(sutsPath) if os.path.isfile(os.path.join(sutsPath, p))
                         and p.split('.')[-1] == 'json']
             sutsLen = len(sutPaths)
-        except Exception as e:
-            traceback.format_exc()[34:].strip()
+        except Exception:
             sutsLen = None
 
         return sutsLen
@@ -846,8 +837,9 @@ class TwisterClientService(rpyc.Service):
                 sutsPath = '{}/config/sut/'.format(TWISTER_PATH)
             logPrint('Delete SUT {}'.format(os.path.join(sutsPath, '.'.join([name, 'json']))))
             os.remove(os.path.join(sutsPath, '.'.join([name, 'json'])))
-        except Exception as e:
+        except Exception:
             return False
+
 
     def exposed_list_all_suts(self):
         """ get all suts from files """
@@ -865,7 +857,7 @@ class TwisterClientService(rpyc.Service):
                 sutName = '.'.join(['.'.join(sutPath.split('.')[:-1]  + ['user'])])
                 suts.append(sutName)
 
-        except Exception as e:
+        except Exception:
             logPrint('Error getting all suts')
             suts = None
 
@@ -876,25 +868,27 @@ class TwisterClientService(rpyc.Service):
         """
         Store in a json file the tags from each test case file
         """
-
         ti = time.time()
         globalDict = {}
+
         with open('{}/config/fwmconfig.xml'.format(TWISTER_PATH)) as data_file:
             try:
                 testCasesPath = re.search('TestCaseSourcePath>(.*)<', data_file.read()).group(1)
-            except:
+            except Exception:
                 return '*ERROR* Cannot find the test cases source path !'
-        for path, subdirs, files in os.walk(testCasesPath):
+
+        for path, _, files in os.walk(testCasesPath):
             for name in files:
                 fname = os.path.join(path, name)
                 try:
-                    text = open(fname,'rb').read()
-                except:
+                    text = open(fname, 'rb').read()
+                except Exception:
                     return '*ERROR* Cannot find file name `%s` !' % (fname)
-                tags = re.findall('^[ ]*?[#]*?[ ]*?<(?P<tag>\w+)>([ -~\n]+?)</(?P=tag)>', text, re.MULTILINE)
+                tags = re.findall('^[ ]*?[#]*?[ ]*?<(?P<tag>\\w+)>([ -~\n]+?)</(?P=tag)>', text, re.MULTILINE)
                 tagsDict = {title:descr for title, descr in tags}
                 if tagsDict:
                     globalDict[fname] = tagsDict
+
         with open('{}/config/file_tags.json'.format(TWISTER_PATH), 'w') as file_tags:
             json.dump(globalDict, file_tags, indent=2)
 
@@ -908,25 +902,28 @@ class TwisterClientService(rpyc.Service):
         Example: search_index('filename=*.tcl')
                  search_index('description=Test status&title=init file')
         """
-
         if not os.path.isfile('{}/config/file_tags.json'.format(TWISTER_PATH)):
             return '*ERROR* You must generate the file tags!'
         ti = time.time()
+
         try:
             args = urlparse.parse_qs(query)
             logPrint('Searching for query {}'.format(args))
             try:
                 fname = args.get('filename')[0]
                 del args['filename']
-            except:
+            except Exception:
                 fname = None
-        except:
+        except Exception:
             msg = 'Cannot search having the arguments {} !'.format(query)
             return msg
+
         len_args = len(args)
         result = []
+
         with open('{}/config/file_tags.json'.format(TWISTER_PATH)) as data_file:
             data = json.load(data_file)
+
         for key, value in data.items():
             match = []
             short_fname = key[key.rfind('/')+1:]

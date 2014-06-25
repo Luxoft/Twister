@@ -401,7 +401,8 @@ class CeRpycService(rpyc.Service):
             return False
         if not epname:
             return False
-        suiteList = [str(k)+':'+v['name'] for k, v in self.project.get_ep_info(user, epname)['suites'].items()]
+        tempSuites = self.project.get_ep_info(user, epname).get('suites', {}).items()
+        suiteList = [str(k)+':'+v['name'] for k, v in tempSuites]
         return ','.join(suiteList)
 
 

@@ -1,7 +1,7 @@
 
 # File: CeProject.py ; This file is part of Twister.
 
-# version: 3.042
+# version: 3.043
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -2015,10 +2015,14 @@ class Project(object):
                 return []
 
             if epname:
-                if suite_id:
-                    files = eps[epname]['suites'].get_files(suite_id=suite_id, recursive=True)
+                suites_p = eps[epname].get('suites')
+                if not suites_p:
+                    files = []
+                elif suite_id:
+                    files = suites_p.get_files(suite_id=suite_id, recursive=True)
                 else:
-                    files = eps[epname]['suites'].get_files(suite_id=None, recursive=True)
+                    files = suites_p.get_files(suite_id=None, recursive=True)
+
                 for file_id in files:
                     s = self.get_file_info(user, epname, file_id)
                     if s:
