@@ -6,9 +6,7 @@
 # Copyright (C) 2012-2013 , Luxoft
 
 # Authors:
-#    Adrian Toader <adtoader@luxoft.com>
 #    Andrei Costachi <acostachi@luxoft.com>
-#    Andrei Toma <atoma@luxoft.com>
 #    Cristi Constantin <crconstantin@luxoft.com>
 #    Daniel Cioata <dcioata@luxoft.com>
 #    Mihail Tudoran <mtudoran@luxoft.com>
@@ -25,12 +23,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-'''
+"""
 This module contains common functions to communicate with the Central Engine.
 You can use : getGlobal, setGlobal, getResource, setResource, log_message.
-'''
+"""
+from __future__ import print_function
 
-import os, sys
+import os
 import copy
 import inspect
 import platform
@@ -63,8 +62,11 @@ class TscCommonLib(object):
     __ce_proxy = None
     proxy_path = PROXY_ADDR
     userName = USER
-    epName   = EP
+    epName = EP
     global_vars = {}
+    bindings = {}
+    _SUITE_ID = 0
+    _FILE_ID = 0
 
 
     def __init__(self):
@@ -190,7 +192,7 @@ class TscCommonLib(object):
 
         # Launch bg server
         try:
-            bg = BgServingThread(proxy)
+            BgServingThread(proxy)
             cls.__ce_proxy = proxy.root
             return cls.__ce_proxy
         except Exception:
@@ -234,7 +236,7 @@ class TscCommonLib(object):
         """
         try:
             marshal.dumps(value)
-            ce = cls._ce_proxy()
+            cls._ce_proxy()
             return cls.ce_proxy.set_global_variable(var, value)
         except Exception:
             cls.global_vars[var] = value
