@@ -63,7 +63,9 @@ __all__ = ['ClearCaseFs']
 #
 
 def singleton(cls):
-    """ Lauch single instance"""
+    """
+    Single instance wrapper.
+    """
     instances = {}
     def getinstance(*args, **kwargs):
         """ Return new/existing instance """
@@ -92,8 +94,9 @@ class ClearCaseFs(object):
 
     @staticmethod
     def _kill(user):
-        """ Stop service """
-
+        """
+        Kill all services for a user.
+        """
         ps   = local['ps']
         grep = local['grep']
 
@@ -145,7 +148,7 @@ class ClearCaseFs(object):
         with self._srv_lock:
 
             def pread():
-                """ Read file """
+                """ Read proc stdout """
                 while 1:
                     try:
                         line = proc.readline().strip()
