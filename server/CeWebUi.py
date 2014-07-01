@@ -358,4 +358,94 @@ class WebInterface(object):
         ))
 
 
+# # #
+
+
+class RestResource(object):
+    """
+    Base class for providing a RESTful interface to a resource.
+    To use this, derive a class from it and implement the methods
+    you want to support. The list of possible methods are:
+    - handle_GET    - read a resource
+    - handle_PUT    - create a resource, or overwrite it
+    - handle_POST   - modify, update a resource
+    - handle_DELETE - delete
+    """
+    @cherrypy.expose
+    def default(self, *vpath, **params):
+        method = getattr(self, 'handle_' + cherrypy.request.method, None)
+        if not method:
+            methods = [m.replace('handle_', '') for m in dir(self) if m.startswith('handle_')]
+            cherrypy.response.headers['Allow'] = ','.join(methods)
+            raise cherrypy.HTTPError(405, 'Method not implemented.')
+        return method(*vpath, **params)
+
+
+class ServerResource(RestResource):
+    """
+    Representation of the server.
+    The server is read only.
+    """
+    def handle_GET(self, *vpath, **params):
+        """
+        Get server info.
+        - vpath is the data after /server ;
+        - query is ?x=y expression at the end ;
+        """
+        resp = {
+            'os': ' '.join(platform.linux_distribution()),
+            'ip': cherrypy.request.base.split('//')[-1],
+            'hostname': platform.uname()[1],
+            'cpu': '50%',
+            'mem': '50%',
+            's_type': 'development',
+            's_loc': 'TwisterLand',
+            's_ver': '3.0.5',
+            's_log': 'debug',
+        }
+
+        cherrypy.response.headers['Content-Type'] = 'application/json; charset=utf-8'
+        cherrypy.response.headers['Pragma'] = 'no-cache'
+        cherrypy.response.headers['Expires'] = 1
+
+        path = ''.join(vpath)
+        if path in resp:
+            return json.dumps(resp[path])
+        elif path:
+            return 'null'
+        else:
+            return json.dumps(resp)
+
+
+class UserResource(RestResource):
+    """
+    Representation of a user.
+    A user can update his own data.
+    Put or Delete are not implemented.
+    """
+    def handle_GET(self, *vpath, **params):
+        """
+        Get user info.
+        - vpath is the data after /user ;
+        - query is ?x=y expression at the end ;
+        """
+        resp = {
+            'user': 'true',
+        }
+        return json.dumps(resp)
+
+    def handle_POST(self, *vpath, **params):
+        return '{}'
+
+
+class Rest(object):
+
+    server = ServerResource()
+    user = ServerResource()
+
+    @cherrypy.expose
+    def index(self):
+        return 'REST'
+
+
 # Eof()
