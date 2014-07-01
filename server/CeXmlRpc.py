@@ -313,6 +313,7 @@ class CeXmlRpc(_cptools.XMLRPCController):
         user = cherrypy.session.get('username')
         return self.project.list_files(user, fdir, hidden, recursive, type)
 
+
     @cherrypy.expose
     def delete_folder(self, fdir, type='fs'):
         """

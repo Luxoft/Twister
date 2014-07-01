@@ -1,6 +1,6 @@
 
 #
-# <ver>version: 2.004</ver>
+# <ver>version: 2.005</ver>
 # <title>Test the Files</title>
 # <description>This suite checks the most basic functionality of Twister.<br>
 # It checks if the EPs are running the tests successfully and it calls all CE functions, to ensure they work as expected.</description>
@@ -33,7 +33,7 @@ def test(PROXY, USER):
         time.sleep(0.5)
 
         # This is a list
-        ep_files = PROXY.getEpFiles(epname)
+        ep_files = PROXY.get_ep_files(epname)
 
         for file_id in ep_files:
 

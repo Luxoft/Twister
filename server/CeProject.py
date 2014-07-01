@@ -1,7 +1,7 @@
 
 # File: CeProject.py ; This file is part of Twister.
 
-# version: 3.042
+# version: 3.043
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -1703,7 +1703,10 @@ class Project(object):
                 # If this run is Not temporary
                 if not (user + '_old' in self.users):
                     # On Central Engine stop, send e-mail
-                    self.send_mail(user)
+                    try:
+                        self.send_mail(user)
+                    except Exception as e:
+                        logError('Could not send e-mail! Exception `{}`!'.format(e))
 
                     # Execute "Post Script"
                     script_post = self.get_user_info(user, 'script_post')
@@ -2015,10 +2018,14 @@ class Project(object):
                 return []
 
             if epname:
-                if suite_id:
-                    files = eps[epname]['suites'].get_files(suite_id=suite_id, recursive=True)
+                suites_p = eps[epname].get('suites')
+                if not suites_p:
+                    files = []
+                elif suite_id:
+                    files = suites_p.get_files(suite_id=suite_id, recursive=True)
                 else:
-                    files = eps[epname]['suites'].get_files(suite_id=None, recursive=True)
+                    files = suites_p.get_files(suite_id=None, recursive=True)
+
                 for file_id in files:
                     s = self.get_file_info(user, epname, file_id)
                     if s:
@@ -2704,8 +2711,8 @@ class Project(object):
                 logDebug(log)
                 return log
 
-            logInfo('Preparing e-mail... Server `{SMTPPath}`, user `{SMTPUser}`, from `{From}`, to `{To}`...'\
-                ''.format(**eMailConfig))
+            logInfo('Preparing e-mail... Server `{SMTPPath}`, user `{SMTPUser}`, from `{From}`, to `{To}`'
+                '...'.format(**eMailConfig))
 
             ce_host = socket.gethostname()
             try:
@@ -2742,10 +2749,15 @@ class Project(object):
                     else:
                         map_info[k] = str(ep_data[k])
 
+                suites_manager = ep_data.get('suites')
+
+                if not suites_manager:
+                    continue
+
                 # Get all useful information for each Suite
-                for suite_id in ep_data['suites'].get_suites():
+                for suite_id in suites_manager.get_suites():
                     # All info about 1 Suite
-                    suite_data = ep_data['suites'].find_id(suite_id)
+                    suite_data = suites_manager.find_id(suite_id)
 
                     for k in suite_data:
                         if k in ['ep', 'children']:
@@ -2848,7 +2860,8 @@ class Project(object):
             if (not eMailConfig['Enabled']) or (eMailConfig['Enabled'] in ['0', 'false']):
                 e_mail_path = os.path.split(self.users[user]['config_path'])[0] +os.sep+ 'e-mail.htm'
                 self.localFs.write_user_file(user, e_mail_path, msg.as_string())
-                logDebug('E-mail.htm file written, for user `{}`. The message will NOT be sent.'.format(user))
+                logDebug('E-mail.htm file written, for user `{}`. '
+                    'The message will NOT be sent.'.format(user))
                 return True
 
             try:
@@ -2863,10 +2876,10 @@ class Project(object):
                 server.ehlo()
                 server.starttls()
                 server.ehlo()
-
                 server.login(eMailConfig['SMTPUser'], eMailConfig['SMTPPwd'])
             except Exception:
-                log = 'SMTP: Cannot authenticate to SMTP server for `{}`! Invalid user `{}` or password!'.format(user, eMailConfig['SMTPUser'])
+                log = 'SMTP: Cannot authenticate to SMTP server for `{}`! '
+                    'Invalid user `{}` or password!'.format(user, eMailConfig['SMTPUser'])
                 logError(log)
                 return log
 

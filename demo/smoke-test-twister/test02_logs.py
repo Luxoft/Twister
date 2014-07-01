@@ -1,6 +1,6 @@
 
 #
-# <ver>version: 2.005</ver>
+# <ver>version: 2.006</ver>
 # <title>Test the Logs</title>
 # <description>This suite checks the most basic functionality of Twister.<br>
 # It checks if the EPs are running the tests successfully and it calls all CE functions, to ensure they work as expected.</description>
@@ -17,13 +17,13 @@ def test(PROXY):
 
     logMsg('logRunning', 'Starting LOGS smoke-test...\n')
 
-    r = PROXY.resetLog('log_debug.log')
+    r = PROXY.reset_log('log_debug.log')
     if not r:
         print('Failure! Cannot reset log_debug!')
         return 'Fail'
     print 'Reset log_debug:',  r
 
-    r = True # PROXY.resetLogs(USER)
+    r = True # PROXY.reset_logs(USER)
     if not r:
         print('Failure! Cannot reset logs!')
         return 'Fail'
