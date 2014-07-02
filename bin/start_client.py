@@ -912,6 +912,9 @@ class TwisterClientService(rpyc.Service):
             try:
                 fname = args.get('filename')[0]
                 del args['filename']
+                fname = fname.strip()
+                if not fname:
+                    fname = None
             except Exception:
                 fname = None
         except Exception:
