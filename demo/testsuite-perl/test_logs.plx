@@ -15,20 +15,20 @@ sub test001 {
 	# $STATUS_NOT_EXEC, $STATUS_TIMEOUT, or $STATUS_INVALID
 	$error_code = $STATUS_PASS;
 
-	logMsg("logTest", "\nTestCase: $SUITE_NAME::$FILE_NAME starting\n");
+	log_msg("logTest", "\nTestCase: $SUITE_NAME::$FILE_NAME starting\n");
 	print "Starting test $FILE_NAME ...\n";
 
-	logMsg("logRunning", "TEST: working working...\n");
+	log_msg("logRunning", "TEST: working working...\n");
 
 	foreach ((1..10)) {
-		logMsg("logDebug", "$FILE_NAME: working $_...\n");
+		log_msg("logDebug", "$FILE_NAME: working $_...\n");
 		print "$FILE_NAME: working $_...\n";
 		sleep(1);
 	}
 
-	logMsg("logRunning", "TEST: working even more...\n");
+	log_msg("logRunning", "TEST: working even more...\n");
 
-	logMsg("logTest", "TestCase: $SUITE_NAME::$FILE_NAME returned $error_code\n");
+	log_msg("logTest", "TestCase: $SUITE_NAME::$FILE_NAME returned $error_code\n");
 	return $error_code
 }
 

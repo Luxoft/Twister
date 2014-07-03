@@ -13,7 +13,7 @@ import re
 #import sys
 from subprocess import Popen, PIPE
 
-folder_list = ["~/twister/client", "~/twister/bin", "~/twister/common", "/opt/twister/server", "/opt/twister/bin", "/opt/twister/lib", "/opt/twister/services"]
+folder_list = ["../client", ".", "../common", "../server", "../lib", "../services"]
 scorelevel = "file" #other option is folder
 counter = 0
 files = []

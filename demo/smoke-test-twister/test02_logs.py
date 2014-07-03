@@ -15,7 +15,7 @@ import binascii
 
 def test(PROXY):
 
-    logMsg('logRunning', 'Starting LOGS smoke-test...\n')
+    log_msg('logRunning', 'Starting LOGS smoke-test...\n')
 
     r = PROXY.reset_log('log_debug.log')
     if not r:
@@ -70,7 +70,7 @@ def test(PROXY):
             print('Failure! Cannot use log Live!')
             return 'Fail'
 
-    logMsg('logRunning', 'LOGS smoke-test passed.\n')
+    log_msg('logRunning', 'LOGS smoke-test passed.\n')
 
     return 'Pass'
 

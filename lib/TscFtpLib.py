@@ -22,40 +22,63 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+""" Wrapper other ftp library to create new API """
 
 import ftplib
 
-ftp = ftplib.FTP()
+FTP = ftplib.FTP()
 
 def ftp_open(host, port):
-    ftp_open = ftp.connect(host, port)
+    """ open connection """
+    f_open = FTP.connect(host, port)
+    return f_open
 
 def ftp_login(user, passwd):
-    ftp_login = ftp.login(user, passwd)
+    """ Login """
+    f_login = FTP.login(user, passwd)
+    return f_login
 
 def ftp_dir():
-    ftp_dir = ftp.dir()
+    """ Show directory """
+    f_dir = FTP.dir()
+    return f_dir
 
 def ftp_close():
-    ftp_close = ftp.close()
+    """ Close session """
+    f_close = FTP.close()
+    return f_close
 
 def ftp_quit():
-    ftp_quit = ftp.quit()
+    """ Quit session """
+    f_quit = FTP.quit()
+    return f_quit
 
 def ftp_delete(filename):
-    ftp_delete = ftp.delete(filename)
+    """ Delete file """
+    f_delete = FTP.delete(filename)
+    return f_delete
 
 def ftp_cwd(pathname):
-    ftp_cwd = ftp.cwd(pathname)
+    """ Get current directory """
+    f_cwd = FTP.cwd(pathname)
+    return f_cwd
 
 def ftp_mkd(pathname):
-    ftp_mkd = ftp.mkd(pathname)
+    """ Make directory """
+    f_mkd = FTP.mkd(pathname)
+    return f_mkd
 
 def ftp_pwd():
-    ftp_pwd = ftp.pwd()
+    """ Get remote directory """
+    f_pwd = FTP.pwd()
+    return f_pwd
 
 def ftp_rmd(dirname):
-    ftp_rmd = ftp.rmd(dirname)
+    """ Remove remote directory """
+    f_rmd = FTP.rmd(dirname)
+    return f_rmd
 
 def ftp_size(filename):
-    ftp_size = ftp.size(filename)
+    """ Get size of file """
+    f_size = FTP.size(filename)
+    return f_size

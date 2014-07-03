@@ -121,30 +121,24 @@ class TCRunTcl(object):
 
         # Inject common functions
         self.tcl.createcommand('logMessage',
-            globs['logMsg'])
-        self.tcl.createcommand('getGlobal',
-            globs['getGlobal'])
-        self.tcl.createcommand('setGlobal',
-            globs['setGlobal'])
+            globs['log_msg'])
+        self.tcl.createcommand('get_global',
+            globs['get_global'])
+        self.tcl.createcommand('set_global',
+            globs['set_global'])
         self.tcl.createcommand('py_exec',
             globs['py_exec'])
 
-        self.tcl.createcommand('getResource',
-            globs['getResource'])
-        self.tcl.createcommand('setResource',
-            globs['setResource'])
-        self.tcl.createcommand('renameResource',
-            globs['renameResource'])
-        self.tcl.createcommand('deleteResource',
-            globs['deleteResource'])
-        self.tcl.createcommand('getResourceStatus',
-            globs['getResourceStatus'])
-        self.tcl.createcommand('allocResource',
-            globs['allocResource'])
+        self.tcl.createcommand('get_resource',
+            globs['get_resource'])
+        self.tcl.createcommand('set_resource',
+            globs['set_resource'])
+        self.tcl.createcommand('rename_resource',
+            globs['rename_resource'])
+        self.tcl.createcommand('delete_resource',
+            globs['delete_resource'])
         self.tcl.createcommand('reserve_resource',
             globs['reserve_resource'])
-        self.tcl.createcommand('freeResource',
-            globs['freeResource'])
 
         to_execute = '\nset argc %i\n' % len(params) + str_to_execute
         to_execute = 'set argv {%s}\n' % str(params)[1:-1] + to_execute
@@ -356,26 +350,26 @@ def TWISTER_SUITE_NAME():
 def TWISTER_FILE_NAME():
     return commonLib.FILE_NAME
 
-def logMsg(*arg, **kw):
-    return commonLib.logMsg(*arg, **kw)
+def log_msg(*arg, **kw):
+    return commonLib.log_msg(*arg, **kw)
 
-def getGlobal(*arg, **kw):
-    return commonLib.getGlobal(*arg, **kw)
+def get_global(*arg, **kw):
+    return commonLib.get_global(*arg, **kw)
 
-def setGlobal(*arg, **kw):
-    return commonLib.setGlobal(*arg, **kw)
+def set_global(*arg, **kw):
+    return commonLib.set_global(*arg, **kw)
 
-def getConfig(*arg, **kw):
-    return commonLib.getConfig(*arg, **kw)
+def get_config(*arg, **kw):
+    return commonLib.get_config(*arg, **kw)
 
-def getBinding(*arg, **kw):
-    return commonLib.getBinding(*arg, **kw)
+def get_binding(*arg, **kw):
+    return commonLib.get_binding(*arg, **kw)
 
-def getResource(*arg, **kw):
-    return commonLib.getResource(*arg, **kw)
+def get_resource(*arg, **kw):
+    return commonLib.get_resource(*arg, **kw)
 
-def setResource(*arg, **kw):
-    return commonLib.setResource(*arg, **kw)
+def set_resource(*arg, **kw):
+    return commonLib.set_resource(*arg, **kw)
 
 def get_sut(*arg, **kw):
     return commonLib.get_sut(*arg, **kw)

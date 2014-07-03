@@ -25,7 +25,7 @@
 
 """
 This module contains common functions to communicate with the Central Engine.
-You can use : getGlobal, setGlobal, getResource, setResource, log_message.
+You can use : get_global, set_global, get_resource, set_resource, log_message.
 """
 from __future__ import print_function
 
@@ -208,7 +208,7 @@ class TscCommonLib(object):
         return self._ce_proxy()
 
 
-    def logMsg(self, log_type, log_message):
+    def log_msg(self, log_type, log_message):
         """
         Shortcut function for sending a message in a log to Central Engine.
         """
@@ -216,7 +216,7 @@ class TscCommonLib(object):
 
 
     @classmethod
-    def getGlobal(cls, var):
+    def get_global(cls, var):
         """
         Function to get variables saved from Test files.
         The same dictionary must be used, both in Testcase and derived Library.
@@ -229,7 +229,7 @@ class TscCommonLib(object):
 
 
     @classmethod
-    def setGlobal(cls, var, value):
+    def set_global(cls, var, value):
         """
         Function to keep variables sent from Test files.
         The same dictionary must be used, both in Testcase and derived Library.
@@ -243,7 +243,7 @@ class TscCommonLib(object):
             return True
 
 
-    def getConfig(self, cfg_path, var_path=''):
+    def get_config(self, cfg_path, var_path=''):
         """
         Function to get a config, using the full path to a config file and
         the full path to a config variable in that file.
@@ -251,7 +251,7 @@ class TscCommonLib(object):
         return self.ce_proxy.get_config(cfg_path, var_path)
 
 
-    def getBinding(self, cfg_root):
+    def get_binding(self, cfg_root):
         """
         Function to get a cfg -> SUT binding.
         """
@@ -260,7 +260,7 @@ class TscCommonLib(object):
         return self.bindings.get(cfg_root)
 
 
-    def getBindId(self, component_name, test_config='default_binding'):
+    def get_bind_id(self, component_name, test_config='default_binding'):
         """
         Function to get a cfg -> SUT binding ID.
         Some syntactic sugar.
@@ -277,12 +277,12 @@ class TscCommonLib(object):
         return config_data.get(component_name, False)
 
 
-    def getBindName(self, component_name, test_config='default_binding'):
+    def get_bind_name(self, component_name, test_config='default_binding'):
         """
         Function to get a cfg -> SUT binding name.
         Some syntactic sugar.
         """
-        sid = self.getBindId(component_name, test_config)
+        sid = self.get_bind_id(component_name, test_config)
         if not sid:
             return False
         sut = self.get_sut(sid)
@@ -291,7 +291,7 @@ class TscCommonLib(object):
         return sut.get('path', False)
 
 
-    def countProjectFiles(self):
+    def count_project_files(self):
         """
         Returns the number of files inside the current project.
         """
@@ -301,7 +301,7 @@ class TscCommonLib(object):
         return len(files)
 
 
-    def currentFileIndex(self):
+    def current_file_index(self):
         """
         Returns the index of this file in the project.
         If the ID is not found, the count will fail.
@@ -315,7 +315,7 @@ class TscCommonLib(object):
             return -1
 
 
-    def countSuiteFiles(self):
+    def count_suite_files(self):
         """
         Returns the number of files inside a suite ID.
         If the ID is not found, the count will fail.
@@ -326,7 +326,7 @@ class TscCommonLib(object):
         return len(files)
 
 
-    def currentFSuiteIndex(self):
+    def current_fsuite_index(self):
         """
         Returns the index of this file, inside this suite.
         If the ID is not found, the count will fail.
@@ -357,24 +357,24 @@ class TscCommonLib(object):
         return ret
 
 
-    def _encodeUnicode(self, input):
+    def l_encode_unicode(self, input):
         """ encode to unicode """
         if isinstance(input, dict):
-            return {self._encodeUnicode(key): self._encodeUnicode(value) for key, value in input.iteritems()}
+            return {self.l_encode_unicode(key): self.l_encode_unicode(value) for key, value in input.iteritems()}
         elif isinstance(input, list):
-            return [self._encodeUnicode(elem) for elem in input]
+            return [self.l_encode_unicode(elem) for elem in input]
         elif isinstance(input, unicode):
             return input.encode('utf-8')
         else:
             return input
 
 
-    def getResource(self, query, type=unicode):
+    def get_resource(self, query, type=unicode):
         """ return resource information """
         try:
-            data = self.ce_proxy.getResource(query)
+            data = self.ce_proxy.get_resource(query)
             if type == str:
-                return self._encodeUnicode(data)
+                return self.l_encode_unicode(data)
             else:
                 return data
         except Exception as e:
@@ -382,26 +382,26 @@ class TscCommonLib(object):
             return None
 
 
-    def setResource(self, name, parent=None, props={}):
+    def set_resource(self, name, parent=None, props={}):
         """ set a resource """
         try:
-            return self.ce_proxy.setResource(name, parent, props)
+            return self.ce_proxy.set_resource(name, parent, props)
         except Exception:
             return None
 
 
-    def renameResource(self, res_query, new_name):
+    def rename_resource(self, res_query, new_name):
         """ rename a resource """
         try:
-            return self.ce_proxy.renameResource(res_query, new_name)
+            return self.ce_proxy.rename_resource(res_query, new_name)
         except Exception:
             return None
 
 
-    def deleteResource(self, query):
+    def delete_resource(self, query):
         """ delete a resource """
         try:
-            return self.ce_proxy.deleteResource(query)
+            return self.ce_proxy.delete_resource(query)
         except Exception:
             return None
 
@@ -411,7 +411,7 @@ class TscCommonLib(object):
         try:
             data = self.ce_proxy.get_sut(query)
             if type == str:
-                return self._encodeUnicode(data)
+                return self.l_encode_unicode(data)
             else:
                 return data
         except Exception as e:
@@ -443,34 +443,10 @@ class TscCommonLib(object):
             return None
 
 
-    def getResourceStatus(self, query):
-        """ get status """
-        try:
-            return self.ce_proxy.getResourceStatus(query)
-        except Exception:
-            return None
-
-
-    def allocResource(self, query):
-        """ create a new resource """
-        try:
-            return self.ce_proxy.allocResource(query)
-        except Exception:
-            return None
-
-
     def reserve_resource(self, query):
         """ reserve a resource """
         try:
             return self.ce_proxy.reserve_resource(query)
-        except Exception:
-            return None
-
-
-    def freeResource(self, query):
-        """ free a reserved resource """
-        try:
-            return self.ce_proxy.freeResource(query)
         except Exception:
             return None
 

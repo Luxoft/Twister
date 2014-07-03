@@ -56,7 +56,7 @@ class Derived04(Derived03):
 
 def test():
 
-    logMsg('logRunning', '\nStarting lib test...\n')
+    log_msg('logRunning', '\nStarting lib test...\n')
 
     d = Derived04()
 
@@ -81,21 +81,21 @@ def test():
 
     print
 
-    setGlobal('test', 'testxxx')
-    assert getGlobal('test') == 'testxxx', 'Error on get + set globals!'
-    print 'Get + Set global ok.', getGlobal('test'), '==', 'testxxx'
+    set_global('test', 'testxxx')
+    assert get_global('test') == 'testxxx', 'Error on get + set globals!'
+    print 'Get + Set global ok.', get_global('test'), '==', 'testxxx'
 
-    assert getGlobal('test') == d.getGlobal('test'), 'Error on get + set globals derivation!'
-    print 'Get + Set global derivation ok.', getGlobal('test'), '==', d.getGlobal('test')
+    assert get_global('test') == d.get_global('test'), 'Error on get + set globals derivation!'
+    print 'Get + Set global derivation ok.', get_global('test'), '==', d.get_global('test')
 
     print
 
-    print 'Files in the project:', countProjectFiles()
-    print 'File index in the project:', currentFileIndex()
-    print 'Files in This suite:', countSuiteFiles()
-    print 'File index in the suite:', currentFSuiteIndex()
+    print 'Files in the project:', count_project_files()
+    print 'File index in the project:', current_file_index()
+    print 'Files in This suite:', count_suite_files()
+    print 'File index in the suite:', current_fsuite_index()
 
-    logMsg('logRunning', 'Finished lib test. Everything OK.\n')
+    log_msg('logRunning', 'Finished lib test. Everything OK.\n')
 
     return 'Pass'
 

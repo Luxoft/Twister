@@ -3,7 +3,7 @@
 # <ver>version: 2.002</ver>
 # <title>Test CommonLib and Resource Allocator / SUTs</title>
 # <description>This suite checks the most basic functionality of Twister.<br>
-# Functions `getSut`, `setSut` and *the rest* are included in the interpreter!</description>
+# Functions `get_sut`, `set_sut` and *the rest* are included in the interpreter!</description>
 # <tags>testbed, resources, SUTs</tags>
 # <test>sut</test>
 # <smoke>yes</smoke>
@@ -15,13 +15,13 @@ from binascii import hexlify
 def test():
 
 	testName = 'test_py_suts.py'
-	logMsg('logRunning', "\nTestCase: `{}` starting...\n".format(testName))
-	logMsg('logTest', "\nTestCase: `{}` starting...\n".format(testName))
+	log_msg('logRunning', "\nTestCase: `{}` starting...\n".format(testName))
+	log_msg('logTest', "\nTestCase: `{}` starting...\n".format(testName))
 
 	error_code = "PASS"
 
-	print 'Query SUTs...', getSut(1)
-	print 'Query SUTs...', getSut('/')
+	print 'Query SUTs...', get_sut(1)
+	print 'Query SUTs...', get_sut('/')
 	print
 
 	py_res = 'tb_' + hexlify(urandom(4))
@@ -32,26 +32,26 @@ def test():
 	if not res_id:
 		return "FAIL"
 
-	r = getSut('/' + py_res)
+	r = get_sut('/' + py_res)
 	print 'Find SUT by name::', r
 	if not r: return "FAIL"
 
-	r = getSut(res_id)
+	r = get_sut(res_id)
 	print 'Find SUT by ID::', r
 	if not r: return "FAIL"
 	print
 
-	r = getSut('/{}:meta1'.format(py_res))
+	r = get_sut('/{}:meta1'.format(py_res))
 	print 'Meta 1::', r
 	if not r: return "FAIL"
 
-	r = getSut('/{}:meta2'.format(py_res))
+	r = get_sut('/{}:meta2'.format(py_res))
 	print 'Meta 2::', r
 	if not r: return "FAIL"
 	print
 
 	print 'Update SUT::', set_sut(py_res, '/', {'more-info': 'y'})
-	r = getSut(res_id)
+	r = get_sut(res_id)
 	print 'Check status::', r
 	if 'more-info' not in r['meta']: return "FAIL"
 	print
@@ -74,13 +74,13 @@ def test():
 		print
 
 	print 'Delete SUT::', delete_sut(res_id)
-	r = getSut(res_id)
+	r = get_sut(res_id)
 	print 'Check info::', r
 	if r: return "FAIL"
 	print
 
-	logMsg('logRunning', "TestCase: `{}` -  `{}`!\n".format(testName, error_code))
-	logMsg('logTest', "TestCase: `{}` -  `{}`!\n".format(testName, error_code))
+	log_msg('logRunning', "TestCase: `{}` -  `{}`!\n".format(testName, error_code))
+	log_msg('logTest', "TestCase: `{}` -  `{}`!\n".format(testName, error_code))
 
 	# This return is used by the framework!
 	return error_code

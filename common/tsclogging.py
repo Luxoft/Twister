@@ -69,7 +69,7 @@ _LVL = CHERRY_LOG.getEffectiveLevel()
 
 
 __all__ = ['FULL', 'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL', 'LEVELS', 'LOG_FILE',
-            'logMsg', 'logFull', 'logDebug', 'logInfo', 'logWarning', 'logError', 'logCritical']
+            'log_msg', 'logFull', 'logDebug', 'logInfo', 'logWarning', 'logError', 'logCritical']
 
 FULL     = 5
 DEBUG    = 10
@@ -126,7 +126,7 @@ def setLogLevel(level):
     return True
     #
 
-def logMsg(level, *args):
+def log_msg(level, *args):
     """ log a message """
     #
     if level not in LEVELS:
@@ -153,24 +153,24 @@ def logFull(*args):
     """ ALL details """
     global _LVL
     if _LVL < DEBUG:
-        logMsg(FULL, *args)
+        log_msg(FULL, *args)
 
 def logDebug(*args):
     """ debug """
-    logMsg(DEBUG, *args)
+    log_msg(DEBUG, *args)
 
 def logInfo(*args):
     """ info """
-    logMsg(INFO, *args)
+    log_msg(INFO, *args)
 
 def logWarning(*args):
     """ warning """
-    logMsg(WARNING, *args)
+    log_msg(WARNING, *args)
 
 def logError(*args):
     """ error """
-    logMsg(ERROR, *args)
+    log_msg(ERROR, *args)
 
 def logCritical(*args):
     """ critical errors """
-    logMsg(CRITICAL, *args)
+    log_msg(CRITICAL, *args)

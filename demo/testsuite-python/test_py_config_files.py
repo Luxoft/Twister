@@ -3,7 +3,7 @@
 
 """
 <title>Test Configuration Files</title>
-<description>Function `getConfig` is included in the interpreter!<br>
+<description>Function `get_config` is included in the interpreter!<br>
 This function should get a config, using the full path to config file and the full path to a config variable in that file.</description>
 <tags>config files</tags>
 """
@@ -18,7 +18,7 @@ cfg_files = [ (cfg_path +'/'+ p) for p in os.listdir(cfg_path) if os.path.isfile
 
 for cfg in cfg_files:
 	print 'All params for `{}`:'.format(cfg)
-	print pformat(getConfig(cfg, ''), indent=4, width=60), '\n'
+	print pformat(get_config(cfg, ''), indent=4, width=60), '\n'
 
 #
 

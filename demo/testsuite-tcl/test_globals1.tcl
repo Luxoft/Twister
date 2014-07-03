@@ -11,16 +11,16 @@ proc Test {} {
 
     set error_code "FAIL"
 
-    puts "Query Globals Level 1... [getGlobal /Level_1]\n"
+    puts "Query Globals Level 1... [get_global /Level_1]\n"
 
-    puts "Query Globals Level 1/ global1... [getGlobal Level_1/global1]"
-    puts "Query Globals Level 1/ global2... [getGlobal Level_1/global2]\n"
+    puts "Query Globals Level 1/ global1... [get_global Level_1/global1]"
+    puts "Query Globals Level 1/ global2... [get_global Level_1/global2]\n"
 
-    setGlobal "some_global1" "some string"
-    setGlobal "some_global2" 9999
+    set_global "some_global1" "some string"
+    set_global "some_global2" 9999
 
-    puts "Query Global 1... [getGlobal /some_global1]"
-    puts "Query Global 2... [getGlobal /some_global2]"
+    puts "Query Global 1... [get_global /some_global1]"
+    puts "Query Global 2... [get_global /some_global2]"
 
     puts "\nFinished test $testName, exit code $error_code\n**********\n"
     logMessage logTest "TestCase: $testName $error_code\n"

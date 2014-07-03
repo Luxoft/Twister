@@ -2035,9 +2035,9 @@ def logOff():
     return r
 
 
-def logMsg(args):
-    # TCL cmd :: logMsg args
-    r = t.eval("logMsg {} ".format(args))
+def log_msg(args):
+    # TCL cmd :: log_msg args
+    r = t.eval("log_msg {} ".format(args))
     return r
 
 

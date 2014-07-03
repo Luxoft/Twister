@@ -17,30 +17,28 @@ proc Test {} {
 
     set error_code "PASS"
 
-    puts "Query Root... [getResource 1]"
-    puts "Query Root... [getResource /]\n"
+    puts "Query Root... [get_resource 1]"
+    puts "Query Root... [get_resource /]\n"
 
-    set id1 [setResource tb_tcl1 / {{"meta1": "data1", "meta2": "data2"}}]
+    set id1 [set_resource tb_tcl1 / {{"meta1": "data1", "meta2": "data2"}}]
     puts "Create resource:: $id1\n"
 
     puts "Check info..."
-    puts "Testbed 1:: [getResource /tb_tcl1]"
-    puts "Testbed 1:: [getResource $id1]\n"
+    puts "Testbed 1:: [get_resource /tb_tcl1]"
+    puts "Testbed 1:: [get_resource $id1]\n"
 
     puts "Update resource..."
-    setResource "tb_tcl1" "/" {{"more-info": "y"}}
-    puts "Check info:: [getResource $id1]\n"
+    set_resource "tb_tcl1" "/" {{"more-info": "y"}}
+    puts "Check info:: [get_resource $id1]\n"
 
-    puts "Meta 1:: [getResource /tb_tcl1:meta1]"
-    puts "Meta 2:: [getResource /tb_tcl1:meta2]\n"
+    puts "Meta 1:: [get_resource /tb_tcl1:meta1]"
+    puts "Meta 2:: [get_resource /tb_tcl1:meta2]\n"
 
-    puts "Check status 1:: [getResourceStatus $id1]"
     puts "Reserve resource:: [reserve_resource $id1]"
-    puts "Check status 2:: [getResourceStatus $id1]\n"
 
-    puts "Delete resource:: [deleteResource $id1]"
-    puts "Delete resource:: [deleteResource /tb_tcl1]"
-    puts "Check info:: [getResource $id1]\n"
+    puts "Delete resource:: [delete_resource $id1]"
+    puts "Delete resource:: [delete_resource /tb_tcl1]"
+    puts "Check info:: [get_resource $id1]\n"
 
     puts "\nFinished test $testName, exit code $error_code\n**********\n"
     logMessage logTest "TestCase: $testName $error_code\n"

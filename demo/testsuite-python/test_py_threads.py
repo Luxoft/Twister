@@ -28,7 +28,7 @@ def long_task(n):
 def test():
 
 	testName = 'test_py_threads.py'
-	logMsg('logTest', "\nTestCase:%s starting\n" % testName)
+	log_msg('logTest', "\nTestCase:%s starting\n" % testName)
 
 	error_code = "PASS"
 
@@ -60,7 +60,7 @@ def test():
 		print 'Result:', t
 
 	# _________________________________________________________________________
-	logMsg('logTest', "TestCase:%s %s\n" % (testName, error_code))
+	log_msg('logTest', "TestCase:%s %s\n" % (testName, error_code))
 
 	# This return is used by the framework!
 	return error_code
