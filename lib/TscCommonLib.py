@@ -1,7 +1,7 @@
 
 # File: TscCommonLib.py ; This file is part of Twister.
 
-# version: 3.011
+# version: 3.012
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -64,7 +64,6 @@ class TscCommonLib(object):
     userName = USER
     epName = EP
     global_vars = {}
-    bindings = {}
     _SUITE_ID = 0
     _FILE_ID = 0
 
@@ -255,9 +254,8 @@ class TscCommonLib(object):
         """
         Function to get a cfg -> SUT binding.
         """
-        if not hasattr(self, 'bindings'):
-            self.bindings = self.ce_proxy.get_user_variable('bindings') or {}
-        return self.bindings.get(cfg_root)
+        bindings = self.ce_proxy.get_user_variable('bindings') or {}
+        return bindings.get(cfg_root)
 
 
     def get_bind_id(self, component_name, test_config='default_binding'):
@@ -265,15 +263,14 @@ class TscCommonLib(object):
         Function to get a cfg -> SUT binding ID.
         Some syntactic sugar.
         """
-        if not hasattr(self, 'bindings'):
-            self.bindings = self.ce_proxy.get_user_variable('bindings') or {}
+        bindings = self.ce_proxy.get_user_variable('bindings') or {}
         # Fix cfg root maybe ?
         if not test_config:
             test_config = 'default_binding'
-        config_data = self.bindings.get(test_config, {})
+        config_data = bindings.get(test_config, {})
         # If the component cannot be found in the requested config, search in default config
         if test_config != 'default_binding' and (component_name not in config_data):
-            config_data = self.bindings.get('default_binding', {})
+            config_data = bindings.get('default_binding', {})
         return config_data.get(component_name, False)
 
 

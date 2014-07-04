@@ -1,5 +1,5 @@
 
-# version: 2.002
+# version: 3.001
 
 """
 <title>Test a cfg -> SUT bindings</title>
@@ -7,10 +7,11 @@
 This function should get a config, using the full path to config file and the full path to a config variable in that file.</description>
 <tags>bindings</tags>
 """
+import json
 
 bindings = PROXY.get_user_variable('bindings')
 
-print 'Bindings found :: {}\n'.format(bindings)
+print 'Bindings found :: {}\n'.format(json.dumps(bindings, indent=4))
 
 for b in bindings:
 	print 'Binding for `{}` ->'.format(b), get_binding(b), '...'
