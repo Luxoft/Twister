@@ -1,6 +1,6 @@
 
 #
-# <ver>version: 2.002</ver>
+# <ver>version: 3.001</ver>
 # <title>Test CommonLib and Resource Allocator / SUTs</title>
 # <description>This suite checks the most basic functionality of Twister.<br>
 # Functions `get_sut`, `set_sut` and *the rest* are included in the interpreter!</description>
@@ -24,7 +24,7 @@ def test():
 	print 'Query SUTs...', get_sut('/')
 	print
 
-	py_res = 'tb_' + hexlify(urandom(4))
+	py_res = 'sut_' + hexlify(urandom(4)) + '.system'
 	print 'Create a root SUT `{}`...'.format(py_res)
 	res_id = set_sut(py_res, '/', {'meta1': 1, 'meta2': 2})
 	print 'Ok.\n'
@@ -43,40 +43,41 @@ def test():
 
 	r = get_sut('/{}:meta1'.format(py_res))
 	print 'Meta 1::', r
-	if not r: return "FAIL"
+	if not r:
+		delete_sut(res_id)
+		print '\nCould not update meta!'
+		return "FAIL"
 
 	r = get_sut('/{}:meta2'.format(py_res))
 	print 'Meta 2::', r
-	if not r: return "FAIL"
+	if not r:
+		delete_sut(res_id)
+		print '\nCould not update meta!'
+		return "FAIL"
 	print
 
-	print 'Update SUT::', set_sut(py_res, '/', {'more-info': 'y'})
-	r = get_sut(res_id)
-	print 'Check status::', r
-	if 'more-info' not in r['meta']: return "FAIL"
-	print
+	# for i in range(1, 4):
+	# 	tag = 'tag{}'.format(i)
+	# 	r = set_sut(py_res, '/', {tag: str(i)})
+	# 	print 'Set tag `{}` = `{}` ... {}'.format(tag, i, r)
+	# 	if not r: return "FAIL"
 
-	for i in range(1, 4):
-		tag = 'tag{}'.format(i)
-		r = set_sut(py_res, '/', {tag: str(i)})
-		print 'Set tag `{}` = `{}` ... {}'.format(tag, i, r)
-		if not r: return "FAIL"
+	# 	path = '/' + py_res + ':' + tag
+	# 	r = rename_sut(path, 'tagx')
+	# 	print 'Rename tag `{}` = `tagx` ... {}'.format(path, r)
+	# 	if not r: return "FAIL"
 
-		path = '/' + py_res + ':' + tag
-		r = rename_sut(path, 'tagx')
-		print 'Rename tag `{}` = `tagx` ... {}'.format(path, r)
-		if not r: return "FAIL"
+	# 	path = '/' + py_res + ':tagx'
+	# 	r = delete_sut(path)
+	# 	print 'Delete tag `{}` ... {}'.format(path, r)
+	# 	if not r: return "FAIL"
+	# 	print
 
-		path = '/' + py_res + ':tagx'
-		r = delete_sut(path)
-		print 'Delete tag `{}` ... {}'.format(path, r)
-		if not r: return "FAIL"
-		print
-
-	print 'Delete SUT::', delete_sut(res_id)
+	print 'Delete SUT::', delete_sut('/' + py_res)
 	r = get_sut(res_id)
 	print 'Check info::', r
-	if r: return "FAIL"
+	if r and '*ERROR*' not in r:
+		return "FAIL"
 	print
 
 	log_msg('logRunning', "TestCase: `{}` -  `{}`!\n".format(testName, error_code))

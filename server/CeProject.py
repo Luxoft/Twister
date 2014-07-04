@@ -2878,7 +2878,7 @@ class Project(object):
                 server.ehlo()
                 server.login(eMailConfig['SMTPUser'], eMailConfig['SMTPPwd'])
             except Exception:
-                log = 'SMTP: Cannot authenticate to SMTP server for `{}`! '
+                log = 'SMTP: Cannot authenticate to SMTP server for `{}`! ' \
                     'Invalid user `{}` or password!'.format(user, eMailConfig['SMTPUser'])
                 logError(log)
                 return log

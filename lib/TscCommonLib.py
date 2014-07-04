@@ -1,7 +1,7 @@
 
 # File: TscCommonLib.py ; This file is part of Twister.
 
-# version: 3.010
+# version: 3.011
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -357,12 +357,14 @@ class TscCommonLib(object):
         return ret
 
 
-    def l_encode_unicode(self, input):
-        """ encode to unicode """
+    def _encode_unicode(self, input):
+        """
+        Data to
+        """
         if isinstance(input, dict):
-            return {self.l_encode_unicode(key): self.l_encode_unicode(value) for key, value in input.iteritems()}
+            return {self._encode_unicode(key): self._encode_unicode(value) for key, value in input.iteritems()}
         elif isinstance(input, list):
-            return [self.l_encode_unicode(elem) for elem in input]
+            return [self._encode_unicode(elem) for elem in input]
         elif isinstance(input, unicode):
             return input.encode('utf-8')
         else:
@@ -370,11 +372,13 @@ class TscCommonLib(object):
 
 
     def get_resource(self, query, type=unicode):
-        """ return resource information """
+        """
+        Get resource content.
+        """
         try:
             data = self.ce_proxy.get_resource(query)
             if type == str:
-                return self.l_encode_unicode(data)
+                return self._encode_unicode(data)
             else:
                 return data
         except Exception as e:
@@ -383,35 +387,46 @@ class TscCommonLib(object):
 
 
     def set_resource(self, name, parent=None, props={}):
-        """ set a resource """
+        """
+        Update a resource. It must be reserved first.
+        """
         try:
             return self.ce_proxy.set_resource(name, parent, props)
-        except Exception:
+        except Exception as e:
+            print('Error on update Resource! `{}`!'.format(e))
             return None
 
 
     def rename_resource(self, res_query, new_name):
-        """ rename a resource """
+        """
+        Rename a resource.
+        """
         try:
             return self.ce_proxy.rename_resource(res_query, new_name)
-        except Exception:
+        except Exception as e:
+            print('Error on rename Resource! `{}`!'.format(e))
             return None
 
 
     def delete_resource(self, query):
-        """ delete a resource """
+        """
+        Delete a resource.
+        """
         try:
             return self.ce_proxy.delete_resource(query)
-        except Exception:
+        except Exception as e:
+            print('Error on delete Resource! `{}`!'.format(e))
             return None
 
 
     def get_sut(self, query, type=unicode):
-        """ get SUT content """
+        """
+        Get SUT content.
+        """
         try:
             data = self.ce_proxy.get_sut(query)
             if type == str:
-                return self.l_encode_unicode(data)
+                return self._encode_unicode(data)
             else:
                 return data
         except Exception as e:
@@ -420,34 +435,145 @@ class TscCommonLib(object):
 
 
     def set_sut(self, name, parent=None, props={}):
-        """ update SUT """
+        """
+        Update a SUT. It must be reserved first.
+        """
         try:
             return self.ce_proxy.set_sut(name, parent, props)
-        except Exception:
+        except Exception as e:
+            print('Error on set SUT! `{}`!'.format(e))
             return None
 
 
     def rename_sut(self, res_query, new_name):
-        """ rename a SUT """
+        """
+        Rename a SUT.
+        """
         try:
             return self.ce_proxy.rename_sut(res_query, new_name)
-        except Exception:
+            print('Error on rename SUT! `{}`!'.format(e))
+        except Exception as e:
             return None
 
 
     def delete_sut(self, query):
-        """ delete SUT """
+        """
+        Delete a SUT.
+        """
         try:
             return self.ce_proxy.delete_sut(query)
-        except Exception:
+        except Exception as e:
+            print('Error on delete SUT! `{}`!'.format(e))
             return None
 
 
     def reserve_resource(self, query):
-        """ reserve a resource """
+        """
+        Reserve a resource. You can then edit the resource.
+        """
         try:
             return self.ce_proxy.reserve_resource(query)
-        except Exception:
+        except Exception as e:
+            print('Error on reserve resource! `{}`!'.format(e))
+            return None
+
+
+    def save_reserved_resource(self, query):
+        """
+        Save changes. Don't release.
+        """
+        try:
+            return self.ce_proxy.save_reserved_resource(query)
+        except Exception as e:
+            print('Error on save resource! `{}`!'.format(e))
+            return None
+
+
+    def save_release_reserved_res(self, query):
+        """
+        Save changes. Release the resource.
+        """
+        try:
+            return self.ce_proxy.save_release_reserved_res(query)
+        except Exception as e:
+            print('Error on save & release resource! `{}`!'.format(e))
+            return None
+
+
+    def discard_release_reserved_res(self, query):
+        """
+        Drop changes. Release the resource.
+        """
+        try:
+            return self.ce_proxy.discard_release_reserved_res(query)
+        except Exception as e:
+            print('Error on discard & release resource! `{}`!'.format(e))
+            return None
+
+
+    def lock_resource(self, query):
+        """
+        Lock a resource for yourself.
+        """
+        try:
+            return self.ce_proxy.lock_resource(query)
+        except Exception as e:
+            print('Error on lock resource! `{}`!'.format(e))
+            return None
+
+
+    def unlock_resource(self, query):
+        """
+        Unlock the resource.
+        """
+        try:
+            return self.ce_proxy.unlock_resource(query)
+        except Exception as e:
+            print('Error on un-lock resource! `{}`!'.format(e))
+            return None
+
+
+    def reserve_sut(self, query):
+        """
+        Reserve a SUT. You can then edit the SUT.
+        """
+        try:
+            return self.ce_proxy.reserve_sut(query)
+        except Exception as e:
+            print('Error on reserve SUT! `{}`!'.format(e))
+            return None
+
+
+    def save_reserved_sut(self, query):
+        """
+        Save changes. Don't release.
+        """
+        try:
+            return self.ce_proxy.save_reserved_sut(query)
+        except Exception as e:
+            print('Error on save SUT! `{}`!'.format(e))
+            return None
+
+
+    def save_release_reserved_sut(self, query):
+        """
+        Save changes. Release the SUT.
+        """
+        try:
+            return self.ce_proxy.save_release_reserved_sut(query)
+        except Exception as e:
+            print('Error on save & release SUT! `{}`!'.format(e))
+            return None
+
+
+    def discard_release_reserved_sut(self, query):
+        """
+        Drop changes. Release the SUT.
+        """
+        try:
+            return self.ce_proxy.discard_release_reserved_sut(query)
+        except Exception as e:
+            print('Error on discard & release SUT! `{}`!'.format(e))
             return None
 
 

@@ -1129,6 +1129,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
         ret = self.get_resource(query, ROOT_SUT, True, props, username)
         return ret
 
+
     @cherrypy.expose
     def get_sut_by_name(self, query, username):
         '''
@@ -1667,7 +1668,6 @@ class ResourceAllocator(_cptools.XMLRPCController):
             logError(msg)
             return '*ERROR* ' + msg
 
-
         # Check if is reserved
         try:
             for res in self.reservedResources[user]:
@@ -1804,6 +1804,8 @@ class ResourceAllocator(_cptools.XMLRPCController):
 
         usrHome = userHome(self.get_user_name())
 
+        logDebug('Prepare to delete SUT `{}`.'.format(res_query))
+
         def delete_sut_memory(sut_to_remove):
             """ temporary fix; the SUT must be removed from self.systems """
             parent_p = _get_res_pointer(self.systems, '/')
@@ -1849,7 +1851,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
         Reserve a SUT.
         '''
         logFull('CeResources:reserve_sut')
-        return self.reserve_resource(res_query, '{}', ROOT_SUT, username)
+        return self.reserve_resource(res_query, {}, ROOT_SUT, username)
 
 
     @cherrypy.expose
@@ -1927,7 +1929,7 @@ class ResourceAllocator(_cptools.XMLRPCController):
         Save a reserved SUT.
         '''
         logFull('CeResources:save_release_reserved_sut')
-        return self.save_release_reserved_resource(res_query, '{}', ROOT_SUT, username)
+        return self.save_release_reserved_resource(res_query, {}, ROOT_SUT, username)
 
 
     @cherrypy.expose

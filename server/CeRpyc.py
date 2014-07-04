@@ -1,7 +1,7 @@
 
 # File: CeRpyc.py ; This file is part of Twister.
 
-# version: 3.011
+# version: 3.012
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -1323,25 +1323,18 @@ class CeRpycService(rpyc.Service):
     def exposed_delete_sut(self, query):
         """ delete SUT """
         logFull('CeRpyc:exposed_delete_sut')
-        user = self._check_login()
-        if not user:
-            return False
-        return self.project.ra.delete_sut(query, props={'__user': user})
+        return self.project.ra.delete_sut(query)
 
 
     def exposed_is_resource_reserved(self, query):
         """ check if resource is reserved """
         logFull('CeRpyc:exposed_is_resource_reserved')
-        #user = self._check_login()
-        #if not user: return False
         return self.project.ra.is_resource_reserved(query)
 
 
     def exposed_is_sut_reserved(self, query):
         """ check if SUT is reserved """
         logFull('CeRpyc:exposed_is_sut_reserved')
-        #user = self._check_login()
-        #if not user: return False
         return self.project.ra.is_sut_reserved(query)
 
 
@@ -1357,19 +1350,7 @@ class CeRpycService(rpyc.Service):
     def exposed_reserve_sut(self, query):
         """ reserve SUT """
         logFull('CeRpyc:exposed_reserve_sut')
-        user = self._check_login()
-        if not user:
-            return False
-        return self.project.ra.reserve_sut(query, props={'__user': user})
-
-
-    def exposed_save_rel_res_res(self, query):
-        """ save and release resource """
-        logFull('CeRpyc:exposed_save_rel_res_res')
-        user = self._check_login()
-        if not user:
-            return False
-        return self.project.ra.save_release_reserved_resource(query, props={'__user': user})
+        return self.project.ra.reserve_sut(query)
 
 
     def exposed_save_reserved_resource(self, query):
@@ -1379,6 +1360,12 @@ class CeRpycService(rpyc.Service):
         if not user:
             return False
         return self.project.ra.save_reserved_resource(query, props={'__user': user})
+
+
+    def exposed_save_reserved_sut(self, query):
+        """ save SUT and keep it reserved """
+        logFull('CeRpyc:exposed_save_reserved_sut')
+        return self.project.ra.save_reserved_sut(query)
 
 
     def exposed_save_reserved_res_as(self, name, query):
@@ -1393,31 +1380,22 @@ class CeRpycService(rpyc.Service):
     def exposed_save_reserved_sut_as(self, name, query):
         """ save SUT with a different name """
         logFull('CeRpyc:exposed_save_reserved_sut_as')
-        user = self._check_login()
-        if not user:
-            return False
-        return self.project.ra.save_reserved_sut_as(name, query, props={'__user': user})
+        return self.project.ra.save_reserved_sut_as(name, query)
 
 
-    def exposed_save_reserved_sut(self, query):
-        """ save SUT and keep it reserved """
-        logFull('CeRpyc:exposed_save_reserved_sut')
-        user = self._check_login()
-        if not user:
-            return False
-        return self.project.ra.save_reserved_sut(query, props={'__user': user})
+    def exposed_save_release_reserved_res(self, query):
+        """ save and release resource """
+        logFull('CeRpyc:exposed_save_rel_res_res')
+        return self.project.ra.save_release_reserved_resource(query)
 
 
-    def exposed_save_rel_res_sut(self, query):
+    def exposed_save_release_reserved_sut(self, query):
         """ save SUT changes and release """
         logFull('CeRpyc:exposed_save_rel_res_sut')
-        user = self._check_login()
-        if not user:
-            return False
-        return self.project.ra.save_release_reserved_sut(query, props={'__user': user})
+        return self.project.ra.save_release_reserved_sut(query)
 
 
-    def exposed_disc_rel_res_res(self, query):
+    def exposed_discard_release_reserved_res(self, query):
         """ drop changes and release resource """
         logFull('CeRpyc:exposed_disc_rel_res_res')
         user = self._check_login()
@@ -1426,13 +1404,10 @@ class CeRpycService(rpyc.Service):
         return self.project.ra.discard_release_reserved_res(query, props={'__user': user})
 
 
-    def exposed_disc_rel_res_sut(self, query):
+    def exposed_discard_release_reserved_sut(self, query):
         """ drop changes and release SUT """
         logFull('CeRpyc:exposed_disc_rel_res_sut')
-        user = self._check_login()
-        if not user:
-            return False
-        return self.project.ra.discard_release_reserved_sut(query, props={'__user': user})
+        return self.project.ra.discard_release_reserved_sut(query)
 
 
 # Eof()

@@ -1,6 +1,6 @@
 
 #
-# <ver>version: 2.004</ver>
+# <ver>version: 3.001</ver>
 # <title>Test CommonLib and Resource Allocator / TestBed and Resources</title>
 # <description>This suite checks the most basic functionality of Twister.<br>
 # Functions `get_resource`, `set_resource` and *the rest* are included in the interpreter!</description>
@@ -51,9 +51,9 @@ def test():
 	if not r: return "FAIL"
 	print
 
-	print 'Reserving resource...', PROXY.reserve_resource(res_id)
+	print 'Reserving resource...', reserve_resource(res_id)
 	print 'Update resource::', set_resource(py_res, '/', {'more-info': 'y'})
-	print 'Releasing resource...', PROXY.save_release_reserved_res(res_id)
+	print 'Releasing resource...', save_release_reserved_res(res_id)
 
 	r = get_resource(res_id)
 	print 'Check status::', r
@@ -62,10 +62,11 @@ def test():
 
 	for i in range(1, 4):
 
-		print 'Reserving resource...', PROXY.reserve_resource(res_id)
+		print 'Reserving resource...', reserve_resource(res_id)
 		tag = 'tag{}'.format(i)
 		r = set_resource(py_res, '/', {tag: str(i)})
-		print 'Releasing resource...', PROXY.save_release_reserved_res(res_id)
+		print 'Releasing resource...', save_release_reserved_res(res_id)
+
 		print 'Set tag `{}` = `{}` ... {}'.format(tag, i, r)
 		if not r:
 			print 'Could not save tag {}!'.format(tag)
