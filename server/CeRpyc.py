@@ -1,7 +1,7 @@
 
 # File: CeRpyc.py ; This file is part of Twister.
 
-# version: 3.012
+# version: 3.013
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -1247,167 +1247,258 @@ class CeRpycService(rpyc.Service):
 # # #   Resource Allocator   # # #
 
 
-    def exposed_get_resource(self, query):
-        """ get resource information """
-        logFull('CeRpyc:exposed_get_resource')
+    def exposed_get_tb(self, query):
+        """
+        Get resource content.
+        """
+        logFull('CeRpyc:exposed_get_tb')
         user = self._check_login()
         if not user:
             return False
         try:
-            return self.project.ra.get_resource(query=query, props={'__user': user})
+            return self.project.tb.get_tb(query=query, props={'__user': user})
         except:
             return False
 
 
-    def exposed_set_resource(self, name, parent=None, props={}):
-        """ apply changes to resource """
-        logFull('CeRpyc:exposed_set_resource')
+    def exposed_create_new_tb(self, name, parent, props={}):
+        """
+        New TB.
+        """
+        logFull('CeRpyc:exposed_create_new_tb')
         user = self._check_login()
         if not user:
             return False
-        props = dict(props)
-        props.update({'__user': user})
-        return self.project.ra.set_resource(name, parent, props)
+        props['__user'] = user
+        return self.project.tb.create_new_tb(name, parent, props)
 
 
-    def exposed_rename_resource(self, res_query, new_name):
-        """ rename resource """
-        logFull('CeRpyc:exposed_rename_resource')
+    def exposed_create_component_tb(self, name, parent, props={}):
+        """
+        New TB component.
+        """
+        logFull('CeRpyc:exposed_create_component_tb')
         user = self._check_login()
         if not user:
             return False
-        return self.project.ra.rename_resource(res_query, new_name, props={'__user': user})
+        props['__user'] = user
+        return self.project.tb.create_component_tb(name, parent, props)
 
 
-    def exposed_delete_resource(self, query):
-        """ delete resource """
-        logFull('CeRpyc:exposed_delete_resource')
+    def exposed_update_meta_tb(self, name, parent, props={}):
+        """
+        Update meta.
+        """
+        logFull('CeRpyc:exposed_update_meta_tb')
         user = self._check_login()
         if not user:
             return False
-        return self.project.ra.delete_resource(query, props={'__user': user})
+        props['__user'] = user
+        return self.project.tb.update_meta_tb(name, parent, props)
+
+
+    def exposed_create_new_sut(self, name, parent, props={}):
+        """
+        New SUT.
+        """
+        logFull('CeRpyc:exposed_create_new_sut')
+        user = self._check_login()
+        if not user:
+            return False
+        props['__user'] = user
+        return self.project.tb.create_new_sut(name, parent, props)
+
+
+    def exposed_create_component_sut(self, name, parent, props={}):
+        """
+        New SUT component.
+        """
+        logFull('CeRpyc:exposed_create_component_sut')
+        user = self._check_login()
+        if not user:
+            return False
+        props['__user'] = user
+        return self.project.tb.create_component_sut(name, parent, props)
+
+
+    def exposed_update_meta_sut(self, name, parent, props={}):
+        """
+        Update meta.
+        """
+        logFull('CeRpyc:exposed_update_meta_sut')
+        user = self._check_login()
+        if not user:
+            return False
+        props['__user'] = user
+        return self.project.tb.update_meta_sut(name, parent, props)
+
+
+    def exposed_rename_tb(self, res_query, new_name):
+        """
+        Rename a resource.
+        """
+        logFull('CeRpyc:exposed_rename_tb')
+        user = self._check_login()
+        if not user:
+            return False
+        return self.project.tb.rename_tb(res_query, new_name, props={'__user': user})
+
+
+    def exposed_delete_tb(self, query):
+        """
+        Delete a resource.
+        """
+        logFull('CeRpyc:exposed_delete_tb')
+        user = self._check_login()
+        if not user:
+            return False
+        return self.project.tb.delete_tb(query, props={'__user': user})
 
 
     def exposed_get_sut(self, query):
-        """ get SUT content """
+        """
+        Get SUT content.
+        """
         logFull('CeRpyc:exposed_get_sut')
         user = self._check_login()
         if not user:
             return False
         try:
-            return self.project.ra.get_sut(query=query, props={'__user': user})
+            return self.project.sut.get_sut(query=query, props={'__user': user})
         except:
             return False
 
 
-    def exposed_set_sut(self, name, parent=None, props={}):
-        """ create SUT """
-        logFull('CeRpyc:exposed_set_sut')
-        user = self._check_login()
-        if not user:
-            return False
-        props = dict(props)
-        props.update({'__user': user})
-        return self.project.ra.set_sut(name, parent, props)
-
-
     def exposed_rename_sut(self, res_query, new_name):
-        """ rename SUT """
+        """
+        Rename a SUT.
+        """
         logFull('CeRpyc:exposed_rename_sut')
         user = self._check_login()
         if not user:
             return False
-        return self.project.ra.rename_sut(res_query, new_name, props={'__user': user})
+        return self.project.sut.rename_sut(res_query, new_name, props={'__user': user})
 
 
     def exposed_delete_sut(self, query):
-        """ delete SUT """
+        """
+        Delete a SUT.
+        """
         logFull('CeRpyc:exposed_delete_sut')
-        return self.project.ra.delete_sut(query)
+        user = self._check_login()
+        if not user:
+            return False
+        return self.project.sut.delete_sut(query, props={'__user': user})
 
 
-    def exposed_is_resource_reserved(self, query):
+    def exposed_delete_component_sut(self, query):
+        """
+        Delete a SUT.
+        """
+        logFull('CeRpyc:exposed_delete_component_sut')
+        user = self._check_login()
+        if not user:
+            return False
+        return self.project.sut.delete_component_sut(query, props={'__user': user})
+
+
+    def exposed_is_tb_reserved(self, query):
         """ check if resource is reserved """
-        logFull('CeRpyc:exposed_is_resource_reserved')
-        return self.project.ra.is_resource_reserved(query)
+        logFull('CeRpyc:exposed_is_tb_reserved')
+        user = self._check_login()
+        if not user:
+            return False
+        return self.project.tb.is_tb_reserved(query, props={'__user': user})
 
 
     def exposed_is_sut_reserved(self, query):
         """ check if SUT is reserved """
         logFull('CeRpyc:exposed_is_sut_reserved')
-        return self.project.ra.is_sut_reserved(query)
-
-
-    def exposed_reserve_resource(self, query):
-        """ reserve resource """
-        logFull('CeRpyc:exposed_reserve_resource')
         user = self._check_login()
         if not user:
             return False
-        return self.project.ra.reserve_resource(query, props={'__user': user})
+        return self.project.sut.is_sut_reserved(query, props={'__user': user})
+
+
+    def exposed_reserve_tb(self, query):
+        """ reserve resource """
+        logFull('CeRpyc:exposed_reserve_tb')
+        user = self._check_login()
+        if not user:
+            return False
+        return self.project.tb.reserve_tb(query, props={'__user': user})
 
 
     def exposed_reserve_sut(self, query):
         """ reserve SUT """
         logFull('CeRpyc:exposed_reserve_sut')
-        return self.project.ra.reserve_sut(query)
-
-
-    def exposed_save_reserved_resource(self, query):
-        """ save reserved resource and keep it reserved """
-        logFull('CeRpyc:exposed_save_reserved_resource')
         user = self._check_login()
         if not user:
             return False
-        return self.project.ra.save_reserved_resource(query, props={'__user': user})
+        return self.project.sut.reserve_sut(query, props={'__user': user})
+
+
+    def exposed_save_reserved_tb(self, query):
+        """ save reserved resource and keep it reserved """
+        logFull('CeRpyc:exposed_save_reserved_tb')
+        user = self._check_login()
+        if not user:
+            return False
+        return self.project.tb.save_reserved_tb(query, props={'__user': user})
 
 
     def exposed_save_reserved_sut(self, query):
         """ save SUT and keep it reserved """
         logFull('CeRpyc:exposed_save_reserved_sut')
-        return self.project.ra.save_reserved_sut(query)
-
-
-    def exposed_save_reserved_res_as(self, name, query):
-        """" save resource with a different name """
-        logFull('CeRpyc:exposed_save_reserved_res_as')
         user = self._check_login()
         if not user:
             return False
-        return self.project.ra.save_reserved_resource_as(name, query, props={'__user': user})
+        return self.project.sut.save_reserved_sut(query, props={'__user': user})
 
 
     def exposed_save_reserved_sut_as(self, name, query):
         """ save SUT with a different name """
         logFull('CeRpyc:exposed_save_reserved_sut_as')
-        return self.project.ra.save_reserved_sut_as(name, query)
+        user = self._check_login()
+        if not user:
+            return False
+        return self.project.sut.save_reserved_sut_as(name, query, props={'__user': user})
 
 
-    def exposed_save_release_reserved_res(self, query):
+    def exposed_save_release_reserved_tb(self, query):
         """ save and release resource """
         logFull('CeRpyc:exposed_save_rel_res_res')
-        return self.project.ra.save_release_reserved_resource(query)
+        user = self._check_login()
+        if not user:
+            return False
+        return self.project.tb.save_release_reserved_tb(query, props={'__user': user})
 
 
     def exposed_save_release_reserved_sut(self, query):
         """ save SUT changes and release """
         logFull('CeRpyc:exposed_save_rel_res_sut')
-        return self.project.ra.save_release_reserved_sut(query)
+        user = self._check_login()
+        if not user:
+            return False
+        return self.project.sut.save_release_reserved_sut(query, props={'__user': user})
 
 
-    def exposed_discard_release_reserved_res(self, query):
+    def exposed_discard_release_reserved_tb(self, query):
         """ drop changes and release resource """
         logFull('CeRpyc:exposed_disc_rel_res_res')
         user = self._check_login()
         if not user:
             return False
-        return self.project.ra.discard_release_reserved_res(query, props={'__user': user})
+        return self.project.tb.discard_release_reserved_tb(query, props={'__user': user})
 
 
     def exposed_discard_release_reserved_sut(self, query):
         """ drop changes and release SUT """
         logFull('CeRpyc:exposed_disc_rel_res_sut')
-        return self.project.ra.discard_release_reserved_sut(query)
+        user = self._check_login()
+        if not user:
+            return False
+        return self.project.sut.discard_release_reserved_sut(query, props={'__user': user})
 
 
 # Eof()

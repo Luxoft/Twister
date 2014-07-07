@@ -1,5 +1,30 @@
+
+# File: CeTestBeds.py ; This file is part of Twister.
+
+# version: 3.001
+
+# Copyright (C) 2012-2014, Luxoft
+
+# Authors:
+#    Andreea Proca <aproca@luxoft.com>
+#    Andrei Costachi <acostachi@luxoft.com>
+#    Cristi Constantin <crconstantin@luxoft.com>
+
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at:
+
+# http://www.apache.org/licenses/LICENSE-2.0
+
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import os
 import sys
+import time
 import ast
 import copy
 import thread
@@ -12,8 +37,6 @@ import cherrypy
 from lxml import etree
 from binascii import hexlify
 from cherrypy import _cptools
-from mako.template import Template
-import time
 
 TWISTER_PATH = os.getenv('TWISTER_PATH')
 if not TWISTER_PATH:
@@ -31,6 +54,7 @@ RESOURCE_BUSY     = 2
 RESOURCE_RESERVED = 3
 
 constant_dictionary = {'version': 0, 'name': '/', 'meta': {}, 'children': {}}
+
 
 def xml_to_res(xml, gparams, skip_header = False):
 
@@ -307,7 +331,7 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
         else:
             meta = ''
 
-        _isResourceReserved = self.is_resource_reserved(res_query)
+        _isResourceReserved = self.is_resource_reserved(res_query, props)
         if _isResourceReserved and _isResourceReserved != user_info[0]:
             msg = 'User {}: Cannot create new component: The resource is reserved for {} !'.format(user_info[0], _isResourceReserved)
             logError(msg)
@@ -371,8 +395,6 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
                 extract_r = self.get_path(base_path, reserved_node)
                 extract_r['children'].pop(reserved_node['path'][-1])
                 extract_r['path'] = reserved_node['path'][:-1]
-                ### my verification - to be deleted !!!
-                logDebug("after I delete this resource: {}".format(self.reservedResources))
 
             return "true"
 
@@ -393,7 +415,7 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
         else:
             meta = ''
 
-        _isResourceReserved = self.is_resource_reserved(query)
+        _isResourceReserved = self.is_resource_reserved(query, props)
         if _isResourceReserved and _isResourceReserved != user_info[0]:
             msg = 'User {}: Cannot create new component: The resource is reserved for {} !'.format(user_info[0], _isResourceReserved)
             logError(msg)
@@ -477,7 +499,7 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
             logError(msg)
             return "*ERROR* " + msg
 
-        _isResourceReserved = self.is_resource_reserved(parent)
+        _isResourceReserved = self.is_resource_reserved(parent, props)
         if _isResourceReserved and _isResourceReserved != user_info[0]:
             msg = 'User {}: Cannot create new component: The resource is reserved for {} !'.format(user_info[0],_isResourceReserved)
             logError(msg)
@@ -586,7 +608,7 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
             #take the TB that has the component we need
             verifyReserved = parent
 
-        _isResourceReserved = self.is_resource_reserved(verifyReserved)
+        _isResourceReserved = self.is_resource_reserved(verifyReserved, props)
         if _isResourceReserved and _isResourceReserved != user_info[0]:
             msg = 'User {}: Cannot create new component: The resource is reserved for {} !'.format(user_info[0],_isResourceReserved)
             logError(msg)
@@ -642,7 +664,6 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
             return "true"
 
 
-
     @cherrypy.expose
     def reserve_tb(self, res_query, props={}):
         return self.reserve_resource(res_query, props)
@@ -667,8 +688,8 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
 
 
     @cherrypy.expose
-    def is_tb_reserved(self, res_query):
-        result = self.is_resource_reserved(res_query)
+    def is_tb_reserved(self, res_query, props={}):
+        result = self.is_resource_reserved(res_query, props)
         if not result:
             return "false"
         return result
@@ -694,8 +715,7 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
 
         res = []
         for k, v in self.resources.get('children').iteritems():
-            path = [v.get('path')[0]] or []
-            res.append(['/'.join(path), v['id']])
+            res.append([k, v['id']])
         result = []
 
         def quickFindPath(d, spath):
@@ -893,6 +913,8 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
 
         return True
 
+
     @cherrypy.expose
-    def discard_release_reserved_tb(self, res_query):
-        return self.discard_release_reserved_resource(res_query)
+    def discard_release_reserved_tb(self, res_query, props={}):
+        return self.discard_release_reserved_resource(res_query, props)
+

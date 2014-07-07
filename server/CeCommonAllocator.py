@@ -275,7 +275,7 @@ class CommonAllocator(object):
         return True #RESOURCE_RESERVED
 
 
-    def is_resource_reserved(self, res_query):
+    def is_resource_reserved(self, res_query, props={}):
         """
         Verify if a resource is already reserved.
         Returns the user or false.
@@ -284,7 +284,7 @@ class CommonAllocator(object):
         logFull('CeCommonAllocator:is_resource_reserved: res_query = {}'.format(res_query))
 
         resources = self.resources
-        user_info = self.user_info()
+        user_info = self.user_info(props)
 
         if '/' not in res_query:
             reservedForUser = [u for u in self.reservedResources if res_query in self.reservedResources[u]]
@@ -499,12 +499,12 @@ class CommonAllocator(object):
         return lockedForUser[0]
 
 
-    def discard_release_reserved_resource(self, res_query):
+    def discard_release_reserved_resource(self, res_query, props={}):
         """
         Discard changes for both SUTs and TestBeds
         """
 
-        user_info = self.user_info({})
+        user_info = self.user_info(props)
         user = user_info[0]
         logDebug('User {}: CeCommonAllocator:discard_release_reserved_resource: {}'.format(user, res_query))
 
