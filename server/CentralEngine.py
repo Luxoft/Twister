@@ -128,7 +128,8 @@ if __name__ == "__main__":
 
     PROJ.ip_port = ('127.0.0.1', SERVER_PORT)
     CE.web = PROJ.web
-    CE.ra  = PROJ.ra
+    CE.tb = PROJ.tb
+    CE.sut = PROJ.sut
     CE.report = PROJ.report
 
     # EE Manager is the helper for EPs and Clients

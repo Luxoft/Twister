@@ -80,7 +80,7 @@ public class SutTree extends JPanel{
                 if(tp!=null){
                     importxml.setEnabled(true);
                     newfile.setEnabled(true);
-                    final DefaultMutableTreeNode treenode = (DefaultMutableTreeNode)tp.getLastPathComponent();                    
+                    final DefaultMutableTreeNode treenode = (DefaultMutableTreeNode)tp.getLastPathComponent();
                     if(PermissionValidator.canChangeSutLock() && tp!=null && (ev.getButton() == MouseEvent.BUTTON3) && (treenode.getUserObject() instanceof SUT )){
                         final SUT sut = (SUT)treenode.getUserObject();
                         filestree.setSelectionPath(tp);
@@ -88,7 +88,7 @@ public class SutTree extends JPanel{
                         JMenuItem item = new JMenuItem("Lock");
                         item.addActionListener(new ActionListener(){
                             public void actionPerformed(ActionEvent ev){
-                                try{String resp = client.execute("lock_sut", new Object[]{"/"+sut.getName()+sut.getRoot(),"",RunnerRepository.user}).toString();
+                                try{String resp = client.execute("lock_sut", new Object[]{"/"+sut.getName()+sut.getRoot(),""}).toString();
                                 if(resp.indexOf("*ERROR*")==-1){
                                     sut.setLock(RunnerRepository.user);
                                     ((DefaultTreeModel)filestree.getModel()).nodeChanged(treenode);
@@ -106,7 +106,7 @@ public class SutTree extends JPanel{
                         item = new JMenuItem("Unlock");
                         item.addActionListener(new ActionListener(){
                             public void actionPerformed(ActionEvent ev){
-                                try{String resp = client.execute("unlock_sut", new Object[]{"/"+sut.getName()+sut.getRoot(),"",RunnerRepository.user}).toString();
+                                try{String resp = client.execute("unlock_sut", new Object[]{"/"+sut.getName()+sut.getRoot(),""}).toString();
                                     if(resp.indexOf("*ERROR*")==-1){
                                         sut.setLock("");
                                         ((DefaultTreeModel)filestree.getModel()).nodeChanged(treenode);
@@ -211,7 +211,7 @@ public class SutTree extends JPanel{
             sut = (SUT)(treenode).getUserObject();
             if(sut.getReserved().equals(RunnerRepository.user)){
                 try{
-                    String resp = client.execute("discard_release_reserved_sut", new Object[]{"/"+sut.getName()+".user",RunnerRepository.user}).toString();
+                    String resp = client.execute("discard_release_reserved_sut", new Object[]{"/"+sut.getName()+".user"}).toString();
                     sut.setReserved("");
                 }
                 catch(Exception e){
@@ -224,7 +224,7 @@ public class SutTree extends JPanel{
             DefaultMutableTreeNode treenode = (DefaultMutableTreeNode)en.nextElement();
             sut = (SUT)(treenode).getUserObject();
             if(sut.getReserved().equals(RunnerRepository.user)){
-                try{String resp = client.execute("discard_release_reserved_sut", new Object[]{"/"+sut.getName()+".system",RunnerRepository.user}).toString();
+                try{String resp = client.execute("discard_release_reserved_sut", new Object[]{"/"+sut.getName()+".system"}).toString();
                     sut.setReserved("");
                 }
                 catch(Exception e){
@@ -299,7 +299,8 @@ public class SutTree extends JPanel{
                         }
                         String query = "{'_epnames_"+RunnerRepository.user+"':'"+sb.toString()+"'}";
                         String user = tsut.getText();
-                        String respons = client.execute("set_sut", new Object[]{user+add,"/",query,RunnerRepository.user}).toString();
+                        String respons = client.execute("create_new_sut", new Object[]{user+add,"/",query}).toString();
+			System.out.println("!!!!" + respons);
                         if(respons.indexOf("*ERROR*")==-1){
                             DefaultTreeModel model = (DefaultTreeModel)filestree.getModel();
                             SUT s = new SUT(user,add);
@@ -361,7 +362,7 @@ public class SutTree extends JPanel{
     }
     
     public boolean reserveSut(SUT sut){
-        try{String resp = client.execute("reserve_sut", new Object[]{"/"+sut.getName()+sut.getRoot(),RunnerRepository.user}).toString();
+        try{String resp = client.execute("reserve_sut", new Object[]{"/"+sut.getName()+sut.getRoot()}).toString();
             if(resp.indexOf("*ERROR*")==-1){
                 return true;
             } else {
@@ -407,7 +408,7 @@ public class SutTree extends JPanel{
                                             "This name is already used, please use different name.");
                              return;
                         }
-                        String query = client.execute("rename_sut", new Object[]{torename,filename+add,RunnerRepository.user}).toString();
+                        String query = client.execute("rename_sut", new Object[]{torename,filename+add}).toString();
                         if(query.indexOf("*ERROR*")==-1){
                             ((SUT)selected.getUserObject()).setName(filename);
                             ((DefaultTreeModel)filestree.getModel()).nodeChanged(selected);
@@ -439,7 +440,7 @@ public class SutTree extends JPanel{
                 } else {
                     torem = "/"+selected.toString()+".system";
                 }
-                try{String s = client.execute("delete_sut", new Object[]{torem,RunnerRepository.user}).toString();
+                try{String s = client.execute("delete_sut", new Object[]{torem}).toString();
                     if(s.indexOf("*ERROR*")==-1){
                         ((DefaultTreeModel)filestree.getModel()).removeNodeFromParent(selected);
                         RunnerRepository.window.mainpanel.p1.suitaDetails.setComboTBs();
@@ -488,7 +489,7 @@ public class SutTree extends JPanel{
                             } else {
                                 type = "system";
                             }
-                            String resp = client.execute("import_sut_xml", new Object[]{tf.getText(),type,RunnerRepository.user}).toString();
+                            String resp = client.execute("import_sut_xml", new Object[]{tf.getText(),type}).toString();
                             if(resp.indexOf("*ERROR*")==-1){
                                 getSUT();
                                 RunnerRepository.window.mainpanel.p1.suitaDetails.setComboTBs();
@@ -530,7 +531,7 @@ public class SutTree extends JPanel{
                                 add = ".system";
                             }
                             String sutname = sut.getName()+add;
-                            String resp = client.execute("export_sut_xml", new Object[]{tf.getText(),"/"+sutname,RunnerRepository.user}).toString();
+                            String resp = client.execute("export_sut_xml", new Object[]{tf.getText(),"/"+sutname}).toString();
                             if(resp.indexOf("*ERROR*")!=-1){
                                 CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,SutTree.this,"ERROR", "Could not save, CE error: "+resp);
                             }
@@ -731,7 +732,7 @@ public class SutTree extends JPanel{
     public void initializeRPC(){
         try{XmlRpcClientConfigImpl configuration = new XmlRpcClientConfigImpl();
             configuration.setServerURL(new URL("http://"+RunnerRepository.host+
-                                        ":"+RunnerRepository.getCentralEnginePort()+"/ra/"));
+                                        ":"+RunnerRepository.getCentralEnginePort()+"/sut/"));
             configuration.setEnabledForExtensions(true);
             configuration.setBasicPassword(RunnerRepository.password);
             configuration.setBasicUserName(RunnerRepository.user);
@@ -739,7 +740,7 @@ public class SutTree extends JPanel{
             client.setConfig(configuration);
             System.out.println("XMLRPC Client for SutTree initialized: "+client);}
         catch(Exception e){System.out.println("Could not conect to "+
-                            RunnerRepository.host+" :"+RunnerRepository.getCentralEnginePort()+"/ra/"+
+                            RunnerRepository.host+" :"+RunnerRepository.getCentralEnginePort()+"/sut/"+
                             "for RPC client initialization");}
     }
     

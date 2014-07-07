@@ -85,7 +85,7 @@ public class SutConfig extends JPanel{
                                     e.printStackTrace();
                                 }
                                 
-                                try{HashMap hash= (HashMap)client.execute("get_sut", new Object[]{s.getID(),RunnerRepository.user,RunnerRepository.user});
+                                try{HashMap hash= (HashMap)client.execute("get_sut", new Object[]{s.getID()});
                                     try{eps = ((HashMap)hash.get("meta")).get("_epnames_"+RunnerRepository.user).toString();}
                                     catch(Exception e){
                                         eps = "";
@@ -136,7 +136,7 @@ public class SutConfig extends JPanel{
         for(Object o:children){
             try{childid = o.toString();
                 System.out.println(childid+" - "+treenode.toString());
-                HashMap subhash= (HashMap)client.execute("get_sut", new Object[]{childid,RunnerRepository.user,RunnerRepository.user});
+                HashMap subhash= (HashMap)client.execute("get_sut", new Object[]{childid});
                 String subpath = subhash.get("path").toString();
                 String subname = subpath.split("/")[subpath.split("/").length-1];
                 HashMap meta = (HashMap)subhash.get("meta");
