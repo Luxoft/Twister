@@ -679,9 +679,6 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
         pdata = self.get_resource(parent)
         user_info = self.user_info(props)
 
-
-        logWarning('DATA ::: {}'.format(pdata))
-
         if not isinstance(pdata, dict):
             logWarning('User `{}`: No such parent `{}`!'.format(user_info[0], parent))
             return False
@@ -775,8 +772,7 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
             else:
                 result.append({'id': id, 'name': tb, 'status': 'reserved', 'user': ruser})
 
-        user_info = self.user_info({})
-        logDebug('User {}: Fast listing Resources... Found {}.'.format(user_info[0], res))
+        logDebug('Fast listing Resources... Found {}.'.format(res))
 
         return result
 

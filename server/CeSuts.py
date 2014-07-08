@@ -436,8 +436,7 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
         '''
         load the SUT wanted and then reserve it
         '''
-
-        self.get_sut(res_query)
+        self.get_sut(res_query, props)
         return self.reserve_resource(res_query, props)
 
 
@@ -631,6 +630,37 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
                     logDebug('User {}: Deleting `{}` tag from resources.'.format(user_info[0],epnames_tag))
                     del child_p['meta'][epnames_tag]
         return "true"
+
+
+    @cherrypy.expose
+    def set_sut(self, name, parent=None, props={}):
+        """
+        Higher level wrapper over functions Create new SUT, create component and update meta.
+        """
+        if name[0] != '/':
+            name = '/' + name
+
+        if parent == '/' or parent == '1':
+            ndata = self.get_sut(name, props)
+            if not isinstance(ndata, dict):
+                return self.create_new_sut(name, parent, props)
+            else:
+                return self.update_meta_sut(name, parent, props)
+
+        # The parent is NOT root
+        pdata = self.get_sut(parent, props)
+        user_info = self.user_info(props)
+
+        if not isinstance(pdata, dict):
+            logWarning('User `{}`: No such parent `{}`!'.format(user_info[0], parent))
+            return False
+
+        # If exists, update meta
+        if name in pdata['children']:
+            return self.update_meta_sut(name, parent, props)
+        # This is a new component
+        else:
+            return self.create_component_sut(name, parent, props)
 
 
     @cherrypy.expose

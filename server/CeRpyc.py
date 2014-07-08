@@ -1247,6 +1247,24 @@ class CeRpycService(rpyc.Service):
 # # #   Resource Allocator   # # #
 
 
+    def exposed_list_all_tbs(self):
+        """
+        List.
+        """
+        return self.project.tb.list_all_tbs()
+
+
+    def exposed_list_all_suts(self):
+        """
+        List.
+        """
+        logFull('CeRpyc:exposed_list_all_suts')
+        user = self._check_login()
+        if not user:
+            return False
+        return self.project.sut.list_all_suts(user)
+
+
     def exposed_get_tb(self, query):
         """
         Get resource content.
@@ -1318,7 +1336,7 @@ class CeRpycService(rpyc.Service):
         if not user:
             return False
         props['__user'] = user
-        return self.project.tb.create_new_sut(name, parent, props)
+        return self.project.sut.create_new_sut(name, parent, props)
 
 
     def exposed_create_component_sut(self, name, parent, props={}):
@@ -1330,7 +1348,7 @@ class CeRpycService(rpyc.Service):
         if not user:
             return False
         props['__user'] = user
-        return self.project.tb.create_component_sut(name, parent, props)
+        return self.project.sut.create_component_sut(name, parent, props)
 
 
     def exposed_update_meta_sut(self, name, parent, props={}):
@@ -1342,7 +1360,19 @@ class CeRpycService(rpyc.Service):
         if not user:
             return False
         props['__user'] = user
-        return self.project.tb.update_meta_sut(name, parent, props)
+        return self.project.sut.update_meta_sut(name, parent, props)
+
+
+    def exposed_set_sut(self, name, parent='/', props={}):
+        """
+        Update a SUT.
+        """
+        logFull('CeRpyc:exposed_set_sut')
+        user = self._check_login()
+        if not user:
+            return False
+        props['__user'] = user
+        return self.project.sut.set_sut(name, parent, props)
 
 
     def exposed_rename_tb(self, res_query, new_name):
