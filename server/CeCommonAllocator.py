@@ -84,18 +84,18 @@ class CommonAllocator(object):
         we save the absolute path (from root)
         '''
 
-        logDebug("CeCommonAllocator: get_path: Getting the path {}".format(query))
+        logFull("CeCommonAllocator: get_path: Getting the path {}".format(query))
 
         parts = [q for q in query.split('/') if q]
         for part in parts:
             if not resource:
-                logDebug('*ERROR* we did not find a result for this query: {}!'.format(query))
+                logFull('Did not find a result for this query: {}!'.format(query))
                 return None
 
             if part in resource['children']:
                 resource = resource['children'].get(part)
             else:
-                logDebug('*ERROR* we did not find a result for this path: {}!'.format(part))
+                logFull('Did not find a result for this path: {}!'.format(part))
                 return None
 
         return resource
@@ -106,7 +106,7 @@ class CommonAllocator(object):
         update the path of all kids if the result is renamed for example
         '''
 
-        logDebug("CeCommonAllocator: change_path  {} ".format(path))
+        logFull("CeCommonAllocator: change_path  {} ".format(path))
         if not result:
             return False
         if not result.get('children'):
@@ -127,13 +127,13 @@ class CommonAllocator(object):
         in any other resource given as parameter
         '''
 
-        logDebug("CeCommonAllocator: get_resource: Getting the resource {}".format(query))
+        logFull("CeCommonAllocator: get_resource: Getting the resource {}".format(query))
 
         if not resource:
             resource = self.resources
 
         if not resource or not query:
-            msg = '{} -- {}\nCannot get a null resource !'.format(resource, query)
+            msg = 'Cannot get a null resource {} or a new query {}!'.format(resource, query)
             logError(msg)
             return None
 
@@ -219,6 +219,7 @@ class CommonAllocator(object):
         """
         reserve a resource for a certain user
         """
+
         user_info = self.user_info(props)
         logDebug('CeCommonAllocator:reserve_resource {} {} {}'.format(res_query, props, user_info[0]))
 
@@ -345,7 +346,7 @@ class CommonAllocator(object):
         # if query is an saved component
         else:
             node_path = self.get_resource(res_query)
-            if node_path:
+            if node_path and isinstance(node_path, dict):
                 parent_path = node_path['path']
 
         #maybe query is an id of a component unsaved yet
@@ -363,7 +364,7 @@ class CommonAllocator(object):
             node_path = self.get_path(node_path['path'][0], resources)
 
         self.reservedResources[user_info[0]][node_path['id']]['path'] = parent_path
-        logDebug('afisare in get reserved {}'.format(self.reservedResources[user_info[0]][node_path['id']]))
+
         return self.reservedResources[user_info[0]][node_path['id']]
 
 
@@ -371,6 +372,7 @@ class CommonAllocator(object):
         """
         lock the resource res_query by adding it to the self.lockedResources dict
         """
+
         logDebug('CeCommonAllocator:lock_resource {} {}'.format(res_query, props))
         resources = self.resources
         user_info = self.user_info(props)
@@ -433,12 +435,13 @@ class CommonAllocator(object):
         """
         unlock the resource, delete it from self.lockedResources dict
         """
+
         logDebug('CeCommonAllocator:unlock_resource {} {} '.format(res_query,props))
         user_info = self.user_info(props)
         #we need the id of the resource so we get it from self.resources
 
         node = self.get_resource(res_query)
-        if isinstance(node,str):
+        if not node or isinstance(node,str):
             msg = "We do not have this resource {}".format(res_query)
             logError(msg)
             return "*ERROR* " + msg
@@ -480,15 +483,14 @@ class CommonAllocator(object):
             node = self.get_resource(res_query)
             if not node or isinstance(node, str):
                 msg = "CeCommonAllocator: is_resource_locked: We do not have this resource {}".format(res_query)
-                logError(msg)
+                logFull(msg)
                 return False
 
             if len(node['path']) > 1:
                 node = self.get_path(node['path'][0], self.resources)
 
-            if isinstance(node,str):
-                logError('CeCommonAllocator: is_resource_locked: Cannot find resource path or ID `{}` !'.format(res_query))
-                logError(msg)
+            if isinstance(node, str):
+                logFull('CeCommonAllocator: is_resource_locked: Cannot find resource path or ID `{}` !'.format(res_query))
                 return  False
 
             lockedForUser = [u for u in self.lockedResources if node['id'] in self.lockedResources[u]]

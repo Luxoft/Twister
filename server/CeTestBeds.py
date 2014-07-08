@@ -285,7 +285,7 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
         Get the current version of the tb modified and unsaved or
         the version from the disk.
         '''
-        logDebug('CeTestBeds:get_tb {} {}'.format(query,props))
+        logDebug('CeTestBeds:get_tb {} {}'.format(query, props))
         user_info = self.user_info(props)
 
         result = None
@@ -367,9 +367,6 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
                 logDebug(msg)
                 return "false"
             child['path'] = correct_path
-
-            ### my verification
-            logDebug("after I delete this resource: {}".format(self.reservedResources))
 
             return "true"
         else:
@@ -562,6 +559,10 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
         with self.acc_lock:
             #root can not be reserved so we just take it
             parent_p = self.get_resource( '/', resources)
+
+            if not parent_p or isinstance(parent_p, str):
+                logFull("User: {} no result for this query {} " .format(parent))
+                return None
 
             if '/' in name:
                 logDebug('Stripping slash characters from `{}`...'.format(name))
@@ -847,7 +848,7 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
 
 
         resource_node = self.get_resource(res_query)
-        if not resource_node or "*ERROR*" in resource_node:
+        if not resource_node or isinstance(resource_node, str):
             msg = "User {}: Can not find this resource = {}".format(user_info[0], res_query)
             logError(msg)
             return "*ERROR* " + msg
@@ -899,6 +900,10 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
 
             # get only the component
             resource_node = self.get_resource(res_query)
+            if not resource_node or isinstance(resource_node, str):
+                logFull("Can not find the resoruce {}".format(res_query))
+                return None
+
             # get the entire TB
             if len(resource_node['path']) > 1:
                 resource_node = self.get_path(resource_node['path'][0], resources)
