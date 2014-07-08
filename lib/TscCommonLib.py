@@ -356,7 +356,7 @@ class TscCommonLib(object):
 
     def _encode_unicode(self, input):
         """
-        Data to
+        Encode data to UTF-8.
         """
         if isinstance(input, dict):
             return {self._encode_unicode(key): self._encode_unicode(value) for key, value in input.iteritems()}
@@ -368,13 +368,13 @@ class TscCommonLib(object):
             return input
 
 
-    def get_resource(self, query, type=unicode):
+    def get_tb(self, query, dtype=unicode):
         """
-        Get resource content.
+        Get TB content.
         """
         try:
-            data = self.ce_proxy.get_resource(query)
-            if type == str:
+            data = self.ce_proxy.get_tb(query)
+            if dtype == str:
                 return self._encode_unicode(data)
             else:
                 return data
@@ -383,62 +383,112 @@ class TscCommonLib(object):
             return None
 
 
-    def set_resource(self, name, parent=None, props={}):
+    def get_resource(self, query, dtype=unicode):
         """
-        Update a resource. It must be reserved first.
+        Get TB content. Alias function.
+        """
+        return self.get_tb(query, dtype)
+
+
+    def create_new_tb(self, name, parent='/', props={}):
+        """
+        Update a TB.
         """
         try:
-            return self.ce_proxy.set_resource(name, parent, props)
+            return self.ce_proxy.create_new_tb(name, parent, props)
+        except Exception as e:
+            print('Error on create Resource! `{}`!'.format(e))
+            return None
+
+
+    def create_component_tb(self, name, parent='/', props={}):
+        """
+        Update a TB.
+        """
+        try:
+            return self.ce_proxy.create_component_tb(name, parent, props)
+        except Exception as e:
+            print('Error on create Resource! `{}`!'.format(e))
+            return None
+
+
+    def update_meta_tb(self, name, parent='/', props={}):
+        """
+        Update a TB.
+        """
+        try:
+            return self.ce_proxy.update_meta_tb(name, parent, props)
         except Exception as e:
             print('Error on update Resource! `{}`!'.format(e))
             return None
 
 
-    def rename_resource(self, res_query, new_name):
+    def set_tb(self, name, parent='/', props={}):
         """
-        Rename a resource.
+        Update a TB.
         """
         try:
-            return self.ce_proxy.rename_resource(res_query, new_name)
+            return self.ce_proxy.set_tb(name, parent, props)
+        except Exception as e:
+            print('Error on set Resource! `{}`!'.format(e))
+            return None
+
+
+    def set_resource(self, name, parent='/', props={}):
+        """
+        Update a TB. Alias function.
+        """
+        return self.set_tb(name, parent, props)
+
+
+    def rename_tb(self, res_query, new_name):
+        """
+        Rename a TB.
+        """
+        try:
+            return self.ce_proxy.rename_tb(res_query, new_name)
         except Exception as e:
             print('Error on rename Resource! `{}`!'.format(e))
             return None
 
 
-    def delete_resource(self, query):
+    def rename_resource(self, res_query, new_name):
         """
-        Delete a resource.
+        Rename a TB. Alias function.
+        """
+        return self.rename_tb(res_query, new_name)
+
+
+    def delete_tb(self, query):
+        """
+        Delete a TB.
         """
         try:
-            return self.ce_proxy.delete_resource(query)
+            return self.ce_proxy.delete_tb(query)
         except Exception as e:
             print('Error on delete Resource! `{}`!'.format(e))
             return None
 
 
-    def get_sut(self, query, type=unicode):
+    def delete_resource(self, query):
+        """
+        Delete a TB. Alias function.
+        """
+        return self.delete_tb(query)
+
+
+    def get_sut(self, query, dtype=unicode):
         """
         Get SUT content.
         """
         try:
             data = self.ce_proxy.get_sut(query)
-            if type == str:
+            if dtype == str:
                 return self._encode_unicode(data)
             else:
                 return data
         except Exception as e:
             print('Error on get SUT! `{}`!'.format(e))
-            return None
-
-
-    def set_sut(self, name, parent=None, props={}):
-        """
-        Update a SUT. It must be reserved first.
-        """
-        try:
-            return self.ce_proxy.set_sut(name, parent, props)
-        except Exception as e:
-            print('Error on set SUT! `{}`!'.format(e))
             return None
 
 
@@ -464,69 +514,47 @@ class TscCommonLib(object):
             return None
 
 
-    def reserve_resource(self, query):
+    def reserve_tb(self, query):
         """
         Reserve a resource. You can then edit the resource.
         """
         try:
-            return self.ce_proxy.reserve_resource(query)
+            return self.ce_proxy.reserve_tb(query)
         except Exception as e:
             print('Error on reserve resource! `{}`!'.format(e))
             return None
 
 
-    def save_reserved_resource(self, query):
+    def save_reserved_tb(self, query):
         """
         Save changes. Don't release.
         """
         try:
-            return self.ce_proxy.save_reserved_resource(query)
+            return self.ce_proxy.save_reserved_tb(query)
         except Exception as e:
             print('Error on save resource! `{}`!'.format(e))
             return None
 
 
-    def save_release_reserved_res(self, query):
+    def save_release_reserved_tb(self, query):
         """
         Save changes. Release the resource.
         """
         try:
-            return self.ce_proxy.save_release_reserved_res(query)
+            return self.ce_proxy.save_release_reserved_tb(query)
         except Exception as e:
             print('Error on save & release resource! `{}`!'.format(e))
             return None
 
 
-    def discard_release_reserved_res(self, query):
+    def discard_release_reserved_tb(self, query):
         """
         Drop changes. Release the resource.
         """
         try:
-            return self.ce_proxy.discard_release_reserved_res(query)
+            return self.ce_proxy.discard_release_reserved_tb(query)
         except Exception as e:
             print('Error on discard & release resource! `{}`!'.format(e))
-            return None
-
-
-    def lock_resource(self, query):
-        """
-        Lock a resource for yourself.
-        """
-        try:
-            return self.ce_proxy.lock_resource(query)
-        except Exception as e:
-            print('Error on lock resource! `{}`!'.format(e))
-            return None
-
-
-    def unlock_resource(self, query):
-        """
-        Unlock the resource.
-        """
-        try:
-            return self.ce_proxy.unlock_resource(query)
-        except Exception as e:
-            print('Error on un-lock resource! `{}`!'.format(e))
             return None
 
 

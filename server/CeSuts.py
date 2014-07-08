@@ -36,7 +36,6 @@ import cherrypy
 from lxml import etree
 from binascii import hexlify
 from cherrypy import _cptools
-from mako.template import Template
 
 import time
 
@@ -54,7 +53,9 @@ from CeCommonAllocator import CommonAllocator
 RESOURCE_FREE     = 1
 RESOURCE_BUSY     = 2
 RESOURCE_RESERVED = 3
+
 constant_dictionary = {'version': 0, 'name': '/', 'meta': {}, 'children': {}}
+
 
 def _recursive_build_comp(parent, old_path, appendList=[]):
     '''
@@ -320,7 +321,7 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
 
 
     @cherrypy.expose
-    def get_sut(self, query, props = {}):
+    def get_sut(self, query, props={}):
         '''
         Get the contant of one SUT file using it's name.
         Must provide a SUT name.<type> ( type = user/system)
@@ -557,7 +558,6 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
         user_info = self.user_info(props)
         logDebug('CeSuts:update_meta_sut: parent = {} -- props = {} -- username = {} -- name = {}'.format(parent, props, user_info[0], name))
 
-
         #if props does not have the corect format we stop this operation
         if not props or not self.valid_props(props):
             msg = "Wrong format for props = {}".format(props)
@@ -634,7 +634,7 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
 
 
     @cherrypy.expose
-    def rename_sut(self, res_query, new_name, props = {}):
+    def rename_sut(self, res_query, new_name, props={}):
         '''
         Rename a SUT if it is not reserved or locked by someone.
         If its asked to rename the root of a sut and
@@ -768,7 +768,7 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
 
 
     @cherrypy.expose
-    def delete_component_sut(self, res_query, props = {}):
+    def delete_component_sut(self, res_query, props={}):
         '''
         Permanently delete a component of a SUT.
         It can be deleted only if SUT is reserved.
@@ -809,7 +809,7 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
 
 
     @cherrypy.expose
-    def delete_sut(self, res_query, props = {}):
+    def delete_sut(self, res_query, props={}):
         '''
         Permanently delete a SUT.
         Sut can be deteleted only if it is not reserved by anyone.
@@ -943,7 +943,7 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
 
 
     @cherrypy.expose
-    def import_sut_xml(self, xml_file, sutType='user', props = {}):
+    def import_sut_xml(self, xml_file, sutType='user', props={}):
         '''
         Import one sut XML file.
         '''
@@ -990,7 +990,7 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
 
 
     @cherrypy.expose
-    def export_sut_xml(self, xml_file, query, props = {}):
+    def export_sut_xml(self, xml_file, query, props={}):
         '''
         Export as XML file.
         '''
@@ -1067,15 +1067,15 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
 
 
     @cherrypy.expose
-    def is_sut_reserved(self, res_query):
-        result = self.is_resource_reserved(res_query)
+    def is_sut_reserved(self, res_query, props={}):
+        result = self.is_resource_reserved(res_query, props)
         if not result:
             return "false"
         return result
 
 
     @cherrypy.expose
-    def save_reserved_sut_as(self, name, res_query, props = {}):
+    def save_reserved_sut_as(self, name, res_query, props={}):
         '''
         Save a reserved SUT as.
         '''
@@ -1237,5 +1237,6 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
 
 
     @cherrypy.expose
-    def discard_release_reserved_sut(self, res_query, props = {}):
+    def discard_release_reserved_sut(self, res_query, props={}):
         return self.discard_release_reserved_resource(res_query, props)
+

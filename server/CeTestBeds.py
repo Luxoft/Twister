@@ -236,7 +236,9 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
 
 
     def load_tb(self, v=False):
-
+        """
+        Parse resources file.
+        """
         logDebug('CeTestBeds:load_tb {}'.format(v))
 
         with self.load_lock:
@@ -249,10 +251,10 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
                 self.resources = json.load(f)
                 f.close() ; del f
                 if v:
-                    logDebug('RA: Devices loaded successfully for user.')
+                    logDebug('TBs loaded successfully.')
             except Exception as e:
-                if v:
-                    logError('RA: There are no devices to load for user {}!'.format(e))
+                logError('Error loading TBs! {}'.format(e))
+
         return self.resources
 
 
@@ -261,7 +263,7 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
         Function used to write the changes on HDD.
         '''
         logFull('CeTestBeds:_save {}'.format(props))
-        log = list()
+        log = []
 
         with self.save_lock:
             v = self.resources.get('version', 0)
@@ -306,7 +308,8 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
                 return ret
             else:
                 return self.format_resource(result, query)
-        return "*ERROR* we could not find this resource: {}".format(query)
+
+        return "*ERROR* no such resource: {}".format(query)
 
 
     @cherrypy.expose
@@ -407,7 +410,7 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
         user_info = self.user_info(props)
 
         if ':' in query:
-            meta      = query.split(':')[1]
+            meta  = query.split(':')[1]
             query = query.split(':')[0]
         else:
             meta = ''
@@ -487,12 +490,11 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
         Create a component for an existing TB.
         Return new component's id.
         '''
-
         user_info = self.user_info(props)
 
         props = self.valid_props(props)
         if parent == '/' or parent == '1':
-            msg = "The parent value is not an existing TB. Mayebe you want to add a new TB. Parent: {}".format(parent)
+            msg = "The parent value is not an existing TB. Maybe you want to add a new TB. Parent: {}".format(parent)
             logError(msg)
             return "*ERROR* " + msg
 
@@ -514,7 +516,7 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
             if not parent_p:
                 msg = "Could not find this TB: '{}'".format(parent)
                 logDebug(msg)
-                return "*ERROR*" + msg
+                return "*ERROR* " + msg
 
             #the resources is deep in the tree, we have to get its direct parent
             if len(parent_p['path']) >= 2:
@@ -530,7 +532,7 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
             if name in parent_p['children']:
                 msg = "A component with this name '{}' already exists for this TB: '{}'".format(name, parent)
                 logDebug(msg)
-                return "*ERROR*" + msg
+                return "*ERROR* " + msg
 
             # the resource doesn't exist - create it
             res_id = self.generate_index()
@@ -550,18 +552,18 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
         resources = self.resources
 
         if parent != '/' and parent != '1':
-            msg = "The parent value is not root. Mayebe you want to add a component to an existing SUT. Parent: {}".format(parent)
+            msg = "The parent value is not root. Maybe you want to add a component to an existing SUT. Parent: {}".format(parent)
             logError(msg)
             return "*ERROR* " + msg
 
         props = self.valid_props(props)
 
         with self.acc_lock:
-            #root can not be reserved so we just take it
-            parent_p = self.get_resource( '/', resources)
+            # root can not be reserved so we just take it
+            parent_p = self.get_resource('/', resources)
 
             if not parent_p or isinstance(parent_p, str):
-                logFull("User: {} no result for this query {} " .format(parent))
+                logFull("User: {} no result for query `{}`" .format(parent))
                 return None
 
             if '/' in name:
@@ -569,9 +571,9 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
                 name = name.replace('/', '')
 
             if name in self.resources['children']:
-                msg = "A TB with this name '{}'' already exists'".format(name)
+                msg = "A TB with name `{}` already exists!".format(name)
                 logDebug(msg)
-                return "*ERROR*" + msg
+                return "*ERROR* " + msg
 
             # the resource doesn't exist - create it
             res_id = self.generate_index()
@@ -579,7 +581,7 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
 
             issaved = self.save_tb(props)
             if not issaved:
-                msg = "We could not save this TB {}.".format(name)
+                msg = "Could not save TB `{}`".format(name)
                 logDebug(msg)
                 return "*ERROR* " + msg
             return res_id
@@ -623,9 +625,13 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
 
         with self.acc_lock:
 
+            l_props = dict(props)
+            if '__user' in l_props:
+                del l_props['__user']
+
             # If this is the root resource, update the properties
             if name == '/' and parent == '/':
-                resources['meta'].update(props)
+                resources['meta'].update(l_props)
                 # Write changes for Device or SUT
                 issaved = self.save_tb(props)
                 if not issaved:
@@ -659,10 +665,36 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
             else:
                 return "User {}: *ERROR* the resource {} can not be found!".format(user_info[0], name)
 
-            #We have to update the props
-            child_p['meta'].update(props)
+            # We have to update the props
+            child_p['meta'].update(l_props)
 
             return "true"
+
+
+    @cherrypy.expose
+    def set_tb(self, name, parent=None, props={}):
+        """
+        Higher level wrapper over functions Create new TB, create component and update meta.
+        """
+        pdata = self.get_resource(parent)
+        user_info = self.user_info(props)
+
+
+        logWarning('DATA ::: {}'.format(pdata))
+
+        if not isinstance(pdata, dict):
+            logWarning('User `{}`: No such parent `{}`!'.format(user_info[0], parent))
+            return False
+
+        if (parent == '/' or parent == '1') and name not in pdata['children']:
+            return self.create_new_tb(name, parent, props)
+
+        # If exists, update meta
+        if name in pdata['children']:
+            return self.update_meta_tb(name, parent, props)
+        # This is a new component
+        else:
+            return self.create_component_tb(name, parent, props)
 
 
     @cherrypy.expose
@@ -874,7 +906,7 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
 
         #now we have to save
         issaved = self.save_tb(props)
-        if isinstance(issaved, str) and issaved.startswith('*ERROR*'):
+        if isinstance(issaved, str) and issaved.startswith('*ERROR* '):
             msg = "We could not save this TB for user = {}.".format(user_info[0])
             logDebug(msg)
             return "*ERROR* " + msg

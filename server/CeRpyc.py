@@ -1297,6 +1297,18 @@ class CeRpycService(rpyc.Service):
         return self.project.tb.update_meta_tb(name, parent, props)
 
 
+    def exposed_set_tb(self, name, parent='/', props={}):
+        """
+        Update a TB.
+        """
+        logFull('CeRpyc:exposed_set_tb')
+        user = self._check_login()
+        if not user:
+            return False
+        props['__user'] = user
+        return self.project.tb.set_tb(name, parent, props)
+
+
     def exposed_create_new_sut(self, name, parent, props={}):
         """
         New SUT.

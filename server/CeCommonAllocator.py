@@ -1,3 +1,27 @@
+
+# File: CeCommonAllocator.py ; This file is part of Twister.
+
+# version: 3.001
+
+# Copyright (C) 2012-2014, Luxoft
+
+# Authors:
+#    Andreea Proca <aproca@luxoft.com>
+#    Andrei Costachi <acostachi@luxoft.com>
+#    Cristi Constantin <crconstantin@luxoft.com>
+
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at:
+
+# http://www.apache.org/licenses/LICENSE-2.0
+
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import os
 import sys
 import ast
@@ -12,7 +36,6 @@ import cherrypy
 from lxml import etree
 from binascii import hexlify
 from cherrypy import _cptools
-from mako.template import Template
 import time
 
 TWISTER_PATH = os.getenv('TWISTER_PATH')
@@ -254,7 +277,7 @@ class CommonAllocator(object):
             node_path = self.get_resource(res_query)
 
             if not node_path or isinstance(node_path, str):
-                msg = "User {}: We do not have this resource {}".format(user_info[0], res_query)
+                msg = "User {}: No such resource {}".format(user_info[0], res_query)
                 logError(msg)
                 return "*ERROR* " + msg
 
@@ -299,14 +322,14 @@ class CommonAllocator(object):
                 node_path = self.get_resource(res_query)
 
             if not node_path or isinstance(node_path,str):
-                msg = "We do not have this resource {}".format(res_query)
+                msg = "No such resource {}".format(res_query)
                 logError(msg)
                 return False
 
             if len(node_path['path']) > 1:
                 node_path = self.get_path(node_path['path'][0], resources)
                 if not node_path and isinstance(node_path,str):
-                    msg = "We do not have this resource {}".format(res_query)
+                    msg = "No such resource {}".format(res_query)
                     logError(msg)
                     return False
 
@@ -413,7 +436,7 @@ class CommonAllocator(object):
 
             node = self.get_resource(res_query)
             if not node or isinstance(node,str):
-                msg = "We do not have this resource {}".format(res_query)
+                msg = "No such resource {}".format(res_query)
                 logError(msg)
                 return "*ERROR* " + msg
             if len(node['path']) > 1:
@@ -442,7 +465,7 @@ class CommonAllocator(object):
 
         node = self.get_resource(res_query)
         if not node or isinstance(node,str):
-            msg = "We do not have this resource {}".format(res_query)
+            msg = "No such resource {}".format(res_query)
             logError(msg)
             return "*ERROR* " + msg
         #we need to lock the root of the resource
@@ -482,7 +505,7 @@ class CommonAllocator(object):
         if '/' in res_query or not lockedForUser:
             node = self.get_resource(res_query)
             if not node or isinstance(node, str):
-                msg = "CeCommonAllocator: is_resource_locked: We do not have this resource {}".format(res_query)
+                msg = "CeCommonAllocator: is_resource_locked: No such resource {}".format(res_query)
                 logFull(msg)
                 return False
 
