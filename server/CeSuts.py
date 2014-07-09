@@ -716,7 +716,7 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
         name: new_name and delete the old Sut.
         '''
 
-        self.get_sut(res_query)
+        self.get_sut(res_query, props)
         user_info = self.user_info(props)
 
         if '/' in new_name or ':' in new_name:
@@ -739,7 +739,7 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
             logError(msg)
             return '*ERROR* ' + msg
 
-        #add 'user' or 'system' at the end of the new_name if it does not have it
+        # add 'user' or 'system' at the end of the new_name if it does not have it
         if new_name.split('.')[-1] != 'user' and new_name.split('.')[-1] != 'system':
             if res_query.split('.')[-1] == 'user' or res_query.split('.')[-1] == 'system':
                 new_name = '.'.join([new_name, res_query.split('.')[-1]])
@@ -777,16 +777,16 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
             logError(msg)
             return '*ERROR* ' + msg
 
-        #we create a new SUT having this new name
-        newSutId = self.create_new_sut(new_name, "/", {})
+        # Create a new SUT having this new name
+        newSutId = self.create_new_sut(new_name, "/", props)
 
         if  isinstance(newSutId, str):
             if '*ERROR*' in newSutId:
                 msg = 'User {}: New SUT file {} cannot be created!'.format(user_info[0], new_name)
                 logError(msg)
                 return '*ERROR* ' + msg
-        #reserve it
-        reserve_res = self.reserve_resource(new_name, '{}')
+
+        reserve_res = self.reserve_resource(new_name, props)
         if  isinstance(reserve_res, str):
              if '*ERROR*' in reserve_res:
                  msg = 'User {}: New SUT file {} cannot be reserved!'.format(user_info[0], new_name)
@@ -798,10 +798,10 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
             self.reservedResources[user].pop(new_sut)
             if not self.reservedResources[user]:
                 self.reservedResources.pop(user)
-            self.delete_sut(new_sut)
+            self.delete_sut(new_sut, props)
 
         # Try to reserve source SUT file; if error, clean up the new SUT
-        reserve_res = self.reserve_resource(res_query, '{}')
+        reserve_res = self.reserve_resource(res_query, props)
         if  isinstance(reserve_res, str):
              if '*ERROR*' in reserve_res:
                 msg = 'User {}: Source SUT file {} cannot be reserved!'.format(user_info[0], res_query)
@@ -809,16 +809,15 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
                 cleanNewSut(newSutId, user_info[0])
                 return '*ERROR* ' + msg
 
-        #get the new path
+        # get the new path
         newSut = self.reservedResources[user_info[0]][newSutId]
+        # get the old sut
+        oldSut = self.get_reserved_resource(res_query, props)
 
-        #get the old sut
-        oldSut = self.get_reserved_resource(res_query)
-
-        #get all the structure of the old sut
+        # get all the structure of the old sut
         newSut['meta'] = oldSut['meta']
         newSut['children'] = oldSut['children']
-        #if the sut has children we have to update the path
+        # if the sut has children we have to update the path
         self.change_path(newSut, newSut['path'])
 
         # release the old sut; and delete if needed
@@ -826,7 +825,7 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
         if not self.reservedResources[user_info[0]]:
             self.reservedResources.pop(user_info[0])
 
-        deleted = self.delete_sut(res_query)
+        deleted = self.delete_sut(res_query, props)
         if  isinstance(deleted, str) and deleted.startswith('*ERROR*'):
             #could not delete the old sut so we keep it and delete the new one
             cleanNewSut(newSutId, user_info[0])
@@ -834,8 +833,8 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
             logError(msg)
             return "*ERROR* " + msg
         else:
-            #save and release the new sut
-            self.save_release_reserved_sut(new_name, {})
+            # save and release the new sut
+            self.save_release_reserved_sut(new_name, props)
 
         return "True"
 
@@ -1218,8 +1217,8 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
             logError(msg)
             return '*ERROR* ' + msg
 
-        #we create a new SUT having this new name
-        newSutId = self.create_new_sut(target_name, "/")
+        # Create a new SUT having this new name
+        newSutId = self.create_new_sut(target_name, '/', props)
 
         if  isinstance(newSutId, str):
             if '*ERROR*' in newSutId:
@@ -1228,13 +1227,12 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
                 return '*ERROR* ' + msg
 
         # reserve the target SUT
-        self.reserve_resource(target_name, '{}')
+        self.reserve_resource(target_name, props)
 
-        #get the new path
+        # get the new path
         newSut = self.reservedResources[user_info[0]][newSutId]
-
-        #get the old sut
-        oldSut = self.get_reserved_resource(res_query)
+        # get the old sut
+        oldSut = self.get_reserved_resource(res_query, props)
 
         #get all the structure of the old sut
         newSut['meta'].update(oldSut['meta'])

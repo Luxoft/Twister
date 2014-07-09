@@ -1275,7 +1275,8 @@ class CeRpycService(rpyc.Service):
             return False
         try:
             return self.project.tb.get_tb(query=query, props={'__user': user})
-        except:
+        except Exception as e:
+            logWarning(e)
             return False
 
 
@@ -1406,9 +1407,21 @@ class CeRpycService(rpyc.Service):
         if not user:
             return False
         try:
-            return self.project.sut.get_sut(query=query, props={'__user': user})
-        except:
+            return self.project.sut.get_sut(query, props={'__user': user})
+        except Exception as e:
+            logWarning(e)
             return False
+
+
+    def exposed_get_meta_sut(self, query):
+        """
+        Get SUT meta.
+        """
+        logFull('CeRpyc:exposed_get_meta_sut')
+        user = self._check_login()
+        if not user:
+            return False
+        return self.project.sut.get_meta_sut(query, props={'__user': user})
 
 
     def exposed_rename_sut(self, res_query, new_name):
@@ -1435,7 +1448,7 @@ class CeRpycService(rpyc.Service):
 
     def exposed_delete_component_sut(self, query):
         """
-        Delete a SUT.
+        Delete a SUT component.
         """
         logFull('CeRpyc:exposed_delete_component_sut')
         user = self._check_login()

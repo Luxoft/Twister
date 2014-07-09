@@ -1,7 +1,7 @@
 
 # File: TscCommonLib.py ; This file is part of Twister.
 
-# version: 3.012
+# version: 3.013
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -492,6 +492,61 @@ class TscCommonLib(object):
             return None
 
 
+    def get_meta_sut(self, query):
+        """
+        Get SUT meta.
+        """
+        try:
+            return self.ce_proxy.get_meta_sut(query)
+        except Exception as e:
+            print('Error on get meta SUT! `{}`!'.format(e))
+            return None
+
+
+    def create_new_sut(self, name, parent='/', props={}):
+        """
+        Update a SUT.
+        """
+        try:
+            return self.ce_proxy.create_new_sut(name, parent, props)
+        except Exception as e:
+            print('Error on create SUT! `{}`!'.format(e))
+            return None
+
+
+    def create_component_sut(self, name, parent='/', props={}):
+        """
+        Update a SUT.
+        """
+        try:
+            return self.ce_proxy.create_component_sut(name, parent, props)
+        except Exception as e:
+            print('Error on create SUT! `{}`!'.format(e))
+            return None
+
+
+    def update_meta_sut(self, name, parent='/', props={}):
+        """
+        Update a SUT.
+        """
+        try:
+            return self.ce_proxy.update_meta_sut(name, parent, props)
+        except Exception as e:
+            print('Error on update SUT! `{}`!'.format(e))
+            return None
+
+
+    def set_sut(self, name, parent='/', props={}):
+        """
+        Update a SUT.
+        """
+        try:
+            return self.ce_proxy.set_sut(name, parent, props)
+        except Exception as e:
+            print('Error on set SUT! `{}`!'.format(e))
+            return None
+
+
     def rename_sut(self, res_query, new_name):
         """
         Rename a SUT.
@@ -511,6 +566,17 @@ class TscCommonLib(object):
             return self.ce_proxy.delete_sut(query)
         except Exception as e:
             print('Error on delete SUT! `{}`!'.format(e))
+            return None
+
+
+    def delete_component_sut(self, query):
+        """
+        Delete a SUT component.
+        """
+        try:
+            return self.ce_proxy.delete_component_sut(query)
+        except Exception as e:
+            print('Error on delete SUT component! `{}`!'.format(e))
             return None
 
 
