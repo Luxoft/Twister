@@ -497,7 +497,7 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
 
         user_info = self.user_info(props)
 
-        _isResourceReserved = self.is_resource_reserved(parent)
+        _isResourceReserved = self.is_resource_reserved(parent, props)
         if _isResourceReserved and _isResourceReserved != user_info[0]:
             msg = 'User {}: Cannot create new component: The SUT is reserved for {} !'.format(user_info[0],_isResourceReserved)
             logError(msg)
@@ -617,16 +617,16 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
             verifyReserved = parent
 
         #what if this sut is already reserved by other user? We STOP
-        _isResourceReserved = self.is_resource_reserved(verifyReserved)
+        _isResourceReserved = self.is_resource_reserved(verifyReserved, props)
         if _isResourceReserved and _isResourceReserved != user_info[0]:
-            msg = 'User {}: Cannot update meta: The resource is reserved for {} !'.format(user_info[0],_isResourceReserved)
+            msg = 'User {}: Cannot update meta: The resource is reserved for {} !'.format(user_info[0], _isResourceReserved)
             logError(msg)
             return '*ERROR* ' + msg
 
         #what if this sut is already locked by other user? We STOP
         _isResourceLocked = self.is_resource_locked(verifyReserved)
         if _isResourceLocked and _isResourceLocked != user_info[0]:
-            msg = 'User {}: Reserve resource: The resource is locked for {} !'.format(user_info[0],_isResourceLocked)
+            msg = 'User {}: Reserve resource: The resource is locked for {} !'.format(user_info[0], _isResourceLocked)
             logError(msg)
             return '*ERROR* ' + msg
 
@@ -716,7 +716,6 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
         name: new_name and delete the old Sut.
         '''
 
-        self.get_sut(res_query, props)
         user_info = self.user_info(props)
 
         if '/' in new_name or ':' in new_name:
@@ -765,7 +764,7 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
             return "*ERROR*" + msg
 
         # Check if resource is reserved; if so, it cannot be renamed
-        _isResourceReserved = self.is_resource_reserved(res_query)
+        _isResourceReserved = self.is_resource_reserved(res_query, props)
         if _isResourceReserved:
             msg = 'User {}: Cannot delete: The resource is reserved for {} !'.format(user_info[0],_isResourceReserved)
             logError(msg)
@@ -840,6 +839,60 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
 
 
     @cherrypy.expose
+    def rename_meta_sut(self, res_query, new_name, props={}):
+        '''
+        Rename meta for SUT.
+        SUT must be reserved.
+        '''
+
+        logDebug('CeSuts:get_meta_sut {} {}'.format(res_query, props))
+        user_info = self.user_info(props)
+
+        if ':' in res_query:
+            meta      = res_query.split(':')[1]
+            res_query = res_query.split(':')[0]
+        else:
+            logError("CeSuts:get_meta_sut: User {} called this method without meta!".format(user_info[0]))
+            return "false"
+
+        #what if this sut is already reserved by other user? We STOP
+        _isResourceReserved = self.is_resource_reserved(res_query, props)
+        if _isResourceReserved and _isResourceReserved != user_info[0]:
+            msg = 'User {}: Cannot update meta: The resource is reserved for {} !'.format(user_info[0], _isResourceReserved)
+            logError(msg)
+            return '*ERROR* ' + msg
+
+        #what if this sut is already locked by other user? We STOP
+        _isResourceLocked = self.is_resource_locked(res_query)
+        if _isResourceLocked and _isResourceLocked != user_info[0]:
+            msg = 'User {}: Reserve resource: The resource is locked for {} !'.format(user_info[0], _isResourceLocked)
+            logError(msg)
+            return '*ERROR* ' + msg
+
+        with self.acc_lock:
+            parent_p = self.get_reserved_resource(res_query, props)
+
+            if not parent_p:
+                logError('Cannot access reserved SUT, path or ID `{}` !'.format(res_query))
+                return False
+            try:
+                 # modify meta to the parent
+                if len(parent_p['path']) == 1:
+                    child = parent_p
+                # modify to a component
+                else:
+                    base_path = "/".join(parent_p['path'][1:])
+                    child = self.get_path(base_path, parent_p)
+                child['meta'][new_name] = child['meta'].pop(meta)
+            except:
+                msg = "This meta that you entered thoes not exist {}".format(meta)
+                logDebug(msg)
+                return "false"
+
+        return self.save_reserved_sut(res_query, props)
+
+
+    @cherrypy.expose
     def delete_component_sut(self, res_query, props={}):
         '''
         Permanently delete a component of a SUT or meta.
@@ -856,7 +909,7 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
             meta = ''
 
         # Check if resource is reserved; if so, it cannot be deleted
-        _isResourceReserved = self.is_resource_reserved(res_query)
+        _isResourceReserved = self.is_resource_reserved(res_query, props)
         if _isResourceReserved and _isResourceReserved != user_info[0]:
             msg = 'User {}: Cannot delete: The resource is reserved for {} !'.format(user_info[0],_isResourceReserved)
             logError(msg)
@@ -920,7 +973,7 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
         user_info = self.user_info(props)
 
         # Check if resource is reserved; if so, it cannot be deleted
-        _isResourceReserved = self.is_resource_reserved(res_query)
+        _isResourceReserved = self.is_resource_reserved(res_query, props)
         if _isResourceReserved:
             msg = 'User {}: Cannot delete: The resource is reserved for {} !'.format(user_info[0],_isResourceReserved)
             logError(msg)
@@ -1205,7 +1258,7 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
             return '*ERROR* ' + msg
 
         # Check if resource is reserved; if so, it cannot be deleted
-        _isResourceReserved = self.is_resource_reserved(res_query)
+        _isResourceReserved = self.is_resource_reserved(res_query, props)
         if _isResourceReserved and _isResourceReserved != user_info[0]:
             msg = 'User {}: Cannot save as: The resource is reserved for {} !'.format(user_info[0],_isResourceReserved)
             logError(msg)
@@ -1272,8 +1325,8 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
 
         resource_node = self.get_resource(res_query)
         if not resource_node or isinstance(resource_node, str):
-            logFull('User {}: can not find the tb {}'.format(res_query, user))
-            return None
+            logFull('User {}: can not find the tb {}'.format(res_query, user_info[0]))
+            return False
 
         if len(resource_node['path']) > 1:
             resource_node = self.get_path(resource_node['path'][0], resources)
