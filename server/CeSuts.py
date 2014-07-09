@@ -348,9 +348,11 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
         # in case is an ID get the path
         # will return result only if the SUT is in self.resources
         if "/" not in query and sutType == query:
-            try:
-                query = '/'.join(self.get_resource(query)['path'])
-            except:
+            res_id = self.get_resource(query)
+            if isinstance(res_id, dict):
+                query = '/'.join(res_id['path'])
+                sutType = query.split('.')[-1]
+            else:
                 logFull("User {} there is no SUT having this id: {}".format(username, query))
                 return None
 
@@ -358,6 +360,7 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
         k = query[1:].find('/')
         if query[:k+1]:
             query = query[:k+1]
+
 
         if sutType == 'system':
             # System SUT path
@@ -429,6 +432,46 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
 
         # if we get here, we cannot get read access to the SUT directory
         return '*ERROR* Cannot get access to SUT path for user {}'.format(user_info[0])
+
+
+    @cherrypy.expose
+    def get_meta_sut(self, res_query, props={}):
+        '''
+        Get the current version of the meta SUT modified and unsaved or
+        the version from the disk.
+        '''
+
+        logDebug('CeSuts:get_meta_sut {} {}'.format(res_query, props))
+        user_info = self.user_info(props)
+
+        if ':' in res_query:
+            meta      = res_query.split(':')[1]
+            res_query = res_query.split(':')[0]
+        else:
+            logError("CeSuts:get_meta_sut: User {} called this method without meta!".format(user_info[0]))
+            return "false"
+
+        result = None
+        # If the SUT is reserved, get the latest unsaved changes
+        if user_info[0] in self.reservedResources:
+            for i in range(len(self.reservedResources[user_info[0]].values())):
+                result = self.get_resource(res_query, self.reservedResources[user_info[0]].values()[i])
+                if isinstance(result, dict):
+                    break
+
+        # Or get it from the disk
+        if not isinstance(result, dict):
+            result = self.get_resource(res_query)
+            # SUT not loaded
+            if not isinstance(result, dict):
+                #load sut
+                self.get_sut(res_query, props)
+                result = self.get_resource(res_query)
+
+        if isinstance(result, dict):
+            return result['meta'].get(meta, '')
+
+        return "false"
 
 
     @cherrypy.expose
@@ -614,9 +657,9 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
                 child_p = parent_p
 
             #We have to update the props
-            epnames_tag = '_epnames_{}'.format(user_info[0])
             props = self.valid_props(props)
-            child_p['meta'] = props
+            epnames_tag = '_epnames_{}'.format(user_info[0])
+            child_p['meta'].update(props)
 
             # if _id key is present in meta and it has no value, we have
             # to remove it from meta dictionary
@@ -800,14 +843,20 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
     @cherrypy.expose
     def delete_component_sut(self, res_query, props={}):
         '''
-        Permanently delete a component of a SUT.
+        Permanently delete a component of a SUT or meta.
         It can be deleted only if SUT is reserved.
         '''
 
         logDebug('CeSuts:delete_component_sut {}'.format(res_query))
         user_info = self.user_info(props)
 
-                # Check if resource is reserved; if so, it cannot be deleted
+        if ':' in res_query:
+            meta      = res_query.split(':')[1]
+            res_query = res_query.split(':')[0]
+        else:
+            meta = ''
+
+        # Check if resource is reserved; if so, it cannot be deleted
         _isResourceReserved = self.is_resource_reserved(res_query)
         if _isResourceReserved and _isResourceReserved != user_info[0]:
             msg = 'User {}: Cannot delete: The resource is reserved for {} !'.format(user_info[0],_isResourceReserved)
@@ -821,20 +870,43 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
             return '*ERROR* ' + msg
 
         #the resource should be reserved previously
-        parent_p = self.get_reserved_resource(res_query)
+        parent_p = self.get_reserved_resource(res_query, props)
 
         if not parent_p:
             logError('Cannot access reserved SUT, path or ID `{}` !'.format(res_query))
             return False
 
-        #the resources is deep in the tree, we have to get its direct parent
-        if len(parent_p['path']) > 2:
-            full_path = parent_p['path']
-            base_path = "/".join(parent_p['path'][1:-1])
-            parent_p = self.get_path(base_path, parent_p)
-            parent_p['path'] = full_path
+        # Delete meta
+        if meta:
+            # we have to delete only the meta property
+            correct_path = copy.deepcopy(parent_p['path'])
 
-        parent_p['children'].pop(parent_p['path'][-1])
+            #modify meta for parent
+            if len(parent_p['path']) == 1:
+                child = parent_p
+            # modify meta for a component
+            else:
+                base_path = "/".join(parent_p['path'][1:])
+                child = self.get_path(base_path, parent_p)
+            try:
+                child['meta'].pop(meta)
+            except:
+                msg = "This meta that you entered does not exist {}".format(meta)
+                logError(msg)
+                return "false"
+            child['path'] = correct_path
+
+            return "true"
+        # Delete component
+        else:
+            #the resources is deep in the tree, we have to get its direct parent
+            if len(parent_p['path']) > 2:
+                full_path = parent_p['path']
+                base_path = "/".join(parent_p['path'][1:-1])
+                parent_p = self.get_path(base_path, parent_p)
+                parent_p['path'] = full_path
+
+            parent_p['children'].pop(parent_p['path'][-1])
         return "true"
 
 
