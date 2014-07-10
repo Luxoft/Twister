@@ -1435,6 +1435,17 @@ class CeRpycService(rpyc.Service):
         return self.project.sut.rename_sut(res_query, new_name, props={'__user': user})
 
 
+    def exposed_rename_meta_sut(self, res_query, new_name):
+        """
+        Rename a SUT.
+        """
+        logFull('CeRpyc:exposed_rename_meta_sut')
+        user = self._check_login()
+        if not user:
+            return False
+        return self.project.sut.rename_meta_sut(res_query, new_name, props={'__user': user})
+
+
     def exposed_delete_sut(self, query):
         """
         Delete a SUT.

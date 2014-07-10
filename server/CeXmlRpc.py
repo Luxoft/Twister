@@ -46,18 +46,11 @@ import traceback
 import socket
 socket.setdefaulttimeout(5)
 import binascii
+import pickle
 import tarfile
 import xmlrpclib
 import urlparse
 import MySQLdb
-
-from rpyc import connect as rpycConnect
-
-import pickle
-try:
-    import simplejson as json
-except Exception as e:
-    import json
 
 import cherrypy
 from cherrypy import _cptools

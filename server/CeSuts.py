@@ -680,10 +680,10 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
         """
         Higher level wrapper over functions Create new SUT, create component and update meta.
         """
-        if name[0] != '/':
-            name = '/' + name
 
         if parent == '/' or parent == '1':
+            if name[0] != '/':
+                name = '/' + name
             ndata = self.get_sut(name, props)
             if not isinstance(ndata, dict):
                 return self.create_new_sut(name, parent, props)
@@ -691,7 +691,8 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
                 return self.update_meta_sut(name, parent, props)
 
         # The parent is NOT root
-        pdata = self.get_sut(parent, props)
+        self.get_sut(parent, props)
+        pdata = self.get_resource(parent)
         user_info = self.user_info(props)
 
         if not isinstance(pdata, dict):
