@@ -347,20 +347,19 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
 
         # in case is an ID get the path
         # will return result only if the SUT is in self.resources
-        if "/" not in query and sutType == query:
+        if '/' not in query and sutType == query:
             res_id = self.get_resource(query)
             if isinstance(res_id, dict):
-                query = '/'.join(res_id['path'])
+                query = res_id['path'][0]
                 sutType = query.split('.')[-1]
             else:
                 logFull("User {} there is no SUT having this id: {}".format(username, query))
                 return None
 
-        #get only the name of the sut from query ignoring components
-        k = query[1:].find('/')
-        if query[:k+1]:
-            query = query[:k+1]
-
+        # if the query is for a component return the entire SUT
+        if query.count('/') > 1:
+            parts = [q for q in query.split('/') if q]
+            query = parts[0]
 
         if sutType == 'system':
             # System SUT path
