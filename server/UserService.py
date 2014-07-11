@@ -1,7 +1,7 @@
 
 # File: UserService.py ; This file is part of Twister.
 
-# version: 3.007
+# version: 3.010
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -284,15 +284,16 @@ class UserService(rpyc.Service):
         if folder[0] == '~':
             folder = userHome() + folder[1:]
         if folder == '/':
+            base_path = '/'
             log.warning('*WARN* Listing folders from system ROOT.')
             recursive = False
+        else:
+            base_path = folder.rstrip('/')
 
         if not os.path.isdir(folder):
             err = '*ERROR* Invalid folder path `{}`!'.format(folder)
             log.warning(err)
             return err
-
-        base_path = folder.rstrip('/')
 
         def dirList(path):
             """
@@ -302,7 +303,9 @@ class UserService(rpyc.Service):
             # The node is valid ?
             if not path:
                 return False
-            path = path.rstrip('/')
+            # Cleanup '/'
+            if path != '/':
+                path = path.rstrip('/')
             # This is folder ?
             if os.path.isfile(path):
                 return False
@@ -311,12 +314,19 @@ class UserService(rpyc.Service):
             dlist = [] # Folders list
             flist = [] # Files list
 
+            try:
+                names = sorted(os.listdir(path), key=str.lower)
+            except Exception as e:
+                log.warning('*WARN* Cannot list folder `{}`: `{}`!'.format(path, e))
+                return []
+
             # Cycle a folder
-            for fname in sorted(os.listdir(path), key=str.lower):
+            for fname in names:
                 long_path  = path + os.sep + fname
                 # If filter is active and file doesn't match, ignore
                 if filter and os.path.isfile(long_path) and long_path not in filter:
                     continue
+
                 # Ignore hidden files
                 if hidden and fname[0] == '.':
                     continue
@@ -333,16 +343,22 @@ class UserService(rpyc.Service):
                         gname = fstat.st_gid
                     meta_info = '{}|{}|{}|{}'.format(uname, gname, fstat.st_size,
                         time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(fstat.st_mtime)))
-                except:
+                except Exception:
                     meta_info = ''
+
                 # Semi long path
                 short_path = long_path[len_path:]
                 # Data to append
                 nd = {'path': short_path, 'data': fname, 'meta': meta_info}
+
                 if os.path.isdir(long_path):
                     nd['folder'] = True
-                    children = dirList(long_path)
-                    if not children:
+                    # Recursive !
+                    if recursive:
+                        children = dirList(long_path)
+                    else:
+                        children = []
+                    if children in [False, None]:
                         continue
                     nd['children'] = children
                     dlist.append(nd)
@@ -357,7 +373,7 @@ class UserService(rpyc.Service):
             'path' : '/',
             'data' : base_path,
             'folder' : True,
-            'children' : dirList(base_path)
+            'children' : dirList(base_path) or []
         }
 
         clen = len(paths['children'])

@@ -1,16 +1,15 @@
 
 # File: TscThreadsLib.py ; This file is part of Twister.
 
-# version: 2.002
+# version: 3.001
 
-# Copyright (C) 2012-2013 , Luxoft
+# Copyright (C) 2012-2014 , Luxoft
 
 # Authors:
-#    Adrian Toader <adtoader@luxoft.com>
 #    Andrei Costachi <acostachi@luxoft.com>
-#    Andrei Toma <atoma@luxoft.com>
 #    Cristi Constantin <crconstantin@luxoft.com>
 #    Daniel Cioata <dcioata@luxoft.com>
+#    Mihail Tudoran <mtudoran@luxoft.com>
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -24,13 +23,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-'''
+"""
 This module contains Threading Functions.\n
 Use `tasks_reset` before running anything, to cleanup the previous queue!\n
 Use `tasks_append` to insert functions that take a long time to finish.\n
 Use `tasks_start` to spawn all the functions from the queue.
-'''
+"""
 
+from __future__ import print_function
 import traceback
 from threading import Thread
 
@@ -41,33 +41,43 @@ tasks = []
 #
 
 class ThreadWithReturnValue(Thread):
+    """
+    Helper class.
+    """
     def __init__(self, group=None, target=None, name=None, args=(), kwargs={}, Verbose=None):
         Thread.__init__(self, group, target, name, args, kwargs, Verbose)
         self.daemon = False
-        self._return = None
+        self.result = None
 
     def run(self):
+        """
+        Main function.
+        """
         if self._Thread__target is not None:
             try:
-                self._return = self._Thread__target(*self._Thread__args, **self._Thread__kwargs)
-            except:
+                self.result = self._Thread__target(*self._Thread__args, **self._Thread__kwargs)
+            except Exception:
                 trace = traceback.format_exc()[34:].strip()
                 print('Exception:: {}'.format(trace))
-                self._return = False
+                self.result = False
 
 #
 
 def tasks_reset():
+    """
+    Reset tasks.
+    """
     global tasks
-    print 'Threads:: Reseting tasks...'
-    del tasks
+    print('Threads:: Reseting tasks...')
     tasks = []
 
 #
 
 def tasks_append(func, *args, **kwargs):
-    global tasks
-    print 'Threads:: Appending function', func, args, kwargs
+    """
+    Add a task.
+    """
+    print('Threads:: Appending function', func, args, kwargs)
     g = ThreadWithReturnValue(target=func, args=args, kwargs=kwargs)
     tasks.append(g)
     return True
@@ -75,10 +85,14 @@ def tasks_append(func, *args, **kwargs):
 #
 
 def tasks_start(timeout=None):
-    global tasks
-    print 'Threads:: Starting tasks...'
-    [t.start() for t in tasks]
-    [t.join(timeout) for t in tasks]
-    result = [t._return for t in tasks]
-    print 'Threads:: Finished tasks!'
+    """
+    Spawn tasks.
+    """
+    print('Threads:: Starting tasks...')
+    for t in tasks:
+        t.start()
+    for t in tasks:
+        t.join(timeout)
+    print('Threads:: Finished tasks!')
+    result = [t.result for t in tasks]
     return result

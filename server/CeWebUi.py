@@ -1,7 +1,7 @@
 
 # File: CeWebUi.py ; This file is part of Twister.
 
-# version: 3.002
+# version: 3.003
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -48,7 +48,7 @@ if not TWISTER_PATH:
     exit(1)
 sys.path.append(TWISTER_PATH)
 
-from common.constants  import *
+from common.constants  import STATUS_INVALID, EXEC_STATUS
 from common.helpers    import *
 from common.tsclogging import *
 
@@ -57,13 +57,15 @@ if mako.__version__ < '0.7':
 
 #
 
-def prepareLog(log_file, pos=0):
+def prepare_log(log_file, pos=0):
+    """ return log content """
     if not os.path.isfile(log_file):
         return 'File `{}` does not exist!'.format(log_file)
     f = open(log_file, 'rb')
     f.seek(pos)
     log = f.read().rstrip()
-    f.close() ; del f
+    f.close()
+    del f
 
     max_len = 50000
     if len(log) > max_len:
@@ -98,6 +100,7 @@ def prepareLog(log_file, pos=0):
 
 
 class WebInterface(object):
+    """ class for web interface """
 
     def __init__(self, project):
 
@@ -120,17 +123,20 @@ class WebInterface(object):
 
     @cherrypy.expose
     def index(self):
+        """ Initial page """
         logFull('CeWebUi:index')
         if self.user_agent() == 'x':
             return 0
 
-        try: srv_ver = open(TWISTER_PATH + '/server/version.txt').read().strip()
-        except: srv_ver = '-'
+        try:
+            srv_ver = open(TWISTER_PATH + '/server/version.txt').read().strip()
+        except:
+            srv_ver = '-'
         srv_type = self.project.server_init['ce_server_type']
         ip_port = cherrypy.request.headers['Host']
         machine = platform.uname()[1]
         system  = ' '.join(platform.linux_distribution())
-        users   = self.project.listUsers()
+        users   = self.project.list_users()
 
         output = Template(filename=TWISTER_PATH + '/server/template/rest_main.htm')
         return output.render(srv_type=srv_type, srv_ver=srv_ver, ip_port=ip_port,
@@ -139,6 +145,7 @@ class WebInterface(object):
 
     @cherrypy.expose
     def users(self, user=''):
+        """ list all users """
         logFull('CeWebUi:users')
         if self.user_agent() == 'x':
             return 0
@@ -146,15 +153,17 @@ class WebInterface(object):
             raise cherrypy.HTTPRedirect('/web/#tab_users')
 
         host = cherrypy.request.headers['Host']
-        reversed = dict((v,k) for k,v in execStatus.iteritems())
-        int_status = self.project.getUserInfo(user, 'status') or STATUS_INVALID
+        reversed = dict((v, k) for k, v in EXEC_STATUS.iteritems())
+        int_status = self.project.get_user_info(user, 'status') or STATUS_INVALID
         status = reversed[int_status]
-        try: eps_file = self.project.parsers[user].project_globals['ep_names']
-        except: eps_file = ''
+        try:
+            eps_file = self.project.parsers[user].project_globals['ep_names']
+        except:
+            eps_file = ''
 
-        eps = self.project.getUserInfo(user, 'eps')
+        eps = self.project.get_user_info(user, 'eps')
         ep_statuses = [ reversed[eps[ep].get('status', STATUS_INVALID)] for ep in eps ]
-        logs = self.project.getUserInfo(user, 'log_types')
+        logs = self.project.get_user_info(user, 'log_types')
 
         output = Template(filename=TWISTER_PATH + '/server/template/rest_user.htm')
         return output.render(host=host, user=user, status=status, exec_status=reversed,
@@ -164,6 +173,7 @@ class WebInterface(object):
 
     @cherrypy.expose
     def json_stats(self):
+        """ get stats """
         logFull('CeWebUi:json_stats')
         if self.user_agent() == 'x':
             return 0
@@ -178,6 +188,7 @@ class WebInterface(object):
 
     @cherrypy.expose
     def json_get_project(self):
+        """ get the project """
         logFull('CeWebUi:json_get_project')
         if self.user_agent() == 'x':
             return 0
@@ -191,6 +202,7 @@ class WebInterface(object):
 
     @cherrypy.expose
     def json_save_project(self, user, epname):
+        """ save project """
         logFull('CeWebUi:json_save_project user `{}`.'.format(user))
         if self.user_agent() == 'x':
             return 0
@@ -201,15 +213,15 @@ class WebInterface(object):
         del cl, raw_data
 
         # Delete everything from XML Root
-        self.project.delSettingsKey(user, 'project', '//TestSuite')
+        self.project.del_settings_key(user, 'project', '//TestSuite')
         changes = 'Reset project file...\n'
 
         for suite_data in json_data:
-            self.project.setPersistentSuite(user, suite_data['data'], {'ep': decode(epname)})
+            self.project.set_persistent_suite(user, suite_data['data'], {'ep': decode(epname)})
             changes += 'Created suite: {0}.\n'.format(suite_data['data'])
             for file_data in suite_data.get('children', []):
                 changes += 'Created file: {0}.\n'.format(file_data['data'])
-                self.project.setPersistentFile(user, suite_data['data'], file_data['data'], {})
+                self.project.set_persistent_file(user, suite_data['data'], file_data['data'], {})
 
         changes += '>.<\n'
         logDebug(changes)
@@ -218,6 +230,7 @@ class WebInterface(object):
 
     @cherrypy.expose
     def json_eps(self, user, epname):
+        """ list of EPs """
         logFull('CeWebUi:json_eps user `{}`.'.format(user))
         if self.user_agent() == 'x':
             return 0
@@ -228,7 +241,7 @@ class WebInterface(object):
         cherrypy.response.headers['Pragma']  = 'no-cache'
         cherrypy.response.headers['Expires'] = 0
 
-        SuitesManager = self.project.getEpInfo(user, epname).get('suites', False)
+        SuitesManager = self.project.get_ep_info(user, epname).get('suites', False)
 
         data = []
         default_suite = {
@@ -237,8 +250,8 @@ class WebInterface(object):
             'children': [],
             }
 
-        for suite_id in SuitesManager.getSuites():
-            node = SuitesManager.findId(suite_id)
+        for suite_id in SuitesManager.get_suites():
+            node = SuitesManager.find_id(suite_id)
 
             current_suite = dict(default_suite)
             current_suite['data'] = node['name']
@@ -257,12 +270,13 @@ class WebInterface(object):
 
     @cherrypy.expose
     def json_folders(self, user):
+        """ return list of folders in json format """
         logFull('CeWebUi:json_folders user `{}`.'.format(user))
         if self.user_agent() == 'x':
             return 0
 
         paths = {'data':'Tests Path', 'attr': {'rel': 'folder'}, 'children':[]}
-        dirpath = self.project.getUserInfo(user, 'tests_path')
+        dirpath = self.project.get_user_info(user, 'tests_path')
         dirList(dirpath, dirpath, paths)
 
         cherrypy.response.headers['Content-Type']  = 'application/json; charset=utf-8'
@@ -271,13 +285,14 @@ class WebInterface(object):
 
     @cherrypy.expose
     def json_logs(self, user='', log=''):
+        """ get logs in json format """
         logFull('CeWebUi:json_logs')
         if self.user_agent() == 'x':
             return 0
 
         if user and log:
-            logs = self.project.getUserInfo(user, 'log_types')
-            logsPath = self.project.getUserInfo(user, 'logs_path')
+            logs = self.project.get_user_info(user, 'log_types')
+            logsPath = self.project.get_user_info(user, 'logs_path')
 
             if log.startswith('logCli_'):
                 epname = '_'.join(log.split('_')[1:])
@@ -290,48 +305,147 @@ class WebInterface(object):
         cherrypy.response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
         cherrypy.response.headers['Pragma']  = 'no-cache'
         cherrypy.response.headers['Expires'] = 0
-        return json.dumps(prepareLog(log or LOG_FILE))
+        return json.dumps(prepare_log(log or LOG_FILE))
 
 # # #
 
     @cherrypy.expose
-    def resetUser(self, user):
-        logFull('CeWebUi:resetUser user `{}`.'.format(user))
-        self.project.resetProject(user)
-        self.project.resetLogs(user)
+    def reset_user(self, user):
+        """ clean user related information """
+        logFull('CeWebUi:reset_user user `{}`.'.format(user))
+        self.project.reset_project(user)
+        self.project.reset_logs(user)
         raise cherrypy.HTTPRedirect('http://{host}/web/users/{user}'.format(
             host = cherrypy.request.headers['Host'], user = user
         ))
 
 
     @cherrypy.expose
-    def setUserStatus(self, user, status):
-        logFull('CeWebUi:setUserStatus user `{}`.'.format(user))
+    def set_user_status(self, user, status):
+        """ Update user status """
+        logFull('CeWebUi:set_user_status user `{}`.'.format(user))
         output = Template(filename=TWISTER_PATH + '/server/template/rest_error.htm')
-        try: status = int(status)
-        except: return output.render(title='Error!', body='<b>Status value `{0}` is invalid!</b>'.format(status))
-        if status not in execStatus.values():
-            return output.render(title='Error!', body='<b>Status value `{0}` is not in the list of valid statuses: {1}!</b>'\
-                .format(status, execStatus.values()))
-        self.project.setExecStatusAll(user, status, 'User status changed from REST interface.')
+        try:
+            status = int(status)
+        except:
+            return output.render(title='Error!', body='<b>Status value `{0}` is invalid!</b>'.format(status))
+        if status not in EXEC_STATUS.values():
+            return output.render(title='Error!', body='<b>Status value `{0}`' \
+                ' is not in the list of valid statuses: {1}!</b>'\
+                .format(status, EXEC_STATUS.values()))
+        self.project.set_exec_status_all(user, status, 'User status changed from REST interface.')
         raise cherrypy.HTTPRedirect('http://{host}/web/users/{user}#tab_home'.format(
             host = cherrypy.request.headers['Host'], user = user
         ))
 
 
     @cherrypy.expose
-    def setEpStatus(self, user, epname, status):
-        logFull('CeWebUi:setEpStatus user `{}`.'.format(user))
+    def set_ep_status(self, user, epname, status):
+        """ Update EP status """
+        logFull('CeWebUi:set_ep_status user `{}`.'.format(user))
         output = Template(filename=TWISTER_PATH + '/server/template/rest_error.htm')
-        try: status = int(status)
-        except: return output.render(title='Error!', body='<b>Status value `{0}` is invalid!</b>'.format(status))
-        if status not in execStatus.values():
-            return output.render(title='Error!', body='<b>Status value `{0}` is not in the list of valid statuses: {1}!</b>'\
-                .format(status, execStatus.values()))
-        self.project.setExecStatus(user, epname, status, 'EP status changed from REST interface.')
+        try:
+            status = int(status)
+        except:
+            return output.render(title='Error!', body='<b>Status value `{0}` is invalid!</b>'.format(status))
+        if status not in EXEC_STATUS.values():
+            return output.render(title='Error!', body='<b>Status value `{0}`' \
+                   ' is not in the list of valid statuses: {1}!</b>'\
+                .format(status, EXEC_STATUS.values()))
+        self.project.set_exec_status(user, epname, status, 'EP status changed from REST interface.')
         raise cherrypy.HTTPRedirect('http://{host}/web/users/{user}#tab_proc'.format(
             host = cherrypy.request.headers['Host'], user = user, epname = epname
         ))
+
+
+# # #
+
+
+class RestResource(object):
+    """
+    Base class for providing a RESTful interface to a resource.
+    To use this, derive a class from it and implement the methods
+    you want to support. The list of possible methods are:
+    - handle_GET    - read a resource
+    - handle_PUT    - create a resource, or overwrite it
+    - handle_POST   - modify, update a resource
+    - handle_DELETE - delete
+    """
+    @cherrypy.expose
+    def default(self, *vpath, **params):
+        method = getattr(self, 'handle_' + cherrypy.request.method, None)
+        if not method:
+            methods = [m.replace('handle_', '') for m in dir(self) if m.startswith('handle_')]
+            cherrypy.response.headers['Allow'] = ','.join(methods)
+            raise cherrypy.HTTPError(405, 'Method not implemented.')
+        return method(*vpath, **params)
+
+
+class ServerResource(RestResource):
+    """
+    Representation of the server.
+    The server is read only.
+    """
+    def handle_GET(self, *vpath, **params):
+        """
+        Get server info.
+        - vpath is the data after /server ;
+        - query is ?x=y expression at the end ;
+        """
+        resp = {
+            'os': ' '.join(platform.linux_distribution()),
+            'ip': cherrypy.request.base.split('//')[-1],
+            'hostname': platform.uname()[1],
+            'cpu': '50%',
+            'mem': '50%',
+            's_type': 'development',
+            's_loc': 'TwisterLand',
+            's_ver': '3.0.5',
+            's_log': 'debug',
+        }
+
+        cherrypy.response.headers['Content-Type'] = 'application/json; charset=utf-8'
+        cherrypy.response.headers['Pragma'] = 'no-cache'
+        cherrypy.response.headers['Expires'] = 1
+
+        path = ''.join(vpath)
+        if path in resp:
+            return json.dumps(resp[path])
+        elif path:
+            return 'null'
+        else:
+            return json.dumps(resp)
+
+
+class UserResource(RestResource):
+    """
+    Representation of a user.
+    A user can update his own data.
+    Put or Delete are not implemented.
+    """
+    def handle_GET(self, *vpath, **params):
+        """
+        Get user info.
+        - vpath is the data after /user ;
+        - query is ?x=y expression at the end ;
+        """
+        resp = {
+            'user': 'true',
+        }
+        return json.dumps(resp)
+
+    def handle_POST(self, *vpath, **params):
+        return '{}'
+
+
+class Rest(object):
+
+    server = ServerResource()
+    user = ServerResource()
+
+    @cherrypy.expose
+    def index(self):
+        return 'REST'
 
 
 # Eof()

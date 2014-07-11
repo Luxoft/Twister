@@ -1,7 +1,7 @@
 
 # File: helpers.py ; This file is part of Twister.
 
-# version: 3.002
+# version: 3.003
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -86,8 +86,10 @@ def getFileTags(fname):
     Returns the title, description and all tags from a test file.
     """
     logFull('helpers:getFileTags')
-    try: text = open(fname,'rb').read()
-    except: return ''
+    try:
+        text = open(fname,'rb').read()
+    except:
+        return ''
 
     # Find lines starting with # or beggining of line, followed by optional space,
     # followed by a <tag> ended with the same </tag> containing any character
@@ -175,8 +177,10 @@ def execScript(script_path):
         logWarning('Exec script: The path `{}` does not exist!'.format(script_path))
         return False
 
-    try: os.system('chmod +x {}'.format(script_path))
-    except: pass
+    try:
+        os.system('chmod +x {}'.format(script_path))
+    except:
+        pass
 
     logDebug('Executing script `{}`...'.format(script_path))
 
@@ -211,10 +215,14 @@ def decrypt(bdata, encr_key):
     # Enhance user password with PBKDF2
     pwd = PBKDF2(password=encr_key, salt='^0Twister-Salt9$', dkLen=32, count=100)
     crypt = AES.new(pwd)
-    try: data = binascii.unhexlify(bdata)
-    except : return ''
-    try: decrypted = crypt.decrypt(data)
-    except: return ''
+    try:
+        data = binascii.unhexlify(bdata)
+    except :
+        return ''
+    try:
+        decrypted = crypt.decrypt(data)
+    except:
+        return ''
     pad_len = ord(decrypted[-1])
     # Trim the padding
     return decrypted[:-pad_len]

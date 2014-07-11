@@ -1,16 +1,15 @@
 
 # File: TscStepLib.py ; This file is part of Twister.
 
-# version: 2.002
+# version: 3.001
 
-# Copyright (C) 2012-2013 , Luxoft
+# Copyright (C) 2012-2014 , Luxoft
 
 # Authors:
-#    Adrian Toader <adtoader@luxoft.com>
 #    Andrei Costachi <acostachi@luxoft.com>
-#    Andrei Toma <atoma@luxoft.com>
 #    Cristi Constantin <crconstantin@luxoft.com>
 #    Daniel Cioata <dcioata@luxoft.com>
+#    Mihail Tudoran <mtudoran@luxoft.com>
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -43,11 +42,11 @@ the hook is executed. All the matches are executed, in order.
 
 
 def test_feature1():
-    """ This is a big feature. """
+    # This is a big feature.
     conn1.send('some command you need to test')
 
 def test_feature2(param1, param2):
-    """ This is another big feature. """
+    # This is another big feature.
     conn1.send('some command you need to test')
 
 def prepare_connection1():
@@ -91,22 +90,24 @@ STEP(
 
 '''
 
-import os
+from __future__ import print_function
 import sys
-import re
 from cStringIO import StringIO
 
-_step_nr = 0
+step_nr = 0
 
 #
 
 def exec_pre_hooks(hooks):
+    """
+    Pre hooks.
+    """
     # For 1 hook, without params
     if callable(hooks):
         try:
             hooks()
-        except Exception, e:
-            print('Pre-Hook `{}` crashed! error: `{}`!'.format(hook, e))
+        except Exception as e:
+            print('Pre-Hook crashed! Error: `{}`!'.format(e))
             return False
         return True
 
@@ -115,15 +116,15 @@ def exec_pre_hooks(hooks):
         if callable(hook):
             try:
                 hook()
-            except Exception, e:
+            except Exception as e:
                 print('Pre-Hook `{}` crashed! error: `{}`!'.format(hook, e))
                 continue
-        elif (isinstance(hook, list) or isinstance(hook, tuple)):
+        elif isinstance(hook, list) or isinstance(hook, tuple):
             hfunc = hook[0]
             hpara = hook[1:]
             try:
                 hfunc(*hpara)
-            except Exception, e:
+            except Exception as e:
                 print('Pre-Hook `{}` crashed! error: `{}`!'.format(hfunc, e))
                 continue
         else:
@@ -135,9 +136,12 @@ def exec_pre_hooks(hooks):
 #
 
 def exec_post_hooks(hooks, cli):
+    """
+    Post hooks.
+    """
     # For 1 hook
     try:
-        if len(hooks)==2 and callable(hooks[1]):
+        if len(hooks) == 2 and callable(hooks[1]):
             hstrg = hooks[0]
             if hstrg and (not hstrg in cli):
                 return True
@@ -145,16 +149,16 @@ def exec_post_hooks(hooks, cli):
             hpara = hooks[2:]
             try:
                 hfunc(*hpara)
-            except Exception, e:
+            except Exception as e:
                 print('Post-Hook `{}` crashed! error: `{}`!'.format(hfunc, e))
                 return False
             return True
-    except:
+    except Exception:
         pass
 
     # For a list of hooks ...
     for hook in hooks:
-        if (isinstance(hook, list) or isinstance(hook, tuple)):
+        if isinstance(hook, list) or isinstance(hook, tuple):
             hstrg = hook[0]
             if hstrg and (not hstrg in cli):
                 continue
@@ -162,7 +166,7 @@ def exec_post_hooks(hooks, cli):
             hpara = hook[2:]
             try:
                 hfunc(*hpara)
-            except Exception, e:
+            except Exception as e:
                 print('Post-Hook `{}` crashed! error: `{}`!'.format(hfunc, e))
                 continue
         else:
@@ -174,15 +178,19 @@ def exec_post_hooks(hooks, cli):
 #
 
 def STEP(function, pre_hooks=None, post_hooks=None):
-    global _step_nr
-    _step_nr += 1
+    """
+    Main function.
+    """
+    global step_nr
+    step_nr += 1
 
     stdout = StringIO()
     stderr = StringIO()
 
     # Line...
-    if _step_nr != 1: print
-    print(('~'*30 + ' Step nr {} ' + '~'*30).format(_step_nr))
+    if step_nr != 1:
+        print()
+    print(('~'*30 + ' Step nr {} ' + '~'*30).format(step_nr))
 
     if not (callable(function) or (isinstance(function, list) or isinstance(function, tuple))):
         print('Invalid Step function `{}`! Cannot execute!'.format(function))
@@ -195,7 +203,7 @@ def STEP(function, pre_hooks=None, post_hooks=None):
             print(function.__doc__)
             print('-'*71)
     # If the function has parameters...
-    elif (isinstance(function, list) or isinstance(function, tuple)):
+    elif isinstance(function, list) or isinstance(function, tuple):
         if function[0].__doc__:
             print(function[0].__doc__)
             print('-'*71)
@@ -204,7 +212,7 @@ def STEP(function, pre_hooks=None, post_hooks=None):
     if pre_hooks:
         # print('Pre hooks: `{}`.'.format(pre_hooks))
         exec_pre_hooks(pre_hooks)
-        print
+        print()
 
     # Redirect stdout and stderr
     old_o = sys.stdout
@@ -216,12 +224,12 @@ def STEP(function, pre_hooks=None, post_hooks=None):
     if callable(function):
         try:
             function()
-        except Exception, e:
+        except Exception as e:
             pass
-    elif (isinstance(function, list) or isinstance(function, tuple)):
+    elif isinstance(function, list) or isinstance(function, tuple):
         try:
             function[0](*function[1:])
-        except Exception, e:
+        except Exception as e:
             pass
 
     # Restore stdout and stderr
@@ -244,5 +252,6 @@ def STEP(function, pre_hooks=None, post_hooks=None):
 
     print('~'*71) # Ending line...
     return True
+
 
 # Eof()

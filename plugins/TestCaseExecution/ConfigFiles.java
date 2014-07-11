@@ -1,6 +1,6 @@
 /*
 File: ConfigFiles.java ; This file is part of Twister.
-Version: 2.026
+Version: 3.001
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -327,7 +327,7 @@ public class ConfigFiles extends JPanel{
                         String[] children = dir.list();
                         for (int i=0; i<children.length; i++){new File(dir, children[i]).delete();}
                         RunnerRepository.parseConfig();
-                        String respons = RunnerRepository.getRPCClient().execute("resetProject", new Object[]{RunnerRepository.user}).toString();
+                        String respons = RunnerRepository.getRPCClient().execute("reset_project", new Object[]{RunnerRepository.user}).toString();
                         if(respons.toLowerCase().equals("false")){
                             CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE, 
                                                   ConfigFiles.this, "ERROR", 

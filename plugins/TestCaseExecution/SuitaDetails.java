@@ -1,6 +1,6 @@
 /*
 File: SuitaDetails.java ; This file is part of Twister.
-Version: 2.0023
+Version: 3.001
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -351,7 +351,7 @@ public class SuitaDetails extends JPanel {
                             300, Short.MAX_VALUE)
         );
         
-        try{Object [] s = (Object [])RunnerRepository.getRPCClient().execute("getLibrariesList",
+        try{Object [] s = (Object [])RunnerRepository.getRPCClient().execute("get_libraries_list",
                                                                         new Object[]{RunnerRepository.user});
             String [] libs = new String[s.length];
             for(int i=0;i<s.length;i++){
@@ -374,7 +374,7 @@ public class SuitaDetails extends JPanel {
                 jList1.setSelectedIndices(indices);
             }
         } catch(Exception e){
-            System.out.println("There was an error on calling getLibrariesList on CE");
+            System.out.println("There was an error on calling get_libraries_list on CE");
             e.printStackTrace();
         }
         int resp = (Integer)CustomDialog.showDialog(libraries,JOptionPane.PLAIN_MESSAGE,
@@ -408,7 +408,7 @@ public class SuitaDetails extends JPanel {
             .addComponent(jScrollPane1, GroupLayout.DEFAULT_SIZE, 300, Short.MAX_VALUE)
         );
         
-        try{Object [] s = (Object [])RunnerRepository.getRPCClient().execute("getLibrariesList",
+        try{Object [] s = (Object [])RunnerRepository.getRPCClient().execute("get_libraries_list",
                                                                         new Object[]{RunnerRepository.user});
             String [] libs = new String[s.length];
             for(int i=0;i<s.length;i++){
@@ -430,7 +430,7 @@ public class SuitaDetails extends JPanel {
             jList1.setSelectedIndices(indices);
             
         } catch(Exception e){
-            System.out.println("There was an error on calling getLibrariesList on CE");
+            System.out.println("There was an error on calling get_libraries_list on CE");
             e.printStackTrace();
         }
         int resp = (Integer)CustomDialog.showDialog(libraries,JOptionPane.PLAIN_MESSAGE,
@@ -1331,7 +1331,7 @@ class DefPanel extends JPanel{
                     String script = userDefinition.getText();
                     if(script!=null && !script.equals("")){
                         try{
-                            String result = RunnerRepository.getRPCClient().execute("runUserScript",
+                            String result = RunnerRepository.getRPCClient().execute("run_user_script",
                                                                      new Object[]{script})+"";
                             JFrame f = new JFrame();
                             f.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);

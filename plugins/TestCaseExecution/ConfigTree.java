@@ -1,6 +1,6 @@
 /*
 File: ConfigTree.java ; This file is part of Twister.
-Version: 2.016
+Version: 3.001
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -96,7 +96,7 @@ public class ConfigTree extends JPanel{
                 String thefile = sb.toString();
                 if(!((DefaultMutableTreeNode)tree.getSelectionPath().getLastPathComponent()).getAllowsChildren()){
                     try{
-                        String content = RunnerRepository.getRPCClient().execute("deleteConfigFile", new Object[]{thefile}).toString();
+                        String content = RunnerRepository.getRPCClient().execute("delete_config_file", new Object[]{thefile}).toString();
                         if(content.indexOf("*ERROR*")!=-1){
                             CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,ConfigTree.this,"ERROR", content);
                         }
@@ -130,9 +130,9 @@ public class ConfigTree extends JPanel{
                             String content = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n<root>\n</root>\n";
                             content = DatatypeConverter.printBase64Binary(content.getBytes());
                             if(RunnerRepository.window.mainpanel.p4.getPlugins().isClearCaseEnabled()){
-                                RunnerRepository.getRPCClient().execute("writeFile", new Object[]{tf.getText(),content,"w","clearcase:TestConfigPath"}).toString();
+                                RunnerRepository.getRPCClient().execute("write_file", new Object[]{tf.getText(),content,"w","clearcase:TestConfigPath"}).toString();
                             } else {
-                                RunnerRepository.getRPCClient().execute("writeFile", new Object[]{tf.getText(),content,"w"}).toString();
+                                RunnerRepository.getRPCClient().execute("write_file", new Object[]{tf.getText(),content,"w"}).toString();
                             }
                             refreshStructure();
                             Enumeration enumeration = root.depthFirstEnumeration();
@@ -284,7 +284,7 @@ public class ConfigTree extends JPanel{
                 String str[] = tp[tp.length-1].toString().split("- Reserved by ");
                 if(str.length==2&&str[1].equals(RunnerRepository.user)){
                     sb.append(str[0]);
-                    try{RunnerRepository.getRPCClient().execute("unlockConfig", new Object[]{sb.toString()}).toString();}
+                    try{RunnerRepository.getRPCClient().execute("unlock_config", new Object[]{sb.toString()}).toString();}
                     catch(Exception ex){ex.printStackTrace();}
                 }
             }
@@ -294,7 +294,7 @@ public class ConfigTree extends JPanel{
     private void removeDirectory(String directory){
         try{
             try{
-                String content = RunnerRepository.getRPCClient().execute("deleteConfigFolder", new Object[]{directory}).toString();
+                String content = RunnerRepository.getRPCClient().execute("delete_config_folder", new Object[]{directory}).toString();
                 if(content.indexOf("*ERROR*")!=-1){
                     CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,ConfigTree.this,"ERROR", content);
                 }
@@ -361,7 +361,7 @@ public class ConfigTree extends JPanel{
     public void refreshStructure() {
         if(root.getChildCount()>0)root.removeAllChildren();
         Object ob = null;
-        try{ob = RunnerRepository.getRPCClient().execute("listConfigs", new Object[]{RunnerRepository.user});
+        try{ob = RunnerRepository.getRPCClient().execute("list_configs", new Object[]{RunnerRepository.user});
             HashMap struct = (HashMap)ob;
             Object [] children = (Object [])struct.get("children");
             if(children!=null&&children.length>0){
@@ -414,7 +414,7 @@ public class ConfigTree extends JPanel{
                     if(user.equals("")||user.equals(RunnerRepository.user))edit = true;
                     if(edit){
                         String content = "true";
-                        if(!user.equals(RunnerRepository.user))content = RunnerRepository.getRPCClient().execute("lockConfig", new Object[]{thefile}).toString();
+                        if(!user.equals(RunnerRepository.user))content = RunnerRepository.getRPCClient().execute("lock_config", new Object[]{thefile}).toString();
                         if(content.toLowerCase().equals("true")){
                             ((DefaultMutableTreeNode)path[path.length-1]).setUserObject(filename+" - Reserved by "+RunnerRepository.user);
                             ((DefaultTreeModel)tree.getModel()).nodeChanged(((DefaultMutableTreeNode)path[path.length-1]));
@@ -425,7 +425,7 @@ public class ConfigTree extends JPanel{
                             edit = false;
                         }
                     }
-                    String content = RunnerRepository.getRPCClient().execute("readConfigFile", new Object[]{thefile}).toString();
+                    String content = RunnerRepository.getRPCClient().execute("read_config_file", new Object[]{thefile}).toString();
                     if(content.indexOf("*ERROR*")!=-1){
                         CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,ConfigTree.this,"ERROR", content);
                     }
@@ -470,7 +470,7 @@ public class ConfigTree extends JPanel{
                 sb.deleteCharAt(sb.length()-1);
                 String thefile = sb.toString();
                 try{
-                    String content = RunnerRepository.getRPCClient().execute("isLockConfig", new Object[]{thefile}).toString();
+                    String content = RunnerRepository.getRPCClient().execute("is_lock_config", new Object[]{thefile}).toString();
                     if(!content.toLowerCase().equals("false")){
                         child.setUserObject(currentelem.get("data").toString()+" - Reserved by "+content);
                     }

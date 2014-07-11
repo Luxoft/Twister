@@ -1,6 +1,6 @@
 // /*
 // File: Dut.java ; This file is part of Twister.
-// Version: 2.001
+// Version: 3.001
 // 
 // Copyright (C) 2012-2013 , Luxoft
 // 
@@ -543,7 +543,7 @@
 //     public void generate(){
 //         boolean saved = true;
 //         try{String status="";
-//             try{status = (String)Repository.getRPCClient().execute("getExecStatusAll",
+//             try{status = (String)Repository.getRPCClient().execute("get_exec_status_all",
 //                                                                     new Object[]{});}
 //             catch(Exception e){
 //                 e.printStackTrace();

@@ -1,5 +1,5 @@
 
-# version: 2.001
+# version: 2.002
 
 import xmlrpclib
 from jenkinsapi import api
@@ -24,4 +24,4 @@ to_send = 'Jenkins: Job `{0}`, Build `{1}`, Status `{2}`!'.format(twister_job, t
 server.echo(to_send)
 
 # The Twister user is called `jenkins`
-server.runPlugin('jenkins', 'Jenkins', {"command":True, "build":twister_build})
+server.run_plugin('jenkins', 'Jenkins', {"command":True, "build":twister_build})

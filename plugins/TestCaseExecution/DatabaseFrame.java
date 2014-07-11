@@ -1,6 +1,6 @@
 /*
 File: DatabaseFrame.java ; This file is part of Twister.
-Version: 2.002
+Version: 3.001
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -133,7 +133,7 @@ public class DatabaseFrame extends JFrame{
     public void executeQuery(){
         fieldsCombo.removeAllItems();        
         String query = userDefinition.getFieldID(); ;
-        try{String result = (String)RunnerRepository.getRPCClient().execute("runDBSelect",new Object[]{RunnerRepository.getUser(),query});
+        try{String result = (String)RunnerRepository.getRPCClient().execute("run_db_select",new Object[]{RunnerRepository.getUser(),query});
             String [] fields;
             if(result.indexOf("MySQL Error")!=-1){
                 fields = new String[]{"?"};

@@ -1,7 +1,7 @@
 
 # File: BasePlugin.py ; This file is part of Twister.
 
-# version: 2.002
+# version: 3.001
 
 # Copyright (C) 2012 , Luxoft
 

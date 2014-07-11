@@ -1,6 +1,6 @@
 /*
 File: RunnerRepository.java ; This file is part of Twister.
-Version: 2.0056
+Version: 3.001
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -287,7 +287,7 @@ public class RunnerRepository {
                                           "Error", "CE is not running, please start CE in "+
                                                    "order for Twister Framework to run properly");
                 }
-                try{REMOTEPLUGINSDIR = client.execute("getTwisterPath", new Object[]{}).toString()+"/plugins";
+                try{REMOTEPLUGINSDIR = client.execute("get_twister_path", new Object[]{}).toString()+"/plugins";
                     System.out.println("Remote Twister plugins instalation path: "+REMOTEPLUGINSDIR);
                 } catch(Exception e){
                     REMOTEPLUGINSDIR = "/opt/twister/plugins";
@@ -323,7 +323,7 @@ public class RunnerRepository {
     }
     
     public static void setCEVeriosns(){
-        try{String []info = client.execute("getSysInfo", new Object[]{}).toString().split("\n");
+        try{String []info = client.execute("get_sys_info", new Object[]{}).toString().split("\n");
             RunnerRepository.os = info[0];
             RunnerRepository.python = info[1];
         } catch(Exception e){
@@ -1392,9 +1392,9 @@ public class RunnerRepository {
         try{
             Object ob = null;
             if(tag==null){
-                ob = RunnerRepository.getRPCClient().execute("deleteFile", new Object[]{file});
+                ob = RunnerRepository.getRPCClient().execute("delete_file", new Object[]{file});
             } else {
-                ob = RunnerRepository.getRPCClient().execute("deleteFile", new Object[]{file,"clearcase:"+tag});
+                ob = RunnerRepository.getRPCClient().execute("delete_file", new Object[]{file,"clearcase:"+tag});
             }
             if(ob.toString().indexOf("*ERROR*")!=-1){
                 CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,window,"ERROR", ob.toString());
@@ -1411,7 +1411,7 @@ public class RunnerRepository {
     public static String [] getProjectsFiles(){
         Object ob = null;
         try{
-            ob = RunnerRepository.getRPCClient().execute("listProjects", new Object[]{});
+            ob = RunnerRepository.getRPCClient().execute("list_projects", new Object[]{});
             if(ob.toString().indexOf("*ERROR*")!=-1){
                 CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,window,"ERROR", ob.toString());
                 return new String[]{};
@@ -1443,9 +1443,11 @@ public class RunnerRepository {
         Object ob = null;
         try{System.out.println("Getting folder: "+folder+" content");
             if(tag==null){
-                ob = RunnerRepository.getRPCClient().execute("listFiles", new Object[]{folder});
+                System.out.println("List files Runner ");
+                ob = RunnerRepository.getRPCClient().execute("list_files", new Object[]{folder});
             } else {
-                ob = RunnerRepository.getRPCClient().execute("listFiles", new Object[]{folder,true,false,tag});
+                System.out.println("List files Runner 2");
+                ob = RunnerRepository.getRPCClient().execute("list_files", new Object[]{folder,true,false,tag});
             }
             System.out.println("Server respons: "+ob.toString());
             if(ob.toString().indexOf("*ERROR*")!=-1){
@@ -1480,7 +1482,7 @@ public class RunnerRepository {
     public static String readProjectFile(String file){
         System.out.println("Reading "+file+" from CE");
         try{
-            String response = RunnerRepository.getRPCClient().execute("readProjectFile", new Object[]{file}).toString();
+            String response = RunnerRepository.getRPCClient().execute("read_project_file", new Object[]{file}).toString();
             if(response.indexOf("*ERROR*")!=-1){
                 CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,window,"ERROR", response);
                 return null;
@@ -1512,7 +1514,7 @@ public class RunnerRepository {
     public static String saveProjectFile(String file,String content){
         System.out.println("Saving "+file+" with CE");
         try{
-            String response = RunnerRepository.getRPCClient().execute("saveProjectFile", new Object[]{file,content}).toString();
+            String response = RunnerRepository.getRPCClient().execute("save_project_file", new Object[]{file,content}).toString();
             if(response.indexOf("*ERROR*")!=-1){
                 CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,window,"ERROR", response);
                 return null;
@@ -1531,7 +1533,7 @@ public class RunnerRepository {
     public static String deleteProjectFile(String file){
         System.out.println("Deleting "+file+" with CE");
         try{
-            String response = RunnerRepository.getRPCClient().execute("deleteProjectFile", new Object[]{file}).toString();
+            String response = RunnerRepository.getRPCClient().execute("delete_project_file", new Object[]{file}).toString();
             if(response.indexOf("*ERROR*")!=-1){
                 CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,window,"ERROR", response);
                 return null;
@@ -1551,7 +1553,7 @@ public class RunnerRepository {
      */
     public static HashMap getPredefinedSuites(){
         Object ob = null;
-        try{ob = RunnerRepository.getRPCClient().execute("listProjects", new Object[]{"predefined"});
+        try{ob = RunnerRepository.getRPCClient().execute("list_projects", new Object[]{"predefined"});
             if(ob.toString().indexOf("*ERROR*")!=-1){
                 CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,window,"ERROR", ob.toString());
                 return null;
@@ -1559,7 +1561,7 @@ public class RunnerRepository {
             if(ob instanceof HashMap){
                 return (HashMap)ob;
             } else {
-                System.out.println("ERROR! CE returned:"+ob.toString()+" for listProjects(predefined). RunnerRepository->getPredefinedSuites()");
+                System.out.println("ERROR! CE returned:"+ob.toString()+" for list_projects(predefined). RunnerRepository->getPredefinedSuites()");
                 return null;
             }
         } catch (Exception e) {
@@ -1576,9 +1578,9 @@ public class RunnerRepository {
      */
     public static HashMap getServerTCStructure(boolean clearcase){
         Object ob = null;
-        try{if(!clearcase)ob = RunnerRepository.getRPCClient().execute("listTestCases", new Object[]{});
+        try{if(!clearcase)ob = RunnerRepository.getRPCClient().execute("list_test_cases", new Object[]{});
             else{
-                ob = RunnerRepository.getRPCClient().execute("listTestCases", new Object[]{"clearcase"});
+                ob = RunnerRepository.getRPCClient().execute("list_test_cases", new Object[]{"clearcase"});
             }
             if(ob.toString().indexOf("*ERROR*")!=-1){
                 CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,window,"ERROR", ob.toString());
@@ -1595,7 +1597,8 @@ public class RunnerRepository {
     //returns folder structure(folders and files)
     public static HashMap getRemoteFolderStructure(String folder){
         Object ob = null;
-        try{ob = RunnerRepository.getRPCClient().execute("listFiles", new Object[]{folder,true});
+        System.out.println("List files Runner 3");
+        try{ob = RunnerRepository.getRPCClient().execute("list_files", new Object[]{folder,true});
             if(ob.toString().indexOf("*ERROR*")!=-1){
                 CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,window,"ERROR", ob.toString());
                 return null;
@@ -1615,9 +1618,9 @@ public class RunnerRepository {
             if(binary)write = "rb";
             String response = "";
             if(tag==null){
-                response = RunnerRepository.getRPCClient().execute("readFile", new Object[]{file,write}).toString();
+                response = RunnerRepository.getRPCClient().execute("read_file", new Object[]{file,write}).toString();
             } else {
-                response = RunnerRepository.getRPCClient().execute("readFile", new Object[]{file,write,0,"clearcase:"+tag}).toString();
+                response = RunnerRepository.getRPCClient().execute("read_file", new Object[]{file,write,0,"clearcase:"+tag}).toString();
             }
             if(response.indexOf("*ERROR*")!=-1){
                 CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,window,"ERROR", response);
@@ -1633,7 +1636,7 @@ public class RunnerRepository {
     
     public static long getRemoteFileSize(String filename){//ask CE for remote file size
         try{
-            String resp = RunnerRepository.getRPCClient().execute("fileSize", new Object[]{filename}).toString();
+            String resp = RunnerRepository.getRPCClient().execute("file_size", new Object[]{filename}).toString();
             if(resp.indexOf("*ERROR*")!=-1){
                 CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,window,"ERROR", resp);
                 return 0;
@@ -1680,9 +1683,9 @@ public class RunnerRepository {
             if(binary)write = "wb";
             String resp = "";
             if(tag==null){
-                resp = RunnerRepository.getRPCClient().execute("writeFile", new Object[]{location+"/"+filename,content,write}).toString();
+                resp = RunnerRepository.getRPCClient().execute("write_file", new Object[]{location+"/"+filename,content,write}).toString();
             } else {
-                resp = RunnerRepository.getRPCClient().execute("writeFile", new Object[]{location+"/"+filename,content,write,"clearcase:"+tag}).toString();
+                resp = RunnerRepository.getRPCClient().execute("write_file", new Object[]{location+"/"+filename,content,write,"clearcase:"+tag}).toString();
             }
             if(resp.indexOf("*ERROR*")!=-1){
                 CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,window,"ERROR", resp);
@@ -1700,7 +1703,7 @@ public class RunnerRepository {
     
     public static void createRemoteDir(String dir){
         try{
-            String resp = RunnerRepository.getRPCClient().execute("createFolder", new Object[]{dir}).toString();
+            String resp = RunnerRepository.getRPCClient().execute("create_folder", new Object[]{dir}).toString();
             if(resp.indexOf("*ERROR*")!=-1){
                 CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,window,"ERROR", resp);
             }
@@ -1713,9 +1716,9 @@ public class RunnerRepository {
         try{
             String resp = "";
             if(tag==null){
-                resp = RunnerRepository.getRPCClient().execute("deleteFolder", new Object[]{dir}).toString();
+                resp = RunnerRepository.getRPCClient().execute("delete_folder", new Object[]{dir}).toString();
             } else {
-                resp = RunnerRepository.getRPCClient().execute("deleteFolder", new Object[]{dir,"clearcase:"+tag}).toString();
+                resp = RunnerRepository.getRPCClient().execute("delete_folder", new Object[]{dir,"clearcase:"+tag}).toString();
             }
             if(resp.indexOf("*ERROR*")!=-1){
                 CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,window,"ERROR", resp);
@@ -1863,7 +1866,7 @@ public class RunnerRepository {
     public static String getUserHome(){
         Object ob;
         try {
-            ob = client.execute("getUserHome", new Object[]{});
+            ob = client.execute("get_user_home", new Object[]{});
             if(ob.toString().indexOf("*ERROR*")!=-1){
                 CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,window,"ERROR", ob.toString());
                 return "";

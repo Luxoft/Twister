@@ -1,6 +1,6 @@
 #!/usr/bin/env jython
 
-# version: 1.000
+# version: 1.001
 #
 # -*- coding: utf-8 -*-
 #
@@ -61,7 +61,7 @@ class ExternalVariable(ExternalVariableType):
     def logMessage(self, messageType, message):
         """ log message """
 
-        self.CE.logMessage(self.user, messageType, message)
+        self.CE.log_message(self.user, messageType, message)
 
 
     def setVariable(self, name, value):
@@ -75,7 +75,7 @@ class ExternalVariable(ExternalVariableType):
 
             marshalDumps(value)
 
-            return self.CE.setGlobalVariable(self.user, name, value)
+            return self.CE.set_global_variable(self.user, name, value)
 
         except Exception, e:
             print 'error: %s' % (e)
@@ -86,5 +86,5 @@ class ExternalVariable(ExternalVariableType):
     def getVariable(self, name):
         """ get external variable """
 
-        return self.CE.getGlobalVariable(self.user, name)
+        return self.CE.get_global_variable(self.user, name)
 

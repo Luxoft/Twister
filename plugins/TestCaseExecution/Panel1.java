@@ -1,6 +1,6 @@
 /*
 File: Panel1.java ; This file is part of Twister.
-Version: 2.0032
+Version: 3.001
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -800,7 +800,7 @@ public class Panel1 extends JPanel{
     private void generate(boolean cli){
         //check CE has clients started
         try{
-            String resp = RunnerRepository.getRPCClient().execute("hasClients", new Object[]{RunnerRepository.user}).toString();
+            String resp = RunnerRepository.getRPCClient().execute("has_clients", new Object[]{RunnerRepository.user}).toString();
             if(resp=="false"){
                 CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE, RunnerRepository.window,
                                         "ERROR","There are no clients started, please start client to run tests.");

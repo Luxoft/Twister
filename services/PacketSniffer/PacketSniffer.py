@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# version: 3.000
+# version: 3.001
 #
 # -*- coding: utf-8 -*-
 #
@@ -210,7 +210,7 @@ class Sniffer(Automaton):
 				rpycBgServingThread(connection)
 
 				# create user if ep is not running
-				#connection.root.listEPs()
+				#connection.root.list_eps()
 
 				registered = True
 				self.reinitRetries = 0
@@ -330,7 +330,7 @@ class Sniffer(Automaton):
 			for conn in PacketSnifferService.connections:
 				if PacketSnifferService.connections[conn]:
 					try:
-						response = PacketSnifferService.connections[conn]['root'].runPlugin('PacketSnifferPlugin',
+						response = PacketSnifferService.connections[conn]['root'].run_plugin('PacketSnifferPlugin',
 																		{'command': 'pushpkt',
 																			'data': data})
 						if (not isinstance(response, dict) or not response.has_key('status') or

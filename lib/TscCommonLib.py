@@ -1,14 +1,12 @@
 
 # File: TscCommonLib.py ; This file is part of Twister.
 
-# version: 3.009
+# version: 3.012
 
 # Copyright (C) 2012-2013 , Luxoft
 
 # Authors:
-#    Adrian Toader <adtoader@luxoft.com>
 #    Andrei Costachi <acostachi@luxoft.com>
-#    Andrei Toma <atoma@luxoft.com>
 #    Cristi Constantin <crconstantin@luxoft.com>
 #    Daniel Cioata <dcioata@luxoft.com>
 #    Mihail Tudoran <mtudoran@luxoft.com>
@@ -25,12 +23,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-'''
+"""
 This module contains common functions to communicate with the Central Engine.
-You can use : getGlobal, setGlobal, getResource, setResource, logMessage.
-'''
+You can use : get_global, set_global, get_resource, set_resource, log_message.
+"""
+from __future__ import print_function
 
-import os, sys
+import os
 import copy
 import inspect
 import platform
@@ -55,13 +54,18 @@ __all__ = ['TscCommonLib']
 #
 
 class TscCommonLib(object):
+    """
+    Base library for Twister; imported in all test cases automatically
+    """
 
     platform_sys = platform.system().lower()
     __ce_proxy = None
     proxy_path = PROXY_ADDR
     userName = USER
-    epName   = EP
+    epName = EP
     global_vars = {}
+    _SUITE_ID = 0
+    _FILE_ID = 0
 
 
     def __init__(self):
@@ -72,6 +76,7 @@ class TscCommonLib(object):
 
 
     def _reload_libs(self):
+        """ reload libraries """
         ce_path = '{}/.twister_cache/{}/ce_libs/ce_libs.py'.format(TWISTER_PATH, self.epName)
         cfg = iniparser.ConfigObj(ce_path)
         for n, v in cfg.iteritems():
@@ -81,42 +86,49 @@ class TscCommonLib(object):
 
     @property
     def sutName(self):
+        """ return  SUT name """
         self._reload_libs()
-        name = self.ce_proxy.getSuiteVariable(self.epName, self._SUITE_ID, 'sut')
+        name = self.ce_proxy.get_suite_variable(self.epName, self._SUITE_ID, 'sut')
         return name
 
 
     @property
     def SUT(self):
+        """ return  SUT name; same as sutName """
         self._reload_libs()
-        name = self.ce_proxy.getSuiteVariable(self.epName, self._SUITE_ID, 'sut')
+        name = self.ce_proxy.get_suite_variable(self.epName, self._SUITE_ID, 'sut')
         return name
 
 
     @property
     def SUITE_ID(self):
+        """ return suite ID """
         self._reload_libs()
         return self._SUITE_ID
 
 
     @property
     def FILE_ID(self):
+        """ return file ID """
         self._reload_libs()
         return self._FILE_ID
 
 
     @property
     def SUITE_NAME(self):
+        """ return suite name """
         self._reload_libs()
-        name = self.ce_proxy.getSuiteVariable(self.epName, self._SUITE_ID, 'name')
+        name = self.ce_proxy.get_suite_variable(self.epName, self._SUITE_ID, 'name')
         return name
 
 
     @property
     def FILE_NAME(self):
+        """ return file name """
         self._reload_libs()
-        name = self.ce_proxy.getFileVariable(self.epName, self._FILE_ID, 'file')
-        if name: name = os.path.split(name)[1]
+        name = self.ce_proxy.get_file_variable(self.epName, self._FILE_ID, 'file')
+        if name:
+            name = os.path.split(name)[1]
         return name
 
 
@@ -138,7 +150,8 @@ class TscCommonLib(object):
             ep_code = stack[-1][0]
             # It's impossible to access the globals from the EP any other way
             p = ep_code.f_globals.get('ceProxy')
-            if p: return p.root
+            if p:
+                return p.root
         del stack, stack_fpath
 
         # Try to reuse the old connection
@@ -178,7 +191,7 @@ class TscCommonLib(object):
 
         # Launch bg server
         try:
-            bg = BgServingThread(proxy)
+            BgServingThread(proxy)
             cls.__ce_proxy = proxy.root
             return cls.__ce_proxy
         except Exception:
@@ -194,15 +207,15 @@ class TscCommonLib(object):
         return self._ce_proxy()
 
 
-    def logMsg(self, logType, logMessage):
+    def log_msg(self, log_type, log_message):
         """
         Shortcut function for sending a message in a log to Central Engine.
         """
-        self.ce_proxy.logMessage(logType, logMessage)
+        self.ce_proxy.log_message(log_type, log_message)
 
 
     @classmethod
-    def getGlobal(cls, var):
+    def get_global(cls, var):
         """
         Function to get variables saved from Test files.
         The same dictionary must be used, both in Testcase and derived Library.
@@ -211,113 +224,117 @@ class TscCommonLib(object):
             return cls.global_vars[var]
         # Else...
         ce = cls._ce_proxy()
-        return ce.getGlobalVariable(var)
+        return ce.get_global_variable(var)
 
 
     @classmethod
-    def setGlobal(cls, var, value):
+    def set_global(cls, var, value):
         """
         Function to keep variables sent from Test files.
         The same dictionary must be used, both in Testcase and derived Library.
         """
         try:
             marshal.dumps(value)
-            ce = cls._ce_proxy()
-            return cls.ce_proxy.setGlobalVariable(var, value)
+            cls._ce_proxy()
+            return cls.ce_proxy.set_global_variable(var, value)
         except Exception:
             cls.global_vars[var] = value
             return True
 
 
-    def getConfig(self, cfg_path, var_path=''):
+    def get_config(self, cfg_path, var_path=''):
         """
         Function to get a config, using the full path to a config file and
         the full path to a config variable in that file.
         """
-        return self.ce_proxy.getConfig(cfg_path, var_path)
+        return self.ce_proxy.get_config(cfg_path, var_path)
 
 
-    def getBinding(self, cfg_root):
+    def get_binding(self, cfg_root):
         """
         Function to get a cfg -> SUT binding.
         """
-        if not hasattr(self, 'bindings'):
-            self.bindings = self.ce_proxy.getUserVariable('bindings') or {}
-        return self.bindings.get(cfg_root)
+        bindings = self.ce_proxy.get_user_variable('bindings') or {}
+        return bindings.get(cfg_root)
 
 
-    def getBindId(self, component_name, test_config='default_binding'):
+    def get_bind_id(self, component_name, test_config='default_binding'):
         """
         Function to get a cfg -> SUT binding ID.
         Some syntactic sugar.
         """
-        if not hasattr(self, 'bindings'):
-            self.bindings = self.ce_proxy.getUserVariable('bindings') or {}
+        bindings = self.ce_proxy.get_user_variable('bindings') or {}
         # Fix cfg root maybe ?
         if not test_config:
             test_config = 'default_binding'
-        config_data = self.bindings.get(test_config, {})
+        config_data = bindings.get(test_config, {})
         # If the component cannot be found in the requested config, search in default config
         if test_config != 'default_binding' and (component_name not in config_data):
-            config_data = self.bindings.get('default_binding', {})
+            config_data = bindings.get('default_binding', {})
         return config_data.get(component_name, False)
 
 
-    def getBindName(self, component_name, test_config='default_binding'):
+    def get_bind_name(self, component_name, test_config='default_binding'):
         """
         Function to get a cfg -> SUT binding name.
         Some syntactic sugar.
         """
-        sid = self.getBindId(component_name, test_config)
-        if not sid: return False
-        sut = self.getSut(sid)
-        if not sut: sut = {}
+        sid = self.get_bind_id(component_name, test_config)
+        if not sid:
+            return False
+        sut = self.get_sut(sid)
+        if not sut:
+            sut = {}
         return sut.get('path', False)
 
 
-    def countProjectFiles(self):
+    def count_project_files(self):
         """
         Returns the number of files inside the current project.
         """
-        data = self.ce_proxy.getEpVariable(self.epName, 'suites')
+        data = self.ce_proxy.get_ep_variable(self.epName, 'suites')
         SuitesManager = copy.deepcopy(data)
-        files = SuitesManager.getFiles(recursive=True)
+        files = SuitesManager.get_files(recursive=True)
         return len(files)
 
 
-    def currentFileIndex(self):
+    def current_file_index(self):
         """
         Returns the index of this file in the project.
         If the ID is not found, the count will fail.
         """
-        data = self.ce_proxy.getEpVariable(self.epName, 'suites')
+        data = self.ce_proxy.get_ep_variable(self.epName, 'suites')
         SuitesManager = copy.deepcopy(data)
-        files = SuitesManager.getFiles(recursive=True)
-        try: return files.index(self.FILE_ID)
-        except Exception: return -1
+        files = SuitesManager.get_files(recursive=True)
+        try:
+            return files.index(self.FILE_ID)
+        except Exception:
+            return -1
 
 
-    def countSuiteFiles(self):
+    def count_suite_files(self):
         """
         Returns the number of files inside a suite ID.
         If the ID is not found, the count will fail.
         """
-        data = self.ce_proxy.getSuiteVariable(self.epName, self.SUITE_ID, 'children')
+        data = self.ce_proxy.get_suite_variable(self.epName, self.SUITE_ID, 'children')
         SuitesManager = copy.deepcopy(data)
         files = SuitesManager.keys() # First level of files, depth=1
         return len(files)
 
 
-    def currentFSuiteIndex(self):
+    def current_fsuite_index(self):
         """
         Returns the index of this file, inside this suite.
         If the ID is not found, the count will fail.
         """
-        data = self.ce_proxy.getSuiteVariable(self.epName, self.SUITE_ID, 'children')
+        data = self.ce_proxy.get_suite_variable(self.epName, self.SUITE_ID, 'children')
         SuitesManager = copy.deepcopy(data)
         files = SuitesManager.keys() # First level of files, depth=1
-        try: return files.index(self.FILE_ID)
-        except Exception: return -1
+        try:
+            return files.index(self.FILE_ID)
+        except Exception:
+            return -1
 
 
     def py_exec(self, code_string):
@@ -328,7 +345,8 @@ class TscCommonLib(object):
             print('py_exec: Error, the code must be a string `{}`!'.format(code_string))
             return False
 
-        try: ret = eval(code_string, self.global_vars, self.global_vars)
+        try:
+            ret = eval(code_string, self.global_vars, self.global_vars)
         except Exception, e:
             print('py_exec: Error execution code `{}`! Exception `{}`!'.format(code_string, e))
             ret = False
@@ -336,22 +354,28 @@ class TscCommonLib(object):
         return ret
 
 
-    def _encodeUnicode(self, input):
+    def _encode_unicode(self, input):
+        """
+        Data to
+        """
         if isinstance(input, dict):
-            return {self._encodeUnicode(key): self._encodeUnicode(value) for key, value in input.iteritems()}
+            return {self._encode_unicode(key): self._encode_unicode(value) for key, value in input.iteritems()}
         elif isinstance(input, list):
-            return [self._encodeUnicode(elem) for elem in input]
+            return [self._encode_unicode(elem) for elem in input]
         elif isinstance(input, unicode):
             return input.encode('utf-8')
         else:
             return input
 
 
-    def getResource(self, query, type=unicode):
+    def get_resource(self, query, type=unicode):
+        """
+        Get resource content.
+        """
         try:
-            data = self.ce_proxy.getResource(query)
-            if type==str:
-                return self._encodeUnicode(data)
+            data = self.ce_proxy.get_resource(query)
+            if type == str:
+                return self._encode_unicode(data)
             else:
                 return data
         except Exception as e:
@@ -359,26 +383,47 @@ class TscCommonLib(object):
             return None
 
 
-    def setResource(self, name, parent=None, props={}):
-        try: return self.ce_proxy.setResource(name, parent, props)
-        except Exception: return None
-
-
-    def renameResource(self, res_query, new_name):
-        try: return self.ce_proxy.renameResource(res_query, new_name)
-        except Exception: return None
-
-
-    def deleteResource(self, query):
-        try: return self.ce_proxy.deleteResource(query)
-        except Exception: return None
-
-
-    def getSut(self, query, type=unicode):
+    def set_resource(self, name, parent=None, props={}):
+        """
+        Update a resource. It must be reserved first.
+        """
         try:
-            data = self.ce_proxy.getSut(query)
-            if type==str:
-                return self._encodeUnicode(data)
+            return self.ce_proxy.set_resource(name, parent, props)
+        except Exception as e:
+            print('Error on update Resource! `{}`!'.format(e))
+            return None
+
+
+    def rename_resource(self, res_query, new_name):
+        """
+        Rename a resource.
+        """
+        try:
+            return self.ce_proxy.rename_resource(res_query, new_name)
+        except Exception as e:
+            print('Error on rename Resource! `{}`!'.format(e))
+            return None
+
+
+    def delete_resource(self, query):
+        """
+        Delete a resource.
+        """
+        try:
+            return self.ce_proxy.delete_resource(query)
+        except Exception as e:
+            print('Error on delete Resource! `{}`!'.format(e))
+            return None
+
+
+    def get_sut(self, query, type=unicode):
+        """
+        Get SUT content.
+        """
+        try:
+            data = self.ce_proxy.get_sut(query)
+            if type == str:
+                return self._encode_unicode(data)
             else:
                 return data
         except Exception as e:
@@ -386,39 +431,147 @@ class TscCommonLib(object):
             return None
 
 
-    def setSut(self, name, parent=None, props={}):
-        try: return self.ce_proxy.setSut(name, parent, props)
-        except Exception: return None
+    def set_sut(self, name, parent=None, props={}):
+        """
+        Update a SUT. It must be reserved first.
+        """
+        try:
+            return self.ce_proxy.set_sut(name, parent, props)
+        except Exception as e:
+            print('Error on set SUT! `{}`!'.format(e))
+            return None
 
 
-    def renameSut(self, res_query, new_name):
-        try: return self.ce_proxy.renameSut(res_query, new_name)
-        except Exception: return None
+    def rename_sut(self, res_query, new_name):
+        """
+        Rename a SUT.
+        """
+        try:
+            return self.ce_proxy.rename_sut(res_query, new_name)
+            print('Error on rename SUT! `{}`!'.format(e))
+        except Exception as e:
+            return None
 
 
-    def deleteSut(self, query):
-        try: return self.ce_proxy.deleteSut(query)
-        except Exception: return None
+    def delete_sut(self, query):
+        """
+        Delete a SUT.
+        """
+        try:
+            return self.ce_proxy.delete_sut(query)
+        except Exception as e:
+            print('Error on delete SUT! `{}`!'.format(e))
+            return None
 
 
-    def getResourceStatus(self, query):
-        try: return self.ce_proxy.getResourceStatus(query)
-        except Exception: return None
+    def reserve_resource(self, query):
+        """
+        Reserve a resource. You can then edit the resource.
+        """
+        try:
+            return self.ce_proxy.reserve_resource(query)
+        except Exception as e:
+            print('Error on reserve resource! `{}`!'.format(e))
+            return None
 
 
-    def allocResource(self, query):
-        try: return self.ce_proxy.allocResource(query)
-        except Exception: return None
+    def save_reserved_resource(self, query):
+        """
+        Save changes. Don't release.
+        """
+        try:
+            return self.ce_proxy.save_reserved_resource(query)
+        except Exception as e:
+            print('Error on save resource! `{}`!'.format(e))
+            return None
 
 
-    def reserveResource(self, query):
-        try: return self.ce_proxy.reserveResource(query)
-        except Exception: return None
+    def save_release_reserved_res(self, query):
+        """
+        Save changes. Release the resource.
+        """
+        try:
+            return self.ce_proxy.save_release_reserved_res(query)
+        except Exception as e:
+            print('Error on save & release resource! `{}`!'.format(e))
+            return None
 
 
-    def freeResource(self, query):
-        try: return self.ce_proxy.freeResource(query)
-        except Exception: return None
+    def discard_release_reserved_res(self, query):
+        """
+        Drop changes. Release the resource.
+        """
+        try:
+            return self.ce_proxy.discard_release_reserved_res(query)
+        except Exception as e:
+            print('Error on discard & release resource! `{}`!'.format(e))
+            return None
+
+
+    def lock_resource(self, query):
+        """
+        Lock a resource for yourself.
+        """
+        try:
+            return self.ce_proxy.lock_resource(query)
+        except Exception as e:
+            print('Error on lock resource! `{}`!'.format(e))
+            return None
+
+
+    def unlock_resource(self, query):
+        """
+        Unlock the resource.
+        """
+        try:
+            return self.ce_proxy.unlock_resource(query)
+        except Exception as e:
+            print('Error on un-lock resource! `{}`!'.format(e))
+            return None
+
+
+    def reserve_sut(self, query):
+        """
+        Reserve a SUT. You can then edit the SUT.
+        """
+        try:
+            return self.ce_proxy.reserve_sut(query)
+        except Exception as e:
+            print('Error on reserve SUT! `{}`!'.format(e))
+            return None
+
+
+    def save_reserved_sut(self, query):
+        """
+        Save changes. Don't release.
+        """
+        try:
+            return self.ce_proxy.save_reserved_sut(query)
+        except Exception as e:
+            print('Error on save SUT! `{}`!'.format(e))
+            return None
+
+
+    def save_release_reserved_sut(self, query):
+        """
+        Save changes. Release the SUT.
+        """
+        try:
+            return self.ce_proxy.save_release_reserved_sut(query)
+        except Exception as e:
+            print('Error on save & release SUT! `{}`!'.format(e))
+            return None
+
+
+    def discard_release_reserved_sut(self, query):
+        """
+        Drop changes. Release the SUT.
+        """
+        try:
+            return self.ce_proxy.discard_release_reserved_sut(query)
+        except Exception as e:
+            print('Error on discard & release SUT! `{}`!'.format(e))
+            return None
 
 
 # Eof()

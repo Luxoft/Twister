@@ -1,6 +1,6 @@
 /*
 File: UserManagement.java ; This file is part of Twister.
-Version: 2.010
+Version: 3.001
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -188,7 +188,7 @@ public class UserManagement implements TwisterPluginInterface {
 			}
 
 			HashMap hm = (HashMap<String, HashMap>) client
-					.execute("usersAndGroupsManager",
+					.execute("users_and_groups_mngr",
 							new Object[] { "list users" });
 			Object[] users = (Object[])hm.get("_sorted_users");
 			//Object[] users = hm.keySet().toArray();
@@ -241,7 +241,7 @@ public class UserManagement implements TwisterPluginInterface {
 	public void populateGroupsList() {
 		try {
 			HashMap hm = (HashMap<String, HashMap>) client
-					.execute("usersAndGroupsManager",
+					.execute("users_and_groups_mngr",
 							new Object[] { "list groups" });
 			Object[] groups = (Object[])hm.get("_sorted_groups"); 
 			DefaultListModel listModel = new DefaultListModel();
@@ -297,7 +297,7 @@ public class UserManagement implements TwisterPluginInterface {
 					sb.setLength(sb.length() - 1);
 					try {
 						String st = client.execute(
-								"usersAndGroupsManager",
+								"users_and_groups_mngr",
 								new Object[] { "set user", usernamet.getText(),
 										sb.toString(), timeoutt.getText() })
 								.toString();
@@ -710,7 +710,7 @@ public class UserManagement implements TwisterPluginInterface {
 	private void addUser() {
 		try {
 			HashMap hm = (HashMap<String, HashMap>) client
-					.execute("usersAndGroupsManager",
+					.execute("users_and_groups_mngr",
 							new Object[] { "list groups" });
 			Object[] resp = (Object[])hm.get("_sorted_groups");
 			//Object[] resp = hm.keySet().toArray();
@@ -729,7 +729,7 @@ public class UserManagement implements TwisterPluginInterface {
 	public String[] getUsers() {
 		Object[] resp = null;
 		try {
-			resp = (Object[]) client.execute("listUsers", new Object[] {});
+			resp = (Object[]) client.execute("list_users", new Object[] {});
 		} catch (XmlRpcException e) {
 			e.printStackTrace();
 		}
@@ -755,7 +755,7 @@ public class UserManagement implements TwisterPluginInterface {
 
 	public void addUser(String username, String groups, AddUser au) {
 		try {
-			String st = client.execute("usersAndGroupsManager",
+			String st = client.execute("users_and_groups_mngr",
 					new Object[] { "set user", username, groups, "01" })
 					.toString();
 			if (st.equals("true")) {
@@ -780,7 +780,7 @@ public class UserManagement implements TwisterPluginInterface {
 		}
 		String username = usertable.getValueAt(row, 0).toString();
 		try {
-			String resp = client.execute("usersAndGroupsManager",
+			String resp = client.execute("users_and_groups_mngr",
 					new Object[] { "delete user", username }).toString();
 			if (resp.equals("true")) {
 				((DefaultTableModel) usertable.getModel()).removeRow(row);
@@ -837,7 +837,7 @@ public class UserManagement implements TwisterPluginInterface {
 	public void populateGroups() {
 		try {
 			HashMap hm = (HashMap<String, HashMap>) client
-					.execute("usersAndGroupsManager",
+					.execute("users_and_groups_mngr",
 							new Object[] { "list groups" });
 			Object[] groups = (Object[])hm.get("_sorted_groups"); 
 			
@@ -891,7 +891,7 @@ public class UserManagement implements TwisterPluginInterface {
 				}
 				try {
 					String st = client.execute(
-							"usersAndGroupsManager",
+							"users_and_groups_mngr",
 							new Object[] { "set user", usernamet.getText(),
 									sb.toString() }).toString();
 					if (st.equals("true")) {

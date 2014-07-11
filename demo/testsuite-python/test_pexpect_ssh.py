@@ -12,7 +12,7 @@ import pexpect
 def test():
 
 	testName = 'test_pexpect_ssh.py'
-	logMsg('logTest', "\nTestCase:%s starting\n" % testName)
+	log_msg('logTest', "\nTestCase:%s starting\n" % testName)
 
 	error_code = "PASS"
 
@@ -48,7 +48,7 @@ def test():
 	print child.after
 	time.sleep(1)
 
-	logMsg('logTest', "TestCase:%s %s\n" % (testName, error_code))
+	log_msg('logTest', "TestCase:%s %s\n" % (testName, error_code))
 
 	# This return is used by the framework!
 	return error_code

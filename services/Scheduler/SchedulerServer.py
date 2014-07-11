@@ -1,7 +1,7 @@
 
 # File: SchedulerServer.py ; This file is part of Twister.
 
-# version: 3.001
+# version: 3.002
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -217,7 +217,7 @@ class SchedulerServer(_cptools.XMLRPCController):
         # if not self.conn:
         #     print('Cannot add task! Central Engine connection not available !')
         #     return False
-        # elif self.conn.getUserVariable(user, 'status') == False:
+        # elif self.conn.get_user_variable(user, 'status') == False:
         #     print('Cannot add task! Invalid username `{0}` !'.format(user))
         #     return False
 
@@ -518,17 +518,17 @@ class threadCheckTasks(threading.Thread):
                       'activation date `{date-time}`, force `{force}`, time limit `{time-limit}`...'.format(**task))
 
                 # If Force is disabled and Central Engine is already running, break
-                if proj_force != '0' and proxy.getUserVariable(user, 'status') == 'running':
+                if proj_force != '0' and proxy.get_user_variable(user, 'status') == 'running':
                     log.debug('Central Engine is already running! The task will not force!')
                     continue
                 else:
                     # Kill all processes for this user
-                    proxy.setExecStatusAll(user, 0, 'Force stop from Scheduler!'.format(proj_file))
+                    proxy.set_exec_status_all(user, 0, 'Force stop from Scheduler!'.format(proj_file))
 
                 time.sleep(1)
 
                 # Start Central Engine !
-                proxy.setExecStatusAll(user, 2, '{}/twister/config/fwmconfig.xml,{}'.format(userHome(user), proj_file))
+                proxy.set_exec_status_all(user, 2, '{}/twister/config/fwmconfig.xml,{}'.format(userHome(user), proj_file))
 
             # Wait before next cycle
             time.sleep(1)

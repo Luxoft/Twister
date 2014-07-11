@@ -1,7 +1,7 @@
 
 # File: ClearCasePlugin.py ; This file is part of Twister.
 
-# version: 3.002
+# version: 3.003
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -432,7 +432,7 @@ class Plugin(BasePlugin):
         BasePlugin.__init__(self, user, data)
         self.user = user
         self.data = data
-        passwd = self.data['ce'].getUserInfo(self.user, 'user_passwd')
+        passwd = self.data['ce'].get_user_info(self.user, 'user_passwd')
         self.conn = CC(self.user, passwd)
 
 

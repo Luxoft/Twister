@@ -1,6 +1,6 @@
 /*
 File: JiraPanel.java ; This file is part of Twister.
-Version: 2.002
+Version: 2.003
 
 Copyright (C) 2012-2013 , Luxoft
 

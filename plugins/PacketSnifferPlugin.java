@@ -1,6 +1,6 @@
 /*
 File: PacketSnifferPlugin.java ; This file is part of Twister.
-Version: 2.004
+Version: 2.005
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -157,7 +157,7 @@ public class PacketSnifferPlugin extends BasePlugin implements
 			e.printStackTrace();
 		}
 		try {
-			String status = client.execute("runPlugin",
+			String status = client.execute("run_plugin",
 					new Object[] { variables.get("user"), getName(),
 							"command=echo" }).toString();
 			System.out.println("status: " + status);
@@ -228,7 +228,7 @@ public class PacketSnifferPlugin extends BasePlugin implements
 				public void actionPerformed(ActionEvent arg0) {
 					try {
 						String resp = client.execute(
-								"runPlugin",
+								"run_plugin",
 								new Object[] { variables.get("user"),
 										getName(), "command=reset" })
 								.toString();
@@ -252,7 +252,7 @@ public class PacketSnifferPlugin extends BasePlugin implements
 						start = 0;
 						try {
 							String resp = client.execute(
-									"runPlugin",
+									"run_plugin",
 									new Object[] { variables.get("user"),
 											getName(),
 											"command=pause" }).toString();
@@ -265,7 +265,7 @@ public class PacketSnifferPlugin extends BasePlugin implements
 						start = 1;
 						try {
 							String resp = client.execute(
-									"runPlugin",
+									"run_plugin",
 									new Object[] { variables.get("user"),
 											getName(), "command=resume" })
 									.toString();
@@ -296,7 +296,7 @@ public class PacketSnifferPlugin extends BasePlugin implements
 											.toString();
 									System.out.println("requested id: "+id);
 									pac = client.execute(
-											"runPlugin",
+											"run_plugin",
 											new Object[] {
 													variables.get("user"),
 													getName(),
@@ -404,7 +404,7 @@ public class PacketSnifferPlugin extends BasePlugin implements
 			});
 			try {
 				HashMap<String, String> filters = (HashMap<String, String>) client
-						.execute("runPlugin",
+						.execute("run_plugin",
 								new Object[] { variables.get("user"),
 										getName(), "command=getfilters" });
 				Iterator<Entry<String, String>> iter = filters.entrySet()
@@ -618,7 +618,7 @@ public class PacketSnifferPlugin extends BasePlugin implements
 		try {
 			String s = "command=setfilters&data="+text;
 			String resp = client.execute(
-					"runPlugin",
+					"run_plugin",
 					new Object[] {
 							variables.get("user"),
 							getName(),s})
@@ -656,7 +656,7 @@ public class PacketSnifferPlugin extends BasePlugin implements
 			if (val == JFileChooser.APPROVE_OPTION) {
 				String file = chooser.getSelectedFile().getAbsolutePath();
 				String location = client.execute(
-						"runPlugin",
+						"run_plugin",
 						new Object[] { variables.get("user"), getName(),
 								"command=savepcap" }).toString();
 				System.out.println("Remote pcap file: "+location);
@@ -679,7 +679,7 @@ public class PacketSnifferPlugin extends BasePlugin implements
 				
 				System.out.println("Getting "+file+" from CE ");
 			    try{
-			       String response = client.execute("readFile", new Object[]{location,"rb"}).toString();
+			       String response = client.execute("read_file", new Object[]{location,"rb"}).toString();
 			       byte [] content =  DatatypeConverter.parseBase64Binary(response);
 			       response = new String(DatatypeConverter.parseBase64Binary(response));
 			       if(response.indexOf("*ERROR*")!=-1){
@@ -826,14 +826,14 @@ public class PacketSnifferPlugin extends BasePlugin implements
 		HashMap<String, HashMap> hash = null;
 		try {
 			DefaultTableModel model = ((DefaultTableModel) jTable1.getModel());
-			Object obj = client.execute("runPlugin",
+			Object obj = client.execute("run_plugin",
 					new Object[] { variables.get("user"), getName(),
 					"command=query&data=" + index });
 			//System.out.println("Response: "+obj.toString());
 			
 			
 			hash = (HashMap<String, HashMap>) obj;
-			//hash = (HashMap<String, HashMap>) client.execute("runPlugin",
+			//hash = (HashMap<String, HashMap>) client.execute("run_plugin",
 			//		new Object[] { variables.get("user"), getName(),
 			//				"command=query&data=" + index });
 			HashMap hash2 = hash.get("data");

@@ -1,6 +1,6 @@
 /*
 File: DatabaseInterface.java ; This file is part of Twister.
-Version: 2.011
+Version: 3.001
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -647,7 +647,7 @@ public class DatabaseInterface extends JPanel {
             
             String p = new String(tpassword.getPassword());
             if(!initialpass.equals(p)){
-                try{p = RunnerRepository.getRPCClient().execute("encryptText", new Object[]{p}).toString();
+                try{p = RunnerRepository.getRPCClient().execute("encrypt_text", new Object[]{p}).toString();
                     tpassword.setText(p);
                     initialpass = p;
                 } catch(Exception e){
