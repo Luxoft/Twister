@@ -1,4 +1,3 @@
-
 # File: CeTestBeds.py ; This file is part of Twister.
 
 # version: 3.001
@@ -25,13 +24,13 @@
 import os
 import sys
 import time
-import ast
 import copy
 import thread
-import errno
 
-try: import simplejson as json
-except: import json
+try:
+    import simplejson as json
+except:
+    import json
 
 import cherrypy
 from lxml import etree
@@ -45,9 +44,9 @@ if not TWISTER_PATH:
 if TWISTER_PATH not in sys.path:
     sys.path.append(TWISTER_PATH)
 
-from common.tsclogging import *
+from common.tsclogging import logFull, logDebug, logInfo, logWarning, logError
 from common.helpers    import *
-from CeCommonAllocator import CommonAllocator
+from server.CeCommonAllocator import CommonAllocator
 
 RESOURCE_FREE     = 1
 RESOURCE_BUSY     = 2
@@ -57,13 +56,19 @@ constant_dictionary = {'version': 0, 'name': '/', 'meta': {}, 'children': {}}
 
 
 def xml_to_res(xml, gparams, skip_header = False):
+    """
+    Import xml file to TB.
+    """
 
-    # this is a recursive method to read the xml and generate a dictionary
-    def recursive_xml_to_res(xml,res_dict):
+    def recursive_xml_to_res(xml, res_dict):
+        """
+        Recursive method - read the xml and generate a dictionary.
+        """
+
         for folder in xml.findall('folder'):
             tb_path = folder.find('path')
             if tb_path is not None:
-                nd = {'path':[],'meta': {}, 'id': '', 'children': {}}
+                nd = {'path':[], 'meta': {}, 'id': '', 'children': {}}
                 nd['path'].append(tb_path.text)
             else:
                 nd = {'meta': {}, 'id': '', 'children': {}}
@@ -93,9 +98,9 @@ def xml_to_res(xml, gparams, skip_header = False):
 
             # Add children for this node
             res_dict[folder.find('fname').text] = nd
-            recursive_xml_to_res(folder,res_dict[folder.find('fname').text]['children'])
+            recursive_xml_to_res(folder, res_dict[folder.find('fname').text]['children'])
 
-    # we have to get the information at root level(path,meta,id,version) first
+    # we have to get the information at root level(path, meta, id, version) first
     # version is added only if it exists in xml;
     if not skip_header:
         root_dict = {'path':[], 'meta':{}, 'id':'', 'children':{}}
@@ -104,12 +109,12 @@ def xml_to_res(xml, gparams, skip_header = False):
             root_dict['path'].append(tb_path)
         meta = xml.find('meta')
         for meta_elem in meta:
-           key = meta_elem.find('name').text
-           val = meta_elem.find('value').text
-           if val:
-               root_dict['meta'][key] = val
-           else:
-               root_dict['meta'][key] = ''
+            key = meta_elem.find('name').text
+            val = meta_elem.find('value').text
+            if val:
+                root_dict['meta'][key] = val
+            else:
+                root_dict['meta'][key] = ''
         root_dict['id'] = xml.find('id').text
         if xml.find('version') is not None and xml.find('version').text is not None:
             root_dict['version'] = int(xml.find('version').text)
@@ -119,12 +124,16 @@ def xml_to_res(xml, gparams, skip_header = False):
         gparams = root_dict
 
     # rest of the xml file can be read recursively
-    recursive_xml_to_res(xml,gparams['children'])
+    recursive_xml_to_res(xml, gparams['children'])
 
     return gparams
 
 
 def res_to_xml(parent_node, xml, skip_header = False):
+    """
+    Export TB to xml.
+    """
+
     # The node is valid ?
     if not parent_node:
         return False
@@ -132,13 +141,13 @@ def res_to_xml(parent_node, xml, skip_header = False):
     # if we are at root level, we need to get path, meta, id and version fields
     if not skip_header:
         # path is a list with 0 or 1 elements
-        path = etree.SubElement(xml,'path')
+        path = etree.SubElement(xml, 'path')
         if parent_node.get('path') is not None and len(parent_node.get('path')) == 1:
-           path.text = parent_node.get('path')[0]
+            path.text = parent_node.get('path')[0]
         else:
-           path.text = ''
+            path.text = ''
 
-        meta = etree.SubElement(xml,'meta')
+        meta = etree.SubElement(xml, 'meta')
         # meta is a dictionary
         for k, v in parent_node.get('meta').iteritems():
             tag = etree.SubElement(meta, 'param')
@@ -153,12 +162,12 @@ def res_to_xml(parent_node, xml, skip_header = False):
             typ.text = 'string'
             desc  = etree.SubElement(tag, 'desc')
 
-        tb_id = etree.SubElement(xml,'id')
+        tb_id = etree.SubElement(xml, 'id')
         tb_id.text = parent_node.get('id')
         # add version only if it exists in dictionary; the SUT
         # files don't have version
         if parent_node.get('version') is not None:
-            version = etree.SubElement(xml,'version')
+            version = etree.SubElement(xml, 'version')
             version.text = str(parent_node.get('version'))
 
     # This node has children ?
@@ -182,7 +191,7 @@ def res_to_xml(parent_node, xml, skip_header = False):
             path.text = nd.get('path')[0]
 
         # get meta information
-        meta = etree.SubElement(folder,'meta')
+        meta = etree.SubElement(folder, 'meta')
         if  type(nd['meta']) is dict :
             for k, v in nd['meta'].iteritems():
                 tag = etree.SubElement(meta, 'param')
@@ -212,6 +221,9 @@ def res_to_xml(parent_node, xml, skip_header = False):
 
 
 class TestBeds(_cptools.XMLRPCController, CommonAllocator):
+    '''
+    Basic operations for TestBeds.
+    '''
 
     def __init__(self, project):
 
@@ -230,16 +242,16 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
         self.load_lock = thread.allocate_lock() # Save lock
         self.res_file = '{}/config/resources.json'.format(TWISTER_PATH)
         self._loadedUsers = dict()
-        self.load_tb(v=True)
+        self.load_tb(verbose=True)
 
         logInfo('TestBeds Allocator initialization took `{:.4f}` sec.'.format(time.time()-ti))
 
 
-    def load_tb(self, v=False):
+    def load_tb(self, verbose=False):
         """
         Parse resources file.
         """
-        logDebug('CeTestBeds:load_tb {}'.format(v))
+        logDebug('CeTestBeds:load_tb {}'.format(verbose))
 
         with self.load_lock:
             if not self.resources.get('children'):
@@ -249,8 +261,9 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
             try:
                 f = open(self.res_file, 'r')
                 self.resources = json.load(f)
-                f.close() ; del f
-                if v:
+                f.close()
+                del f
+                if verbose:
                     logDebug('TBs loaded successfully.')
             except Exception as e:
                 logError('Error loading TBs! {}'.format(e))
@@ -317,7 +330,7 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
         '''
         Permanently delete a resource.
         '''
-        logDebug('CeTestBeds:delete_tb {} {}'.format(res_query,props))
+        logDebug('CeTestBeds:delete_tb {} {}'.format(res_query, props))
 
         resources = self.resources
         user_info = self.user_info(props)
@@ -336,7 +349,7 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
 
         _isResourceReserved = self.is_resource_reserved(res_query, props)
         if _isResourceReserved and _isResourceReserved != user_info[0]:
-            msg = 'User {}: Cannot create new component: The resource is reserved for {} !'.format(user_info[0], _isResourceReserved)
+            msg = 'User {}: The resource is reserved for {} !'.format(user_info[0], _isResourceReserved)
             logError(msg)
             return '*ERROR* ' + msg
 
@@ -348,7 +361,7 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
 
         if meta:
             # the path for the resource that has to be modified (delete it or meta)
-            result= self.get_reserved_resource(res_query, props)
+            result = self.get_reserved_resource(res_query, props)
             if not result:
                 logDebug("This resource is not reserved")
                 return False
@@ -393,7 +406,11 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
                 #get the direct parent of the resource
                 base_path = "/".join(reserved_node['path'][1:-1])
                 extract_r = self.get_path(base_path, reserved_node)
-                extract_r['children'].pop(reserved_node['path'][-1])
+                try:
+                    extract_r['children'].pop(reserved_node['path'][-1])
+                except:
+                    logError('User {}: Can not find child. Maybe it just was renamed.'.format(user_info[0]))
+                    return False
                 extract_r['path'] = reserved_node['path'][:-1]
 
             return "true"
@@ -417,7 +434,7 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
 
         _isResourceReserved = self.is_resource_reserved(query, props)
         if _isResourceReserved and _isResourceReserved != user_info[0]:
-            msg = 'User {}: Cannot create new component: The resource is reserved for {} !'.format(user_info[0], _isResourceReserved)
+            msg = 'User {}: The resource is reserved for {} !'.format(user_info[0], _isResourceReserved)
             logError(msg)
             return '*ERROR* ' + msg
 
@@ -490,6 +507,7 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
         Create a component for an existing TB.
         Return new component's id.
         '''
+
         user_info = self.user_info(props)
 
         props = self.valid_props(props)
@@ -500,13 +518,13 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
 
         _isResourceReserved = self.is_resource_reserved(parent, props)
         if _isResourceReserved and _isResourceReserved != user_info[0]:
-            msg = 'User {}: Cannot create new component: The resource is reserved for {} !'.format(user_info[0],_isResourceReserved)
+            msg = 'User {}: The resource is reserved for {} !'.format(user_info[0], _isResourceReserved)
             logError(msg)
             return '*ERROR* ' + msg
 
         _isResourceLocked = self.is_resource_locked(parent)
         if _isResourceLocked and _isResourceLocked != user_info[0]:
-            msg = 'User {}: Reserve resource: The resource is locked for {} !'.format(user_info[0],_isResourceLocked)
+            msg = 'User {}: The resource is locked for {} !'.format(user_info[0], _isResourceLocked)
             logError(msg)
             return '*ERROR* ' + msg
 
@@ -514,7 +532,7 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
             #the resource should be reserved previously
             parent_p = self.get_reserved_resource(parent, props)
             if not parent_p:
-                msg = "Could not find this TB: '{}'".format(parent)
+                msg = "User {}: Could not find this TB: '{}'".format(user_info[0], parent)
                 logDebug(msg)
                 return "*ERROR* " + msg
 
@@ -536,7 +554,8 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
 
             # the resource doesn't exist - create it
             res_id = self.generate_index()
-            parent_p['children'][name] = {'id': res_id, 'meta': props, 'children': {}, 'path': parent_p['path'] + [name]}
+            parent_p['children'][name] = {'id': res_id, 'meta': props, 'children': {}, \
+            'path': parent_p['path'] + [name]}
 
             return res_id
 
@@ -552,7 +571,8 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
         resources = self.resources
 
         if parent != '/' and parent != '1':
-            msg = "The parent value is not root. Maybe you want to add a component to an existing SUT. Parent: {}".format(parent)
+            msg = "The parent value is not root. Maybe you want to add a component\
+             to an existing SUT. Parent: {}".format(parent)
             logError(msg)
             return "*ERROR* " + msg
 
@@ -563,7 +583,7 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
             parent_p = self.get_resource('/', resources)
 
             if not parent_p or isinstance(parent_p, str):
-                logFull("User: {} no result for query `{}`" .format(parent))
+                logFull("User: {} no result for query `{}`" .format(user_info[0], parent))
                 return None
 
             if '/' in name:
@@ -571,7 +591,7 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
                 name = name.replace('/', '')
 
             if name in self.resources['children']:
-                msg = "A TB with name `{}` already exists!".format(name)
+                msg = "User {}: A TB with name `{}` already exists!".format(user_info[0], name)
                 logDebug(msg)
                 return "*ERROR* " + msg
 
@@ -581,7 +601,7 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
 
             issaved = self.save_tb(props)
             if not issaved:
-                msg = "Could not save TB `{}`".format(name)
+                msg = "User {}: Could not save TB `{}`".format(user_info[0], name)
                 logDebug(msg)
                 return "*ERROR* " + msg
             return res_id
@@ -592,6 +612,7 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
         '''
         Modify a resource, using a name, a parent Path or ID and some properties.
         '''
+
         logDebug('parent = {} -- props = {} -- name = {}'.format(parent, props, name))
         user_info = self.user_info(props)
         resources = self.resources
@@ -613,13 +634,13 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
 
         _isResourceReserved = self.is_resource_reserved(verifyReserved, props)
         if _isResourceReserved and _isResourceReserved != user_info[0]:
-            msg = 'User {}: Cannot create new component: The resource is reserved for {} !'.format(user_info[0],_isResourceReserved)
+            msg = 'User {}: The resource is reserved for {} !'.format(user_info[0], _isResourceReserved)
             logError(msg)
             return '*ERROR* ' + msg
 
         _isResourceLocked = self.is_resource_locked(verifyReserved)
         if _isResourceLocked and _isResourceLocked != user_info[0]:
-            msg = 'User {}: Reserve resource: The resource is locked for {} !'.format(user_info[0],_isResourceLocked)
+            msg = 'User {}: Reserve resource: The resource is locked for {} !'.format(user_info[0], _isResourceLocked)
             logError(msg)
             return '*ERROR* ' + msg
 
@@ -643,7 +664,7 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
             parent_p = self.get_reserved_resource(verifyReserved, props)
 
             if not parent_p:
-                logError('User {}: Cannot access reserved resource, path or ID `{}` !'.format(user_info[0], verifyReserved))
+                logError('User {}: Cannot access reserved resource `{}` !'.format(user_info[0], verifyReserved))
                 return False
 
             #the resources is deep in the tree, we have to get its direct parent
@@ -676,6 +697,7 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
         """
         Higher level wrapper over functions Create new TB, create component and update meta.
         """
+
         pdata = self.get_resource(parent)
         user_info = self.user_info(props)
 
@@ -696,21 +718,37 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
 
     @cherrypy.expose
     def reserve_tb(self, res_query, props={}):
+        '''
+        Reserve TB. Add to reservedResources.
+        '''
+
         return self.reserve_resource(res_query, props)
 
 
     @cherrypy.expose
     def lock_tb(self, res_query, props={}):
+        '''
+        Lock TB. Add to lockedResources
+        '''
+
         return self.lock_resource(res_query, props)
 
 
     @cherrypy.expose
     def unlock_tb(self, res_query, props={}):
+        '''
+        Unlock TB. Delete from lockedResources.
+        '''
+
         return self.unlock_resource(res_query, props)
 
 
     @cherrypy.expose
     def is_tb_locked(self, res_query):
+        '''
+        Verify if TB is locked.
+        '''
+
         result = self.is_resource_locked(res_query)
         if not result:
             return "false"
@@ -719,6 +757,10 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
 
     @cherrypy.expose
     def is_tb_reserved(self, res_query, props={}):
+        '''
+        Verify if TB is reserved.
+        '''
+
         result = self.is_resource_reserved(res_query, props)
         if not result:
             return "false"
@@ -727,11 +769,19 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
 
     @cherrypy.expose
     def list_reserved_tb(self):
+        '''
+        Return all the reserved TBs.
+        '''
+
         return self.reservedResources
 
 
     @cherrypy.expose
     def list_locked_tb(self):
+        '''
+        Return all the locked TBs.
+        '''
+
         return self.lockedResources
 
 
@@ -740,17 +790,22 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
         """
         Fast list testbeds.
         """
+
         #maybe some resources changed meanwhile
-        self.load_tb(v=False)
+        self.load_tb(verbose=False)
 
         res = []
         for k, v in self.resources.get('children').iteritems():
             res.append([k, v['id']])
         result = []
 
-        def quickFindPath(d, spath):
-            for usr, locks in d.iteritems():
-                for id, data in locks.iteritems():
+        def quick_find_path(dictionary, spath):
+            '''
+            Find path.
+            '''
+
+            for usr, locks in dictionary.iteritems():
+                for id_tb, data in locks.iteritems():
                     path = data.get('path', [''])
                     if isinstance(path, str) or isinstance(path, unicode):
                         path = [path]
@@ -758,19 +813,19 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
                         return usr
             return None
 
-        for tb, id in sorted(res):
-            ruser = quickFindPath(self.reservedResources, tb)
-            luser = quickFindPath(self.lockedResources, tb)
+        for tb, tb_id in sorted(res):
+            ruser = quick_find_path(self.reservedResources, tb)
+            luser = quick_find_path(self.lockedResources, tb)
 
             if (not ruser) and (not luser):
-                result.append({'id': id, 'name': tb, 'status': 'free'})
+                result.append({'id': tb_id, 'name': tb, 'status': 'free'})
             elif ruser:
-                result.append({'id': id, 'name': tb, 'status': 'reserved', 'user': ruser})
+                result.append({'id': tb_id, 'name': tb, 'status': 'reserved', 'user': ruser})
             elif luser:
-                result.append({'id': id, 'name': tb, 'status': 'locked', 'user': luser})
+                result.append({'id': tb_id, 'name': tb, 'status': 'locked', 'user': luser})
             # Both reserved and locked ?
             else:
-                result.append({'id': id, 'name': tb, 'status': 'reserved', 'user': ruser})
+                result.append({'id': tb_id, 'name': tb, 'status': 'reserved', 'user': ruser})
 
         logDebug('Fast listing Resources... Found {}.'.format(res))
 
@@ -819,13 +874,13 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
             logError(msg)
             return '*ERROR* ' + msg
 
-        logDebug('User {}: importing XML file `{}`...'.format(user_info[0] ,xml_file))
+        logDebug('User {}: importing XML file `{}`...'.format(user_info[0], xml_file))
         try:
             params_xml = etree.parse(xml_file)
         except:
-                msg = "The file you selected: '{}' it's not an xml file. Try again!".format(xml_file)
-                logDebug(msg)
-                return '*ERROR* ' + msg
+            msg = "The file you selected: '{}' it's not an xml file. Try again!".format(xml_file)
+            logDebug(msg)
+            return '*ERROR* ' + msg
 
         with self.imp_lock:
             try:
@@ -893,7 +948,8 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
 
         # maybe the user renamed the TB
         if (reserved_node != resource_node):
-            self.resources['children'][reserved_node['path'][0]] = self.resources['children'].pop(resource_node['path'][0])
+            self.resources['children'][reserved_node['path'][0]] = \
+            self.resources['children'].pop(resource_node['path'][0])
         # or maybe the name of the resource is the same
         resources['children'].update([(reserved_node['path'][0], reserved_node), ])
 
@@ -902,10 +958,11 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
 
         #now we have to save
         issaved = self.save_tb(props)
-        if isinstance(issaved, str) and issaved.startswith('*ERROR* '):
-            msg = "We could not save this TB for user = {}.".format(user_info[0])
-            logDebug(msg)
-            return "*ERROR* " + msg
+        if isinstance(issaved, str):
+            if issaved.startswith('*ERROR* '):
+                msg = "We could not save this TB for user = {}.".format(user_info[0])
+                logDebug(msg)
+                return "*ERROR* " + msg
         return "true"
 
 
@@ -934,7 +991,7 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
 
             # get the entire TB
             if len(resource_node['path']) > 1:
-                resource_node = self.get_path(resource_node['path'][0], resources)
+                resource_node = self.get_path(resource_node['path'][0], self.resources)
 
             # delete this entry from reservedResources
             reserved_node = self.reservedResources[user_info[0]][resource_node['id']]
@@ -949,5 +1006,9 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
 
     @cherrypy.expose
     def discard_release_reserved_tb(self, res_query, props={}):
+        '''
+        Discard changes and release test bed.
+        Delete entry from reservedResources.
+        '''
         return self.discard_release_reserved_resource(res_query, props)
 

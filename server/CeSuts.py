@@ -24,13 +24,13 @@
 
 import os
 import sys
-import ast
 import copy
 import thread
-import errno
 
-try: import simplejson as json
-except: import json
+try:
+    import simplejson as json
+except:
+    import json
 
 import cherrypy
 from lxml import etree
@@ -46,9 +46,9 @@ if not TWISTER_PATH:
 if TWISTER_PATH not in sys.path:
     sys.path.append(TWISTER_PATH)
 
-from common.tsclogging import *
+from common.tsclogging import logFull, logDebug, logInfo, logWarning, logError
 from common.helpers    import *
-from CeCommonAllocator import CommonAllocator
+from server.CeCommonAllocator import CommonAllocator
 
 RESOURCE_FREE     = 1
 RESOURCE_BUSY     = 2
@@ -63,6 +63,7 @@ def _recursive_build_comp(parent, old_path, appendList=[]):
     old_path - string with the parent component name
     appendList - list to append the sub-components
     '''
+
     if len(parent) == 0:
         # there are no sub-components; return empty list
         return []
@@ -95,14 +96,20 @@ def _recursive_build_comp(parent, old_path, appendList=[]):
 
 
 def xml_to_res(xml, gparams):
+    """
+    Import xml file to SUT.
+    """
 
-    # this is a recursive method to read the xml and generate a dictionary
     def recursive_xml_to_res(xml, res_dict):
+        """
+        Recursive method - read the xml and generate a dictionary.
+        """
+
         nd = dict()
         for folder in xml.findall('folder'):
             tb_path = folder.find('path')
             if tb_path is not None:
-                nd = {'path':[],'meta': {}, 'id': '', 'children': {}}
+                nd = {'path':[], 'meta': {}, 'id': '', 'children': {}}
                 nd['path'].append(tb_path.text)
             else:
                 nd = {'meta': {}, 'id': '', 'children': {}}
@@ -132,9 +139,9 @@ def xml_to_res(xml, gparams):
 
             # Add children for this node
             res_dict[folder.find('fname').text] = nd
-            recursive_xml_to_res(folder,res_dict[folder.find('fname').text]['children'])
+            recursive_xml_to_res(folder, res_dict[folder.find('fname').text]['children'])
 
-    # we have to get the information at root level(path,meta,id,version) first
+    # we have to get the information at root level(path, meta, id, version) first
     # version is added only if it exists in xml; the SUT exported files do not
     # have the version tag
     root_dict = {'path':[], 'meta':{}, 'id':'', 'children':{}}
@@ -145,24 +152,28 @@ def xml_to_res(xml, gparams):
         root_dict['path'].append('')
     meta = xml.find('meta')
     for meta_elem in meta:
-       key = meta_elem.find('name').text
-       val = meta_elem.find('value').text
-       if val:
-           root_dict['meta'][key] = val
-       else:
-           root_dict['meta'][key] = ''
+        key = meta_elem.find('name').text
+        val = meta_elem.find('value').text
+        if val:
+            root_dict['meta'][key] = val
+        else:
+            root_dict['meta'][key] = ''
     root_dict['id'] = xml.find('id').text
     if xml.find('version') is not None and xml.find('version').text is not None:
         root_dict['version'] = int(xml.find('version').text)
     gparams = root_dict
 
     # rest of the xml file can be read recursively
-    recursive_xml_to_res(xml,gparams['children'])
+    recursive_xml_to_res(xml, gparams['children'])
 
     return gparams
 
 
 def res_to_xml(parent_node, xml, skip_header = False):
+    """
+    Export TB to xml.
+    """
+
     # The node is valid ?
     if not parent_node:
         return False
@@ -170,13 +181,13 @@ def res_to_xml(parent_node, xml, skip_header = False):
     # if we are at root level, we need to get path, meta, id and version fields
     if not skip_header:
         # path is a list with 0 or 1 elements
-        path = etree.SubElement(xml,'path')
+        path = etree.SubElement(xml, 'path')
         if parent_node.get('path') is not None and len(parent_node.get('path')) == 1:
-           path.text = parent_node.get('path')[0]
+            path.text = parent_node.get('path')[0]
         else:
-           path.text = ''
+            path.text = ''
 
-        meta = etree.SubElement(xml,'meta')
+        meta = etree.SubElement(xml, 'meta')
         # meta is a dictionary
         for k, v in parent_node.get('meta').iteritems():
             tag = etree.SubElement(meta, 'param')
@@ -191,12 +202,12 @@ def res_to_xml(parent_node, xml, skip_header = False):
             typ.text = 'string'
             desc  = etree.SubElement(tag, 'desc')
 
-        tb_id = etree.SubElement(xml,'id')
+        tb_id = etree.SubElement(xml, 'id')
         tb_id.text = parent_node.get('id')
         # add version only if it exists in dictionary; the SUT
         # files don't have version
         if parent_node.get('version') is not None:
-            version = etree.SubElement(xml,'version')
+            version = etree.SubElement(xml, 'version')
             version.text = str(parent_node.get('version'))
 
     # This node has children ?
@@ -220,7 +231,7 @@ def res_to_xml(parent_node, xml, skip_header = False):
             path.text = nd.get('path')[0]
 
         # get meta information
-        meta = etree.SubElement(folder,'meta')
+        meta = etree.SubElement(folder, 'meta')
         for k, v in nd['meta'].iteritems():
             tag = etree.SubElement(meta, 'param')
             prop = etree.SubElement(tag, 'name')
@@ -249,6 +260,9 @@ def res_to_xml(parent_node, xml, skip_header = False):
 
 
 class Suts(_cptools.XMLRPCController, CommonAllocator):
+    '''
+    Basic operations for SUTs.
+    '''
 
     def __init__(self, project):
 
@@ -277,7 +291,7 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
         '''
         user = self.user_info(props)[0]
 
-        logDebug('CeSuts:_save {} {} {} '.format(props,resource_name, user))
+        logDebug('CeSuts:_save {} {} {} '.format(props, resource_name, user))
         log = list()
 
         # Write changes, using the Access Lock.
@@ -289,7 +303,7 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
                 sutsPath = self.project.get_user_info(user, 'sut_path')
                 filename = os.path.join(sutsPath, '.'.join(resource_name.split('.')[:-1] + ['json']))
             else:
-                sutsPath = self.project.get_user_info(user,'sys_sut_path')
+                sutsPath = self.project.get_user_info(user, 'sys_sut_path')
                 filename = os.path.join(sutsPath, '.'.join(resource_name.split('.')[:-1] + ['json']))
 
             if not sutsPath:
@@ -298,16 +312,18 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
             if resource_name.split('.')[1] == 'user':
                 # Get the user connection
                 try:
-                    resp = self.project.localFs.write_user_file(user,filename, json.dumps(self.resources['children'][resource_name], indent=4), 'w')
+                    resp = self.project.localFs.write_user_file(user, filename, \
+                        json.dumps(self.resources['children'][resource_name], indent=4), 'w')
                     if resp is not True:
                         log.append(resp)
                 except Exception as e:
                     log.append(e)
-                    logError('User {}: Saving ERROR user:: `{}`.'.format(user,e))
+                    logError('User {}: Saving ERROR user:: `{}`.'.format(user, e))
 
             if resource_name.split('.')[1] == 'system' and not log:
                 try:
-                    resp = self.project.localFs.write_system_file(filename, json.dumps(self.resources['children'][resource_name], indent=4), 'w')
+                    resp = self.project.localFs.write_system_file(filename, \
+                        json.dumps(self.resources['children'][resource_name], indent=4), 'w')
                 except Exception as e:
                     log.append(e)
                     logError('User {}: Saving ERROR system:: `{}`.'.format(user, e))
@@ -422,7 +438,7 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
                     retDict['path'] = query
                 retDict['meta'] = sutContent['meta']
                 retDict['id'] = sutContent['id']
-                retDict['children'] = _recursive_build_comp(sutContent.get('children'),retDict['path'],recursiveList)
+                retDict['children'] = _recursive_build_comp(sutContent.get('children'), retDict['path'], recursiveList)
 
                 if retDict['path']:
                     self.resources['children'][query] = sutContent
@@ -487,7 +503,7 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
         '''
         Create new component for an existing SUT
         '''
-        logDebug('CeSuts:create_component_sut: parent = {} -- props = {} -- name = {}'.format(parent, props, name))
+        logDebug('CeSuts:create_component_sut: parent = {}  props = {}  name = {}'.format(parent, props, name))
 
         if parent == '/' or parent == '1':
             msg = "The parent value is not an existing SUT. Mayebe you want to add a new SUT. Parent: {}".format(parent)
@@ -498,13 +514,15 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
 
         _isResourceReserved = self.is_resource_reserved(parent, props)
         if _isResourceReserved and _isResourceReserved != user_info[0]:
-            msg = 'User {}: Cannot create new component: The SUT is reserved for {} !'.format(user_info[0],_isResourceReserved)
+            msg = 'User {}: Cannot create new component: The SUT is reserved for {} !'\
+            .format(user_info[0], _isResourceReserved)
             logError(msg)
             return '*ERROR* ' + msg
 
         _isResourceLocked = self.is_resource_locked(parent)
         if _isResourceLocked and _isResourceLocked != user_info[0]:
-            msg = 'User {}: Reserve SUT: The SUT is locked for {} !'.format(user_info[0],_isResourceLocked)
+            msg = 'User {}: Reserve SUT: The SUT is locked for {} !'\
+            .format(user_info[0], _isResourceLocked)
             logError(msg)
             return '*ERROR* ' + msg
 
@@ -542,7 +560,7 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
             if epnames_tag in parent_p['children'][name]['meta']:
                 # And the tag is empty
                 if not parent_p['children'][name]['meta'][epnames_tag]:
-                    logDebug('User {}: Deleting `{}` tag from new resource.'.format(user_info[0],epnames_tag))
+                    logDebug('User {}: Deleting `{}` tag from new resource.'.format(user_info[0], epnames_tag))
                     del parent_p['children'][name]['meta'][epnames_tag]
 
         return res_id
@@ -558,7 +576,8 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
         props = self.valid_props(props)
 
         if parent != '/' and parent != "1":
-            msg = "The parent value is not root. Mayebe you want to add a component to an existing SUT. Parent: {}".format(parent)
+            msg = "User {}: The parent value is not root. Mayebe you want to add a component \
+            to an existing SUT. Parent: {}".format(user_info, parent)
             logError(msg)
             return "*ERROR* " + msg
 
@@ -572,7 +591,7 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
                 name = name.replace('/', '')
 
             if name in self.resources['children']:
-                msg = "A SUT with this name '{}'' already exists'".format(name)
+                msg = "User {}: A SUT with this name '{}'' already exists'".format(user_info[0], name)
                 logDebug(msg)
                 return "*ERROR* " + msg
 
@@ -597,7 +616,8 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
         This method changes meta for a certain SUT.
         '''
         user_info = self.user_info(props)
-        logDebug('CeSuts:update_meta_sut: parent = {} -- props = {} -- username = {} -- name = {}'.format(parent, props, user_info[0], name))
+        logDebug('CeSuts:update_meta_sut: parent = {} -- props = {} -- username = {} -- name = {}'\
+            .format(parent, props, user_info[0], name))
 
         #if props does not have the corect format we stop this operation
         if not props or not self.valid_props(props):
@@ -618,14 +638,16 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
         #what if this sut is already reserved by other user? We STOP
         _isResourceReserved = self.is_resource_reserved(verifyReserved, props)
         if _isResourceReserved and _isResourceReserved != user_info[0]:
-            msg = 'User {}: Cannot update meta: The resource is reserved for {} !'.format(user_info[0], _isResourceReserved)
+            msg = 'User {}: Cannot update meta: The resource is reserved for {} !'\
+            .format(user_info[0], _isResourceReserved)
             logError(msg)
             return '*ERROR* ' + msg
 
         #what if this sut is already locked by other user? We STOP
         _isResourceLocked = self.is_resource_locked(verifyReserved)
         if _isResourceLocked and _isResourceLocked != user_info[0]:
-            msg = 'User {}: Reserve resource: The resource is locked for {} !'.format(user_info[0], _isResourceLocked)
+            msg = 'User {}: Reserve resource: The resource is locked for {} !'\
+            .format(user_info[0], _isResourceLocked)
             logError(msg)
             return '*ERROR* ' + msg
 
@@ -662,14 +684,14 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
 
             # if _id key is present in meta and it has no value, we have
             # to remove it from meta dictionary
-            if '_id' in child_p['meta'].keys() and not child_p['meta'].get('_id',False):
+            if '_id' in child_p['meta'].keys() and not child_p['meta'].get('_id', False):
                 child_p['meta'].pop('_id')
 
             # If the epnames tag exists in resources
             if epnames_tag in child_p['meta']:
                 # And the tag is empty
                 if not child_p['meta'][epnames_tag]:
-                    logDebug('User {}: Deleting `{}` tag from resources.'.format(user_info[0],epnames_tag))
+                    logDebug('User {}: Deleting `{}` tag from resources.'.format(user_info[0], epnames_tag))
                     del child_p['meta'][epnames_tag]
         return "true"
 
@@ -719,7 +741,7 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
         user_info = self.user_info(props)
 
         if '/' in new_name or ':' in new_name:
-            msg = 'New resource name ({}) cannot contain `/` or `:`!',format(new_name)
+            msg = 'New resource name ({}) cannot contain `/` or `:`!'.format(new_name)
             logError(msg)
             return "*ERROR* " + msg
 
@@ -766,13 +788,15 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
         # Check if resource is reserved; if so, it cannot be renamed
         _isResourceReserved = self.is_resource_reserved(res_query, props)
         if _isResourceReserved:
-            msg = 'User {}: Cannot delete: The resource is reserved for {} !'.format(user_info[0],_isResourceReserved)
+            msg = 'User {}: Cannot delete: The resource is reserved for {} !'\
+            .format(user_info[0], _isResourceReserved)
             logError(msg)
             return '*ERROR* ' + msg
 
         _isResourceLocked = self.is_resource_locked(res_query)
         if _isResourceLocked and _isResourceLocked != user_info[0]:
-            msg = 'User {}: Reserve resource: The resource is locked for {} !'.format(user_info[0],_isResourceLocked)
+            msg = 'User {}: Reserve resource: The resource is locked for {} !'\
+            .format(user_info[0], _isResourceLocked)
             logError(msg)
             return '*ERROR* ' + msg
 
@@ -787,13 +811,17 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
 
         reserve_res = self.reserve_resource(new_name, props)
         if  isinstance(reserve_res, str):
-             if '*ERROR*' in reserve_res:
-                 msg = 'User {}: New SUT file {} cannot be reserved!'.format(user_info[0], new_name)
-                 logError(msg)
-                 return '*ERROR* ' + msg
+            if '*ERROR*' in reserve_res:
+                msg = 'User {}: New SUT file {} cannot be reserved!'.format(user_info[0], new_name)
+                logError(msg)
+                return '*ERROR* ' + msg
 
         # method to clean the new SUT if needed
         def cleanNewSut(new_sut, user):
+            '''
+            Delete the new SUT if the rename Failed.
+            '''
+
             self.reservedResources[user].pop(new_sut)
             if not self.reservedResources[user]:
                 self.reservedResources.pop(user)
@@ -802,7 +830,7 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
         # Try to reserve source SUT file; if error, clean up the new SUT
         reserve_res = self.reserve_resource(res_query, props)
         if  isinstance(reserve_res, str):
-             if '*ERROR*' in reserve_res:
+            if '*ERROR*' in reserve_res:
                 msg = 'User {}: Source SUT file {} cannot be reserved!'.format(user_info[0], res_query)
                 logError(msg)
                 cleanNewSut(newSutId, user_info[0])
@@ -828,7 +856,8 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
         if  isinstance(deleted, str) and deleted.startswith('*ERROR*'):
             #could not delete the old sut so we keep it and delete the new one
             cleanNewSut(newSutId, user_info[0])
-            msg = "User {} :We couldn't delete the old sut so we cannot complete the rename operation.".format(user_info[0])
+            msg = "User {} :We couldn't delete the old sut so we cannot complete the rename operation."\
+            .format(user_info[0])
             logError(msg)
             return "*ERROR* " + msg
         else:
@@ -858,7 +887,8 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
         #what if this sut is already reserved by other user? We STOP
         _isResourceReserved = self.is_resource_reserved(res_query, props)
         if _isResourceReserved and _isResourceReserved != user_info[0]:
-            msg = 'User {}: Cannot update meta: The resource is reserved for {} !'.format(user_info[0], _isResourceReserved)
+            msg = 'User {}: Cannot update meta: The resource is reserved for {} !'\
+            .format(user_info[0], _isResourceReserved)
             logError(msg)
             return '*ERROR* ' + msg
 
@@ -911,13 +941,15 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
         # Check if resource is reserved; if so, it cannot be deleted
         _isResourceReserved = self.is_resource_reserved(res_query, props)
         if _isResourceReserved and _isResourceReserved != user_info[0]:
-            msg = 'User {}: Cannot delete: The resource is reserved for {} !'.format(user_info[0],_isResourceReserved)
+            msg = 'User {}: Cannot delete: The resource is reserved for {} !'\
+            .format(user_info[0], _isResourceReserved)
             logError(msg)
             return '*ERROR* ' + msg
 
         _isResourceLocked = self.is_resource_locked(res_query)
         if _isResourceLocked and _isResourceLocked != user_info[0]:
-            msg = 'User {}: Reserve resource: The resource is locked for {} !'.format(user_info[0],_isResourceLocked)
+            msg = 'User {}: Reserve resource: The resource is locked for {} !'\
+            .format(user_info[0], _isResourceLocked)
             logError(msg)
             return '*ERROR* ' + msg
 
@@ -975,13 +1007,15 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
         # Check if resource is reserved; if so, it cannot be deleted
         _isResourceReserved = self.is_resource_reserved(res_query, props)
         if _isResourceReserved:
-            msg = 'User {}: Cannot delete: The resource is reserved for {} !'.format(user_info[0],_isResourceReserved)
+            msg = 'User {}: Cannot delete: The resource is reserved for {} !'\
+            .format(user_info[0], _isResourceReserved)
             logError(msg)
             return '*ERROR* ' + msg
 
         _isResourceLocked = self.is_resource_locked(res_query)
         if _isResourceLocked:
-            msg = 'User {}: Reserve resource: The resource is locked for {} !'.format(user_info[0],_isResourceLocked)
+            msg = 'User {}: Reserve resource: The resource is locked for {} !'\
+            .format(user_info[0], _isResourceLocked)
             logError(msg)
             return '*ERROR* ' + msg
 
@@ -1005,8 +1039,8 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
                 delete_sut_memory(res_query.split('/')[-1])
                 return "True"
             except Exception as e:
-                msg = 'User {}: Cannot delete SUT file: `{}` !'.format(user_info[0],res_query.split('.')[0] + '.json')
-                logError(msg)
+                msg = 'User {}: Cannot delete SUT file: `{}` !'.format(user_info[0], res_query.split('.')[0] + '.json')
+                logError(msg + " ERROR: " + e)
                 return '*ERROR* ' + msg
             return "True"
         else:
@@ -1022,6 +1056,7 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
         """
         Fast list suts.
         """
+
         suts = []
         result = []
         usrHome = userHome(user)
@@ -1038,7 +1073,8 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
 
         # first, get all system SUT files
         if os.path.isdir(sysSutsPath):
-            s = ['{}.system'.format(os.path.splitext(d)[0]) for d in os.listdir(sysSutsPath) if os.path.splitext(d)[1]=='.json']
+            s = ['{}.system'.format(os.path.splitext(d)[0]) for d in os.listdir(sysSutsPath) \
+            if os.path.splitext(d)[1]=='.json']
             suts.extend(s)
 
         # get user SUT file; we have to check if the cleacase plugin
@@ -1067,9 +1103,13 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
                     if fileExt and fileExt == '.json':
                         suts.append(fileName + '.user')
 
-        def quickFindPath(d, spath):
-            for usr, locks in d.iteritems():
-                for id, data in locks.iteritems():
+        def quick_find_path(dictionary, spath):
+            '''
+            Find path.
+            '''
+
+            for usr, locks in dictionary.iteritems():
+                for id_sut, data in locks.iteritems():
                     path = data.get('path', [''])
                     if isinstance(path, str) or isinstance(path, unicode):
                         path = [path]
@@ -1078,8 +1118,8 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
             return False
 
         for s in sorted(suts):
-            ruser = quickFindPath(self.reservedResources, s)
-            luser = quickFindPath(self.lockedResources, s)
+            ruser = quick_find_path(self.reservedResources, s)
+            luser = quick_find_path(self.lockedResources, s)
 
             if (not ruser) and (not luser):
                 result.append({'name': s, 'status': 'free'})
@@ -1091,7 +1131,7 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
             else:
                 result.append({'name': s, 'status': 'reserved', 'user': ruser})
 
-        logDebug('User {}: Fast listing SUTs... Found {}.'.format(user,suts))
+        logDebug('User {}: Fast listing SUTs... Found {}.'.format(user, suts))
 
         return result
 
@@ -1101,6 +1141,7 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
         '''
         Import one sut XML file.
         '''
+
         user_info = self.user_info(props)
         user = user_info[0]
         logDebug('User {}: importing XML file `{}`...'.format(user, xml_file))
@@ -1138,7 +1179,7 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
         if sutType == 'system':
             resp = self.project.localFs.write_system_file(sut_file, json.dumps(xml_ret, indent=4), 'w')
         else:
-            resp = self.project.localFs.write_user_file(user,sut_file, json.dumps(xml_ret, indent=4), 'w')
+            resp = self.project.localFs.write_user_file(user, sut_file, json.dumps(xml_ret, indent=4), 'w')
 
         return resp
 
@@ -1148,6 +1189,7 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
         '''
         Export as XML file.
         '''
+
         user_info = self.user_info(props)
         user = user_info[0]
 
@@ -1168,7 +1210,7 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
                 sutPath = '{}/twister/config/sut/'.format(usrHome)
 
         sut_filename = sutPath + '/' + query.split('/')[1].split('.')[0] + '.json'
-        logInfo('User {}: export SUT file: {} to {} file.'.format(user, sut_filename,xml_file))
+        logInfo('User {}: export SUT file: {} to {} file.'.format(user, sut_filename, xml_file))
 
         # read the content of the user SUT file and load it in json
         if sutType == 'system':
@@ -1204,16 +1246,26 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
 
     @cherrypy.expose
     def lock_sut(self, res_query, props={}):
+        '''
+        Lock SUT. Add to lockedResources
+        '''
+
         return self.lock_resource(res_query, props)
 
 
     @cherrypy.expose
     def unlock_sut(self, res_query, props={}):
+        '''
+        Unlock SUT. Delete from lockedResources.
+        '''
         return self.unlock_resource(res_query, props)
 
 
     @cherrypy.expose
     def is_sut_locked(self, res_query):
+        '''
+        Verify if SUT is locked.
+        '''
         result = self.is_resource_locked(res_query)
         if not result:
             return "false"
@@ -1222,6 +1274,9 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
 
     @cherrypy.expose
     def is_sut_reserved(self, res_query, props={}):
+        '''
+        Verify if SUT is reserved.
+        '''
         result = self.is_resource_reserved(res_query, props)
         if not result:
             return "false"
@@ -1234,7 +1289,7 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
         Save a reserved SUT as.
         '''
         user_info = self.user_info(props)
-        logDebug('CeSuts:save_reserved_sut_as {} {} {}'.format(name,res_query, user_info[0]))
+        logDebug('CeSuts:save_reserved_sut_as {} {} {}'.format(name, res_query, user_info[0]))
 
         target_name = '/'+name+'.user'
 
@@ -1260,13 +1315,15 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
         # Check if resource is reserved; if so, it cannot be deleted
         _isResourceReserved = self.is_resource_reserved(res_query, props)
         if _isResourceReserved and _isResourceReserved != user_info[0]:
-            msg = 'User {}: Cannot save as: The resource is reserved for {} !'.format(user_info[0],_isResourceReserved)
+            msg = 'User {}: Cannot save as: The resource is reserved for {} !'\
+            .format(user_info[0], _isResourceReserved)
             logError(msg)
             return '*ERROR* ' + msg
 
         _isResourceLocked = self.is_resource_locked(res_query)
         if _isResourceLocked and _isResourceLocked != user_info[0]:
-            msg = 'User {}: Reserve resource: The resource is locked for {} !'.format(user_info[0],_isResourceLocked)
+            msg = 'User {}: Reserve resource: The resource is locked for {} !'\
+            .format(user_info[0], _isResourceLocked)
             logError(msg)
             return '*ERROR* ' + msg
 
@@ -1301,7 +1358,11 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
 
     @cherrypy.expose
     def save_reserved_sut(self, res_query, props={}):
-        """  """
+        """
+        User has made some changes only on self.reserved_resources.
+        In this method we sync self.reserved_resources with self.resources
+        and the store on the disk
+        """
 
         user_info = self.user_info(props)
         logDebug('CeSuts:save_reserved_sut {} {}'.format(res_query, user_info[0]))
@@ -1335,7 +1396,8 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
 
         # maybe the user renamed the TB
         if (reserved_node['path'][0] != resource_node['path'][0]):
-            self.resources['children'][reserved_node['path'][0]] = self.resources['children'].pop(resource_node['path'][0])
+            self.resources['children'][reserved_node['path'][0]] = \
+            self.resources['children'].pop(resource_node['path'][0])
         #...or maybe the name of the resource is the same
         resources['children'].update([(reserved_node['path'][0], reserved_node), ])
 
@@ -1353,7 +1415,11 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
 
     @cherrypy.expose
     def save_release_reserved_sut(self, res_query, props={}):
-        """  """
+        """
+        Save the changes. Sync self.resources with self.reserved_resources
+        and save to the disk
+        """
+
         user_info = self.user_info(props)
         logDebug('CeSuts:save_release_reserved_sut {} {} {}'.format(res_query, props, user_info[0]))
 
@@ -1391,5 +1457,10 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
 
     @cherrypy.expose
     def discard_release_reserved_sut(self, res_query, props={}):
+        '''
+        Discard changes and release SUT.
+        Delete entry from reservedResources.
+        '''
+
         return self.discard_release_reserved_resource(res_query, props)
 
