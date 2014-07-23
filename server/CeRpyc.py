@@ -185,12 +185,18 @@ class CeRpycService(rpyc.Service):
                 # Check (Addr & Hello)
                 if (addr and hello) and str_addr.split(':')[0] in addr:
                     # If the Hello matches with the filter
-                    if data.get('hello') and data['hello'].split(':') and data['hello'].split(':')[0] == hello:
-                        found = str_addr
-                        break
+                    if data.get('hello') and data['hello'].split(':'):
+                        # If the hello has : it's looking for a specific thing
+                        if ':' in hello and hello == data['hello']:
+                            found = str_addr
+                            break
+                        # Or, try to match the beggining of the remote hello
+                        elif data['hello'].split(':')[0] == hello:
+                            found = str_addr
+                            break
                 # Check (Hello & Ep)
                 elif (hello and epname) and data.get('hello') and \
-                data['hello'].split(':') and data['hello'].split(':')[0] == hello:
+                    data['hello'].split(':') and data['hello'].split(':')[0] == hello:
                     # If this connection has registered EPs
                     eps = data.get('eps')
                     if eps and epname in eps:

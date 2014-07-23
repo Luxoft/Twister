@@ -1589,6 +1589,28 @@ class Project(object):
         return self.rsrv.service.conns.get(local_client, {}).get('conn', False)
 
 
+    def _find_local_ep(self, user, epname='ep'):
+        """
+        Helper function to find a local EP connection.
+        """
+        addr = ['127.0.0.1', 'localhost']
+        hostName = socket.gethostname()
+        addr.append(hostName)
+        try:
+            addr.append(socket.gethostbyaddr(hostName)[-1][0])
+        except Exception:
+            pass
+
+        ep_addr = self.rsrv.service._findConnection(usr=user, addr=addr, hello=epname)
+
+        # Cannot find local conns
+        if not ep_addr:
+            logWarning('*WARN* Cannot find any local EPs for user `{}`!'.format(user))
+            return False
+
+        return self.rsrv.service.conns.get(ep_addr, {}).get('conn', False)
+
+
     def _find_anonim_ep(self, user):
         """
         Helper function to find a local, free EP to be used as Anonim EP.
