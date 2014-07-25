@@ -1,7 +1,7 @@
 
 # File: TestCaseRunnerClasses.py ; This file is part of Twister.
 
-# version: 3.004
+# version: 3.005
 
 # Copyright (C) 2012-2014, Luxoft
 
@@ -35,17 +35,18 @@ import time
 import glob
 from shutil import copyfile
 
-import subprocess # For running Perl
+import subprocess # For running Perl/ Jython
 from collections import OrderedDict # For dumping TCL
-
-from ConfigParser import SafeConfigParser
+from ConfigParser import SafeConfigParser # For parsing Jython config
 
 TWISTER_PATH = os.getenv('TWISTER_PATH')
 if not TWISTER_PATH:
     print('TWISTER_PATH environment variable is not set! Exiting!')
     exit(1)
 
-#
+
+__all__ = ['TCRunTcl', 'TCRunPython', 'TCRunPerl', 'TCRunJava']
+
 
 class TCRunTcl(object):
     """
@@ -243,6 +244,7 @@ class TCRunPython(object):
         """
         self.epname = globs['EP']
         self.filename = os.path.split(globs['FILE_NAME'])[1]
+        params.insert(0, self.filename)
         fpath = '{}/.twister_cache/{}/{}'.format(TWISTER_PATH, self.epname, self.filename)
 
         # Start injecting inside tests
@@ -251,13 +253,13 @@ class TCRunPython(object):
         globs_copy['sys'] = sys
         globs_copy['time'] = time
 
-        to_execute = r"""
-__file__ = '%s'
-sys.argv = %s
-""" % (fpath, str([self.filename] + params))
+        script_head = """
+__file__ = '{}'
+sys.argv = {}
+""".format(fpath, params)
 
         fname = open(fpath, 'wb')
-        fname.write(to_execute)
+        fname.write(script_head)
         fname.write(str_to_execute)
         fname.close()
 

@@ -45,10 +45,12 @@ import signal
 import shutil
 import binascii
 import platform
+import inspect
 import traceback
 import tarfile
 import argparse
 
+from pprint import pprint
 from string import Template
 from threading import Thread
 from thread import allocate_lock
@@ -80,6 +82,7 @@ EP_CACHE, EP_LOG = None, None
 PROXY_LOCK = allocate_lock() # Lock the connection access
 RUNNER = None
 LOGGER = None
+DEBUG = False
 CE_PROXY   = None # Used to keep the current Central Engine connection
 BG_SERVER  = None # Background serving server
 USER_NAME  = None # Used to check the Central Engine connection
@@ -145,6 +148,21 @@ class EpService(rpyc.Service):
         Fake function.
         """
         return True
+
+    def exposed_echo(self, text):
+        """
+        Echo function.
+        """
+        print('Echo: {}'.format(text))
+        return None
+
+    def exposed_dbg_continue(self):
+        """
+        Continue Debug.
+        """
+        global DEBUG
+        DEBUG = False
+        return None
 
 
 def proxy():
@@ -361,6 +379,29 @@ class ThreadedLogger(Thread):
         data = self.tail()
         self.logLive(data, force=True)
         self.closed = True
+
+
+# # #
+
+
+def dbg_breakpoint():
+    """
+    This function be called only from a test!
+    It will block the test and wait for the "NEXT" command.
+    """
+    global DEBUG
+    DEBUG = True
+    print('\n>> Enter Breakpoint >>\n')
+
+    stack = inspect.stack()
+    f_vars = dict(stack[1][0].f_locals)
+    del f_vars['__builtins__']
+    pprint(f_vars)
+    print('\n--- End of Stack ---\n')
+
+    while DEBUG:
+        time.sleep(0.5)
+    print('>> Exit Breakpoint >>')
 
 
 # # #
@@ -966,13 +1007,17 @@ class TwisterRunner(object):
                 'FILE_NAME' : filename,
                 'PROPERTIES': props,
                 'CONFIG'    : config_files,
-                'PROXY'     : proxy()
+                'PROXY'     : proxy(),
+                'breakpoint' : dbg_breakpoint
             }
 
             # Find all functions from commonLib
             to_inject = [f for f in dir(self.commonLib) if callable(getattr(self.commonLib, f))]
             # Expose all known function in tests
             for f in to_inject:
+                # Ignore "private" functions
+                if f[0] == '_':
+                    continue
                 # print('DEBUG: Exposing Python command `{}` into TCL...'.format(f))
                 globs[f] = getattr(self.commonLib, f)
 

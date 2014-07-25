@@ -20,64 +20,78 @@ def test():
 
 	error_code = "PASS"
 
-	print 'Query SUTs...', get_sut(1)
-	print 'Query SUTs...', get_sut('/')
-	print
-
-	py_res = 'sut_' + hexlify(urandom(4)) + '.system'
-	print 'Create a root SUT `{}`...'.format(py_res)
-	res_id = set_sut(py_res, '/', {'meta1': 1, 'meta2': 2})
+	sut_name = 'sut_' + hexlify(urandom(4)) + '.system'
+	print 'Create a root SUT `{}`...'.format(sut_name)
+	sut_id = set_sut(sut_name, '/', {'meta1': 1, 'meta2': 2})
 	print 'Ok.\n'
 
-	if not res_id:
-		return "FAIL"
+	if not sut_id:
+		return 'FAIL'
 
-	r = get_sut('/' + py_res)
+	r = get_sut('/' + sut_name)
 	print 'Find SUT by name::', r
-	if not r: return "FAIL"
+	if not r: return 'FAIL'
 
-	r = get_sut(res_id)
+	r = get_sut(sut_id)
 	print 'Find SUT by ID::', r
-	if not r: return "FAIL"
+	if not r: return 'FAIL'
 	print
 
-	r = get_sut('/{}:meta1'.format(py_res))
+	r = get_meta_sut('/{}:meta1'.format(sut_name))
 	print 'Meta 1::', r
-	if not r:
-		delete_sut(res_id)
-		print '\nCould not update meta!'
-		return "FAIL"
+	if not r: return 'FAIL'
 
-	r = get_sut('/{}:meta2'.format(py_res))
+	r = get_meta_sut('{}:meta2'.format(sut_id))
 	print 'Meta 2::', r
-	if not r:
-		delete_sut(res_id)
-		print '\nCould not update meta!'
-		return "FAIL"
+	if not r: return 'FAIL'
 	print
 
-	# for i in range(1, 4):
-	# 	tag = 'tag{}'.format(i)
-	# 	r = set_sut(py_res, '/', {tag: str(i)})
-	# 	print 'Set tag `{}` = `{}` ... {}'.format(tag, i, r)
-	# 	if not r: return "FAIL"
+	# print 'Reserving SUT...', reserve_sut(sut_id)
+	# child_id = set_sut('child', sut_id, {'some-meta': 'y'})
+	# print 'Create child::', child_id
+	# print 'Find by name::', get_sut('/{}/child'.format(sut_name))
+	# print 'Find by ID::', get_sut(child_id)
+	# print 'Releasing SUT...', save_release_reserved_sut(sut_id)
+	# print
 
-	# 	path = '/' + py_res + ':' + tag
-	# 	r = rename_sut(path, 'tagx')
-	# 	print 'Rename tag `{}` = `tagx` ... {}'.format(path, r)
-	# 	if not r: return "FAIL"
 
-	# 	path = '/' + py_res + ':tagx'
-	# 	r = delete_sut(path)
-	# 	print 'Delete tag `{}` ... {}'.format(path, r)
-	# 	if not r: return "FAIL"
-	# 	print
+	for i in range(1, 4):
+		print 'Reserving SUT...', reserve_sut(sut_id)
 
-	print 'Delete SUT::', delete_sut('/' + py_res)
-	r = get_sut(res_id)
+		tag = 'tag{}'.format(i)
+		r = set_sut(sut_name, '/', {tag: str(i)})
+		print 'Set tag `{}` = `{}` ... {}'.format(tag, i, r)
+		if not r: return 'FAIL'
+
+		path = '/' + sut_name + ':' + tag
+		r = PROXY.rename_meta_sut(path, 'tagx')
+		print 'Rename tag `{}` = `tagx` ... {}'.format(path, r)
+		if not r: return 'FAIL'
+
+		print 'Renamed meta::', get_meta_sut('{}:tagx'.format(sut_id))
+
+		path = '/' + sut_name + ':tagx'
+		r = delete_component_sut(path)
+		print 'Delete tag `{}` ... {}'.format(path, r)
+		if not r: return 'FAIL'
+
+		print 'Releasing SUT...\n', save_release_reserved_sut(sut_id)
+		print
+
+
+	r = rename_sut('/' + sut_name, 'test_sut')
+	print 'Renaming SUT::', r
+	if r.lower() != 'true': return 'FAIL'
+	r = rename_sut('/test_sut.system', sut_name)
+	print 'Renaming SUT again::', r
+	if r.lower() != 'true': return 'FAIL'
+	print
+
+	print 'Delete SUT::', delete_sut('/' + sut_name)
+	r = get_sut(sut_id)
 	print 'Check info::', r
-	if r and '*ERROR*' not in r:
-		return "FAIL"
+	if isinstance(r, dict):
+		return 'FAIL'
 	print
 
 	log_msg('logRunning', "TestCase: `{}` -  `{}`!\n".format(testName, error_code))

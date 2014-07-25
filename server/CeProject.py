@@ -128,6 +128,8 @@ from CeServices  import ServiceManager
 from CeWebUi     import WebInterface
 from CeResources import ResourceAllocator
 from CeReports   import ReportingServer
+from CeSuts      import Suts
+from CeTestBeds  import TestBeds
 
 usrs_and_pwds = {}
 usr_pwds_lock = allocate_lock()
@@ -217,7 +219,8 @@ class Project(object):
         self.ip_port = None # Will be injected by the Central Engine CherryPy
         self.manager = ServiceManager()
         self.web   = WebInterface(self)
-        self.ra    = ResourceAllocator(self)
+        self.tb = TestBeds(self)
+        self.sut = Suts(self)
         self.report = ReportingServer(self)
 
         self.localFs = None # local FS pointer
@@ -1584,6 +1587,28 @@ class Project(object):
             return False
 
         return self.rsrv.service.conns.get(local_client, {}).get('conn', False)
+
+
+    def _find_local_ep(self, user, epname='ep'):
+        """
+        Helper function to find a local EP connection.
+        """
+        addr = ['127.0.0.1', 'localhost']
+        hostName = socket.gethostname()
+        addr.append(hostName)
+        try:
+            addr.append(socket.gethostbyaddr(hostName)[-1][0])
+        except Exception:
+            pass
+
+        ep_addr = self.rsrv.service._findConnection(usr=user, addr=addr, hello=epname)
+
+        # Cannot find local conns
+        if not ep_addr:
+            logWarning('*WARN* Cannot find any local EPs for user `{}`!'.format(user))
+            return False
+
+        return self.rsrv.service.conns.get(ep_addr, {}).get('conn', False)
 
 
     def _find_anonim_ep(self, user):

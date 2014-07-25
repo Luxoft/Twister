@@ -1,7 +1,7 @@
 
 # File: CeXmlRpc.py ; This file is part of Twister.
 
-# version: 3.001
+# version: 3.002
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -46,18 +46,11 @@ import traceback
 import socket
 socket.setdefaulttimeout(5)
 import binascii
+import pickle
 import tarfile
 import xmlrpclib
 import urlparse
 import MySQLdb
-
-from rpyc import connect as rpycConnect
-
-import pickle
-try:
-    import simplejson as json
-except Exception as e:
-    import json
 
 import cherrypy
 from cherrypy import _cptools
@@ -223,6 +216,32 @@ class CeXmlRpc(_cptools.XMLRPCController):
 
         allFiles = self.project.localFs.list_user_files(user, tests_path, True, True, result)
         return allFiles
+
+
+    @cherrypy.expose
+    def send_ep_echo(self, text):
+        """
+        Send remote echo.
+        """
+        user = cherrypy.session.get('username')
+        ep_conn = self.project._find_local_ep(user)
+        if not ep_conn:
+            return False
+        ep_conn.root.echo(text)
+        return True
+
+
+    @cherrypy.expose
+    def send_ep_continue(self):
+        """
+        Send remote continue.
+        """
+        user = cherrypy.session.get('username')
+        ep_conn = self.project._find_local_ep(user)
+        if not ep_conn:
+            return False
+        ep_conn.root.dbg_continue()
+        return True
 
 
 # # #

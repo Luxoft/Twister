@@ -81,6 +81,7 @@ import javax.swing.DefaultListModel;
 public class SutEditor extends JPanel{
     private JTree tree;
     private XmlRpcClient client;
+    private XmlRpcClient client2;
     public DefaultMutableTreeNode root;
     private JButton saveas,redcomp,addcomp,save,close,setep;
     private JLabel jusers;
@@ -177,7 +178,7 @@ public class SutEditor extends JPanel{
                             sb.append(";");
                         }
                         String query = "{'_epnames_"+RunnerRepository.user+"':'"+sb.toString()+"'}";
-                        query = client.execute("set_sut", new Object[]{"/"+rootsut,"/",query,RunnerRepository.user}).toString();
+                        query = client.execute("update_meta_sut", new Object[]{"/"+rootsut,"/",query}).toString();
                         if(query.indexOf("ERROR")==-1){
                            ((DefaultMutableTreeNode)root.getFirstChild()).setUserObject("EP:"+sb.toString());
                            ((DefaultTreeModel)tree.getModel()).nodeChanged(root.getFirstChild());
@@ -218,7 +219,7 @@ public class SutEditor extends JPanel{
                         parent = treenode.getFirstChild().toString().split("ID: ")[1];
                     }
                     try{
-                        String resp = client.execute("set_sut", new Object[]{name,parent,"",RunnerRepository.user}).toString();
+                        String resp = client.execute("create_component_sut", new Object[]{name,parent,""}).toString();
                         if(resp.indexOf("ERROR")==-1){
                             Comp comp = new Comp(name,resp,"");
                             DefaultMutableTreeNode component = new DefaultMutableTreeNode(comp,true);
@@ -259,7 +260,7 @@ public class SutEditor extends JPanel{
                         }
                         HashMap <String,String>hm = new <String,String>HashMap();
                         hm.put("_id","");
-                        String resp = client.execute("set_sut", new Object[]{parentid,name,hm,RunnerRepository.user}).toString();
+                        String resp = client.execute("delete_component_sut", new Object[]{parentid,name,hm}).toString();
                         if(resp.indexOf("ERROR")==-1){
                             DefaultTreeModel model = (DefaultTreeModel)tree.getModel();
                             model.removeNodeFromParent(treenode);
@@ -269,7 +270,7 @@ public class SutEditor extends JPanel{
                         }
                     } else if (userobj instanceof Comp) {
                         torem = ((Comp)userobj).getID();
-                        String s = client.execute("delete_resource", new Object[]{torem,"{}",2,RunnerRepository.user}).toString();
+                        String s = client.execute("delete_component_sut", new Object[]{torem}).toString();
                         if(s.indexOf("ERROR")==-1){
                             ((DefaultTreeModel)tree.getModel()).removeNodeFromParent(treenode);
                             selectedSUT(null);                        
@@ -291,7 +292,7 @@ public class SutEditor extends JPanel{
         save.setEnabled(false);
         save.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
-                try{String resp = client.execute("save_reserved_sut", new Object[]{"/"+rootsut,RunnerRepository.user}).toString();
+                try{String resp = client.execute("save_reserved_sut", new Object[]{"/"+rootsut}).toString();
                     if(resp.indexOf("ERROR")!=-1){
                         CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,SutEditor.this,"ERROR", resp);
                     }
@@ -321,7 +322,7 @@ public class SutEditor extends JPanel{
                         overwrite = true;
                     }
                     
-                    try{String resp = client.execute("save_reserved_sut_as", new Object[]{filename,"/"+rootsut,RunnerRepository.user}).toString();
+                    try{String resp = client.execute("save_reserved_sut_as", new Object[]{filename,"/"+rootsut}).toString();
                         if(resp.indexOf("ERROR")!=-1){
                             CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,SutEditor.this,"ERROR", resp);
                             return;
@@ -370,7 +371,7 @@ public class SutEditor extends JPanel{
                     String resp = "";
                     try{
                         if(lastsaved){
-                            resp = client.execute("discard_release_reserved_sut", new Object[]{"/"+rootsut,RunnerRepository.user}).toString();
+                            resp = client.execute("discard_release_reserved_sut", new Object[]{"/"+rootsut}).toString();
                         } else {
                             String[] buttons = {"Save","Discard"};
                             resp = CustomDialog.showButtons(SutEditor.this, JOptionPane.QUESTION_MESSAGE,
@@ -378,13 +379,13 @@ public class SutEditor extends JPanel{
                                                                     "Save","Save SUT before closing?");
                             if (!resp.equals("NULL")) {
                                 if(resp.equals("Save")){
-                                    resp = client.execute("save_release_reserved_sut", new Object[]{"/"+rootsut,RunnerRepository.user}).toString();
+                                    resp = client.execute("save_release_reserved_sut", new Object[]{"/"+rootsut}).toString();
                                 }
                                 else if(resp.equals("Discard")){
-                                    resp = client.execute("discard_release_reserved_sut", new Object[]{"/"+rootsut,RunnerRepository.user}).toString();
+                                    resp = client.execute("discard_release_reserved_sut", new Object[]{"/"+rootsut}).toString();
                                 }
                             } else {
-                                resp = client.execute("discard_release_reserved_sut", new Object[]{"/"+rootsut,RunnerRepository.user}).toString();
+                                resp = client.execute("discard_release_reserved_sut", new Object[]{"/"+rootsut}).toString();
                             }
                         }
                         if(resp.indexOf("*ERROR*")!=-1){
@@ -496,9 +497,10 @@ public class SutEditor extends JPanel{
     
     public void getSUT(String sutname,DefaultMutableTreeNode sutnode,boolean editable){
         try{
-            Object ob = client.execute("get_sut_by_name", new Object[]{sutname,RunnerRepository.user});
-            HashMap hash = (HashMap)ob;
-            this.editable = editable;
+            Object ob = client.execute("get_sut", new Object[]{sutname});
+	    System.out.println(ob);
+	    HashMap hash = (HashMap)ob;
+	    this.editable = editable;
             DefaultMutableTreeNode epsnode;//child
             DefaultTreeModel model = (DefaultTreeModel)tree.getModel();
             root.removeAllChildren();
@@ -577,7 +579,8 @@ public class SutEditor extends JPanel{
     public Node getTB(String id,Node parent){
         Object resp = null;
         try{
-            resp = client.execute("get_resource", new Object[]{id});
+            resp = client2.execute("get_tb", new Object[]{id});
+	    System.out.println(resp);
             if(!(resp instanceof HashMap)){
                 System.out.println("CE respons for getResource("+id+"):"+resp.toString()+"SutEditor->getTB");
                 return null;
@@ -626,7 +629,7 @@ public class SutEditor extends JPanel{
     public String getEpsFromSut(String sutname){
         String eps = "";
         try{//HashMap hash= (HashMap)client.execute("getSut", new Object[]{sutname,RunnerRepository.user,RunnerRepository.user});
-            Object ob = client.execute("get_sut_by_name", new Object[]{sutname,RunnerRepository.user});
+            Object ob = client.execute("get_sut", new Object[]{sutname});
             if(ob.toString().indexOf("*ERROR*")!=-1){
                 CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,SutEditor.this,"ERROR", ob.toString());
                 return "";
@@ -653,7 +656,7 @@ public class SutEditor extends JPanel{
     public void initializeRPC(){
         try{XmlRpcClientConfigImpl configuration = new XmlRpcClientConfigImpl();
             configuration.setServerURL(new URL("http://"+RunnerRepository.host+
-                                        ":"+RunnerRepository.getCentralEnginePort()+"/ra/"));
+                                        ":"+RunnerRepository.getCentralEnginePort()+"/sut/"));
             configuration.setEnabledForExtensions(true);
             configuration.setBasicPassword(RunnerRepository.password);
             configuration.setBasicUserName(RunnerRepository.user);
@@ -661,8 +664,20 @@ public class SutEditor extends JPanel{
             client.setConfig(configuration);
             System.out.println("XMLRPC Client for SutEditor initialized: "+client);}
         catch(Exception e){System.out.println("Could not conect to "+
-                            RunnerRepository.host+" :"+RunnerRepository.getCentralEnginePort()+"/ra/"+
+                            RunnerRepository.host+" :"+RunnerRepository.getCentralEnginePort()+"/sut/"+
                             "for RPC client initialization");}
+	try{XmlRpcClientConfigImpl configuration2 = new XmlRpcClientConfigImpl();
+	    configuration2.setServerURL(new URL("http://"+RunnerRepository.host+
+		                        ":"+RunnerRepository.getCentralEnginePort()+"/tb/"));
+	    configuration2.setEnabledForExtensions(true);
+	    configuration2.setBasicPassword(RunnerRepository.password);
+	    configuration2.setBasicUserName(RunnerRepository.user);
+	    client2 = new XmlRpcClient();
+	    client2.setConfig(configuration2);
+	    System.out.println("XMLRPC Client for SutEditor initialized: "+client2);}
+	catch(Exception e){System.out.println("Could not conect to "+
+		            RunnerRepository.host+" :"+RunnerRepository.getCentralEnginePort()+"/tb/"+
+		            "for RPC client initialization");}
     }
     
     class ImportTreeTransferHandler extends TransferHandler {  
@@ -763,7 +778,7 @@ public class SutEditor extends JPanel{
                         String id = "";
                         if(nodes[i].getType()==0){
                             try{System.out.println("getresource: "+"/"+nodes[i].getName());
-                                HashMap hash = (HashMap)client.execute("get_resource", new Object[]{"/"+nodes[i].getName()});
+                                HashMap hash = (HashMap)client.execute("get_sut", new Object[]{"/"+nodes[i].getName()});
                                 id = hash.get("id").toString();
                             } catch(Exception e){
                                 e.printStackTrace();
@@ -784,7 +799,7 @@ public class SutEditor extends JPanel{
                             name = ((Comp)((DefaultMutableTreeNode)parent.getParent()).getUserObject()).getID();
                         }
                         System.out.println(parentid+" - "+name+" - "+hm.toString()+" - "+RunnerRepository.user);
-                        String resp = client.execute("set_sut", new Object[]{parentid,name,hm,RunnerRepository.user}).toString();
+                        String resp = client.execute("update_meta_sut", new Object[]{parentid,name,hm}).toString();
                         
                         if(resp.indexOf("ERROR")==-1){
                             DefaultMutableTreeNode element = createChildren(nodes[i]);

@@ -1,7 +1,7 @@
 
 # File: CeClearCaseFs.py ; This file is part of Twister.
 
-# version: 3.011
+# version: 3.012
 
 # Copyright (C) 2012-2014, Luxoft
 
@@ -126,6 +126,8 @@ class ClearCaseFs(object):
         Launch a user service.
         Open a ClearCase view first.
         """
+        if user_view_actv[-1] != ':':
+            user_view_actv += ':'
         try:
             user, view, actv = user_view_actv.split(':')
         except Exception:

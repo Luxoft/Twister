@@ -224,7 +224,7 @@ public class TB extends JPanel{
                 new MySftpBrowser(RunnerRepository.host,RunnerRepository.user,RunnerRepository.password,RunnerRepository.CENTRALENGINEPORT,tf,c,false).setAction(new AbstractAction(){
                     public void actionPerformed(ActionEvent ev){
                         try{
-                            String resp = client.execute("import_xml", new Object[]{tf.getText()}).toString();
+                            String resp = client.execute("import_tb_xml", new Object[]{tf.getText()}).toString();
                             if(resp.indexOf("*ERROR*")==-1){
                                 root.removeAllChildren();
                                 parent = getTB("/",null);
@@ -251,7 +251,7 @@ public class TB extends JPanel{
                 AbstractAction action = new AbstractAction(){
                     public void actionPerformed(ActionEvent ev){
                         try{
-                            String resp = client.execute("export_xml", new Object[]{tf.getText()}).toString();
+                            String resp = client.execute("export_tb_xml", new Object[]{tf.getText()}).toString();
                             if(resp.indexOf("*ERROR*")!=-1){
                                 CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,TB.this,"ERROR", "Could not save");
                             }
@@ -433,7 +433,7 @@ public class TB extends JPanel{
     
     public void buildFirstLevelTB(){
         try{root.removeAllChildren();
-            Object ob = client.execute("list_all_resources", new Object[]{});
+            Object ob = client.execute("list_all_tbs", new Object[]{});
             if(ob.toString().indexOf("*ERROR*")!=-1){
                 CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,TB.this,"ERROR", ob.toString());
             }
@@ -490,7 +490,7 @@ public class TB extends JPanel{
      * get from server user that reserved tb
      */
     private String getTBLockedUser(String tbid){
-        try{String resp = client.execute("is_resource_locked", new Object[]{tbid}).toString();
+        try{String resp = client.execute("is_tb_locked", new Object[]{tbid}).toString();
             if(resp.equals("false")){
                 return "";
             }
@@ -510,7 +510,7 @@ public class TB extends JPanel{
      * get from server user that reserved tb
      */
     private String getTBReservdUser(String tbid){
-        try{String resp = client.execute("is_resource_reserved", new Object[]{tbid,1}).toString();
+        try{String resp = client.execute("is_tb_reserved", new Object[]{tbid}).toString();
             if(resp.equals("false")){
                 return "";
             }
@@ -531,7 +531,7 @@ public class TB extends JPanel{
      * check if a TB is reserved
      */
     public boolean isReservedByUser(String tbid){
-        try{String resp = client.execute("is_resource_reserved", new Object[]{tbid,1}).toString();
+        try{String resp = client.execute("is_tb_reserved", new Object[]{tbid}).toString();
             if(resp.equals(RunnerRepository.user)){
                 return true;
             } else if (resp.indexOf("*ERROR*")!=-1){
@@ -551,7 +551,7 @@ public class TB extends JPanel{
      * method used to reserve TB on server
      */
     public boolean reserve(String tbid){
-        try{String resp = client.execute("reserve_resource", new Object[]{tbid}).toString();
+        try{String resp = client.execute("reserve_tb", new Object[]{tbid}).toString();
             if(resp.indexOf("*ERROR*")==-1){
                 return true;
             } else {
@@ -571,7 +571,7 @@ public class TB extends JPanel{
      * method used to discard and release TB on server
      */
     public boolean discardAndRelease(String tbid){
-        try{String resp = client.execute("discard_release_reserved_res", new Object[]{tbid}).toString();
+        try{String resp = client.execute("discard_release_reserved_tb", new Object[]{tbid}).toString();
             if(resp.indexOf("*ERROR*")==-1){
                 return true;
             } else {
@@ -590,7 +590,7 @@ public class TB extends JPanel{
      * latest changes made and release resource
      */
     public boolean saveAndRelease(String tbid){
-        try{String resp = client.execute("save_release_reserved_resource", new Object[]{tbid}).toString();
+        try{String resp = client.execute("save_release_reserved_tb", new Object[]{tbid}).toString();
             if(resp.indexOf("*ERROR*")!=-1){
                 CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,TB.this,"ERROR", resp);
                 return false;
@@ -607,7 +607,7 @@ public class TB extends JPanel{
      * latest changes made 
      */
     public boolean saveChanges(String tbid){
-        try{String resp = client.execute("save_reserved_resource", new Object[]{tbid}).toString();
+        try{String resp = client.execute("save_reserved_tb", new Object[]{tbid}).toString();
             if(resp.indexOf("*ERROR*")!=-1){
                 CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,TB.this,"ERROR", resp);
                 return false;
@@ -722,7 +722,7 @@ public class TB extends JPanel{
             item = new JMenuItem("Lock");
             item.addActionListener(new ActionListener(){
                 public void actionPerformed(ActionEvent ev){
-                    try{String resp = client.execute("lock_resource", new Object[]{"/"+node.getName()}).toString();
+                    try{String resp = client.execute("lock_tb", new Object[]{"/"+node.getName()}).toString();
                         if(resp.indexOf("*ERROR*")==-1){
                             node.setLock(RunnerRepository.user);
                             ((DefaultTreeModel)tree.getModel()).nodeChanged(treenode);
@@ -738,7 +738,7 @@ public class TB extends JPanel{
             item = new JMenuItem("Unlock");
             item.addActionListener(new ActionListener(){
                 public void actionPerformed(ActionEvent ev){
-                    try{String resp = client.execute("unlock_resource", new Object[]{"/"+node.getName()}).toString();
+                    try{String resp = client.execute("unlock_tb", new Object[]{"/"+node.getName()}).toString();
                         if(resp.indexOf("*ERROR*")==-1){
                             node.setLock("");
                             ((DefaultTreeModel)tree.getModel()).nodeChanged(treenode);
@@ -823,7 +823,7 @@ public class TB extends JPanel{
             }
             try{
                 Node newnode = new Node(null,resp,resp,parent,null,(byte)0);
-                resp = client.execute("set_resource", new Object[]{resp,"/","{}"}).toString();
+                resp = client.execute("create_new_tb", new Object[]{resp,"/","{}"}).toString();
                 if(resp.indexOf("*ERROR*")==-1){                        
                     parent.addChild(resp, newnode);
                     newnode.setID(resp);
@@ -911,7 +911,8 @@ public class TB extends JPanel{
             if(goon){
                 try{
                     Node newnode = new Node(null,parent.getPath().getPath()+"/"+resp,resp,parent,null,(byte)(1));
-                    resp = client.execute("set_resource", new Object[]{resp,"/"+parent.getPath().getPath()+"/","{}"}).toString();
+                    resp = client.execute("create_component_tb", new Object[]{resp,"/"+parent.getPath().getPath()+"/","{}"}).toString();
+		    System.out.println("!!!" + resp);
                     if(resp.indexOf("*ERROR*")==-1){
                         parent.addChild(resp,newnode);
                         setSavedState(treenode,false);
@@ -959,7 +960,7 @@ public class TB extends JPanel{
         try{
             //String id = "/"+node.getName();
             String id = node.getID();
-            String s = client.execute("delete_resource", new Object[]{id}).toString();
+            String s = client.execute("delete_tb", new Object[]{id}).toString();
             if(s.indexOf("*ERROR*")==-1){
                 Node parent = node.getParent();
                 setSavedState(treenode,false);
@@ -1053,7 +1054,7 @@ public class TB extends JPanel{
      */
     public Node getTB(String id,Node parent){
         Object ob = null;
-        try{ob = client.execute("get_resource", new Object[]{id});
+        try{ob = client.execute("get_tb", new Object[]{id});
             if(ob.toString().indexOf("*ERROR*")!=-1){
                 CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,TB.this,"ERROR", ob.toString());
             }
@@ -1105,7 +1106,7 @@ public class TB extends JPanel{
     private void initializeRPC(){
         try{XmlRpcClientConfigImpl configuration = new XmlRpcClientConfigImpl();
             configuration.setServerURL(new URL("http://"+RunnerRepository.host+
-                                        ":"+RunnerRepository.getCentralEnginePort()+"/ra/"));
+                                        ":"+RunnerRepository.getCentralEnginePort()+"/tb/"));
             configuration.setEnabledForExtensions(true);
             configuration.setBasicPassword(RunnerRepository.password);
             configuration.setBasicUserName(RunnerRepository.user);
@@ -1113,7 +1114,7 @@ public class TB extends JPanel{
             client.setConfig(configuration);
             System.out.println("XMLRPC Client for testbed initialized: "+client);}
         catch(Exception e){System.out.println("Could not conect to "+
-                            RunnerRepository.host+" :"+RunnerRepository.getCentralEnginePort()+"/ra/"+
+                            RunnerRepository.host+" :"+RunnerRepository.getCentralEnginePort()+"/tb/"+
                             "for RPC client initialization");}
     }
     
