@@ -219,29 +219,41 @@ class CeXmlRpc(_cptools.XMLRPCController):
 
 
     @cherrypy.expose
-    def send_ep_echo(self, text):
+    def send_ep_echo(self, text, epname='ep'):
         """
-        Send remote echo.
+        Send remote echo. Used for debug.
         """
         user = cherrypy.session.get('username')
-        ep_conn = self.project._find_local_ep(user)
+        ep_conn = self.project._find_local_ep(user, epname)
         if not ep_conn:
             return False
-        ep_conn.root.echo(text)
-        return True
+        try:
+            ep_conn.root.echo(text)
+            return True
+        except Exception as e:
+            logWarning('User `{}` - exception on EP echo: `{}`!'.format(user, e))
+            return False
 
 
     @cherrypy.expose
-    def send_ep_continue(self):
+    def send_ep_continue(self, epname='ep'):
         """
         Send remote continue.
         """
         user = cherrypy.session.get('username')
-        ep_conn = self.project._find_local_ep(user)
+        ep_conn = self.project._find_local_ep(user, epname)
         if not ep_conn:
             return False
-        ep_conn.root.dbg_continue()
-        return True
+        try:
+            # Send 2 consecutive "continue"
+            ep_conn.root.dbg_continue()
+            time.sleep(0.33)
+            ep_conn.root.dbg_continue()
+            logDebug('User `{}` sent EP debug continue.'.format(user))
+            return True
+        except Exception as e:
+            logWarning('User `{}` - exception on EP continue: `{}`!'.format(user, e))
+            return False
 
 
 # # #

@@ -1605,7 +1605,7 @@ class Project(object):
 
         # Cannot find local conns
         if not ep_addr:
-            logWarning('*WARN* Cannot find any local EPs for user `{}`!'.format(user))
+            logWarning('*WARN* Cannot find local EP `{}`, for user `{}`!'.format(epname, user))
             return False
 
         return self.rsrv.service.conns.get(ep_addr, {}).get('conn', False)

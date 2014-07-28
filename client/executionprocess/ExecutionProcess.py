@@ -400,7 +400,7 @@ def dbg_breakpoint():
     print('\n--- End of Stack ---\n')
 
     while DEBUG:
-        time.sleep(0.5)
+        time.sleep(0.3)
     print('>> Exit Breakpoint >>')
 
 

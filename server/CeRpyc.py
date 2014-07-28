@@ -195,8 +195,8 @@ class CeRpycService(rpyc.Service):
                             found = str_addr
                             break
                 # Check (Hello & Ep)
-                elif (hello and epname) and data.get('hello') and \
-                    data['hello'].split(':') and data['hello'].split(':')[0] == hello:
+                elif (hello and epname) and data.get('hello') and ':' in hello and \
+                    (data['hello'].split(':')[0] == hello or data['hello'] == epname):
                     # If this connection has registered EPs
                     eps = data.get('eps')
                     if eps and epname in eps:
