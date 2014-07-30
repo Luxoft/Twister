@@ -6,6 +6,7 @@
 # Copyright (C) 2012-2014 , Luxoft
 
 # Authors:
+#    Andreea Proca <aproca@luxoft.com>
 #    Andrei Costachi <acostachi@luxoft.com>
 #    Cristi Constantin <crconstantin@luxoft.com>
 #    Daniel Cioata <dcioata@luxoft.com>

@@ -1,16 +1,15 @@
 #!/usr/bin/env python2.7
 
-# version: 3.014
+# version: 3.016
 
 # File: ExecutionProcess.py ; This file is part of Twister.
 
 # Copyright (C) 2012-2014, Luxoft
 
 # Authors:
+#    Andreea Proca <aproca@luxoft.com>
 #    Andrei Costachi <acostachi@luxoft.com>
 #    Cristi Constantin <crconstantin@luxoft.com>
-#    Daniel Cioata <dcioata@luxoft.com>
-#    Mihai Tudoran <mtudoran@luxoft.com>
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -400,7 +399,7 @@ def dbg_breakpoint():
     print('\n--- End of Stack ---\n')
 
     while DEBUG:
-        time.sleep(0.3)
+        time.sleep(0.5)
     print('>> Exit Breakpoint >>')
 
 
@@ -745,7 +744,7 @@ class TwisterRunner(object):
             props = dict(node)
             props.update(suite_data)
             for prop in ['type', 'ep', 'sut', 'name', 'pd', 'libraries', 'children', 'clearcase',
-                        'status', 'file', 'suite', 'dependancy', 'Runnable',
+                        'status', 'file', 'suite', 'dependency', 'Runnable',
                         'setup_file', 'teardown_file', 'Optional', 'config_files', 'param']:
                 # Removing all known File properties
                 try:
@@ -776,6 +775,11 @@ class TwisterRunner(object):
                     else:
                         print('EP Debug: Not executed file `{}` because of failed setup file!\n\n'.format(filename))
                         proxy().set_file_status(self.epName, file_id, STATUS_NOT_EXEC, 0.0) # File status ABORTED
+                        try:
+                            proxy().set_file_variable(self.epName, file_id, '_reason', 'Not executed, because of failed setup file!')
+                        except Exception:
+                            trace = traceback.format_exc()[34:].strip()
+                            print('Exception on sending reason `{}`!'.format(trace))
                         print('<<< END filename: `{}:{}` >>>\n'.format(file_id, filename))
                         continue
                 del aborted_ids, current_ids
@@ -789,6 +793,11 @@ class TwisterRunner(object):
             # When a test file is about to be executed and STOP is received, send status ABORTED
             if STATUS == 'stopped':
                 proxy().set_file_status(self.epName, file_id, STATUS_ABORTED, 0.0) # File status ABORTED
+                try:
+                    proxy().set_file_variable(self.epName, file_id, '_reason', 'Manual stop! Time to exit!')
+                except Exception:
+                    trace = traceback.format_exc()[34:].strip()
+                    print('Exception on sending reason `{}`!'.format(trace))
                 print('~ STOP: Time to exit! ~')
                 diff_time = time.time() - glob_time
                 return self.exit(timer_f=diff_time, stop=False)
@@ -821,6 +830,11 @@ class TwisterRunner(object):
                     elif STATUS == 'stopped':
                         # When a test is waiting for resume, but receives STOP, send status NOT EXECUTED
                         proxy().set_file_status(self.epName, file_id, STATUS_NOT_EXEC, 0.0)
+                        try:
+                            proxy().set_file_variable(self.epName, file_id, '_reason', 'Manual stop, while waiting for resume!')
+                        except Exception:
+                            trace = traceback.format_exc()[34:].strip()
+                            print('Exception on sending reason `{}`!'.format(trace))
                         print('~ STOP: Received STOP, while waiting for resume ! ~')
                         # Exit the cycle
                         diff_time = time.time() - glob_time
@@ -881,6 +895,11 @@ class TwisterRunner(object):
                     except Exception:
                         trace = traceback.format_exc()[34:].strip()
                         print('Exception on dependency change file status `{}`!\n'.format(trace))
+                    try:
+                        proxy().set_file_variable(self.epName, file_id, '_reason', 'Skip, dependency not ok!')
+                    except Exception:
+                        trace = traceback.format_exc()[34:].strip()
+                        print('Exception on sending reason `{}`!'.format(trace))
                     print('<<< END filename: `{}:{}` >>>\n'.format(file_id, filename))
                     continue
 
@@ -894,20 +913,32 @@ class TwisterRunner(object):
                 if setup_file:
                     abort_suite = suite_id
                     print('*ERROR* Setup file for suite `{}` cannot run! No such file! All suite will be ABORTED!\n\n'.format(suite_name))
-                try: proxy().set_file_status(self.epName, file_id, STATUS_SKIPPED, 0.0) # Status SKIPPED
+                try:
+                    proxy().set_file_status(self.epName, file_id, STATUS_SKIPPED, 0.0) # Status SKIPPED
                 except Exception:
                     trace = traceback.format_exc()[34:].strip()
                     print('Exception on change file status `{}`!\n'.format(trace))
+                try:
+                    proxy().set_file_variable(self.epName, file_id, '_reason', 'Skip, invalid setup file!')
+                except Exception:
+                    trace = traceback.format_exc()[34:].strip()
+                    print('Exception on sending reason `{}`!'.format(trace))
                 print('<<< END filename: `{}:{}` >>>\n'.format(file_id, filename))
                 continue
 
             elif not str_to_execute:
                 print('EP Debug: File `{}` will be skipped.\n'.format(filename))
                 # Skipped setup files are ok, no need to abort.
-                try: proxy().set_file_status(self.epName, file_id, STATUS_SKIPPED, 0.0) # Status SKIPPED
+                try:
+                    proxy().set_file_status(self.epName, file_id, STATUS_SKIPPED, 0.0) # Status SKIPPED
                 except Exception:
                     trace = traceback.format_exc()[34:].strip()
                     print('Exception on change file status `{}`!\n'.format(trace))
+                try:
+                    proxy().set_file_variable(self.epName, file_id, '_reason', 'File marked skip!')
+                except Exception:
+                    trace = traceback.format_exc()[34:].strip()
+                    print('Exception on sending reason `{}`!'.format(trace))
                 print('<<< END filename: `{}:{}` >>>\n'.format(file_id, filename))
                 continue
 
@@ -918,10 +949,16 @@ class TwisterRunner(object):
                 f = open(fpath, 'wb')
                 f.write(str_to_execute)
                 f.close() ; del f
-                try: proxy().set_file_status(self.epName, file_id, STATUS_SKIPPED, 0.0) # Status SKIPPED
+                try:
+                    proxy().set_file_status(self.epName, file_id, STATUS_SKIPPED, 0.0) # Status SKIPPED
                 except Exception:
                     trace = traceback.format_exc()[34:].strip()
                     print('Exception on change file status `{}`!\n'.format(trace))
+                try:
+                    proxy().set_file_variable(self.epName, file_id, '_reason', 'Skip, file is not runnable!')
+                except Exception:
+                    trace = traceback.format_exc()[34:].strip()
+                    print('Exception on sending reason `{}`!'.format(trace))
                 print('<<< END filename: `{}:{}` >>>\n'.format(file_id, filename))
                 continue
 
@@ -954,14 +991,20 @@ class TwisterRunner(object):
 
             # Unknown file type
             else:
-                print('TC warning: Extension type `{}` is unknown and will be ignored!'.format(file_ext))
+                print('TC warning: Extension type `{}` is unknown and will be ignored!\n'.format(file_ext))
                 if setup_file:
                     abort_suite = suite_id
-                    print('*ERROR* Setup file for suite `{}` cannot run! Unknown extension file! All suite will be ABORTED!\n\n'.format(suite_name))
-                try: proxy().set_file_status(self.epName, file_id, STATUS_NOT_EXEC, 0.0) # Status NOT_EXEC
+                    print('*ERROR* Setup file for suite `{}` cannot run! Unknown file extension! All suite will be ABORTED!\n\n'.format(suite_name))
+                try:
+                    proxy().set_file_status(self.epName, file_id, STATUS_NOT_EXEC, 0.0) # Status NOT_EXEC
                 except Exception:
                     trace = traceback.format_exc()[34:].strip()
                     print('Exception on change file status `{}`!\n'.format(trace))
+                try:
+                    proxy().set_file_variable(self.epName, file_id, '_reason', 'Not executed, unknown file extension!')
+                except Exception:
+                    trace = traceback.format_exc()[34:].strip()
+                    print('Exception on sending reason `{}`!'.format(trace))
                 print('<<< END filename: `{}:{}` >>>\n'.format(file_id, filename))
                 continue
 
@@ -983,7 +1026,8 @@ class TwisterRunner(object):
                 return False
 
             # The file is preparing
-            try: proxy().set_file_status(self.epName, file_id, STATUS_WORKING, 0.0) # Status WORKING
+            try:
+                proxy().set_file_status(self.epName, file_id, STATUS_WORKING, 0.0) # Status WORKING
             except Exception:
                 trace = traceback.format_exc()[34:].strip()
                 print('Exception on change file status `{}`!\n'.format(trace))
@@ -993,6 +1037,7 @@ class TwisterRunner(object):
             start_time = time.strftime('%Y-%m-%d %H:%M:%S')
 
             result = None
+            reason = ''
 
             # --------------------------------------------------------------------------------------
             # RUN CURRENT TEST!
@@ -1023,7 +1068,10 @@ class TwisterRunner(object):
 
             try:
                 result = current_runner._eval(str_to_execute, globs, args)
-                result = str(result).upper()
+                # If the result is a pair of _RESULT, _REASON, unpack !
+                if isinstance(result, tuple):
+                    result, reason = result
+
                 print('\n>>> File `{}` returned `{}`. <<<\n'.format(filename, result))
 
             except Exception as e:
@@ -1033,10 +1081,17 @@ class TwisterRunner(object):
                 print('\n>>> File `{}` execution CRASHED. <<<\n'.format(filename))
 
                 proxy().echo('*ERROR* Error executing file `{}`!'.format(filename))
-                try: proxy().set_file_status(self.epName, file_id, STATUS_FAIL, (time.time() - timer_i))
+                try:
+                    proxy().set_file_status(self.epName, file_id, STATUS_FAIL, (time.time() - timer_i))
                 except Exception:
                     trace = traceback.format_exc()[34:].strip()
                     print('Exception on change file status `{}`!\n'.format(trace))
+
+                try:
+                    proxy().set_file_variable(self.epName, file_id, '_reason', 'Test execution CRASHED!')
+                except Exception:
+                    trace = traceback.format_exc()[34:].strip()
+                    print('Exception on sending reason `{}`!'.format(trace))
 
                 # If status is FAIL and the file is not Optional and Exit on test fail is ON, CLOSE the EP
                 if not optional_test and self.exit_on_test_fail:
@@ -1071,8 +1126,11 @@ class TwisterRunner(object):
 
             print('Test statistics: Start time {} -- End time {} -- {:0.2f} sec.\n'.format(start_time, end_time, timer_f))
 
-            try: result = int(result)
-            except Exception: pass
+            # Status as integer, or string
+            try:
+                result = int(result)
+            except Exception:
+                result = str(result).upper()
 
             try:
                 if  result == 0 or result == STATUS_PASS or result == 'PASS':
@@ -1092,7 +1150,13 @@ class TwisterRunner(object):
                     proxy().set_file_status(self.epName, file_id, STATUS_FAIL, timer_f) # File status FAIL
             except Exception:
                 trace = traceback.format_exc()[34:].strip()
-                print('EXCEPTION on final change file status `{}`!'.format(trace))
+                print('EXCEPTION on changing file status `{}`!'.format(trace))
+
+            try:
+                proxy().set_file_variable(self.epName, file_id, '_reason', reason)
+            except Exception:
+                trace = traceback.format_exc()[34:].strip()
+                print('EXCEPTION on sending reason `{}`!'.format(trace))
 
 
             # If status is not PASS

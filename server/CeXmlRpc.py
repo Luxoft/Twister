@@ -1,15 +1,14 @@
 
 # File: CeXmlRpc.py ; This file is part of Twister.
 
-# version: 3.002
+# version: 3.003
 
 # Copyright (C) 2012-2014 , Luxoft
 
 # Authors:
+#    Andreea Proca <aproca@luxoft.com>
 #    Andrei Costachi <acostachi@luxoft.com>
 #    Cristi Constantin <crconstantin@luxoft.com>
-#    Daniel Cioata <dcioata@luxoft.com>
-#    Mihai Tudoran <mtudoran@luxoft.com>
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -245,9 +244,6 @@ class CeXmlRpc(_cptools.XMLRPCController):
         if not ep_conn:
             return False
         try:
-            # Send 2 consecutive "continue"
-            ep_conn.root.dbg_continue()
-            time.sleep(0.33)
             ep_conn.root.dbg_continue()
             logDebug('User `{}` sent EP debug continue.'.format(user))
             return True

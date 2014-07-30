@@ -1,15 +1,14 @@
 
 # File: TestCaseRunnerClasses.py ; This file is part of Twister.
 
-# version: 3.005
+# version: 3.006
 
 # Copyright (C) 2012-2014, Luxoft
 
 # Authors:
+#    Andreea Proca <aproca@luxoft.com>
 #    Andrei Costachi <acostachi@luxoft.com>
 #    Cristi Constantin <crconstantin@luxoft.com>
-#    Daniel Cioata <dcioata@luxoft.com>
-#    Mihai Tudoran <mtudoran@luxoft.com>
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,11 +22,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-'''
+"""
 REQUIRED Python 2.7.
 This file contains classes that will run TCL/ Python/ Perl test cases.
 This script CANNOT run separately, it must be called from TestCaseRunner.
-'''
+"""
+from __future__ import with_statement
 
 import os
 import sys
@@ -89,7 +89,7 @@ class TCRunTcl(object):
             pass
         fnames = '{}/.twister_cache/{}/*.tcl'.format(TWISTER_PATH, self.epname)
         for fname in glob.glob(fnames):
-            # print 'Cleanup TCL file:', fname
+            # print('Cleanup TCL file:', fname)
             try:
                 os.remove(fname)
             except Exception:
@@ -176,7 +176,7 @@ class TCRunTcl(object):
                     # Recomposed arrays
                     val = tcl.eval('array get %s' % var)
                 else:
-                    print 'TC Dump Warning: Cannot get value for var `%s`!' % var
+                    print('TC Dump Warning: Cannot get value for var `%s`!' % var)
                     try:
                         tcl.eval('puts $'+var)
                     except Exception:
@@ -265,8 +265,10 @@ sys.argv = {}
 
         execfile(fpath, globs_copy)
 
-        # The _RESULT must be injected from within the python script
-        return globs_copy.get('_RESULT')
+        # The _RESULT must be injected from within the python script,
+        # or the test will default to FAIL
+        # The _REASON is a string
+        return globs_copy.get('_RESULT'), globs_copy.get('_REASON', '')
         #
 
 
@@ -276,7 +278,7 @@ sys.argv = {}
         """
         fnames = '{}/.twister_cache/{}/*.py*'.format(TWISTER_PATH, self.epname)
         for fname in glob.glob(fnames):
-            # print 'Cleanup Python file:', fname
+            # print('Cleanup Python file:', fname)
             try:
                 os.remove(fname)
             except Exception:
@@ -446,8 +448,8 @@ class TCRunJava(object):
             tscJythonPath = '{0}/.twister_cache/{1}/ce_libs/tscJython.jar'.format(
                                                                     TWISTER_PATH, self.epname)
         except Exception as e:
-            print 'Error: Compiler path not found'
-            print 'Error: {er}'.format(er=e)
+            print('Error: Compiler path not found')
+            print('Error: {}'.format(e))
             return None
 
         # create test
@@ -474,7 +476,7 @@ class TCRunJava(object):
         jythonProcess.wait()
 
         if not jythonProcess.returncode in returnCode:
-            print 'Unknown return code'
+            print('Unknown return code')
             return None
 
         _RESULT = returnCode[jythonProcess.returncode]
@@ -489,7 +491,7 @@ class TCRunJava(object):
         """
         fileNames = '{}/.twister_cache/{}/*.java*'.format(TWISTER_PATH, self.epname)
         for filePath in glob.glob(fileNames):
-            # print 'Cleanup Java file: filePath
+            # print('Cleanup Java file:',' filePath)
             try:
                 os.remove(filePath)
             except Exception:
