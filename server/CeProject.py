@@ -87,6 +87,7 @@ import traceback
 import threading
 import MySQLdb
 import paramiko
+import copy
 
 import cherrypy
 import rpyc
@@ -103,7 +104,7 @@ from string import Template
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from common.tsclogging import *
-
+from lxml import etree
 
 if not sys.version.startswith('2.7'):
     print('Python version error! Central Engine must run on Python 2.7!')
@@ -235,6 +236,7 @@ class Project(object):
         self.config_locks = {} # Config locks list
 
         self.usr_lock = allocate_lock()  # User change lock
+        self.auth_lock = allocate_lock()  # Authenticate change lock
         self.epl_lock = allocate_lock()  # EP lock
         self.stt_lock = allocate_lock()  # File status lock
         self.int_lock = allocate_lock()  # Internal use lock
@@ -436,6 +438,11 @@ class Project(object):
     def _common_proj_reset(self, user, base_config, files_config):
 
         logDebug('Common Project Reset for `{}` with params:\n\t`{}` & `{}`.'.format(user, base_config, files_config))
+
+        if not files_config.endswith('testsuites.xml'):
+            self.generate_xml(user, files_config)
+            files_config = userHome(user) + '/twister/config/testsuites.xml'
+            self.parsers[user].updateConfigTS(files_config)
 
         # Create EP list if it doesn't exist already
         eps = self.users[user].get('eps')
@@ -695,7 +702,7 @@ class Project(object):
             if not r:
                 return False
 
-        with self.usr_lock:
+        with self.auth_lock:
 
             # Reload users and groups
             self.roles = self._parse_users_and_groups()
@@ -1786,6 +1793,110 @@ class Project(object):
                             '"Pending" to "Not executed".'.format(user, statuses_changed))
 
         return reversed[new_status]
+
+
+    def _edit_suite(self, ep, sut, config_root):
+        '''
+        Update suite props with sut name, ep id and id.
+        Delete test cases having running = false.
+        Used only by generate_xml method.
+        '''
+
+        for epname in config_root.xpath('//EpId'):
+            epname.text = ep
+
+        for sut_name in config_root.xpath('//SutName'):
+            sut_name.text = sut
+
+        for id_name in config_root.xpath('//ID'):
+            id_name.text = id_name.text + "#" + ep
+
+        for x in config_root.xpath("//Property"):
+            if x.find('propName').text == 'Running' and x.find('propValue').text == 'false':
+                x.getparent().remove(x)
+                break
+
+        return True
+
+
+    def generate_xml(self, user, filename):
+        '''
+        Receives project file.
+        Creates testsuites.xml file by multiplying tests depending
+        on the suts number and eps.
+        '''
+
+        # try to parse the project file
+        try:
+            xml = etree.parse(filename)
+        except:
+            msg = "The file: '{}' it's not an xml file. Try again!".format(filename)
+            logDebug(msg)
+            return '*ERROR* ' + msg
+
+        # write general props to testsuties.xml file
+        root = etree.Element("Root")
+        root.append(xml.find('stoponfail'))
+        root.append(xml.find('PrePostMandatory'))
+        root.append(xml.find('ScriptPre'))
+        root.append(xml.find('ClearCaseView'))
+        root.append(xml.find('libraries'))
+        root.append(xml.find('ScriptPost'))
+        root.append(xml.find('dbautosave'))
+        root.append(xml.find('tcdelay'))
+
+        # get all suites defined in project file
+        all_suites = xml.findall('TestSuite')
+        for suite in all_suites:
+            # get all suts chosen by user
+            all_suts = suite.find('SutName').text
+            suts_list = [q for q in all_suts.split(';') if q]
+            suts_list = [q.replace('(', '.').replace(')', '') for q in suts_list if q]
+
+            # for every ep of a sut create entry
+            for sut in suts_list:
+                sut = '/' + sut
+
+                sut_eps = self.sut.get_meta_sut(sut + ':_epnames_' + user, {'__user': user})
+
+                if sut_eps and sut_eps != "false":
+                    sut_eps_list = [ep for ep in sut_eps.split(';') if ep]
+
+                    for ep in sut_eps_list:
+                        config_ts = etree.tostring(copy.deepcopy(suite))
+                        config_root = etree.fromstring(config_ts)
+                        # update sut, ep, id, tunning test cases
+                        self._edit_suite(ep, sut, config_root)
+
+                        # append suite to the xml root
+                        root.append(config_root)
+                else:
+                    # Find Anonimous EP in the active EPs
+                    anonim_ep = self._find_anonim_ep(user)
+
+                    config_ts = etree.tostring(copy.deepcopy(suite))
+                    config_root = etree.fromstring(config_ts)
+                    # update sut, ep, id, tunning test cases
+                    self._edit_suite(str(anonim_ep), sut, config_root)
+
+                    # append suite to the xml root
+                    root.append(config_root)
+
+        # write the xml file
+        xml_file = userHome(user) + '/twister/config/projects/testsuites.xml'
+        print "xml_file : ", xml_file
+        xml_header = '<?xml version="1.0" encoding="UTF-8" standalone="no"?>\n\n'
+        resp = self.localFs.write_user_file(user, xml_file, xml_header, 'w')
+        if resp != True:
+            logError(resp)
+            return resp
+
+        resp = self.localFs.write_user_file(user, xml_file, etree.tostring(root, pretty_print=True), 'w')
+        if resp != True:
+            logError(resp)
+            return resp
+
+        return True
 
 
     def set_exec_status_all(self, user, new_status, msg=''):

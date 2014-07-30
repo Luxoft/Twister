@@ -236,7 +236,7 @@ def run_test(user, sut, fname):
     def stop_ep(*arg, **kw):
         """ stop EP execution """
         print('\nWill exit and stop the EP !')
-        return PROXY.setEpStatusAll(0)
+        return PROXY.set_ep_status_all(0)
     # Capture signal
     signal.signal(signal.SIGINT, stop_ep)
 
@@ -255,7 +255,7 @@ def run_test(user, sut, fname):
     r = PROXY.set_persistent_file('Suite1', fname, {})
     print('Added file: `{}`.'.format(fname))
     print('Started execution!...')
-    PROXY.setEpStatusAll(2)
+    PROXY.set_ep_status_all(2)
     while 1:
         status = PROXY.getEpStatusAll()
         if status.startswith('stopped'):
@@ -502,15 +502,15 @@ if __name__ == '__main__':
 
     if OPTIONS.set == 'start':
         print 'Starting...'
-        print PROXY.setEpStatusAll(2, OPTIONS.config + ',' + OPTIONS.project)
+        print PROXY.set_ep_status_all(2, OPTIONS.config + ',' + OPTIONS.project)
 
     elif OPTIONS.set == 'stop':
         print 'Stopping...',
-        print PROXY.setEpStatusAll(0, OPTIONS.config + ',' + OPTIONS.project)
+        print PROXY.set_ep_status_all(0, OPTIONS.config + ',' + OPTIONS.project)
 
     elif OPTIONS.set == 'pause':
         print 'Sending pause...',
-        print PROXY.setEpStatusAll(1, OPTIONS.config + ',' + OPTIONS.project)
+        print PROXY.set_ep_status_all(1, OPTIONS.config + ',' + OPTIONS.project)
 
     print
 
