@@ -492,14 +492,14 @@ class TscCommonLib(object):
             return None
 
 
-    def get_meta_sut(self, query):
+    def get_info_sut(self, query):
         """
-        Get SUT meta.
+        Get SUT info.
         """
         try:
-            return self.ce_proxy.get_meta_sut(query)
+            return self.ce_proxy.get_info_sut(query)
         except Exception as e:
-            print('Error on get meta SUT! `{}`!'.format(e))
+            print('Error on get info SUT! `{}`!'.format(e))
             return None
 
 

@@ -377,6 +377,13 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
             parts = [q for q in query.split('/') if q]
             query = parts[0]
 
+        try:
+            index = sutType.index('/')
+            sutType = sutType[:index]
+        except:
+            logFull('SutType does not contain any /')
+            pass
+
         if sutType == 'system':
             # System SUT path
             sutPath = self.project.get_user_info(username, 'sys_sut_path')
@@ -450,7 +457,7 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
 
 
     @cherrypy.expose
-    def get_meta_sut(self, res_query, props={}):
+    def get_info_sut(self, res_query, props={}):
         '''
         Get the current version of the meta SUT modified and unsaved or
         the version from the disk.
@@ -463,8 +470,7 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
             meta      = res_query.split(':')[1]
             res_query = res_query.split(':')[0]
         else:
-            logError("CeSuts:get_meta_sut: User {} called this method without meta!".format(user_info[0]))
-            return "false"
+            meta = ''
 
         result = None
         # If the SUT is reserved, get the latest unsaved changes
@@ -484,7 +490,10 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
                 result = self.get_resource(res_query)
 
         if isinstance(result, dict):
-            return result['meta'].get(meta, '')
+            if meta:
+                return result['meta'].get(meta, '')
+            else:
+                return result
 
         return "false"
 

@@ -1420,15 +1420,15 @@ class CeRpycService(rpyc.Service):
             return False
 
 
-    def exposed_get_meta_sut(self, query):
+    def exposed_get_info_sut(self, query):
         """
         Get SUT meta.
         """
-        logFull('CeRpyc:exposed_get_meta_sut')
+        logFull('CeRpyc:exposed_get_info_sut')
         user = self._check_login()
         if not user:
             return False
-        return self.project.sut.get_meta_sut(query, props={'__user': user})
+        return self.project.sut.get_info_sut(query, props={'__user': user})
 
 
     def exposed_rename_sut(self, res_query, new_name):
