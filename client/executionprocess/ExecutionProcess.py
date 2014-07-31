@@ -1,6 +1,6 @@
 #!/usr/bin/env python2.7
 
-# version: 3.016
+# version: 3.017
 
 # File: ExecutionProcess.py ; This file is part of Twister.
 
@@ -1177,6 +1177,9 @@ class TwisterRunner(object):
                     print('*ERROR* Setup file for suite `{}` did not PASS! All suite will be ABORTED!\n\n'.format(suite_name))
                     proxy().echo('*ERROR* Setup file for `{}::{}` returned FAIL! All suite will be ABORTED!'\
                         ''.format(self.epName, suite_name))
+
+            if result == STATUS_FAIL:
+                print('Test failed because: "{}".\n'.format(reason))
 
 
             print('<<< END filename: `{}:{}` >>>\n'.format(file_id, filename))

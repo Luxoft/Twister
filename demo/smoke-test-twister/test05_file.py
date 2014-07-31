@@ -1,6 +1,6 @@
 
 #
-# <ver>version: 2.005</ver>
+# <ver>version: 3.001</ver>
 # <title>Test the Files</title>
 # <description>This suite checks the most basic functionality of Twister.<br>
 # It checks if the EPs are running the tests successfully and it calls all CE functions, to ensure they work as expected.</description>
@@ -40,8 +40,9 @@ def test(PROXY, USER):
             print 'File variable ?', PROXY.get_file_variable(epname, file_id, 'xyz')
             r = PROXY.set_file_variable(epname, file_id, 'xyz', random.randrange(1, 100))
             if not r:
-                print('Failure! Cannot set file variable for `%s`!' % file_id)
-                return 'Fail'
+                _REASON = 'Failure! Cannot set file variable for `%s`!' % file_id
+                print(_REASON)
+                return 'Fail', _REASON
 
             print 'Set variable for `{}`: `{}`'.format(file_id, r)
             print 'File variable ?', PROXY.get_file_variable(epname, file_id, 'xyz')
@@ -52,10 +53,11 @@ def test(PROXY, USER):
         if not status_before: continue
 
         if len(ep_files) != len(status_before):
-            print('This is wrong! There are {} files, but {} statuses!'.format(len(ep_files), len(status_before)))
+            _REASON = 'There are {} files, but {} statuses!'.format(len(ep_files), len(status_before))
+            print('This is wrong! ' + _REASON)
             print(ep_files)
             print(status_before)
-            return 'Fail'
+            return 'Fail', _REASON
 
         print 'Status All for {} ?'.format(epname), status_before
 
@@ -66,8 +68,9 @@ def test(PROXY, USER):
         r = PROXY.set_file_status_all(epname, STATUS_SKIPPED)
         # If success, the return must be True
         if not r:
-            print('Failure! Cannot set file variable for all files!')
-            return 'Fail'
+            _REASON = 'Failure! Cannot set file variable for all files!'
+            print(_REASON)
+            return 'Fail', _REASON
         print 'Status all SKIPPED:', epname, r
 
         time.sleep(2)
@@ -88,8 +91,9 @@ def test(PROXY, USER):
             if r:
                 print('set_file_status for {} - {} success.'.format(epname, file_id))
             else:
-                print('Failure! Cannot set_file_status for {} - {}!'.format(epname, file_id))
-                return 'Fail'
+                _REASON = 'Failure! Cannot set_file_status for {} - {}!'.format(epname, file_id)
+                print(_REASON)
+                return 'Fail', _REASON
 
         msg = 'ALL STATUSES RESTORED SUCCESSFULLY.\n'
         print(msg) ; log_msg('logRunning', msg) ; log_msg('logDebug', msg)
@@ -101,11 +105,11 @@ def test(PROXY, USER):
 
     time.sleep(0.5)
 
-    return 'Pass'
+    return 'Pass', ''
 
 
 # Must have one of the statuses:
 # 'pass', 'fail', 'skipped', 'aborted', 'not executed', 'timeout'
-_RESULT = test(PROXY, USER)
+_RESULT, _REASON = test(PROXY, USER)
 
 # Eof()
