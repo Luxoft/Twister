@@ -1,6 +1,6 @@
 #!/usr/bin/env python2.7
 
-# version: 3.017
+# version: 3.018
 
 # File: ExecutionProcess.py ; This file is part of Twister.
 
@@ -1074,7 +1074,7 @@ class TwisterRunner(object):
 
                 print('\n>>> File `{}` returned `{}`. <<<\n'.format(filename, result))
 
-            except Exception as e:
+            except (Exception, SystemExit):
                 # On error, print the error message, but don't exit
                 print('\nTest case exception:')
                 print(traceback.format_exc()[34:].strip())
