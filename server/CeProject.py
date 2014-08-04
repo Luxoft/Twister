@@ -1558,6 +1558,9 @@ class Project(object):
 
         # Cycle all EPs to find the dependency
         for epname, epinfo in self.users[user]['eps'].iteritems():
+            # Empty EP data ?
+            if not epinfo.get('suites'):
+                continue
             # Cycle all files
             for file_id in epinfo['suites'].get_files():
                 file_node = epinfo['suites'].find_id(file_id)
