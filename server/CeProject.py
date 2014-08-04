@@ -1,7 +1,7 @@
 
 # File: CeProject.py ; This file is part of Twister.
 
-# version: 3.043
+# version: 3.044
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -1858,7 +1858,7 @@ class Project(object):
             for sut in suts_list:
                 sut = '/' + sut
 
-                sut_eps = self.sut.get_meta_sut(sut + ':_epnames_' + user, {'__user': user})
+                sut_eps = self.sut.get_info_sut(sut + ':_epnames_' + user, {'__user': user})
 
                 if sut_eps and sut_eps != "false":
                     sut_eps_list = [ep for ep in sut_eps.split(';') if ep]
@@ -3147,6 +3147,7 @@ class Project(object):
                     subst_data['twister_ce_python_revision'] = '.'.join([str(v) for v in sys.version_info])
                     subst_data['twister_ep_name']    = epname
                     subst_data['twister_suite_name'] = suite_info['name']
+                    subst_data['twister_tc_reason']  = file_info.get('_reason', '')
                     subst_data['twister_tc_full_path'] = file_info['file']
                     subst_data['twister_tc_name']  = os.path.split(subst_data['twister_tc_full_path'])[1]
                     subst_data['twister_tc_title'] = ''
