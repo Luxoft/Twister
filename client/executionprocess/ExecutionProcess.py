@@ -1178,7 +1178,7 @@ class TwisterRunner(object):
                     proxy().echo('*ERROR* Setup file for `{}::{}` returned FAIL! All suite will be ABORTED!'\
                         ''.format(self.epName, suite_name))
 
-            if result == STATUS_FAIL:
+            if result == STATUS_FAIL and reason:
                 print('Test failed because: "{}".\n'.format(reason))
 
 
