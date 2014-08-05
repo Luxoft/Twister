@@ -1,7 +1,7 @@
 
 # File: CeFs.py ; This file is part of Twister.
 
-# version: 3.015
+# version: 3.016
 
 # Copyright (C) 2012-2014, Luxoft
 
@@ -434,9 +434,128 @@ class LocalFS(object):
         pass
 
 
-    def list_system_files(self, fdir):
-        """ Dummy method """
-        pass
+    def list_system_files(self, folder, hidden=True, recursive=True, accept=[], reject=[]):
+        """
+        List all files, recursively.
+        """
+        if folder == '/':
+            base_path = '/'
+            logWarning('*WARN* Listing folders from system ROOT.')
+            recursive = False
+        else:
+            base_path = folder.rstrip('/')
+
+        if not os.path.isdir(folder):
+            err = '*ERROR* Invalid folder path `{}`!'.format(folder)
+            logWarning(err)
+            return err
+
+        def dirList(path):
+            """
+            Create recursive list of folders and files from base path.
+            The format of a node is: {"path": "/..." "data": "name", "folder":true|false, "children": []}
+            """
+            # The node is valid ?
+            if not path:
+                return False
+            # Cleanup '/'
+            if path != '/':
+                path = path.rstrip('/')
+            # This is folder ?
+            if os.path.isfile(path):
+                return False
+
+            len_path = len(base_path) + 1
+            dlist = [] # Folders list
+            flist = [] # Files list
+
+            try:
+                names = sorted(os.listdir(path), key=str.lower)
+            except Exception as e:
+                logWarning('*WARN* Cannot list folder `{}`: `{}`!'.format(path, e))
+                return []
+
+            # Cycle a folder
+            for fname in names:
+                long_path  = path + '/' + fname
+
+                # If Accept is active and file doesn't match, ignore file
+                if accept and os.path.isfile(long_path):
+                    valid = True
+                    if isinstance(accept, list):
+                        # If nothing from the Accept matches the file
+                        if True not in [(long_path.startswith(f) or long_path.endswith(f)) for f in accept]:
+                            valid = False
+                    elif isinstance(accept, str):
+                        if not (long_path.startswith(accept) or long_path.endswith(accept)):
+                            valid = False
+                    if not valid:
+                        continue
+
+                # If Reject is active and file matches, ignore the file
+                if reject and os.path.isfile(long_path):
+                    valid = True
+                    if isinstance(reject, list):
+                        # If nothing from the Reject matches the file
+                        if True in [(long_path.startswith(f) or long_path.endswith(f)) for f in reject]:
+                            valid = False
+                    elif isinstance(reject, str):
+                        if long_path.startswith(reject) or long_path.endswith(reject):
+                            valid = False
+                    if not valid:
+                        continue
+
+                # Ignore hidden files
+                if hidden and fname[0] == '.':
+                    continue
+                # Meta info
+                try:
+                    fstat = os.stat(long_path)
+                    try:
+                        uname = pwd.getpwuid(fstat.st_uid).pw_name
+                    except Exception:
+                        uname = fstat.st_uid
+                    try:
+                        gname = grp.getgrgid(fstat.st_gid).gr_name
+                    except Exception:
+                        gname = fstat.st_gid
+                    meta_info = '{}|{}|{}|{}'.format(uname, gname, fstat.st_size,
+                        time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(fstat.st_mtime)))
+                except Exception:
+                    meta_info = ''
+
+                # Semi long path
+                short_path = long_path[len_path:]
+                # Data to append
+                nd = {'path': short_path, 'data': fname, 'meta': meta_info}
+
+                if os.path.isdir(long_path):
+                    nd['folder'] = True
+                    # Recursive !
+                    if recursive:
+                        children = dirList(long_path)
+                    else:
+                        children = []
+                    if children in [False, None]:
+                        continue
+                    nd['children'] = children
+                    dlist.append(nd)
+                else:
+                    flist.append(nd)
+
+            # Folders first, files second
+            return dlist + flist
+
+        paths = {
+            'path' : '/',
+            'data' : base_path,
+            'folder' : True,
+            'children' : dirList(base_path) or []
+        }
+
+        clen = len(paths['children'])
+        logDebug('Listing dir `{}`, it has `{}` direct children.'.format(base_path, clen))
+        return paths
 
 
     def delete_system_folder(self, fdir):
