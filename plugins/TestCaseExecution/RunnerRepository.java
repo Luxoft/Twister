@@ -1,6 +1,6 @@
 /*
 File: RunnerRepository.java ; This file is part of Twister.
-Version: 3.001
+Version: 3.002
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -1443,13 +1443,10 @@ public class RunnerRepository {
         Object ob = null;
         try{System.out.println("Getting folder: "+folder+" content");
             if(tag==null){
-                System.out.println("List files Runner ");
                 ob = RunnerRepository.getRPCClient().execute("list_files", new Object[]{folder});
             } else {
-                System.out.println("List files Runner 2");
                 ob = RunnerRepository.getRPCClient().execute("list_files", new Object[]{folder,true,false,tag});
             }
-            System.out.println("Server respons: "+ob.toString());
             if(ob.toString().indexOf("*ERROR*")!=-1){
                 CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,window,"ERROR", ob.toString());
                 return new String[]{};
@@ -1597,7 +1594,6 @@ public class RunnerRepository {
     //returns folder structure(folders and files)
     public static HashMap getRemoteFolderStructure(String folder){
         Object ob = null;
-        System.out.println("List files Runner 3");
         try{ob = RunnerRepository.getRPCClient().execute("list_files", new Object[]{folder,true});
             if(ob.toString().indexOf("*ERROR*")!=-1){
                 CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,window,"ERROR", ob.toString());
