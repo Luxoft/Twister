@@ -1,6 +1,6 @@
 /*
 File: XMLBuilder.java ; This file is part of Twister.
-Version: 3.001
+Version: 3.002
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -344,7 +344,7 @@ public class XMLBuilder{
                 populateElements(i);
             }
             sb = new StringBuilder();
-            //assign finalids to dependecies saved with initialid
+            //assign final ids to dependecies saved with initialid
             for(Text tag:dependenciestags.keySet()){
                 sb.setLength(0);
                 String ep = dependenciestags.get(tag).split(":")[1];
@@ -356,7 +356,8 @@ public class XMLBuilder{
                     if(dependency.length()==0)continue;
                     String status = dependency.split(":")[1];
                     String initialid = dependency.split(":")[0];
-                    ArrayList <String> finalids = elements.get(initialid);
+                    ArrayList <String> finalids = elements.get(initialid);                    
+                    
                     if(finalids!=null&&finalids.size()>0){
                         if(finalids.size()==2){
                             sb.append(finalids.get(1));
