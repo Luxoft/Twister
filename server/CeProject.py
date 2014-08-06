@@ -2796,21 +2796,22 @@ class Project(object):
 
         libs_path = (TWISTER_PATH + '/lib/').replace('//', '/')
         user_path = ''
+
         if self.get_user_info(user, 'libs_path'):
             user_path = self.get_user_info(user, 'libs_path') + os.sep
         if user_path == '/':
             user_path = ''
 
-        glob_libs = [] # Default empty
-        user_libs = []
-
         # All Python source files from Libraries folder AND all library folders
         if all:
-            glob_libs = [d for d in os.listdir(libs_path) if \
-                ( os.path.isfile(libs_path + d) and \
-                '__init__.py' not in d and \
-                os.path.splitext(d)[1] in ['.py', '.zip']) or \
-                os.path.isdir(libs_path + d) ]
+            # All files + all folders
+            glob_libs = self.localFs.list_system_files(libs_path, False, True, accept=['.py', '.zip'], reject=['__init__.py'])
+
+            if isinstance(glob_libs, dict):
+                glob_libs['data'] = '/libs'
+            else:
+                logWarning(glob_libs)
+                return {}
 
             # Auto detect if ClearCase Test Config Path is active
             ccConfig = self.get_clearcase_config(user, 'libs_path')
@@ -2821,25 +2822,25 @@ class Project(object):
                 if not path:
                     return '*ERROR* User `{}` did not set ClearCase Libraries Path!'.format(user)
                 user_view_actv = '{}:{}:{}'.format(user, view, actv)
-                user_libs_all = self.clearFs.list_user_files(user_view_actv, path, False, False)
+                user_libs_all = self.clearFs.list_user_files(user_view_actv, path, False, True)
             else:
-                user_libs_all = self.localFs.list_user_files(user, user_path, False, False)
+                user_libs_all = self.localFs.list_user_files(user, user_path, False, True)
 
-            # All .py and .zip files + all folders
+            # All files + all folders
             if isinstance(user_libs_all, dict):
-                user_libs = [ d['data'] for d in user_libs_all.get('children', []) if \
-                    d['data'].endswith('.py') or d['data'].endswith('.zip') or d.get('folder') ]
+                user_libs = dict(user_libs_all)
             else:
+                user_libs = {'children': []}
                 logWarning(user_libs_all)
+
+            glob_libs['children'].extend(user_libs['children'])
+            return glob_libs
 
         # All libraries for user
         else:
             # If `libraries` is empty, will default to ALL libraries
-            tmp_libs = self.get_user_info(user, 'libraries') or ''
-            glob_libs = [x.strip() for x in tmp_libs.split(';')] if tmp_libs else []
-
-        # Return a list with unique names, sorted alphabetically
-        return sorted( set(glob_libs + user_libs) )
+            proj_libs = self.get_user_info(user, 'libraries') or ''
+            return [x.strip() for x in proj_libs.split(';')] if proj_libs else []
 
 
     def send_mail(self, user, force=False):
