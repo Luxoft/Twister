@@ -1,6 +1,6 @@
 # File: TscTelnetLib.py ; This file is part of Twister.
 
-# version: 2.002
+# version: 2.003
 #
 # Copyright (C) 2012 , Luxoft
 #
@@ -62,6 +62,10 @@ class TelnetManager(object):
         if not self.connections.has_key(name):
             connection = TelnetConnection(name, host, port, user, password,
                                             userExpect, passwordExpect, keepalive)
+            # if connection failed, return False
+            if connection.connection == None:
+                return False
+
             self.connections.update([(name, connection), ])
 
             return True
