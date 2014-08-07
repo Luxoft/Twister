@@ -1832,7 +1832,11 @@ class Project(object):
 
         generated_ids = config_root.xpath('//ID')
 
-        for repeat in reversed(config_root.xpath('//Repeat')):
+        repeat_list = config_root.xpath('//Repeat')
+        if not repeat_list:
+            return True
+
+        for repeat in reversed(repeat_list):
             if int(repeat.text) > 1:
                 parent = repeat.getparent()
                 grand_parent = (repeat.getparent()).getparent()
@@ -1895,14 +1899,19 @@ class Project(object):
             suts_list = [q.replace('(', '.').replace(')', '') for q in suts_list if q]
 
             # multiply Suite entry as often as the tag 'Repeat' says
-            repeat = suite.find('Repeat')
-            for i in range(int(repeat.text)):
+            try:
+                repeat = suite.find('Repeat')
+                no_repeat = int(repeat.text)
+            except:
+                no_repeat = 1
+
+            for i in range(no_repeat):
 
                 deep_copy = copy.deepcopy(suite)
                 config_ts = etree.tostring(deep_copy)
                 config_root = etree.fromstring(config_ts)
 
-                if int(repeat.text) > 1:
+                if no_repeat > 1:
                     generated_ids = config_root.xpath('//ID')
 
                     # generate new unique id if necessary
@@ -1912,7 +1921,10 @@ class Project(object):
                         if not str(new_id) in generated_ids:
                             generated_ids.append(str(new_id))
 
-                    config_root.find('Repeat').text = str(1)
+                    try:
+                        config_root.find('Repeat').text = str(1)
+                    except:
+                        pass
                     config_root.find('ID').text = str(new_id)
 
                 # for every ep of a sut create entry
@@ -1940,14 +1952,13 @@ class Project(object):
 
         # write the xml file
         xml_file = userHome(user) + '/twister/config/testsuites.xml'
-        print "xml_file : ", xml_file
+
         xml_header = '<?xml version="1.0" encoding="UTF-8" standalone="no"?>\n\n'
         resp = self.localFs.write_user_file(user, xml_file, xml_header, 'w')
         if resp != True:
             logError(resp)
             return resp
 
-        print root.findall('TestSuite')
         resp = self.localFs.write_user_file(user, xml_file, etree.tostring(root, pretty_print=True), 'w')
         if resp != True:
             logError(resp)
