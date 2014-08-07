@@ -585,6 +585,8 @@ class TwisterRunner(object):
             # Null libraries ?
             if not lib:
                 continue
+            # Fix / and // issues
+            lib = lib.lstrip('/').replace('//', '/')
             # Already in the list ?
             if lib in zip_libs or lib in all_libs:
                 continue
@@ -615,8 +617,6 @@ class TwisterRunner(object):
                 print('Library `{}` does not exist!'.format(lib_file))
                 continue
 
-            # Maybe the name begins with /
-            lib_file = lib_file.lstrip('/')
             print('Downloading library `{}` ...'.format(lib_file))
 
             # If this is a "deep" file, or folder

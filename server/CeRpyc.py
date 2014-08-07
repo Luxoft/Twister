@@ -1023,12 +1023,12 @@ class CeRpycService(rpyc.Service):
         ccConfig = self.project.get_clearcase_config(user, 'libs_path')
         if ccConfig:
             view = ccConfig['view']
-            path = ccConfig['path'].rstrip('/')
-            lib_path = path +'/'+ name
-            sz = self.project.clearFs.file_size
-            # Folder
-            if sz == 4096:
-                resp = self.project.clearFs.targz_user_folder(user +':'+ view, lib_path)
+            cc_lib = ccConfig['path'].rstrip('/') + '/'
+            lib_path = cc_lib + name
+            sz = self.project.clearFs.file_size(user +':'+ view, lib_path)
+            # If is folder, or "deep" file or folder, compress in memory and return the data
+            if sz == 4096 or '/' in name:
+                resp = self.project.clearFs.targz_user_folder(user +':'+ view, lib_path, cc_lib)
                 # Read as ROOT
                 if resp.startswith('*ERROR*'):
                     return _download_file(glob_lib_path)
@@ -1045,18 +1045,19 @@ class CeRpycService(rpyc.Service):
 
         # User's home path
         else:
-            lib_path = self.project.get_user_info(user, 'libs_path').rstrip('/') +'/'+ name
-            # If is file, read the file directly
-            if os.path.isfile(lib_path):
+            user_lib = self.project.get_user_info(user, 'libs_path').rstrip('/') + '/'
+            lib_path = user_lib + name
+            # If is root library file, read the file directly
+            if os.path.isfile(lib_path) and '/' not in name:
                 resp = self.project.localFs.read_user_file(user, lib_path)
                 # Try as ROOT
                 if resp.startswith('*ERROR*'):
                     return _download_file(glob_lib_path)
                 logDebug('User `{}` requested local lib file `{}`.'.format(user, name))
                 return resp
-            # If is folder, compress in memory and return the data
+            # If is folder, or "deep" file or folder, compress in memory and return the data
             else:
-                resp = self.project.localFs.targz_user_folder(user, lib_path)
+                resp = self.project.localFs.targz_user_folder(user, lib_path, user_lib)
                 # Try as ROOT
                 if resp.startswith('*ERROR*'):
                     return _download_file(glob_lib_path)
