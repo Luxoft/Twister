@@ -89,6 +89,7 @@ import threading
 import MySQLdb
 import paramiko
 import copy
+import uuid
 
 import cherrypy
 import rpyc
@@ -1815,10 +1816,46 @@ class Project(object):
         for id_name in config_root.xpath('//ID'):
             id_name.text = id_name.text + "#" + ep
 
-        for x in config_root.xpath("//Property"):
-            if x.find('propName').text == 'Running' and x.find('propValue').text == 'false':
-                x.getparent().remove(x)
-                break
+        for prop in config_root.xpath("//Property"):
+            if prop.find('propName').text == 'Running' and prop.find('propValue').text == 'false':
+                grand_parent = (prop.getparent()).getparent()
+                grand_parent.remove(prop.getparent())
+
+        return True
+
+
+    def _do_repeat(self, config_root):
+        '''
+        Repet Test Case or Suites as often as the tag <Reapet>
+        says.
+        '''
+
+        generated_ids = config_root.xpath('//ID')
+
+        for repeat in reversed(config_root.xpath('//Repeat')):
+            if int(repeat.text) > 1:
+                parent = repeat.getparent()
+                grand_parent = (repeat.getparent()).getparent()
+
+                for i in range(int(repeat.text) - 1):
+                    deep_copy = copy.deepcopy(repeat.getparent())
+
+                    # generate new unique id if necessary
+                    new_id = uuid.uuid4()
+                    while new_id in generated_ids:
+                        new_id = uuid.uuid4()
+                        if not str(new_id) in generated_ids:
+                            generated_ids.append(str(new_id))
+
+                    # update suite id
+                    deep_copy.find('ID').text = str(new_id)
+                    deep_copy.find('Repeat').text = str(1)
+
+                    if parent is None:
+                        config_root.append(deep_copy)
+                    else:
+                        parent.addnext(deep_copy)
+                repeat.getparent().find('Repeat').text = str(1)
 
         return True
 
@@ -1857,37 +1894,52 @@ class Project(object):
             suts_list = [q for q in all_suts.split(';') if q]
             suts_list = [q.replace('(', '.').replace(')', '') for q in suts_list if q]
 
-            # for every ep of a sut create entry
-            for sut in suts_list:
-                sut = '/' + sut
+            # multiply Suite entry as often as the tag 'Repeat' says
+            repeat = suite.find('Repeat')
+            for i in range(int(repeat.text)):
 
-                sut_eps = self.sut.get_info_sut(sut + ':_epnames_' + user, {'__user': user})
+                deep_copy = copy.deepcopy(suite)
+                config_ts = etree.tostring(deep_copy)
+                config_root = etree.fromstring(config_ts)
 
-                if sut_eps and sut_eps != "false":
-                    sut_eps_list = [ep for ep in sut_eps.split(';') if ep]
+                if int(repeat.text) > 1:
+                    generated_ids = config_root.xpath('//ID')
 
-                    for ep in sut_eps_list:
-                        config_ts = etree.tostring(copy.deepcopy(suite))
-                        config_root = etree.fromstring(config_ts)
-                        # update sut, ep, id, tunning test cases
-                        self._edit_suite(ep, sut, config_root)
+                    # generate new unique id if necessary
+                    new_id = uuid.uuid4()
+                    while new_id in generated_ids:
+                        new_id = uuid.uuid4()
+                        if not str(new_id) in generated_ids:
+                            generated_ids.append(str(new_id))
 
-                        # append suite to the xml root
-                        root.append(config_root)
-                else:
-                    # Find Anonimous EP in the active EPs
-                    anonim_ep = self._find_anonim_ep(user)
+                    config_root.find('Repeat').text = str(1)
+                    config_root.find('ID').text = str(new_id)
 
-                    config_ts = etree.tostring(copy.deepcopy(suite))
-                    config_root = etree.fromstring(config_ts)
-                    # update sut, ep, id, tunning test cases
-                    self._edit_suite(str(anonim_ep), sut, config_root)
+                # for every ep of a sut create entry
+                for sut in suts_list:
+                    sut = '/' + sut
+                    sut_eps = self.sut.get_info_sut(sut + ':_epnames_' + user, {'__user': user})
+
+                    if sut_eps and sut_eps != "false":
+                        sut_eps_list = [ep for ep in sut_eps.split(';') if ep]
+
+                        for ep in sut_eps_list:
+                            # update sut, ep, id, tunning test cases
+                            self. _do_repeat(config_root)
+                            self._edit_suite(ep, sut, config_root)
+
+                    else:
+                        # Find Anonimous EP in the active EPs
+                        anonim_ep = self._find_anonim_ep(user)
+
+                        self. _do_repeat(config_root)
+                        self._edit_suite(str(anonim_ep), sut, config_root)
 
                     # append suite to the xml root
                     root.append(config_root)
 
         # write the xml file
-        xml_file = userHome(user) + '/twister/config/projects/testsuites.xml'
+        xml_file = userHome(user) + '/twister/config/testsuites.xml'
         print "xml_file : ", xml_file
         xml_header = '<?xml version="1.0" encoding="UTF-8" standalone="no"?>\n\n'
         resp = self.localFs.write_user_file(user, xml_file, xml_header, 'w')
@@ -1895,6 +1947,7 @@ class Project(object):
             logError(resp)
             return resp
 
+        print root.findall('TestSuite')
         resp = self.localFs.write_user_file(user, xml_file, etree.tostring(root, pretty_print=True), 'w')
         if resp != True:
             logError(resp)
