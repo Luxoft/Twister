@@ -1,7 +1,7 @@
 
 # File: CeProject.py ; This file is part of Twister.
 
-# version: 3.044
+# version: 3.045
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -420,13 +420,14 @@ class Project(object):
 
         with self.epl_lock:
 
-            suitesInfo = self.users[user]['eps'][epname]['suites']
-            suites = set(suitesInfo.get_suites())
-            files = set(suitesInfo.get_files())
-            old_suites = set(self.suite_ids[user])
-            old_files = set(self.test_ids[user])
-            self.suite_ids[user] = sorted(old_suites - suites)
-            self.test_ids[user] = sorted(old_files - files)
+            suitesInfo = self.users[user]['eps'][epname].get('suites')
+            if suitesInfo:
+                suites = set(suitesInfo.get_suites())
+                files = set(suitesInfo.get_files())
+                old_suites = set(self.suite_ids[user])
+                old_files = set(self.test_ids[user])
+                self.suite_ids[user] = sorted(old_suites - suites)
+                self.test_ids[user] = sorted(old_files - files)
 
             logDebug('Un-Registered Execution-Process `{}:{}`.'.format(user, epname))
             del self.users[user]['eps'][epname]
@@ -2105,7 +2106,10 @@ class Project(object):
                 # Set the NEW EP status
                 self.set_ep_info(user, epname, 'status', new_status)
                 # Send START to EP Manager
-                rpyc_srv.exposed_start_ep(epname, user)
+                resp = rpyc_srv.exposed_start_ep(epname, user)
+                if not resp:
+                    # Reset the EP status to stop
+                    self.set_ep_info(user, epname, 'status', STATUS_STOP)
 
         # If the engine is running, or paused and it received STOP from the user...
         elif executionStatus in [STATUS_RUNNING, STATUS_PAUSED, STATUS_INVALID] and new_status == STATUS_STOP:
