@@ -1,3 +1,9 @@
+13th August 
+
+- code changes to fix dependecies issue #61
+- GIT plugin changes to fix issue #140
+
+
 06th June
 
 - code changes to fix issue #130
