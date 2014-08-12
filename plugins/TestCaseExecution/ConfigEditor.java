@@ -1,6 +1,6 @@
 /*
 File: ConfigEditor.java ; This file is part of Twister.
-Version: 3.001
+Version: 3.002
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -733,7 +733,8 @@ public class ConfigEditor extends JPanel{
     private String getPathForSut(String sutid){
         String sutpath = "";
         Object ob = null;
-        try{ob = sutconfig.client.execute("get_sut", new Object[]{sutid});
+        try{System.out.println("getting sut id:"+sutid);
+            ob = sutconfig.client.execute("get_sut", new Object[]{sutid});
             if(ob instanceof HashMap){
                 HashMap subhash= (HashMap)ob;
                 sutpath = subhash.get("path").toString();
@@ -744,9 +745,10 @@ public class ConfigEditor extends JPanel{
                 System.out.println("Server response for sutid "+sutid+": "+ob.toString());
             }      
         }catch(Exception e){
-            sutpath = "Sut not available!";
-            System.out.println("Server response: "+ob.toString());
             e.printStackTrace();
+            sutpath = "Sut not available!";
+            if(ob!=null) System.out.println("Server response: "+ob.toString());
+            
         }
         return sutpath;
     }
