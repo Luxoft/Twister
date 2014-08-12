@@ -107,6 +107,7 @@ class CommonAllocator(object):
 
         for node in resource.get('children'):
             result = self.get_id( node_id, resource['children'][node])
+
             if result:
                 return result
 
@@ -240,7 +241,9 @@ class CommonAllocator(object):
             result['children'] = sorted([result['children'][node]['id'] for
                 node in result.get('children') or []],
                 key=lambda node: node.lower())
-            result['path'] = '/'.join(result['path'])
+
+            result['path'] = '/'.join(result.get('path', []))
+
             if result['meta'] == '{}':
                 result['meta'] = dict()
         else:

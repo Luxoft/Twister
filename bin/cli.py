@@ -1,16 +1,15 @@
 #!/usr/bin/env python2.7
 
-# version: 3.001
+# version: 3.002
 
 # File: cli.py ; This file is part of Twister.
 
 # Copyright (C) 2012-2014, Luxoft
 
 # Authors:
+#    Andreea Proca <aproca@luxoft.com>
 #    Andrei Costachi <acostachi@luxoft.com>
 #    Cristi Constantin <crconstantin@luxoft.com>
-#    Daniel Cioata <dcioata@luxoft.com>
-#    Mihai Tudoran <mtudoran@luxoft.com>
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -58,6 +57,7 @@ STATUS_NOT_EXEC = 6  # Not executed, is sent from TC when tests are paused, and 
 STATUS_TIMEOUT  = 7  # When timer expired
 STATUS_INVALID  = 8  # When timer expired, the next run
 STATUS_WAITING  = 9  # Is waiting for another test
+
 TEST_STATUS = {STATUS_PENDING:'pending', STATUS_WORKING:'working', STATUS_PASS:'pass', STATUS_FAIL:'fail',
 STATUS_SKIPPED:'skip', STATUS_ABORTED:'aborted', STATUS_NOT_EXEC:'notexec', STATUS_TIMEOUT:'timeout',
 STATUS_INVALID:'null', STATUS_WAITING:'waiting'}
@@ -110,7 +110,7 @@ def check_status(proxy, extra=True):
     if stats == ['']:
         return False
 
-    all_stat = proxy.getEpStatusAll()
+    all_stat = proxy.get_ep_status_all()
     stats = [int(i) for i in stats]
 
     if len(stats) > 0:
@@ -225,8 +225,6 @@ def de_queue_test(proxy, data):
     print
 
 
-
-
 def run_test(user, sut, fname):
     """
     Run a test blocking and show the logs.
@@ -236,7 +234,7 @@ def run_test(user, sut, fname):
     def stop_ep(*arg, **kw):
         """ stop EP execution """
         print('\nWill exit and stop the EP !')
-        return PROXY.setEpStatusAll(0)
+        return PROXY.set_ep_status_all(0)
     # Capture signal
     signal.signal(signal.SIGINT, stop_ep)
 
@@ -255,9 +253,9 @@ def run_test(user, sut, fname):
     r = PROXY.set_persistent_file('Suite1', fname, {})
     print('Added file: `{}`.'.format(fname))
     print('Started execution!...')
-    PROXY.setEpStatusAll(2)
+    PROXY.set_ep_status_all(2)
     while 1:
-        status = PROXY.getEpStatusAll()
+        status = PROXY.get_ep_status_all()
         if status.startswith('stopped'):
             break
         time.sleep(1)
@@ -267,7 +265,9 @@ def run_test(user, sut, fname):
 
 
 def string_check(option, opt, value, parser):
-    """ verify input string """
+    """
+    Verify input string.
+    """
     # Break the option instance into a list
     # Formed by pair [short_version/long_version] (e.g. [-u/--users])
     # We want to get the long_version
@@ -359,7 +359,6 @@ if __name__ == '__main__':
 
     (OPTIONS, ARGS) = PARSER.parse_args()
 
-    print('BOG OPTIONS {}\n'.format(OPTIONS))
 
     if OPTIONS.login:
         try:
@@ -502,15 +501,15 @@ if __name__ == '__main__':
 
     if OPTIONS.set == 'start':
         print 'Starting...'
-        print PROXY.setEpStatusAll(2, OPTIONS.config + ',' + OPTIONS.project)
+        print PROXY.set_ep_status_all(2, OPTIONS.config + ',' + OPTIONS.project)
 
     elif OPTIONS.set == 'stop':
         print 'Stopping...',
-        print PROXY.setEpStatusAll(0, OPTIONS.config + ',' + OPTIONS.project)
+        print PROXY.set_ep_status_all(0, OPTIONS.config + ',' + OPTIONS.project)
 
     elif OPTIONS.set == 'pause':
         print 'Sending pause...',
-        print PROXY.setEpStatusAll(1, OPTIONS.config + ',' + OPTIONS.project)
+        print PROXY.set_ep_status_all(1, OPTIONS.config + ',' + OPTIONS.project)
 
     print
 

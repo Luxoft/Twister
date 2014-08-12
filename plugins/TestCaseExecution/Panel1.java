@@ -1,6 +1,6 @@
 /*
 File: Panel1.java ; This file is part of Twister.
-Version: 3.001
+Version: 3.002
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -1071,7 +1071,7 @@ public class Panel1 extends JPanel{
             ArrayList<Item>torem = new ArrayList();
             HashMap<Item,String> add = new HashMap();
             for(Item dependency:i.getDependencies().keySet()){
-                if(duplicates.get(dependency.getID())!=null && duplicates.get(dependency.getID()).size()>1){
+                if(duplicates.get(dependency.getID())!=null){// && duplicates.get(dependency.getID()).size()>1){
                     String status = i.getDependencies().get(dependency);
                     //i.getDependencies().remove(dependency);
                     torem.add(dependency);
@@ -1141,10 +1141,10 @@ public class Panel1 extends JPanel{
         ArrayList <Item> clonearray = new ArrayList();
         if(item.getRepeat()>1){
             for(int nr=0;nr<item.getRepeat();nr++){
-                Item clone  = item.clone();
-                for(Item i:item.getDependencies().keySet()){
-                    clone.getDependencies().put(i, item.getDependencies().get(i));
-                }
+                Item clone = item.clone();
+//                 for(Item i:item.getDependencies().keySet()){
+//                     clone.getDependencies().put(i, item.getDependencies().get(i));
+//                 }
                 if(clone.getType()==1){
                     ArrayList <Integer> indexpos3 = (ArrayList <Integer>)clone.getPos().clone();
                     indexpos3.add(new Integer(clone.getSubItemsNr()));
@@ -1177,9 +1177,9 @@ public class Panel1 extends JPanel{
 //             }
             
             Item clone = item.clone();
-            for(Item i:item.getDependencies().keySet()){
-                clone.getDependencies().put(i, item.getDependencies().get(i));
-            }
+//             for(Item i:item.getDependencies().keySet()){
+//                 clone.getDependencies().put(i, item.getDependencies().get(i));
+//             }
             array.add(clone);
             if(clone.getType()==2){
                 for(Item i:clone.getSubItems()){

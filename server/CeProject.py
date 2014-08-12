@@ -1,11 +1,12 @@
 
 # File: CeProject.py ; This file is part of Twister.
 
-# version: 3.043
+# version: 3.045
 
 # Copyright (C) 2012-2014 , Luxoft
 
 # Authors:
+#    Andreea Proca <aproca@luxoft.com>
 #    Andrei Costachi <acostachi@luxoft.com>
 #    Cristi Constantin <crconstantin@luxoft.com>
 #    Daniel Cioata <dcioata@luxoft.com>
@@ -87,6 +88,8 @@ import traceback
 import threading
 import MySQLdb
 import paramiko
+import copy
+import uuid
 
 import cherrypy
 import rpyc
@@ -103,7 +106,7 @@ from string import Template
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from common.tsclogging import *
-
+from lxml import etree
 
 if not sys.version.startswith('2.7'):
     print('Python version error! Central Engine must run on Python 2.7!')
@@ -235,6 +238,7 @@ class Project(object):
         self.config_locks = {} # Config locks list
 
         self.usr_lock = allocate_lock()  # User change lock
+        self.auth_lock = allocate_lock()  # Authenticate change lock
         self.epl_lock = allocate_lock()  # EP lock
         self.stt_lock = allocate_lock()  # File status lock
         self.int_lock = allocate_lock()  # Internal use lock
@@ -416,13 +420,14 @@ class Project(object):
 
         with self.epl_lock:
 
-            suitesInfo = self.users[user]['eps'][epname]['suites']
-            suites = set(suitesInfo.get_suites())
-            files = set(suitesInfo.get_files())
-            old_suites = set(self.suite_ids[user])
-            old_files = set(self.test_ids[user])
-            self.suite_ids[user] = sorted(old_suites - suites)
-            self.test_ids[user] = sorted(old_files - files)
+            suitesInfo = self.users[user]['eps'][epname].get('suites')
+            if suitesInfo:
+                suites = set(suitesInfo.get_suites())
+                files = set(suitesInfo.get_files())
+                old_suites = set(self.suite_ids[user])
+                old_files = set(self.test_ids[user])
+                self.suite_ids[user] = sorted(old_suites - suites)
+                self.test_ids[user] = sorted(old_files - files)
 
             logDebug('Un-Registered Execution-Process `{}:{}`.'.format(user, epname))
             del self.users[user]['eps'][epname]
@@ -436,6 +441,11 @@ class Project(object):
     def _common_proj_reset(self, user, base_config, files_config):
 
         logDebug('Common Project Reset for `{}` with params:\n\t`{}` & `{}`.'.format(user, base_config, files_config))
+
+        if not files_config.endswith('testsuites.xml'):
+            self.generate_xml(user, files_config)
+            files_config = userHome(user) + '/twister/config/testsuites.xml'
+            self.parsers[user].updateConfigTS(files_config)
 
         # Create EP list if it doesn't exist already
         eps = self.users[user].get('eps')
@@ -695,7 +705,7 @@ class Project(object):
             if not r:
                 return False
 
-        with self.usr_lock:
+        with self.auth_lock:
 
             # Reload users and groups
             self.roles = self._parse_users_and_groups()
@@ -1550,6 +1560,9 @@ class Project(object):
 
         # Cycle all EPs to find the dependency
         for epname, epinfo in self.users[user]['eps'].iteritems():
+            # Empty EP data ?
+            if not epinfo.get('suites'):
+                continue
             # Cycle all files
             for file_id in epinfo['suites'].get_files():
                 file_node = epinfo['suites'].find_id(file_id)
@@ -1605,7 +1618,7 @@ class Project(object):
 
         # Cannot find local conns
         if not ep_addr:
-            logWarning('*WARN* Cannot find any local EPs for user `{}`!'.format(user))
+            logWarning('*WARN* Cannot find local EP `{}`, for user `{}`!'.format(epname, user))
             return False
 
         return self.rsrv.service.conns.get(ep_addr, {}).get('conn', False)
@@ -1788,6 +1801,173 @@ class Project(object):
         return reversed[new_status]
 
 
+    def _edit_suite(self, ep, sut, config_root):
+        '''
+        Update suite props with sut name, ep id and id.
+        Delete test cases having running = false.
+        Used only by generate_xml method.
+        '''
+
+        for epname in config_root.xpath('//EpId'):
+            epname.text = ep
+
+        for sut_name in config_root.xpath('//SutName'):
+            sut_name.text = sut
+
+        for id_name in config_root.xpath('//ID'):
+            id_name.text = id_name.text + "#" + ep
+
+        for prop in config_root.xpath("//Property"):
+            if prop.find('propName').text == 'Running' and prop.find('propValue').text == 'false':
+                grand_parent = (prop.getparent()).getparent()
+                grand_parent.remove(prop.getparent())
+
+        return True
+
+
+    def _do_repeat(self, config_root):
+        '''
+        Repet Test Case or Suites as often as the tag <Reapet>
+        says.
+        '''
+
+        generated_ids = config_root.xpath('//ID')
+
+        repeat_list = config_root.xpath('//Repeat')
+        if not repeat_list:
+            return True
+
+        for repeat in reversed(repeat_list):
+            if int(repeat.text) > 1:
+                parent = repeat.getparent()
+                grand_parent = (repeat.getparent()).getparent()
+
+                for i in range(int(repeat.text) - 1):
+                    deep_copy = copy.deepcopy(repeat.getparent())
+
+                    # generate new unique id if necessary
+                    new_id = uuid.uuid4()
+                    while new_id in generated_ids:
+                        new_id = uuid.uuid4()
+                        if not str(new_id) in generated_ids:
+                            generated_ids.append(str(new_id))
+
+                    # update suite id
+                    deep_copy.find('ID').text = str(new_id)
+                    deep_copy.find('Repeat').text = str(1)
+
+                    if parent is None:
+                        config_root.append(deep_copy)
+                    else:
+                        parent.addnext(deep_copy)
+                repeat.getparent().find('Repeat').text = str(1)
+
+        return True
+
+
+    def generate_xml(self, user, filename):
+        '''
+        Receives project file.
+        Creates testsuites.xml file by multiplying tests depending
+        on the suts number and eps.
+        '''
+
+        # try to parse the project file
+        try:
+            xml = etree.parse(filename)
+        except:
+            msg = "The file: '{}' it's not an xml file. Try again!".format(filename)
+            logDebug(msg)
+            return '*ERROR* ' + msg
+
+        # write general props to testsuties.xml file
+        root = etree.Element("Root")
+        root.append(xml.find('stoponfail'))
+        root.append(xml.find('PrePostMandatory'))
+        root.append(xml.find('ScriptPre'))
+        root.append(xml.find('ClearCaseView'))
+        root.append(xml.find('libraries'))
+        root.append(xml.find('ScriptPost'))
+        root.append(xml.find('dbautosave'))
+        root.append(xml.find('tcdelay'))
+
+        # get all suites defined in project file
+        all_suites = xml.findall('TestSuite')
+        for suite in all_suites:
+            # get all suts chosen by user
+            all_suts = suite.find('SutName').text
+            suts_list = [q for q in all_suts.split(';') if q]
+            suts_list = [q.replace('(', '.').replace(')', '') for q in suts_list if q]
+
+            # multiply Suite entry as often as the tag 'Repeat' says
+            try:
+                repeat = suite.find('Repeat')
+                no_repeat = int(repeat.text)
+            except:
+                no_repeat = 1
+
+            for i in range(no_repeat):
+
+                deep_copy = copy.deepcopy(suite)
+                config_ts = etree.tostring(deep_copy)
+                config_root = etree.fromstring(config_ts)
+
+                if no_repeat > 1:
+                    generated_ids = config_root.xpath('//ID')
+
+                    # generate new unique id if necessary
+                    new_id = uuid.uuid4()
+                    while new_id in generated_ids:
+                        new_id = uuid.uuid4()
+                        if not str(new_id) in generated_ids:
+                            generated_ids.append(str(new_id))
+
+                    try:
+                        config_root.find('Repeat').text = str(1)
+                    except:
+                        pass
+                    config_root.find('ID').text = str(new_id)
+
+                # for every ep of a sut create entry
+                for sut in suts_list:
+                    sut = '/' + sut
+                    sut_eps = self.sut.get_info_sut(sut + ':_epnames_' + user, {'__user': user})
+
+                    if sut_eps and sut_eps != "false":
+                        sut_eps_list = [ep for ep in sut_eps.split(';') if ep]
+
+                        for ep in sut_eps_list:
+                            # update sut, ep, id, tunning test cases
+                            self. _do_repeat(config_root)
+                            self._edit_suite(ep, sut, config_root)
+
+                    else:
+                        # Find Anonimous EP in the active EPs
+                        anonim_ep = self._find_anonim_ep(user)
+
+                        self. _do_repeat(config_root)
+                        self._edit_suite(str(anonim_ep), sut, config_root)
+
+                    # append suite to the xml root
+                    root.append(config_root)
+
+        # write the xml file
+        xml_file = userHome(user) + '/twister/config/testsuites.xml'
+
+        xml_header = '<?xml version="1.0" encoding="UTF-8" standalone="no"?>\n\n'
+        resp = self.localFs.write_user_file(user, xml_file, xml_header, 'w')
+        if resp != True:
+            logError(resp)
+            return resp
+
+        resp = self.localFs.write_user_file(user, xml_file, etree.tostring(root, pretty_print=True), 'w')
+        if resp != True:
+            logError(resp)
+            return resp
+
+        return True
+
+
     def set_exec_status_all(self, user, new_status, msg=''):
         """
         Set execution status for all EPs. (STATUS_STOP, STATUS_PAUSED, STATUS_RUNNING).
@@ -1926,7 +2106,10 @@ class Project(object):
                 # Set the NEW EP status
                 self.set_ep_info(user, epname, 'status', new_status)
                 # Send START to EP Manager
-                rpyc_srv.exposed_start_ep(epname, user)
+                resp = rpyc_srv.exposed_start_ep(epname, user)
+                if not resp:
+                    # Reset the EP status to stop
+                    self.set_ep_info(user, epname, 'status', STATUS_STOP)
 
         # If the engine is running, or paused and it received STOP from the user...
         elif executionStatus in [STATUS_RUNNING, STATUS_PAUSED, STATUS_INVALID] and new_status == STATUS_STOP:
@@ -3035,6 +3218,7 @@ class Project(object):
                     subst_data['twister_ce_python_revision'] = '.'.join([str(v) for v in sys.version_info])
                     subst_data['twister_ep_name']    = epname
                     subst_data['twister_suite_name'] = suite_info['name']
+                    subst_data['twister_tc_reason']  = file_info.get('_reason', '')
                     subst_data['twister_tc_full_path'] = file_info['file']
                     subst_data['twister_tc_name']  = os.path.split(subst_data['twister_tc_full_path'])[1]
                     subst_data['twister_tc_title'] = ''

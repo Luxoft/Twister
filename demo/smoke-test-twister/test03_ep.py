@@ -1,6 +1,6 @@
 
 #
-# <ver>version: 2.005</ver>
+# <ver>version: 3.001</ver>
 # <title>Test EPs</title>
 # <description>This suite checks the most basic functionality of Twister.<br>
 # It checks if the EPs are running the tests successfully and it calls all CE functions, to ensure they work as expected.</description>
@@ -17,8 +17,9 @@ def test(PROXY, USER, EP):
 
     ep_list = PROXY.list_eps()
     if not ep_list:
-        print('Failure! Cannot get EP list!')
-        return 'Fail'
+        _REASON = 'Failure! Cannot get EP list!'
+        print(_REASON)
+        return 'Fail', _REASON
     print 'EPs list:', ep_list
 
     time.sleep(0.5)
@@ -52,8 +53,9 @@ def test(PROXY, USER, EP):
     print 'EP variable', ep_list[1], ' ABC:', PROXY.get_ep_variable(ep_list[1], 'abc')
     r = PROXY.set_ep_variable(ep_list[1], 'abc', random.randrange(1, 100))
     if not r:
-        print('Failure! Cannot set EP variable!')
-        return 'Fail'
+        _REASON = 'Failure! Cannot set EP variable ABC!'
+        print(_REASON)
+        return 'Fail', _REASON
     print 'EP variable', ep_list[1], ' ABC:', PROXY.get_ep_variable(ep_list[1], 'abc')
 
     time.sleep(0.5)
@@ -61,16 +63,17 @@ def test(PROXY, USER, EP):
     print 'EP variable', ep_list[-1], ' XYZ:', PROXY.get_ep_variable(ep_list[-1], 'xyz')
     r = PROXY.set_ep_variable(ep_list[-1], 'xyz', random.randrange(1, 100))
     if not r:
-        print('Failure! Cannot set EP variable!')
-        return 'Fail'
+        _REASON = 'Failure! Cannot set EP variable XYZ!'
+        print(_REASON)
+        return 'Fail', _REASON
     print 'EP variable', ep_list[-1], ' XYZ:', PROXY.get_ep_variable(ep_list[-1], 'xyz')
 
-    time.sleep(0.5)
+    time.sleep(0.25)
 
-    return 'Pass'
+    return 'Pass', ''
 
 # Must have one of the statuses:
 # 'pass', 'fail', 'skipped', 'aborted', 'not executed', 'timeout'
-_RESULT = test(PROXY, USER, EP)
+_RESULT, _REASON = test(PROXY, USER, EP)
 
 # Eof()

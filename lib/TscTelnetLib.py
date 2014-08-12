@@ -1,6 +1,6 @@
 # File: TscTelnetLib.py ; This file is part of Twister.
 
-# version: 2.002
+# version: 2.003
 #
 # Copyright (C) 2012 , Luxoft
 #
@@ -62,6 +62,11 @@ class TelnetManager(object):
         if not self.connections.has_key(name):
             connection = TelnetConnection(name, host, port, user, password,
                                             userExpect, passwordExpect, keepalive)
+
+            # if connection failed, return False
+            if connection.connection == None:
+                return False
+
             self.connections.update([(name, connection), ])
 
             return True
@@ -84,7 +89,7 @@ class TelnetManager(object):
 
             return False
 
-    def write(self, command, name=None):
+    def write(self, command, name=None, read_result=False, display=False):
         """ write command to telnet connection """
 
         if ((not name and not self.activeConnection) or
@@ -93,9 +98,9 @@ class TelnetManager(object):
             return False
 
         if name:
-            return self.connections[name].write(command)
+            return self.connections[name].write(command, read_result, display)
         elif self.activeConnection:
-            return self.connections[self.activeConnection].write(command)
+            return self.connections[self.activeConnection].write(command, read_result, display)
 
         return False
 
@@ -198,6 +203,7 @@ class TelnetManager(object):
             return False
 
         if not name and self.activeConnection:
+            self.connections[self.activeConnection].close()
             del(self.connections[self.activeConnection])
 
             self.activeConnection = None
@@ -205,6 +211,7 @@ class TelnetManager(object):
             return True
 
         try:
+            self.connections[name].close()
             del(self.connections[name])
 
             if name == self.activeConnection:
@@ -218,6 +225,9 @@ class TelnetManager(object):
 
     def close_all_connections(self):
         """ close all connections """
+
+        for name in self.connections:
+            self.connections[name].close()
 
         del(self.connections)
         self.connections = {}
@@ -284,6 +294,11 @@ class TelnetConnection:
         sleep(2)
         del(self)
 
+    def close(self):
+        """ close connection """
+
+        if self.connection:
+            self.connection.close()
 
     def keep_alive(self):
         """ keep connection alive """
@@ -372,9 +387,7 @@ class TelnetConnection:
         try:
             response = self.connection.read_until(expected, self.timeout)
             if response:
-                print(response)
-
-                return True
+                return response
 
         except Exception, e:
             print('read until command error: {er}'.format(er=e))
@@ -413,7 +426,6 @@ class TelnetConnection:
 
         try:
             response = self.connection.read_until(expected, self.timeout)
-            print(response)
             if response:
                 if command:
                     self.connection.write( str(command) + self.newline)

@@ -1,6 +1,6 @@
 
 #
-# <ver>version: 2.004</ver>
+# <ver>version: 3.001</ver>
 # <title>Test the Suites</title>
 # <description>This suite checks the most basic functionality of Twister.<br>
 # It checks if the EPs are running the tests successfully and it calls all CE functions, to ensure they work as expected.</description>
@@ -33,8 +33,9 @@ def test(PROXY, USER):
 
             r = PROXY.get_suite_variable(epname, suite_id, 'ep')
             if not r:
-                print('Failure! Cannot get Suite variable `build_id` !')
-                return 'Fail'
+                _REASON = 'Failure! Cannot get Suite variable `build_id` !'
+                print(_REASON)
+                return 'Fail', _REASON
             print 'Suite variable %s `ep` ?' % suite, r
 
             r = PROXY.get_suite_variable(epname, suite_id, 'build_id')
@@ -49,10 +50,10 @@ def test(PROXY, USER):
 
     time.sleep(0.5)
 
-    return 'Pass'
+    return 'Pass', ''
 
 # Must have one of the statuses:
 # 'pass', 'fail', 'skipped', 'aborted', 'not executed', 'timeout'
-_RESULT = test(PROXY, USER)
+_RESULT, _REASON = test(PROXY, USER)
 
 # Eof()

@@ -1,15 +1,14 @@
 
 # File: CeXmlRpc.py ; This file is part of Twister.
 
-# version: 3.002
+# version: 3.003
 
 # Copyright (C) 2012-2014 , Luxoft
 
 # Authors:
+#    Andreea Proca <aproca@luxoft.com>
 #    Andrei Costachi <acostachi@luxoft.com>
 #    Cristi Constantin <crconstantin@luxoft.com>
-#    Daniel Cioata <dcioata@luxoft.com>
-#    Mihai Tudoran <mtudoran@luxoft.com>
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -219,29 +218,38 @@ class CeXmlRpc(_cptools.XMLRPCController):
 
 
     @cherrypy.expose
-    def send_ep_echo(self, text):
+    def send_ep_echo(self, text, epname='ep'):
         """
-        Send remote echo.
+        Send remote echo. Used for debug.
         """
         user = cherrypy.session.get('username')
-        ep_conn = self.project._find_local_ep(user)
+        ep_conn = self.project._find_local_ep(user, epname)
         if not ep_conn:
             return False
-        ep_conn.root.echo(text)
-        return True
+        try:
+            ep_conn.root.echo(text)
+            return True
+        except Exception as e:
+            logWarning('User `{}` - exception on EP echo: `{}`!'.format(user, e))
+            return False
 
 
     @cherrypy.expose
-    def send_ep_continue(self):
+    def send_ep_continue(self, epname='ep'):
         """
         Send remote continue.
         """
         user = cherrypy.session.get('username')
-        ep_conn = self.project._find_local_ep(user)
+        ep_conn = self.project._find_local_ep(user, epname)
         if not ep_conn:
             return False
-        ep_conn.root.dbg_continue()
-        return True
+        try:
+            ep_conn.root.dbg_continue()
+            logDebug('User `{}` sent EP debug continue.'.format(user))
+            return True
+        except Exception as e:
+            logWarning('User `{}` - exception on EP continue: `{}`!'.format(user, e))
+            return False
 
 
 # # #
