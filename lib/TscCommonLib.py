@@ -243,6 +243,38 @@ class TscCommonLib(object):
         return self._ce_proxy()
 
 
+    @staticmethod
+    def twister_fail(reason=''):
+        """
+        Gracefully crash test.
+        """
+        raise TwisterTestFail(reason)
+
+
+    @staticmethod
+    def twister_abort(reason=''):
+        """
+        Gracefully crash test.
+        """
+        raise TwisterTestAbort(reason)
+
+
+    @staticmethod
+    def twister_timeout(reason=''):
+        """
+        Gracefully crash test.
+        """
+        raise TwisterTestTimeout(reason)
+
+
+    @staticmethod
+    def twister_skip(reason=''):
+        """
+        Gracefully crash test.
+        """
+        raise TwisterTestSkip(reason)
+
+
     def log_msg(self, log_type, log_message):
         """
         Shortcut function for sending a message in a log to Central Engine.
