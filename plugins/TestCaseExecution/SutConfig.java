@@ -1,6 +1,6 @@
 /*
 File: SutConfig.java ; This file is part of Twister.
-Version: 3.001
+Version: 3.002
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -134,9 +134,13 @@ public class SutConfig extends JPanel{
     private void buildChildren(Object [] children, DefaultMutableTreeNode treenode){
         String childid, subchildid;
         for(Object o:children){
-            try{childid = o.toString();
-                System.out.println(childid+" - "+treenode.toString());
-                HashMap subhash= (HashMap)client.execute("get_sut", new Object[]{childid});
+            HashMap subhash = (HashMap)o;
+//             try{childid = o.toString();
+            try{//childid = ((HashMap)o).get("id").toString();
+                //System.out.println(childid+" - "+treenode.toString());
+                //HashMap subhash= (HashMap)client.execute("get_sut", new Object[]{childid});
+                //System.out.println("subhash: "+subhash);
+                //System.out.println("children: "+subhash.get("children"));
                 String subpath = subhash.get("path").toString();
                 String subname = subpath.split("/")[subpath.split("/").length-1];
                 HashMap meta = (HashMap)subhash.get("meta");
@@ -167,7 +171,7 @@ public class SutConfig extends JPanel{
     public void initializeRPC(){
         try{XmlRpcClientConfigImpl configuration = new XmlRpcClientConfigImpl();
             configuration.setServerURL(new URL("http://"+RunnerRepository.host+
-                                        ":"+RunnerRepository.getCentralEnginePort()+"/ra/"));
+                                        ":"+RunnerRepository.getCentralEnginePort()+"/sut/"));
             configuration.setEnabledForExtensions(true);
             configuration.setBasicPassword(RunnerRepository.password);
             configuration.setBasicUserName(RunnerRepository.user);
@@ -187,7 +191,8 @@ public class SutConfig extends JPanel{
     public Node getTB(String id,Node parent){
         Object ob= null;
         try{
-            ob =  client.execute("get_resource", new Object[]{id});
+//             ob =  RunnerRepository.window.mainpanel.p4.getTB().client.execute("get_resource", new Object[]{id});
+            ob =  RunnerRepository.window.mainpanel.p4.getTB().client.execute("get_tb", new Object[]{id});
             HashMap hash= (HashMap)ob;
 //             HashMap hash= (HashMap)client.execute("getResource", new Object[]{id});
             String path = hash.get("path").toString();
@@ -216,9 +221,10 @@ public class SutConfig extends JPanel{
             }
             return node;
         }catch(Exception e){
-            System.out.println("requested id: "+id);
-            System.out.println("server respons: "+ob.toString());
             e.printStackTrace();
+            System.out.println("requested id: "+id);
+            if(ob!=null)System.out.println("server respons: "+ob.toString());
+            
             return null;
         }
     }

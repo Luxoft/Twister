@@ -1,6 +1,6 @@
 /*
 File: TB.java ; This file is part of Twister.
-Version: 3.001
+Version: 3.002
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -70,7 +70,7 @@ import java.util.Arrays;
 import java.util.ArrayList;
 
 public class TB extends JPanel{
-    private XmlRpcClient client;
+    public XmlRpcClient client;
     public Node parent;
     private JTree tree;
     public DefaultMutableTreeNode root;
