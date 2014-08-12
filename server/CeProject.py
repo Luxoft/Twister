@@ -1,7 +1,7 @@
 
 # File: CeProject.py ; This file is part of Twister.
 
-# version: 3.044
+# version: 3.045
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -420,13 +420,14 @@ class Project(object):
 
         with self.epl_lock:
 
-            suitesInfo = self.users[user]['eps'][epname]['suites']
-            suites = set(suitesInfo.get_suites())
-            files = set(suitesInfo.get_files())
-            old_suites = set(self.suite_ids[user])
-            old_files = set(self.test_ids[user])
-            self.suite_ids[user] = sorted(old_suites - suites)
-            self.test_ids[user] = sorted(old_files - files)
+            suitesInfo = self.users[user]['eps'][epname].get('suites')
+            if suitesInfo:
+                suites = set(suitesInfo.get_suites())
+                files = set(suitesInfo.get_files())
+                old_suites = set(self.suite_ids[user])
+                old_files = set(self.test_ids[user])
+                self.suite_ids[user] = sorted(old_suites - suites)
+                self.test_ids[user] = sorted(old_files - files)
 
             logDebug('Un-Registered Execution-Process `{}:{}`.'.format(user, epname))
             del self.users[user]['eps'][epname]
@@ -1214,6 +1215,7 @@ class Project(object):
         else:
             return self.localFs.list_user_files(user, fdir, hidden, recursive)
 
+
     def delete_folder(self, fdir, type='fs'):
         """
         Delete a folder from user's home folder, or ClearCase.
@@ -1414,9 +1416,13 @@ class Project(object):
             logDebug('Project: Invalid Key `{}` !'.format(key))
             return False
 
-        self.users[user]['eps'][epname][key] = value
-        self._dump()
-        return True
+        try:
+            self.users[user]['eps'][epname][key] = value
+            self._dump()
+            return True
+        except Exception as e:
+            logWarning('Cannot set EP `{}` info `{} = {}`: `{}`!'.format(epname, key, value, e))
+            return False
 
 
     def get_suite_info(self, user, epname, suite_id):
@@ -1507,13 +1513,16 @@ class Project(object):
             return {}
         eps = self.users[user]['eps']
 
+        if epname not in eps:
+            logWarning('Project: Invalid EP name `{}` !'.format(epname))
+            return False
         if file_id not in eps[epname]['suites'].get_files():
-            logDebug('Project: Invalid File ID `{}` !'.format(file_id))
+            logWarning('Project: Invalid File ID `{}` !'.format(file_id))
             return False
 
         file_node = eps[epname]['suites'].find_id(file_id)
         if not file_node:
-            logDebug('Project: Invalid File node `{}` !'.format(file_id))
+            logWarning('Project: Invalid File node `{}` !'.format(file_id))
             return False
         return file_node
 
@@ -1528,19 +1537,22 @@ class Project(object):
             return False
         eps = self.users[user]['eps']
 
+        if epname not in eps:
+            logWarning('Project: Invalid EP name `{}` !'.format(epname))
+            return False
         if file_id not in eps[epname]['suites'].get_files():
-            logDebug('Project: Invalid File ID `{}` !'.format(file_id))
+            logWarning('Project: Invalid File ID `{}` !'.format(file_id))
             return False
         if not key:
-            logDebug('Project: Invalid Key `{}` !'.format(key))
+            logWarning('Project: Invalid Key `{}` !'.format(key))
             return False
         if key == 'type':
-            logDebug('Project: Cannot change reserved Key `{}` !'.format(key))
+            logWarning('Project: Cannot change reserved Key `{}` !'.format(key))
             return False
 
         file_node = eps[epname]['suites'].find_id(file_id)
         if not file_node:
-            logDebug('Project: Invalid File node `{}` !'.format(file_id))
+            logWarning('Project: Invalid File node `{}` !'.format(file_id))
             return False
         file_node[key] = value
         self._dump()
@@ -1666,138 +1678,6 @@ class Project(object):
         # The Anonim EP becomes the first free EP
         logDebug('Found __Anonim__ EP for user `{}:{}` !'.format(user, epname))
         return epname
-
-
-    def set_exec_status(self, user, epname, new_status, msg=''):
-        """
-        Set execution status for one EP. (0, 1, 2, or 3)
-        Returns a string (stopped, paused, running).
-        The `message` parameter can explain why the status has changed.
-        """
-        logFull('CeProject:set_exec_status user `{}`.'.format(user))
-
-        # Check the username from CherryPy connection
-        cherry_roles = self.authenticate(user)
-        if not cherry_roles:
-            return False
-        logDebug('Preparing to set EP status `{}:{}` to `{}`...'.format(user, epname, new_status))
-
-        if not 'RUN_TESTS' in cherry_roles['roles']:
-            logDebug('Privileges ERROR! Username `{user}` cannot change EP status!'.format(**cherry_roles))
-            return False
-
-        if epname not in self.users[user]['eps']:
-            logError('Project: Invalid EP name `{}` !'.format(epname))
-            return False
-        if new_status not in EXEC_STATUS.values():
-            logError('Project: Status value `{}` is not in the list of defined statuses: `{}`!'
-                     ''.format(new_status, EXEC_STATUS.values()) )
-            return False
-
-        # Status resume => start running
-        if new_status == STATUS_RESUME:
-            new_status = STATUS_RUNNING
-
-        ret = self.set_ep_info(user, epname, 'status', new_status)
-        reversed = dict((v, k) for k, v in EXEC_STATUS.iteritems())
-
-        if ret:
-            if msg:
-                logDebug('Status changed for EP `{} {}` - {}.\n\tMessage: `{}`.'.format(
-                    user, epname, reversed[new_status], msg))
-            else:
-                logDebug('Status changed for EP `{} {}` - {}.'.format(user, epname, reversed[new_status]))
-        else:
-            logError('Project: Cannot change status for EP `{} {}` !'.format(user, epname))
-            return False
-
-        # All active EPs for this project...
-        project_eps = self.parsers[user].getActiveEps()
-        # All REAL, registered EPs
-        real_eps = self.rsrv.service.exposed_registered_eps(user)
-        # The project real EPs
-        intersect_eps = sorted(set(real_eps) & set(project_eps))
-
-        # Send start/ stop command to EP !
-        if new_status == STATUS_RUNNING:
-            self.rsrv.service.exposed_start_ep(epname, user)
-        elif new_status == STATUS_STOP:
-            # Call the backup logs
-            self.backup_logs(user)
-            self.rsrv.service.exposed_stop_ep(epname, user)
-
-        # If all Stations are stopped, the status for current user is also stop!
-        # This is important, so that in the Java GUI, the buttons will change to [Play | Stop]
-        if not sum([self.get_ep_info(user, ep).get('status', 8) for ep in intersect_eps]):
-
-            # If User status was not Stop
-            if self.get_user_info(user, 'status'):
-
-                self.set_user_info(user, 'status', STATUS_STOP)
-
-                logInfo('Project: All processes stopped for user `{}`! General user status changed to STOP.\n'.format(user))
-
-                # If this run is Not temporary
-                if not (user + '_old' in self.users):
-                    # On Central Engine stop, send e-mail
-                    try:
-                        self.send_mail(user)
-                    except Exception as e:
-                        logError('Could not send e-mail! Exception `{}`!'.format(e))
-
-                    # Execute "Post Script"
-                    script_post = self.get_user_info(user, 'script_post')
-                    script_mandatory = self.get_user_info(user, 'script_mandatory')
-                    save_to_db = True
-                    if script_post:
-                        result = execScript(script_post)
-                        if result:
-                            logDebug('Post Script executed!\n"{}"\n'.format(result))
-                        elif script_mandatory:
-                            logError('Project: Post Script failed and script is mandatory! Will not save the results into database!')
-                            save_to_db = False
-
-                    # On Central Engine stop, save to database
-                    db_auto_save = self.get_user_info(user, 'db_auto_save')
-                    if db_auto_save and save_to_db:
-                        logDebug('Project: Preparing to save into database...')
-                        time.sleep(2) # Wait all the logs
-                        ret = self.save_to_database(user)
-                        if ret:
-                            logDebug('Project: Saving to database was successful!')
-                        else:
-                            logDebug('Project: Could not save to database!')
-
-                    # Execute "onStop" for all plugins!
-                    parser = PluginParser(user)
-                    plugins = parser.getPlugins()
-                    for pname in plugins:
-                        plugin = self._build_plugin(user, pname,  {'ce_stop': 'automatic'})
-                        try:
-                            plugin.onStop()
-                        except Exception:
-                            trace = traceback.format_exc()[33:].strip()
-                            logWarning('Error on running plugin `{} onStop` - Exception: `{}`!'.format(pname, trace))
-                    del parser, plugins
-
-                    # Cycle all files to change the PENDING status to NOT_EXEC
-                    eps_pointer = self.users[user]['eps']
-                    statuses_changed = 0
-
-                    # All files, for current EP
-                    files = eps_pointer[epname]['suites'].get_files()
-                    for file_id in files:
-                        current_status = self.get_file_info(user, epname, file_id).get('status', -1)
-                        # Change the files with PENDING status, to NOT_EXEC
-                        if current_status in [STATUS_PENDING, -1]:
-                            self.set_file_info(user, epname, file_id, 'status', STATUS_NOT_EXEC)
-                            statuses_changed += 1
-
-                    if statuses_changed:
-                        logDebug('User `{}` changed `{}` file statuses from '
-                            '"Pending" to "Not executed".'.format(user, statuses_changed))
-
-        return reversed[new_status]
 
 
     def _edit_suite(self, ep, sut, config_root):
@@ -1967,6 +1847,138 @@ class Project(object):
         return True
 
 
+    def set_exec_status(self, user, epname, new_status, msg=''):
+        """
+        Set execution status for one EP. (0, 1, 2, or 3)
+        Returns a string (stopped, paused, running).
+        The `message` parameter can explain why the status has changed.
+        """
+        logFull('CeProject:set_exec_status user `{}`.'.format(user))
+
+        # Check the username from CherryPy connection
+        cherry_roles = self.authenticate(user)
+        if not cherry_roles:
+            return False
+        logDebug('Preparing to set EP status `{}:{}` to `{}`...'.format(user, epname, new_status))
+
+        if not 'RUN_TESTS' in cherry_roles['roles']:
+            logDebug('Privileges ERROR! Username `{user}` cannot change EP status!'.format(**cherry_roles))
+            return False
+
+        if epname not in self.users[user]['eps']:
+            logError('Project: Invalid EP name `{}` !'.format(epname))
+            return False
+        if new_status not in EXEC_STATUS.values():
+            logError('Project: Status value `{}` is not in the list of defined statuses: `{}`!'
+                     ''.format(new_status, EXEC_STATUS.values()) )
+            return False
+
+        # Status resume => start running
+        if new_status == STATUS_RESUME:
+            new_status = STATUS_RUNNING
+
+        ret = self.set_ep_info(user, epname, 'status', new_status)
+        reversed = dict((v, k) for k, v in EXEC_STATUS.iteritems())
+
+        if ret:
+            if msg:
+                logDebug('Status changed for EP `{} {}` - {}.\n\tMessage: `{}`.'.format(
+                    user, epname, reversed[new_status], msg))
+            else:
+                logDebug('Status changed for EP `{} {}` - {}.'.format(user, epname, reversed[new_status]))
+        else:
+            logError('Project: Cannot change status for EP `{} {}` !'.format(user, epname))
+            return False
+
+        # All active EPs for this project...
+        project_eps = self.parsers[user].getActiveEps()
+        # All REAL, registered EPs
+        real_eps = self.rsrv.service.exposed_registered_eps(user)
+        # The project real EPs
+        intersect_eps = sorted(set(real_eps) & set(project_eps))
+
+        # Send start/ stop command to EP !
+        if new_status == STATUS_RUNNING:
+            self.rsrv.service.exposed_start_ep(epname, user)
+        elif new_status == STATUS_STOP:
+            # Call the backup logs
+            self.backup_logs(user)
+            self.rsrv.service.exposed_stop_ep(epname, user)
+
+        # If all Stations are stopped, the status for current user is also stop!
+        # This is important, so that in the Java GUI, the buttons will change to [Play | Stop]
+        if not sum([self.get_ep_info(user, ep).get('status', 8) for ep in intersect_eps]):
+
+            # If User status was not Stop
+            if self.get_user_info(user, 'status'):
+
+                self.set_user_info(user, 'status', STATUS_STOP)
+
+                logInfo('Project: All processes stopped for user `{}`! General user status changed to STOP.\n'.format(user))
+
+                # If this run is Not temporary
+                if not (user + '_old' in self.users):
+                    # On Central Engine stop, send e-mail
+                    try:
+                        self.send_mail(user)
+                    except Exception as e:
+                        logError('Could not send e-mail! Exception `{}`!'.format(e))
+
+                    # Execute "Post Script"
+                    script_post = self.get_user_info(user, 'script_post')
+                    script_mandatory = self.get_user_info(user, 'script_mandatory')
+                    save_to_db = True
+                    if script_post:
+                        result = execScript(script_post)
+                        if result:
+                            logDebug('Post Script executed!\n"{}"\n'.format(result))
+                        elif script_mandatory:
+                            logError('Project: Post Script failed and script is mandatory! Will not save the results into database!')
+                            save_to_db = False
+
+                    # On Central Engine stop, save to database
+                    db_auto_save = self.get_user_info(user, 'db_auto_save')
+                    if db_auto_save and save_to_db:
+                        logDebug('Project: Preparing to save into database...')
+                        time.sleep(2) # Wait all the logs
+                        ret = self.save_to_database(user)
+                        if ret:
+                            logDebug('Project: Saving to database was successful!')
+                        else:
+                            logDebug('Project: Could not save to database!')
+
+                    # Execute "onStop" for all plugins!
+                    parser = PluginParser(user)
+                    plugins = parser.getPlugins()
+                    for pname in plugins:
+                        plugin = self._build_plugin(user, pname,  {'ce_stop': 'automatic'})
+                        try:
+                            plugin.onStop()
+                        except Exception:
+                            trace = traceback.format_exc()[33:].strip()
+                            logWarning('Error on running plugin `{} onStop` - Exception: `{}`!'.format(pname, trace))
+                    del parser, plugins
+
+                    # Cycle all files to change the PENDING status to NOT_EXEC
+                    eps_pointer = self.users[user]['eps']
+                    statuses_changed = 0
+
+                    # All files, for current EP
+                    files = eps_pointer[epname]['suites'].get_files()
+                    for file_id in files:
+                        current_status = self.get_file_info(user, epname, file_id).get('status', -1)
+                        # Change the files with PENDING status, to NOT_EXEC
+                        if current_status in [STATUS_PENDING, -1]:
+                            self.set_file_info(user, epname, file_id, 'status', STATUS_NOT_EXEC)
+                            statuses_changed += 1
+
+                    if statuses_changed:
+                        logDebug('User `{}` changed `{}` file statuses from '
+                            '"Pending" to "Not executed".'.format(user, statuses_changed))
+
+        return reversed[new_status]
+
+
     def set_exec_status_all(self, user, new_status, msg=''):
         """
         Set execution status for all EPs. (STATUS_STOP, STATUS_PAUSED, STATUS_RUNNING).
@@ -2092,6 +2104,8 @@ class Project(object):
 
             # Find Anonimous EP in the active EPs
             anonim_ep = self._find_anonim_ep(user)
+            # List of started EPs
+            started_eps = []
 
             for epname in intersect_eps:
                 if epname == '__anonymous__' and anonim_ep:
@@ -2105,7 +2119,16 @@ class Project(object):
                 # Set the NEW EP status
                 self.set_ep_info(user, epname, 'status', new_status)
                 # Send START to EP Manager
-                rpyc_srv.exposed_start_ep(epname, user)
+                resp = rpyc_srv.exposed_start_ep(epname, user)
+                started_eps.append(resp)
+                if not resp:
+                    # Reset the EP status to stop
+                    self.set_ep_info(user, epname, 'status', STATUS_STOP)
+
+            if True not in started_eps:
+                msg = '*ERROR* Cannot start the EPs for User `{}`!'.format(user)
+                logError(msg)
+                return msg
 
         # If the engine is running, or paused and it received STOP from the user...
         elif executionStatus in [STATUS_RUNNING, STATUS_PAUSED, STATUS_INVALID] and new_status == STATUS_STOP:

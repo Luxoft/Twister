@@ -1,7 +1,7 @@
 
 # File: TscCommonLib.py ; This file is part of Twister.
 
-# version: 3.013
+# version: 3.014
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -49,7 +49,43 @@ if not TWISTER_PATH:
 
 from common import iniparser
 
-__all__ = ['TscCommonLib']
+__all__ = ['TscCommonLib', 'TwisterTestFail', 'TwisterTestAbort', 'TwisterTestTimeout', 'TwisterTestSkip']
+
+#
+
+class TwisterException(Warning):
+    """
+    Base custom exception.
+    """
+    def __init__(self, value=''):
+        self.value = value
+    def __str__(self):
+        return repr(self.value)
+
+
+class TwisterTestFail(TwisterException):
+    """
+    Custom exception, caught by the EP.
+    """
+    pass
+
+class TwisterTestAbort(TwisterException):
+    """
+    Custom exception, caught by the EP.
+    """
+    pass
+
+class TwisterTestTimeout(TwisterException):
+    """
+    Custom exception, caught by the EP.
+    """
+    pass
+
+class TwisterTestSkip(TwisterException):
+    """
+    Custom exception, caught by the EP.
+    """
+    pass
 
 #
 

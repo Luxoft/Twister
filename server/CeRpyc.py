@@ -1,7 +1,7 @@
 
 # File: CeRpyc.py ; This file is part of Twister.
 
-# version: 3.013
+# version: 3.014
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -178,39 +178,39 @@ class CeRpycService(rpyc.Service):
 
         # Cycle all active connections (clients, eps, libs, cli)
         for str_addr, data in self.conns.iteritems():
-            # Skip invalid connections, without log-in
-            if not data.get('user') or not data.get('checked'):
+            # Skip invalid connections, without log-in, or other users
+            if not (data.get('user') or data.get('checked') or user == data['user']):
                 continue
-            # Will find the first connection match for the user
-            if user == data['user'] and data['checked']:
-                # Check (Addr & Hello)
-                if (addr and hello) and str_addr.split(':')[0] in addr:
-                    # If the Hello matches with the filter
-                    if data.get('hello') and data['hello'].split(':'):
-                        # If the hello has : it's looking for a specific thing
-                        if ':' in hello and hello == data['hello']:
-                            found = str_addr
-                            break
-                        # Or, try to match the beggining of the remote hello
-                        elif data['hello'].split(':')[0] == hello:
-                            found = str_addr
-                            break
-                # Check (Hello & Ep)
-                elif (hello and epname) and data.get('hello') and ':' in hello and \
-                    (data['hello'].split(':')[0] == hello or data['hello'] == epname):
-                    # If this connection has registered EPs
-                    eps = data.get('eps')
-                    if eps and epname in eps:
-                        found = str_addr
-                        break
-                # Check Hello
-                elif hello and data.get('hello') == hello:
+            # Check (Addr & Hello)
+            if (addr and hello) and (str_addr.split(':')[0] in addr and data.get('hello')):
+                # If the hello has : it's looking for a specific thing
+                if ':' in hello and data['hello'] == hello:
                     found = str_addr
                     break
-                # All filters are null! Return the first conn for this user!
-                elif not addr and not hello and not epname:
+                # Or, try to match the beggining of the remote hello
+                elif data['hello'].split(':')[0] == hello:
                     found = str_addr
                     break
+                # Client ?
+                elif hello == 'client' and data['hello'] == 'client' and data.get('eps'):
+                    found = str_addr
+                    break
+            # Check (Hello & Ep)
+            elif (hello and epname) and data.get('hello') and ':' in hello and \
+                (data['hello'].split(':')[0] == hello or data['hello'] == epname):
+                # If this connection has registered EPs
+                eps = data.get('eps')
+                if eps and epname in eps:
+                    found = str_addr
+                    break
+            # Check Hello
+            elif (not addr and hello) and data.get('hello') == hello:
+                found = str_addr
+                break
+            # All filters are null! Return the first conn for this user!
+            elif not addr and not hello and not epname:
+                found = str_addr
+                break
 
         return found
 
@@ -710,7 +710,7 @@ class CeRpycService(rpyc.Service):
                     diff_eps  = old_eps - new_eps
                     intersect = old_eps & new_eps
                     if intersect:
-                        logDebug('Un-register EP list {} from `{}` and register then on `{}`.'\
+                        logDebug('Un-register EP list {} from `{}` and register them on `{}`.'\
                                  ''.format(sorted(intersect), c_addr, str_addr))
                     # Delete the EPs that must be deleted
                     self.conns[c_addr]['eps'] = sorted(diff_eps)
@@ -742,11 +742,14 @@ class CeRpycService(rpyc.Service):
         else:
             eps = set(eps)
 
-        logDebug('Begin to un-register EPs: {} ...'.format(eps))
+        logDebug('Begin to un-register EPs: {} ...'.format(sorted(eps)))
 
         with self.conn_lock:
             for epname in eps:
-                self.project._unregister_ep(user, epname)
+                try:
+                    self.project._unregister_ep(user, epname)
+                except Exception as e:
+                    logError('Error un-register EP: `{}`!'.format(e))
 
             data = self.conns[str_addr]
             ee = data.get('eps') or sorted(eps)
