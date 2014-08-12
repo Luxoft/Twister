@@ -90,6 +90,9 @@ if not USER_NAME:
 TWISTER_PATH = user_home(USER_NAME).rstrip('/') + '/twister'
 os.environ['TWISTER_PATH'] = TWISTER_PATH
 
+PS_SNIFFER = 'ps ax | grep /bin/start_packet_sniffer.py  | grep "\\-u {}" '
+PS_EPS = 'ps ax | grep /executionprocess/ExecutionProcess.py  | grep "\\-u {}" '
+
 
 # # #
 
@@ -134,12 +137,10 @@ class TwisterClient(object):
         """
         Close all Sniffers and EPs for this user.
         """
-        pids = subprocess.check_output('ps ax | grep /bin/start_packet_sniffer.py '
-            ' | grep "\\-u {}" '.format(USER_NAME), shell=True)
+        pids = subprocess.check_output(PS_SNIFFER.format(USER_NAME), shell=True)
         self._kill(pids, 'Sniffer')
 
-        pids = subprocess.check_output('ps ax | grep /executionprocess/ExecutionProcess.py '
-            ' | grep "\\-u {}"'.format(USER_NAME), shell=True)
+        pids = subprocess.check_output(PS_EPS.format(USER_NAME), shell=True)
         self._kill(pids, 'EP')
 
 #
@@ -642,6 +643,7 @@ class TwisterClientService(rpyc.Service):
                     logPrint('ClientService: Error on Stop EP: `{}`.'.format(trace))
                     # return False # No need to exit
 
+        CLIENT.ep_names[epname]['pid'] = None
         logPrint('Stopped EP `{}`! (pid = {})'.format(epname, PID))
         return True
 
@@ -683,74 +685,6 @@ class TwisterClientService(rpyc.Service):
                 pass
         del pipe
         return True
-
-
-    def exposed_create_folder(self, folder):
-        """
-        Create a new folder.
-        """
-        try:
-            os.makedirs(folder)
-            logPrint('Created folders `{}`.'.format(folder))
-            return True
-        except Exception as e:
-            logPrint('*ERROR* Cannot create folder `{}`! {}'.format(folder, e))
-            return False
-
-
-    def exposed_delete_folder(self, folder):
-        """
-        Create a user folder.
-        """
-        try:
-            shutil.rmtree(folder)
-            logPrint('Deleted folders `{}`.'.format(folder))
-            return True
-        except Exception as e:
-            err = '*ERROR* Cannot delete folder `{}`! {}'.format(folder, e)
-            logPrint(err)
-            return err
-
-
-    def exposed_read_file(self, fpath):
-        """
-        Read 1 file.
-        """
-        try:
-            with open(fpath, 'r') as f:
-                return f.read()
-        except Exception as e:
-            err = '*ERROR* Cannot read file `{}`! {}'.format(fpath, e)
-            logPrint(err)
-            return err
-
-
-    def exposed_write_file(self, fpath, content):
-        """
-        Write data in a file. OVERWRITE everything!
-        """
-        try:
-            open(fpath, 'w').write(content)
-            logPrint('Written file `{}`.'.format(fpath))
-            return True
-        except Exception as e:
-            err = '*ERROR* Cannot write into file `{}`! {}'.format(fpath, e)
-            logPrint(err)
-            return err
-
-
-    def exposed_delete_file(self, fpath):
-        """
-        Delete a file. This is IREVERSIBLE!
-        """
-        try:
-            os.remove(fpath)
-            logPrint('Deleted file `{}`.'.format(fpath))
-            return True
-        except Exception as e:
-            err = '*ERROR* Cannot delete file `{}`! {}'.format(fpath, e)
-            logPrint(err)
-            return err
 
 
     def exposed_save_suts(self, sut_list):

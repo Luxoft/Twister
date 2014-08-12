@@ -498,9 +498,9 @@ public class SutEditor extends JPanel{
     public void getSUT(String sutname,DefaultMutableTreeNode sutnode,boolean editable){
         try{
             Object ob = client.execute("get_sut", new Object[]{sutname});
-	    System.out.println(ob);
-	    HashMap hash = (HashMap)ob;
-	    this.editable = editable;
+    	    System.out.println(ob);
+    	    HashMap hash = (HashMap)ob;
+    	    this.editable = editable;
             DefaultMutableTreeNode epsnode;//child
             DefaultTreeModel model = (DefaultTreeModel)tree.getModel();
             root.removeAllChildren();

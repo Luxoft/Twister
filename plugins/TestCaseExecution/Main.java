@@ -78,9 +78,12 @@ public class Main{
                     RunnerRepository.window.mainpanel.p4.getSut().sut.getSutTree().releaseAllSuts();
                     System.exit(0);}});
         f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        RunnerRepository.host = "tsc-server";
-        RunnerRepository.user = "tscguest";
-        RunnerRepository.password = "tscguest";
+        RunnerRepository.host = "10.3.1.203";
+        RunnerRepository.user = "twister";
+        RunnerRepository.password = "twister";
+//         RunnerRepository.host = "tsc-server";
+//         RunnerRepository.user = "tscguest";
+//         RunnerRepository.password = "tscguest";
 //         RunnerRepository.host = "11.126.32.21";
 //         RunnerRepository.user = "user";
 //         RunnerRepository.password = "password";
