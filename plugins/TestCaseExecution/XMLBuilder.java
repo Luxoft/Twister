@@ -18,6 +18,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 import com.twister.Item;
+import com.twister.Configuration;
 import java.util.ArrayList;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.DocumentBuilder;
@@ -478,13 +479,25 @@ public class XMLBuilder{
                 tc.appendChild(em3);
             }
             em3 = document.createElement("ConfigFiles");
-            sb = new StringBuilder();
-            for(String s:item.getConfigurations()){
-                sb.append(s);
-                sb.append(";");
+            
+            Element em4 ;
+            //sb = new StringBuilder();
+            for(Configuration conf:item.getConfigurations()){
+                em4 = document.createElement("Config");
+                em4.setAttribute("name", conf.getFile());
+                em4.setAttribute("enabled", conf.isEnabled()+"");
+                em4.setAttribute("iterator_default", conf.isIeratorOD()+"");
+                em4.setAttribute("iterator_sof", conf.isIteratorSOF()+"");
+                em3.appendChild(em4);
+                //sb.append(conf.getFile());
+                //sb.append(";");
             }
-            if(sb.length()>0)sb.setLength(sb.length()-1);
-            em3.appendChild(document.createTextNode(sb.toString()));
+//             for(String s:item.getConfigurations()){
+//                 sb.append(s);
+//                 sb.append(";");
+//             }
+//             if(sb.length()>0)sb.setLength(sb.length()-1);
+//             em3.appendChild(document.createTextNode(sb.toString()));
             tc.appendChild(em3);
             if(temp || skip){
                 Element em7 = document.createElement("Title");
@@ -500,7 +513,7 @@ public class XMLBuilder{
             if(item.isPrerequisite()){
                 Element prop  = document.createElement("Property");
                 tc.appendChild(prop);
-                Element em4 = document.createElement("propName");
+                em4 = document.createElement("propName");
                 em4.appendChild(document.createTextNode("setup_file"));
                 prop.appendChild(em4);
                 Element em5 = document.createElement("propValue");
@@ -509,7 +522,7 @@ public class XMLBuilder{
             if(item.isTeardown()){
                 Element prop  = document.createElement("Property");
                 tc.appendChild(prop);
-                Element em4 = document.createElement("propName");
+                em4 = document.createElement("propName");
                 em4.appendChild(document.createTextNode("teardown_file"));
                 prop.appendChild(em4);
                 Element em5 = document.createElement("propValue");
@@ -518,7 +531,7 @@ public class XMLBuilder{
             if(item.isOptional()){
                 Element prop  = document.createElement("Property");
                 tc.appendChild(prop);
-                Element em4 = document.createElement("propName");
+                em4 = document.createElement("propName");
                 em4.appendChild(document.createTextNode("Optional"));
                 prop.appendChild(em4);
                 Element em5 = document.createElement("propValue");
@@ -526,7 +539,7 @@ public class XMLBuilder{
                 prop.appendChild(em5);}
             Element prop  = document.createElement("Property");
             tc.appendChild(prop);
-            Element em4 = document.createElement("propName");
+            em4 = document.createElement("propName");
             em4.appendChild(document.createTextNode("Runnable"));
             prop.appendChild(em4);
             Element em5 = document.createElement("propValue");

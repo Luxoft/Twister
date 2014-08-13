@@ -33,6 +33,7 @@ import java.awt.FontMetrics;
 import java.awt.Font;
 import java.util.ArrayList;
 import java.util.HashMap;
+import com.twister.Configuration;
 
 public class XMLReader{
     private int preprop = 12;//properties in xml available before Property tag, in testsuites repeat tag is not present, we will substract 2
@@ -231,12 +232,30 @@ public class XMLReader{
                 secNmElmntLst = ((Element)node).getElementsByTagName("ConfigFiles");
                 if(secNmElmntLst.getLength()>0){
                     secNmElmnt = (Element)secNmElmntLst.item(0);
-                    secNm = secNmElmnt.getChildNodes();
-                    String configs[] ={};
-                    if(secNm.getLength()>0){
-                        configs= secNm.item(0).getNodeValue().toString().split(";");
+                    //secNm = secNmElmnt.getChildNodes();
+                    
+                    secNmElmntLst = ((Element)node).getElementsByTagName("Config");
+                    int size = secNmElmntLst.getLength();
+                    if(size>0){
+                        for(int i=0;i<size;i++){
+                            Element em = (Element)secNmElmntLst.item(i);
+                            Configuration conf = new Configuration(em.getAttribute("name"));
+                            conf.setEnabled(Boolean.parseBoolean(em.getAttribute("enabled")));
+                            conf.setIeratorOD(Boolean.parseBoolean(em.getAttribute("iterator_default")));
+                            conf.setIteratorSOF(Boolean.parseBoolean(em.getAttribute("iterator_sof")));
+                            theone.getConfigurations().add(conf);
+                        }
                     }
-                    theone.setConfigurations(configs);
+                    
+                    
+                    //String configs[] ={};
+//                     if(secNm.getLength()>0){
+//                         configs = secNm.item(0).getNodeValue().toString().split(";");
+//                         for(String conf:configs){
+//                             theone.getConfigurations().add(new Configuration(conf));
+//                         }
+//                     }
+                    //theone.setConfigurations(configs);
                     k+=2;
                 }
                 if(test){
