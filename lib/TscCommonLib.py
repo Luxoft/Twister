@@ -1,7 +1,7 @@
 
 # File: TscCommonLib.py ; This file is part of Twister.
 
-# version: 3.014
+# version: 3.015
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -49,7 +49,7 @@ if not TWISTER_PATH:
 
 from common import iniparser
 
-__all__ = ['TscCommonLib', 'TwisterTestFail', 'TwisterTestAbort', 'TwisterTestTimeout', 'TwisterTestSkip']
+__all__ = ['TscCommonLib', 'ExceptionTestFail', 'ExceptionTestAbort', 'ExceptionTestTimeout', 'ExceptionTestSkip']
 
 #
 
@@ -63,25 +63,25 @@ class TwisterException(Warning):
         return repr(self.value)
 
 
-class TwisterTestFail(TwisterException):
+class ExceptionTestFail(TwisterException):
     """
     Custom exception, caught by the EP.
     """
     pass
 
-class TwisterTestAbort(TwisterException):
+class ExceptionTestAbort(TwisterException):
     """
     Custom exception, caught by the EP.
     """
     pass
 
-class TwisterTestTimeout(TwisterException):
+class ExceptionTestTimeout(TwisterException):
     """
     Custom exception, caught by the EP.
     """
     pass
 
-class TwisterTestSkip(TwisterException):
+class ExceptionTestSkip(TwisterException):
     """
     Custom exception, caught by the EP.
     """
@@ -244,35 +244,35 @@ class TscCommonLib(object):
 
 
     @staticmethod
-    def twister_fail(reason=''):
+    def test_fail(reason=''):
         """
         Gracefully crash test.
         """
-        raise TwisterTestFail(reason)
+        raise ExceptionTestFail(reason)
 
 
     @staticmethod
-    def twister_abort(reason=''):
+    def test_abort(reason=''):
         """
         Gracefully crash test.
         """
-        raise TwisterTestAbort(reason)
+        raise ExceptionTestAbort(reason)
 
 
     @staticmethod
-    def twister_timeout(reason=''):
+    def test_timeout(reason=''):
         """
         Gracefully crash test.
         """
-        raise TwisterTestTimeout(reason)
+        raise ExceptionTestTimeout(reason)
 
 
     @staticmethod
-    def twister_skip(reason=''):
+    def test_skip(reason=''):
         """
         Gracefully crash test.
         """
-        raise TwisterTestSkip(reason)
+        raise ExceptionTestSkip(reason)
 
 
     def log_msg(self, log_type, log_message):

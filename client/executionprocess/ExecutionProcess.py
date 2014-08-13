@@ -1079,19 +1079,19 @@ class TwisterRunner(object):
                 result = 'FAIL'
                 reason = str(e)
 
-            except TwisterTestFail as e:
+            except ExceptionTestFail as e:
                 result = 'FAIL'
                 reason = str(e)
 
-            except TwisterTestAbort as e:
+            except ExceptionTestAbort as e:
                 result = 'ABORT'
                 reason = str(e)
 
-            except TwisterTestTimeout as e:
+            except ExceptionTestTimeout as e:
                 result = 'TIMEOUT'
                 reason = str(e)
 
-            except TwisterTestSkip as e:
+            except ExceptionTestSkip as e:
                 result = 'SKIP'
                 reason = str(e)
 
