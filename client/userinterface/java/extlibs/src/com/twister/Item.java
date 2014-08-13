@@ -1,6 +1,6 @@
 /*
 File: Item.java ; This file is part of Twister.
-Version: 2.010
+Version: 2.011
 Copyright (C) 2012 , Luxoft
 
 Authors: Andrei Costachi <acostachi@luxoft.com>
@@ -40,7 +40,7 @@ public class Item implements Cloneable{
     private boolean teardown = false;
     private boolean optional = false;
     private String [] servers,libs;
-    private String [] configurations = {}; 
+    private ArrayList<Configuration> configurations = new ArrayList<Configuration>();
     private boolean panicdetect = false;
     private int ceindex;
     private boolean clearcase = false;
@@ -292,11 +292,11 @@ public class Item implements Cloneable{
         temp[1] = userDef;
         userDefined.set(index, temp);}
     
-    public String[] getConfigurations() {
+    public ArrayList<Configuration> getConfigurations() {
 		return configurations;
 	}
 
-	public void setConfigurations(String[] configurations) {
+	public void setConfigurations(ArrayList<Configuration>configurations) {
 		this.configurations = configurations;
 	}
 
