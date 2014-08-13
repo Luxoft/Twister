@@ -585,6 +585,8 @@ class TwisterRunner(object):
             # Null libraries ?
             if not lib:
                 continue
+            # Fix / and // issues
+            lib = lib.lstrip('/').replace('//', '/')
             # Already in the list ?
             if lib in zip_libs or lib in all_libs:
                 continue
@@ -617,20 +619,30 @@ class TwisterRunner(object):
 
             print('Downloading library `{}` ...'.format(lib_file))
 
-            lib_pth = libs_path + os.sep + lib_file
+            # If this is a "deep" file, or folder
+            if '/' in lib_file:
+                lib_pth = libs_path + '/deep'
+            else:
+                lib_pth = libs_path + '/' + lib_file
 
-            f = open(lib_pth, 'wb')
-            f.write(lib_data)
-            f.close() ; del f
+            try:
+                with open(lib_pth, 'wb') as f:
+                    f.write(lib_data)
+            except Exception as e:
+                print('Cannot save library file `{}`: `{}`!'.format(lib_file, e))
+                continue
 
-            # If the file doesn't have an ext, it's a TGZ library and must be extracted
-            if not os.path.splitext(lib_file)[1]:
+            # If the file doesn't have an ext, or it's a deep file, or folder,
+            # it's a TGZ library and must be extracted
+            if (not os.path.splitext(lib_file)[1]) or ('/' in lib_file):
                 # Rename the TGZ
                 tgz = lib_pth + '.tgz'
                 os.rename(lib_pth, tgz)
                 with tarfile.open(tgz, 'r:gz') as binary:
                     os.chdir(libs_path)
                     binary.extractall()
+                    time.sleep(0.05)
+                    os.remove(tgz)
 
         if reset_libs:
             print('... all libraries downloaded.\n')

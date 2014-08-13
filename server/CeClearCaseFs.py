@@ -1,7 +1,7 @@
 
 # File: CeClearCaseFs.py ; This file is part of Twister.
 
-# version: 3.012
+# version: 3.013
 
 # Copyright (C) 2012-2014, Luxoft
 
@@ -384,13 +384,13 @@ class ClearCaseFs(object):
             return False
 
 
-    def targz_user_folder(self, user, fdir):
+    def targz_user_folder(self, user, fdir, root=''):
         """ Archive a folder """
         if not fdir:
             return False
         srvr = self._usr_service(user)
         if srvr:
-            return srvr.root.targz_folder(fdir)
+            return srvr.root.targz_folder(fdir, root)
         else:
             return False
 
