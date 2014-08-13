@@ -1,7 +1,7 @@
 
 # File: CeSuts.py ; This file is part of Twister.
 
-# version: 3.001
+# version: 3.002
 
 # Copyright (C) 2012-2014, Luxoft
 
@@ -473,6 +473,7 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
             meta = ''
 
         result = None
+
         # If the SUT is reserved, get the latest unsaved changes
         if user_info[0] in self.reservedResources:
             for i in range(len(self.reservedResources[user_info[0]].values())):
@@ -485,17 +486,28 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
             result = self.get_resource(res_query)
             # SUT not loaded
             if not isinstance(result, dict):
-                #load sut
+                # load sut
                 self.get_sut(res_query, props)
                 result = self.get_resource(res_query)
 
         if isinstance(result, dict):
+
+            # If this SUT / component is linked with a TB
+            if result['meta'].get('_id'):
+
+                # Ok, this might be a Device path, instead of SUT path!
+                tb_id = result['meta']['_id']
+                result = self.project.tb.get_tb(tb_id, props)
+                # If the Device ID is invalid, bye bye!
+                if not isinstance(result, dict):
+                    return False
+
             if meta:
                 return result['meta'].get(meta, '')
             else:
                 return result
 
-        return "false"
+        return False
 
 
     @cherrypy.expose
@@ -672,7 +684,7 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
                 logDebug('Stripping slash characters from `{}`...'.format(name))
                 name = name.replace('/', '')
 
-            #the resources is deep in the tree, we have to get its direct parent
+            # the resources is deep in the tree, we have to get its direct parent
             if len(parent_p['path']) >= 2:
                 full_path = parent_p['path']
                 base_path = "/".join(parent_p['path'][1:])
@@ -682,11 +694,11 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
             # get the child, update its meta
             if name in parent_p['children']:
                 child_p = parent_p['children'][name]
-            #update the parent itself
+            # update the parent itself
             elif name in parent_p['path']:
                 child_p = parent_p
 
-            #We have to update the props
+            # We have to update the props
             props = self.valid_props(props)
             epnames_tag = '_epnames_{}'.format(user_info[0])
             child_p['meta'].update(props)
