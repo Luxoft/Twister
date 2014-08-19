@@ -1,7 +1,7 @@
 
 # File: xmlparser.py ; This file is part of Twister.
 
-# version: 3.020
+# version: 3.022
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -86,7 +86,7 @@ def dumpXML(user, fname, tree):
 # # #   Main  Parser   # # #
 
 
-class TSCParser:
+class TSCParser(object):
     """
     Requirements: LXML.
     This parser reads all client configuration files and returns information like:
@@ -133,7 +133,6 @@ class TSCParser:
         only if the XML file is changed.
         The file number and suite number have to be unique.
         """
-        logFull('xmlparser:updateConfigTS')
 
         if files_config and ( type(files_config)==type('') or type(files_config)==type(u'') ) \
                 and ( files_config[0] == '<' and files_config[-1] == '>' ):
@@ -865,8 +864,21 @@ class TSCParser:
         for tag_dict in TESTS_TAGS:
             # Create default entry
             res[tag_dict['name']] = tag_dict['default']
+            # Exception for config files
+            if tag_dict['name'] == '_cfg_files':
+                cfg_files = []
+                for cfg_soup in file_soup.xpath(tag_dict['tag']):
+                    if cfg_soup.get('enabled').lower() == 'true':
+                        cfg = {
+                            'name': cfg_soup.get('name'),
+                            'iter_default': cfg_soup.get('iterator_default'),
+                            'iter_sof': cfg_soup.get('iterator_sof')
+                        }
+                        cfg_files.append(cfg)
+                if cfg_files:
+                    res[tag_dict['name']] = cfg_files
             # Update value from XML
-            if file_soup.xpath(tag_dict['tag'] + '/text()'):
+            elif file_soup.xpath(tag_dict['tag'] + '/text()'):
                 value = file_soup.xpath(tag_dict['tag'])[0].text
                 if not value.strip():
                     continue

@@ -1,7 +1,7 @@
 
 # File: CeProject.py ; This file is part of Twister.
 
-# version: 3.045
+# version: 3.046
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -127,12 +127,14 @@ from common.xmlparser  import *
 from common.suitesmanager import *
 from common import iniparser
 
-from CeServices  import ServiceManager
-from CeWebUi     import WebInterface
+from CeServices import ServiceManager
+from CeWebUi import WebInterface
 from CeResources import ResourceAllocator
-from CeReports   import ReportingServer
-from CeSuts      import Suts
-from CeTestBeds  import TestBeds
+from CeReports import ReportingServer
+from CeSuts import Suts
+from CeTestBeds import TestBeds
+from CeFs import LocalFS
+from CeClearCaseFs import ClearCaseFs
 
 usrs_and_pwds = {}
 usr_pwds_lock = allocate_lock()
@@ -226,8 +228,10 @@ class Project(object):
         self.sut = Suts(self)
         self.report = ReportingServer(self)
 
-        self.localFs = None # local FS pointer
-        self.clearFs = None # ClearCase FS pointer
+        self.localFs = LocalFS()     # Local FS pointer
+        self.localFs.project = self
+        self.clearFs = ClearCaseFs() # ClearCase FS pointer
+        self.clearFs.project = self
 
         # Users, parsers, IDs...
         self.users = {}
@@ -365,7 +369,6 @@ class Project(object):
         """
         Add all suites and test files for this EP.
         """
-        logFull('CeProject:_register_ep user `{}`.'.format(user))
         if (not user) or (not epname):
             return False
         if user not in self.users:
@@ -382,7 +385,10 @@ class Project(object):
 
             # Information about ALL suites for this EP
             # Some master-suites might have sub-suites, but all sub-suites must run on the same EP
-            suitesInfo = self.parsers[user].getAllSuitesInfo(epname)
+            if self.parsers.get(user):
+                suitesInfo = self.parsers[user].getAllSuitesInfo(epname)
+            else:
+                suitesInfo = None
 
             if suitesInfo:
                 self.users[user]['eps'][epname]['sut'] = suitesInfo.values()[0]['sut']
@@ -396,9 +402,15 @@ class Project(object):
                 files = []
 
             # Ordered list with all suite IDs, for all EPs
-            self.suite_ids[user].extend(suites)
+            try:
+                self.suite_ids[user].extend(suites)
+            except Exception as e:
+                logWarning('Exception on extend suite IDs: {}'.format(e))
             # Ordered list of file IDs, used for Get Status ALL
-            self.test_ids[user].extend(files)
+            try:
+                self.test_ids[user].extend(files)
+            except Exception as e:
+                logWarning('Exception on extend file IDs: {}'.format(e))
 
             logDebug('Reload Execution-Process `{}:{}` with `{}` suites and `{}` files.'.format(user, epname, len(suites), len(files)))
 
@@ -412,7 +424,6 @@ class Project(object):
         """
         Remove all suites and test files for this EP.
         """
-        logFull('CeProject:_unregister_ep user `{}`.'.format(user))
         if (not user) or (not epname):
             return False
         if user not in self.users:
@@ -1579,7 +1590,7 @@ class Project(object):
                 file_node = epinfo['suites'].find_id(file_id)
                 if not file_node:
                     continue
-                if file_node.get('dep_id') == dep_id:
+                if file_node.get('_dep_id') == dep_id:
                     found = dict(file_node)
                     found['ep'] = epname
                     found['id'] = file_id

@@ -1,7 +1,7 @@
 
 # File: CeXmlRpc.py ; This file is part of Twister.
 
-# version: 3.003
+# version: 3.004
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -1184,11 +1184,6 @@ class CeXmlRpc(_cptools.XMLRPCController):
         Called from the Java GUI.
         """
         logFull('CeXmlRpc:get_exec_status_all user `{}`.'.format(user))
-        # If this is a temporary run, return the statuses of the backup user!
-        user_agent = cherrypy.request.headers['User-Agent'].lower()
-        if 'xml rpc' in user_agent and (user+'_old') in self.project.users:
-            user += '_old'
-
         data = self.project.get_user_info(user)
         reversed = dict((v, k) for k, v in EXEC_STATUS.iteritems())
         status = reversed[data.get('status', 8)]
@@ -1250,16 +1245,9 @@ class CeXmlRpc(_cptools.XMLRPCController):
         """
         logFull('CeXmlRpc:get_file_status_all user `{}`.'.format(user))
         if epname and not self.search_ep(user, epname):
-            logError('CE ERROR! EP `%s` is not in the list of defined EPs: `%s`!' % \
-                (str(epname), self.list_eps(user)) )
+            logError('*ERROR* EP `{}` is not in the list of defined EPs: '\
+                '`{}`!'.format(epname, self.list_eps(user)))
             return ''
-
-        # If this is a temporary run, return the statuses of the backup user!
-        user_agent = cherrypy.request.headers['User-Agent'].lower()
-        if 'xml rpc' in user_agent and (user+'_old') in self.project.users:
-            statuses = self.project.get_file_status_all(user + '_old', epname, suite)
-            return ','.join(statuses)
-
         statuses = self.project.get_file_status_all(user, epname, suite)
         return ','.join(statuses)
 
