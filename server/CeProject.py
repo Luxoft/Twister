@@ -402,15 +402,15 @@ class Project(object):
                 files = []
 
             # Ordered list with all suite IDs, for all EPs
-            if self.suite_ids.get(user):
+            try:
                 self.suite_ids[user].extend(suites)
-            else:
-                self.suite_ids[user] = []
+            except Exception as e:
+                logWarning('Exception on extend suite IDs: {}'.format(e))
             # Ordered list of file IDs, used for Get Status ALL
-            if self.test_ids.get(user):
+            try:
                 self.test_ids[user].extend(files)
-            else:
-                self.test_ids[user] = []
+            except Exception as e:
+                logWarning('Exception on extend file IDs: {}'.format(e))
 
             logDebug('Reload Execution-Process `{}:{}` with `{}` suites and `{}` files.'.format(user, epname, len(suites), len(files)))
 
@@ -1590,7 +1590,7 @@ class Project(object):
                 file_node = epinfo['suites'].find_id(file_id)
                 if not file_node:
                     continue
-                if file_node.get('dep_id') == dep_id:
+                if file_node.get('_dep_id') == dep_id:
                     found = dict(file_node)
                     found['ep'] = epname
                     found['id'] = file_id

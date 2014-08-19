@@ -1,6 +1,6 @@
 #!/usr/bin/env python2.7
 
-# version: 3.018
+# version: 3.019
 
 # File: ExecutionProcess.py ; This file is part of Twister.
 
@@ -743,11 +743,11 @@ class TwisterRunner(object):
             # Is this file a teardown file?
             teardown_file = node.get('teardown_file', False)
             # Test-case dependency, if any
-            dependency = node.get('dependency').strip()
+            dependency = node.get('_depend').strip()
             # Is this test file optional?
             optional_test = node.get('Optional')
             # Configuration files?
-            config_files = [c.strip() for c in node.get('config_files').split(';') if c]
+            config_files = [c['name'] for c in node.get('_cfg_files', [])]
             # Get args
             args = node.get('param')
             if args:
@@ -759,8 +759,8 @@ class TwisterRunner(object):
             props = dict(node)
             props.update(suite_data)
             for prop in ['type', 'ep', 'sut', 'name', 'pd', 'libraries', 'children', 'clearcase',
-                        'status', 'file', 'suite', 'dependency', 'Runnable',
-                        'setup_file', 'teardown_file', 'Optional', 'config_files', 'param']:
+                        'twister_tc_revision', 'status', 'file', 'suite', '_depend', '_dep_id',
+                        'Runnable', 'setup_file', 'teardown_file', 'Optional', '_cfg_files', 'param']:
                 # Removing all known File properties
                 try:
                     del props[prop]

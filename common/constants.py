@@ -1,5 +1,5 @@
 
-# version: 3.002
+# version: 3.003
 
 # Major list of constants.
 
@@ -104,8 +104,8 @@ SUITES_TAGS = (
 
 TESTS_TAGS = (
 	{'name':'file',			'tag':'tcName',				'default':''},
-	{'name':'dep_id',		'tag':'ID',					'default':''},
-	{'name':'config_files',	'tag':'ConfigFiles',		'default':''},
-	{'name':'dependency',	'tag':'Dependency',			'default':''},
+	{'name':'_dep_id',		'tag':'ID',					'default':''},
+	{'name':'_cfg_files',	'tag':'ConfigFiles/Config',	'default':''},
+	{'name':'_depend',		'tag':'Dependency',			'default':''},
 	{'name':'clearcase',	'tag':'ClearCase',			'default':''},
 )
