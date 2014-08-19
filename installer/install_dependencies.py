@@ -245,7 +245,7 @@ def install_offline(lib_name):
         if platform.dist()[0] in ['fedora', 'centos']:
             tcr_proc = subprocess.Popen(['yum', '-y', 'install', 'libxslt-devel', 'libxml2-devel'])
         else:
-            tcr_proc = subprocess.Popen(['apt-get', 'install', 'libxslt', 'python-lxml', '-y', '--force-yes'])
+            tcr_proc = subprocess.Popen(['apt-get', 'install', 'libxslt-dev', 'python-lxml', '-y', '--force-yes'])
 
         try:
             tcr_proc.wait()
