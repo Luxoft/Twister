@@ -1,6 +1,6 @@
 #!/usr/bin/env python2.7
 
-# version: 3.003
+# version: 3.004
 
 # File: install.py ; This file is part of Twister.
 
@@ -87,9 +87,9 @@ dependencies = [
     'LXML-Python',
     'MySQL-python',
     'Scapy-real',
+    'ecdsa',
     'paramiko',
     'PyCrypto',
-    'six',
     'plumbum',
     'rpyc',
     'pExpect'
@@ -102,9 +102,9 @@ library_names = [
     'lxml',
     'MySQLdb',
     'scapy',
+    'ecdsa',
     'paramiko',
     'Crypto',
-    'six',
     'plumbum',
     'rpyc',
     'pexpect'
@@ -114,15 +114,15 @@ library_names = [
 library_versions = [
     '0.9', # Mako
     '3.2', # CherryPy
-    '3.2', # Lxml
+    '3.3', # Lxml
     '1.2', # MySql
     '2.2', # Scapy
+    '0.1', # Ecdsa
     '1.1', # Paramiko
     '2.6', # PyCrypto
-    '1.6', # six
     '1.4', # Plumbum
     '3.3', # Rpyc
-    '3.1'  # pExpect
+    '3.3'  # pExpect
 ]
 
 setuptools_version = '3.4'
@@ -241,10 +241,11 @@ def install_offline(lib_name):
     elif INTERNET and lib_name == 'LXML-Python':
         print('\n~~~ Installing `{}` from System repositories ~~~\n'.format(lib_name))
 
+        # Requires libxml2 and libxslt
         if platform.dist()[0] in ['fedora', 'centos']:
             tcr_proc = subprocess.Popen(['yum', '-y', 'install', 'libxslt-devel', 'libxml2-devel'])
         else:
-            tcr_proc = subprocess.Popen(['apt-get', 'install', 'python-lxml', '-y', '--force-yes'])
+            tcr_proc = subprocess.Popen(['apt-get', 'install', 'libxslt', 'python-lxml', '-y', '--force-yes'])
 
         try:
             tcr_proc.wait()
@@ -252,15 +253,7 @@ def install_offline(lib_name):
             print('Error while installing `Python LXML`!')
             return False
 
-        try:
-            tcr_proc = subprocess.Popen(['easy_install', 'lxml'], cwd=pkg_path)
-            tcr_proc.wait()
-            print('\n~~~ Successfully installed `{}` ~~~\n'.format(lib_name))
-            return True
-        except:
-            print('Error while installing `Python LXML`!')
-            return False
-
+        # Continue with the TAR.GZ file, included in `packages` folder !
 
     print('\n~~~ Installing `{}` from tar files ~~~\n'.format(lib_name))
 
