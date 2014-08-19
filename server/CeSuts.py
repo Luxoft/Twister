@@ -274,6 +274,7 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
         self.resources = constant_dictionary
         self.reservedResources = dict()
         self.lockedResources = dict()
+        self.id_list = dict()
         self.acc_lock = thread.allocate_lock() # Task change lock
         self.ren_lock = thread.allocate_lock() # Rename lock
         self.imp_lock = thread.allocate_lock() # Import lock
@@ -333,6 +334,120 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
         if log:
             return '*ERROR* ' + str(log)
 
+        # update id_list
+        self.parse_sut(self.resources['children'][resource_name], resource_name)
+
+        return True
+
+
+    def format_content(self, content, kids_list):
+        '''
+        Find all the ids from a sut.
+        Helps creating id_list.
+        '''
+
+        if not content:
+            return kids_list
+
+        if not content.get('children'):
+            kids_list.add(content['id'])
+            return kids_list
+
+        for node in content['children']:
+            kids_list.add(content['children'][node]['id'])
+            self.format_content(content['children'][node], kids_list)
+
+
+    def parse_sut(self, sutContent=None, sutName=None):
+        '''
+        Adds elements to id_list.
+        '''
+
+        kids_list = set()
+        kids_list.add(sutContent['id'])
+
+        self.format_content(sutContent, kids_list)
+
+        kids_list = list(kids_list)
+        self.id_list[sutName] = kids_list
+
+        return True
+
+
+    @cherrypy.expose
+    def index_suts(self, props={}):
+        '''
+        Open all SUT files and creats dict having
+        entries like: {sutName : [ids]}
+        '''
+
+        user_info = self.user_info(props)
+        user = user_info[0]
+        usrHome = userHome(user)
+
+        sutContent = False
+
+        try:
+            # System SUT path
+            sutsPath = self.project.get_user_info(user, 'sys_sut_path')
+            if not sutsPath:
+                sutsPath = '{}/config/sut/'.format(TWISTER_PATH)
+
+            sutPaths = [p for p in os.listdir(sutsPath)\
+                if os.path.isfile(os.path.join(sutsPath, p))\
+                     and p.split('.')[-1] == 'json']
+            #print sutPaths
+            for sutPath in sutPaths:
+                sutName = '.'.join(['.'.join(sutPath.split('.')[:-1]  + ['system'])])
+                #print sutName, "\n"
+                with open(os.path.join(sutsPath, sutPath), 'r') as f:
+                    sutContent = json.load(f)
+                    #print sutContent
+                    self.parse_sut(sutContent, sutName)
+        except Exception as e:
+                logError('_load ERROR:: {} for user {}'.format(e, user))
+
+        # User SUT path
+        sutsPath = self.project.get_user_info(user, 'sut_path')
+        if not sutsPath:
+            sutsPath = '{}/twister/config/sut/'.format(usrHome)
+
+        # # user SUT file; we have to check if the cleacase plugin
+        # # is activated; if so, use it to read the SUT file; else
+        # # use the UserService to read it
+        ccConfig = self.project.get_clearcase_config(user, 'sut_path')
+        if ccConfig:
+            view = ccConfig['view']
+            actv = ccConfig['actv']
+            path = ccConfig['path']
+            user_view_actv = '{}:{}:{}'.format(user_info[0], view, actv)
+
+            sutPaths = [p for p in os.listdir(sutsPath)\
+                if os.path.isfile(os.path.join(sutsPath, p))\
+                     and p.split('.')[-1] == 'json']
+
+            for sutPath in sutPaths:
+                sutName = '.'.join(['.'.join(sutPath.split('.')[:-1]  + ['user'])])
+                resp = self.project.clearFs.read_user_file(user_view_actv, path +'/'+ sutName)
+                sutContent = json.loads(resp)
+                self.parse_sut(sutContent, sutName)
+        else:
+
+            sutPaths = [p for p in os.listdir(sutsPath)\
+                if os.path.isfile(os.path.join(sutsPath, p))\
+                     and p.split('.')[-1] == 'json']
+            for sutPath in sutPaths:
+                sutName = '.'.join(['.'.join(sutPath.split('.')[:-1]  + ['user'])])
+
+                if sutsPath[-1] != '/' and sutPath[-1] != '/':
+                    complete_sut_path = sutsPath + '/' + sutPath
+                else:
+                    complete_sut_path = sutsPath + sutPath
+
+                resp = self.project.localFs.read_user_file(user_info[0], complete_sut_path)
+                sutContent = json.loads(resp)
+                self.parse_sut(sutContent, sutName)
+
         return True
 
 
@@ -350,6 +465,7 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
 
         logDebug('CeSuts: get_sut {} {}'.format(query, username))
         usrHome = userHome(username)
+        initial_query = None
 
         if not query:
             msg = "The name of the SUT is empty!"
@@ -365,15 +481,29 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
         # will return result only if the SUT is in self.resources
         if '/' not in query and sutType == query:
             res_id = self.get_resource(query)
+
             if isinstance(res_id, dict):
+                if len(res_id['path']) > 1:
+                    res_id['path'] = res_id['path'][0]
+                    return res_id
                 query = res_id['path'][0]
                 sutType = query.split('.')[-1]
             else:
-                logFull("User {} there is no SUT having this id: {}".format(username, query))
-                return None
+                self.index_suts(props)
+                foundId = False
+                for key, value in self.id_list.items():
+                    if query in value:
+                        foundId = True
+                        query = key
+                        sutType = query.split('.')[-1]
+
+                if not foundId:
+                    logFull("User {} there is no SUT having this id: {}".format(username, query))
+                    return False
 
         # if the query is for a component return the entire SUT
-        if query.count('/') > 1:
+        if query[1:].count('/') >= 1:
+            initial_query = query
             parts = [q for q in query.split('/') if q]
             query = parts[0]
 
@@ -449,6 +579,9 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
 
                 if retDict['path']:
                     self.resources['children'][query] = sutContent
+
+                if initial_query:
+                    return self.get_info_sut(initial_query, props)
 
                 return retDict
 
@@ -1069,7 +1202,18 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
             if not usrSutPath:
                 usrSutPath = '{}/twister/config/sut/'.format(usrHome)
             delete_sut_memory(res_query.split('/')[-1])
-            return self.project.localFs.delete_user_file(user_info[0], usrSutPath + res_query.split('.')[0] + '.json')
+
+            # delete from id_list if possible
+            try:
+                del self.id_list[res_query]
+            except:
+                logDebug('User {}: id_list does not contain the sut: {}'.format(user_info[0], res_query))
+
+            if usrSutPath[-1] != '/' and res_query[-1] != '/':
+                complete_sut_path = usrSutPath + '/' + res_query.split('.')[0] + '.json'
+            else:
+                complete_sut_path = usrSutPath + res_query.split('.')[0] + '.json'
+            return self.project.localFs.delete_user_file(user_info[0], complete_sut_path)
 
 
     @cherrypy.expose

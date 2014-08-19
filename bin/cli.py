@@ -329,7 +329,7 @@ if __name__ == '__main__':
     PARSER.add_option("--server",      action="store", default="127.0.0.1:8000",
         help="The Central Engine IP : port (default= 127.0.0.1:8000)")
     # The second important option is the user and password.
-    PARSER.add_option("--login",      action="store", default="user:password",
+    PARSER.add_option("--login",      action="store", default="andreeab:startag",
         help="Login on the Central Engine with user : password (default= user:password)")
 
     PARSER.add_option('-u', "--users", action="callback", callback=string_check, help="Show active and inactive users.")
