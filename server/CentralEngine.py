@@ -1,6 +1,6 @@
 #!/usr/bin/env python2.7
 
-# version: 3.004
+# version: 3.005
 
 # File: CentralEngine.py ; This file is part of Twister.
 
@@ -52,16 +52,12 @@ if not TWISTER_PATH:
 if TWISTER_PATH not in sys.path:
     sys.path.append(TWISTER_PATH)
 
-
-from common.tsclogging import logError, logDebug, logWarning, logCritical, \
-    logInfo
+from common.tsclogging import logDebug, logInfo, logWarning, logError, logCritical
 from common.tsclogging import setLogLevel
 from server.CeProject  import Project
 from server.CeXmlRpc   import CeXmlRpc
 from server.CeRpyc     import CeRpycService
 from common import iniparser
-from server.CeFs import LocalFS
-from server.CeClearCaseFs import ClearCaseFs
 
 #
 
@@ -116,8 +112,6 @@ if __name__ == "__main__":
     # Project manager does everything
     PROJ = Project()
     PROJ.rsrv = RPYC_SERVER
-    PROJ.localFs = LocalFS(PROJ)
-    PROJ.clearFs = ClearCaseFs(PROJ)
     # CE is the XML-RPC interface
     CE = CeXmlRpc(PROJ)
 

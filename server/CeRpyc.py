@@ -1,7 +1,7 @@
 
 # File: CeRpyc.py ; This file is part of Twister.
 
-# version: 3.014
+# version: 3.015
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -663,19 +663,18 @@ class CeRpycService(rpyc.Service):
         Only a VALID client will be able to register EPs!
         The user is identified automatically.
         """
-        logFull('CeRpyc:register_eps')
         str_addr = self._get_addr()
         user = self._check_login()
         if not user:
             return False
 
         if not str_addr:
-            logError('*ERROR* Cannot identify the remote address!')
-            return False
+            # Crash, to send the exception to the client
+            raise Exception('*ERROR* Cannot identify the remote address!')
 
         if not isinstance(eps, type([])):
-            logError('*ERROR* Can only register a List of EP names!')
-            return False
+            # Crash, to send the exception to the client
+            raise Exception('*ERROR* Can only register a List of EP names!')
         else:
             eps = sorted(set(eps))
 
@@ -691,8 +690,14 @@ class CeRpycService(rpyc.Service):
         # On disconnect, this client address will be deleted
         # And the EPs will be automatically un-registered.
         with self.conn_lock:
+            reg_eps = []
             for epname in eps:
-                self.project._register_ep(user, epname)
+                resp = self.project._register_ep(user, epname)
+                reg_eps.append(resp)
+
+            if True not in reg_eps:
+                # Crash, to send the exception to the client
+                raise Exception('The EPs were not registered!')
 
             # Before register, find the clients that have already registered these EPs!
             for c_addr, data in self.conns.iteritems():

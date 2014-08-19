@@ -1,7 +1,7 @@
 
 # File: CeFs.py ; This file is part of Twister.
 
-# version: 3.017
+# version: 3.018
 
 # Copyright (C) 2012-2014, Luxoft
 
@@ -36,7 +36,6 @@ from plumbum import local
 import rpyc
 
 socket.setdefaulttimeout(3)
-from thread import allocate_lock
 
 TWISTER_PATH = os.getenv('TWISTER_PATH')
 if not TWISTER_PATH:
@@ -48,36 +47,17 @@ if TWISTER_PATH not in sys.path:
 from common.helpers    import *
 from common.tsclogging import *
 
-#
-__all__ = ['LocalFS']
-#
 
-
-def singleton(cls):
-    """ Lauch single instance"""
-    instances = {}
-    def getinstance(*args, **kwargs):
-        """ Return new/existing instance """
-        if cls not in instances:
-            instances[cls] = cls(*args, **kwargs)
-        return instances[cls]
-    return getinstance
-
-
-@singleton
-class LocalFS(object):
+class LocalFS(FsBorg):
     """
     All local file operations should be done via THIS class.
     This is a singleton.
     """
-    _services = {}
-    _srv_lock = allocate_lock()
 
-
-    def __init__(self, project=None):
+    def __init__(self):
+        FsBorg.__init__(self)
         if os.getuid():
             logError('Local FS: Central Engine must run as ROOT in order to start the User Service!')
-        self.project = project
         logInfo('Created Local FS.')
 
 
@@ -166,7 +146,7 @@ class LocalFS(object):
                     stream_r = rpyc.SocketStream.connect('127.0.0.1', port, timeout=5.0)
                     conn_read = rpyc.connect_stream(stream_r, config=config)
                     conn_read.root.hello()
-                    logDebug('Connected to User Service for `{}`.'.format(user))
+                    logDebug('Connected to User Service for `{}`, operation `read`.'.format(user))
                     success = True
                 except Exception as e:
                     logWarning('Cannot connect to User Service for `{}` - Exception: `{}`! '
@@ -177,6 +157,7 @@ class LocalFS(object):
                         stream_w = rpyc.SocketStream.connect('127.0.0.1', port, timeout=5.0)
                         conn_write = rpyc.connect_stream(stream_w, config=config)
                         conn_write.root.hello()
+                        logDebug('Connected to User Service for `{}`, operation `write`.'.format(user))
                         break
                     except Exception as e:
                         logWarning('Cannot connect to User Service for `{}` - Exception: `{}`! '

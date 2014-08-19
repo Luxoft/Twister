@@ -1,7 +1,7 @@
 
 # File: xmlparser.py ; This file is part of Twister.
 
-# version: 3.020
+# version: 3.021
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -86,7 +86,7 @@ def dumpXML(user, fname, tree):
 # # #   Main  Parser   # # #
 
 
-class TSCParser:
+class TSCParser(object):
     """
     Requirements: LXML.
     This parser reads all client configuration files and returns information like:
@@ -133,7 +133,6 @@ class TSCParser:
         only if the XML file is changed.
         The file number and suite number have to be unique.
         """
-        logFull('xmlparser:updateConfigTS')
 
         if files_config and ( type(files_config)==type('') or type(files_config)==type(u'') ) \
                 and ( files_config[0] == '<' and files_config[-1] == '>' ):

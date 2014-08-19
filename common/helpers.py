@@ -1,7 +1,7 @@
 
 # File: helpers.py ; This file is part of Twister.
 
-# version: 3.003
+# version: 3.004
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -35,6 +35,7 @@ import time
 import binascii
 import platform
 import subprocess
+from thread import allocate_lock
 
 from Crypto.Cipher import AES
 from Crypto.Protocol.KDF import PBKDF2
@@ -42,6 +43,17 @@ from Crypto.Protocol.KDF import PBKDF2
 from tsclogging import logFull, logDebug, logWarning
 
 #
+
+class FsBorg(object):
+
+    _shared_state = {}
+    project = None
+    _services = {}
+    _srv_lock = allocate_lock()
+
+    def __init__(self):
+        self.__dict__ = self._shared_state
+
 
 def userHome(user):
     """
