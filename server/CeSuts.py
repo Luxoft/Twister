@@ -406,13 +406,11 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
             sutPaths = [p for p in os.listdir(sutsPath)\
                 if os.path.isfile(os.path.join(sutsPath, p))\
                      and p.split('.')[-1] == 'json']
-            #print sutPaths
             for sutPath in sutPaths:
                 sutName = '.'.join(['.'.join(sutPath.split('.')[:-1]  + ['system'])])
-                #print sutName, "\n"
+
                 with open(os.path.join(sutsPath, sutPath), 'r') as f:
                     sutContent = json.load(f)
-                    #print sutContent
                     self.parse_sut(sutContent, sutName)
         except Exception as e:
                 logError('_load ERROR:: {} for user {}'.format(e, user))
@@ -592,6 +590,15 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
 
                 if retDict['path']:
                     self.resources['children'][query] = sutContent
+                    # make older resources files that don't have 'path' compatible
+                    self.resources['children'][query]['path'] = [query]
+                    self.fix_path(self.resources['children'][query], [query])
+
+                    #now we have to save the version with path
+                    issaved = self.save_sut(props, query)
+                    if  isinstance(issaved, str):
+                        logDebug("We could not save this Sut for user = {}.".format(user_info[0]))
+                        return False
 
                 if initial_query:
                     if meta:
