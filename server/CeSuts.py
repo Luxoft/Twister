@@ -383,6 +383,7 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
                 return key
         return False
 
+
     @cherrypy.expose
     def index_suts(self, props={}):
         '''
@@ -482,7 +483,10 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
             return False
 
         if ':' in query:
+            meta = query.split(':')[1]
             query = query.split(':')[0]
+        else:
+            meta = ''
 
         sutType = query.split('.')[-1]
 
@@ -590,9 +594,12 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
                     self.resources['children'][query] = sutContent
 
                 if initial_query:
+                    if meta:
+                        initial_query += ":" + meta
                     result = self.get_info_sut(initial_query, props)
                     if isinstance(result, dict):
-                        result['path'] = '/'.join(result['path'])
+                        if isinstance(result['path'], list):
+                            result['path'] = '/'.join(result['path'])
                     return result
 
                 return retDict
@@ -644,6 +651,7 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
                 tb_id = result['meta']['_id']
                 self.project.tb.load_tb(verbose=False)
                 result = self.project.tb.get_tb(tb_id, props)
+
                 # If the Device ID is invalid, bye bye!
                 if not isinstance(result, dict):
                     return False
