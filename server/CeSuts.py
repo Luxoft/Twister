@@ -493,6 +493,7 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
             res_id = self.get_resource(query)
             if isinstance(res_id, dict):
                 if len(res_id['path']) > 1:
+                    res_id['path'] = '/'.join(res_id['path'])
                     return res_id
                 query = res_id['path'][0]
                 sutType = query.split('.')[-1]
@@ -589,7 +590,9 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
                     self.resources['children'][query] = sutContent
 
                 if initial_query:
-                    return self.get_info_sut(initial_query, props)
+                    result = self.get_info_sut(initial_query, props)
+                    result['path'] = '/'.join(result['path'])
+                    return result
 
                 return retDict
 
@@ -630,6 +633,7 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
                 # load sut
                 self.get_sut(res_query, props)
                 result = self.get_resource(res_query)
+
 
         if isinstance(result, dict):
 
