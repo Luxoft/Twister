@@ -300,7 +300,6 @@ public class SutTree extends JPanel{
                         String query = "{'_epnames_"+RunnerRepository.user+"':'"+sb.toString()+"'}";
                         String user = tsut.getText();
                         String respons = client.execute("create_new_sut", new Object[]{user+add,"/",query}).toString();
-			System.out.println("!!!!" + respons);
                         if(respons.indexOf("*ERROR*")==-1){
                             DefaultTreeModel model = (DefaultTreeModel)filestree.getModel();
                             SUT s = new SUT(user,add);
@@ -366,7 +365,6 @@ public class SutTree extends JPanel{
             if(resp.indexOf("*ERROR*")==-1){
                 return true;
             } else {
-                System.out.println(resp);
                 CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,SutTree.this,"Error", "Could not reserve sut, CE error: "+resp);
                 return false;
             }

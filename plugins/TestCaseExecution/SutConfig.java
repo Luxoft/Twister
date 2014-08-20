@@ -57,7 +57,6 @@ public class SutConfig extends JPanel{
                 if(ev.getClickCount()==2){
                     TreePath tp = tree.getPathForLocation(ev.getX(), ev.getY());
                     final DefaultMutableTreeNode tn = (DefaultMutableTreeNode)tp.getLastPathComponent();
-//                     if(!tree.isExpanded(new TreePath(tn.getPath())))return;
                     if(!tree.isExpanded(tp))return;
                     if(tn.getLevel()==1){
                         new Thread(){
@@ -135,13 +134,7 @@ public class SutConfig extends JPanel{
         String childid, subchildid;
         for(Object o:children){
             HashMap subhash = (HashMap)o;
-//             try{childid = o.toString();
-            try{//childid = ((HashMap)o).get("id").toString();
-                //System.out.println(childid+" - "+treenode.toString());
-                //HashMap subhash= (HashMap)client.execute("get_sut", new Object[]{childid});
-                //System.out.println("subhash: "+subhash);
-                //System.out.println("children: "+subhash.get("children"));
-                String subpath = subhash.get("path").toString();
+            try{String subpath = subhash.get("path").toString();
                 String subname = subpath.split("/")[subpath.split("/").length-1];
                 HashMap meta = (HashMap)subhash.get("meta");
                 String id = subhash.get("id").toString();
@@ -224,7 +217,6 @@ public class SutConfig extends JPanel{
             e.printStackTrace();
             System.out.println("requested id: "+id);
             if(ob!=null)System.out.println("server respons: "+ob.toString());
-            
             return null;
         }
     }
@@ -237,8 +229,6 @@ public class SutConfig extends JPanel{
         String sut;
         for(int i=0;i<size;i++){
             sut = sutfiles[i][0];
-//         }
-//         for(String sut:sutfiles){
             SUT s = new SUT(sut,null);
             sut = sut.replace("(system)", ".system");
             sut = sut.replace("(user)", ".user");
@@ -291,10 +281,8 @@ public class SutConfig extends JPanel{
                 }
                 DefaultMutableTreeNode node =  (DefaultMutableTreeNode)path.getLastPathComponent();
                 if(node.getUserObject() instanceof SUT){   
-                    System.out.println(((SUT)node.getUserObject()).getID()+" - "+sb.toString());
                     return new StringTransferable(((SUT)node.getUserObject()).getID()+" - "+sb.toString());
                 } else if(node.getUserObject() instanceof Comp){
-                    System.out.println(((Comp)node.getUserObject()).getID()+" - "+sb.toString());
                     return new StringTransferable(((Comp)node.getUserObject()).getID()+" - "+sb.toString());
                 } else return null;
             }

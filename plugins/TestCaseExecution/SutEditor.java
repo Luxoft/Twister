@@ -498,7 +498,6 @@ public class SutEditor extends JPanel{
     public void getSUT(String sutname,DefaultMutableTreeNode sutnode,boolean editable){
         try{
             Object ob = client.execute("get_sut", new Object[]{sutname});
-    	    System.out.println(ob);
     	    HashMap hash = (HashMap)ob;
     	    this.editable = editable;
             DefaultMutableTreeNode epsnode;//child
@@ -580,7 +579,6 @@ public class SutEditor extends JPanel{
         Object resp = null;
         try{
             resp = client2.execute("get_tb", new Object[]{id});
-	    System.out.println(resp);
             if(!(resp instanceof HashMap)){
                 System.out.println("CE respons for getResource("+id+"):"+resp.toString()+"SutEditor->getTB");
                 return null;
@@ -777,8 +775,7 @@ public class SutEditor extends JPanel{
                     try{
                         String id = "";
                         if(nodes[i].getType()==0){
-                            try{System.out.println("getresource: "+"/"+nodes[i].getName());
-                                HashMap hash = (HashMap)client.execute("get_sut", new Object[]{"/"+nodes[i].getName()});
+                            try{HashMap hash = (HashMap)client.execute("get_sut", new Object[]{"/"+nodes[i].getName()});
                                 id = hash.get("id").toString();
                             } catch(Exception e){
                                 e.printStackTrace();
@@ -798,7 +795,6 @@ public class SutEditor extends JPanel{
                         } else {
                             name = ((Comp)((DefaultMutableTreeNode)parent.getParent()).getUserObject()).getID();
                         }
-                        System.out.println(parentid+" - "+name+" - "+hm.toString()+" - "+RunnerRepository.user);
                         String resp = client.execute("update_meta_sut", new Object[]{parentid,name,hm}).toString();
                         
                         if(resp.indexOf("ERROR")==-1){

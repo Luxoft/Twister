@@ -255,7 +255,6 @@ public class TB extends JPanel{
                             if(resp.indexOf("*ERROR*")!=-1){
                                 CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,TB.this,"ERROR", "Could not save");
                             }
-                            System.out.println(resp);
                         } catch(Exception e){
                             e.printStackTrace();
                         }
@@ -912,7 +911,6 @@ public class TB extends JPanel{
                 try{
                     Node newnode = new Node(null,parent.getPath().getPath()+"/"+resp,resp,parent,null,(byte)(1));
                     resp = client.execute("create_component_tb", new Object[]{resp,"/"+parent.getPath().getPath()+"/","{}"}).toString();
-		    System.out.println("!!!" + resp);
                     if(resp.indexOf("*ERROR*")==-1){
                         parent.addChild(resp,newnode);
                         setSavedState(treenode,false);
@@ -1027,21 +1025,6 @@ public class TB extends JPanel{
                     buildTree(child,treechild,onlyfirstlevel);
                 }
             }
-//             Iterator iter = node.getChildren().keySet().iterator();
-//             while(iter.hasNext()){
-//                 String childid = iter.next().toString();
-//                 Node child = getTB(childid,node);
-//                 node.addChild(childid, child);
-//                 DefaultMutableTreeNode treechild = new DefaultMutableTreeNode(child);
-//                 ((DefaultTreeModel)tree.getModel()).insertNodeInto(treechild, treenode,treenode.getChildCount());
-//                 if(!onlyfirstlevel){
-//                     DefaultMutableTreeNode temp = new DefaultMutableTreeNode("ID: "+child.getID());
-//                     ((DefaultTreeModel)tree.getModel()).insertNodeInto(temp, treechild,0);
-//                     DefaultMutableTreeNode temp2 = new DefaultMutableTreeNode(child.getPath());
-//                     ((DefaultTreeModel)tree.getModel()).insertNodeInto(temp2, treechild,1);
-//                     buildTree(child,treechild,onlyfirstlevel);
-//                 }
-//             }
         } catch(Exception e){
             e.printStackTrace();
         }
