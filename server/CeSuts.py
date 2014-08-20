@@ -375,7 +375,9 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
 
 
     def find_sut_id(self, sut_id):
-        print "!!!! \n", sut_id
+        '''
+        Search for an id in id_list.
+        '''
         for key, value in self.id_list.items():
             if sut_id in value:
                 return key
@@ -491,7 +493,6 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
             res_id = self.get_resource(query)
             if isinstance(res_id, dict):
                 if len(res_id['path']) > 1:
-                    res_id['path'] = res_id['path'][0]
                     return res_id
                 query = res_id['path'][0]
                 sutType = query.split('.')[-1]
