@@ -374,6 +374,13 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
         return True
 
 
+    def find_sut_id(self, sut_id):
+        print "!!!! \n", sut_id
+        for key, value in self.id_list.items():
+            if sut_id in value:
+                return key
+        return False
+
     @cherrypy.expose
     def index_suts(self, props={}):
         '''
@@ -481,7 +488,6 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
         # will return result only if the SUT is in self.resources
         if '/' not in query and sutType == query:
             res_id = self.get_resource(query)
-
             if isinstance(res_id, dict):
                 if len(res_id['path']) > 1:
                     res_id['path'] = res_id['path'][0]
@@ -489,17 +495,17 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
                 query = res_id['path'][0]
                 sutType = query.split('.')[-1]
             else:
-                self.index_suts(props)
-                foundId = False
-                for key, value in self.id_list.items():
-                    if query in value:
-                        foundId = True
-                        query = key
-                        sutType = query.split('.')[-1]
-
-                if not foundId:
-                    logFull("User {} there is no SUT having this id: {}".format(username, query))
-                    return False
+                #maybe this sut is already indexed
+                result = self.find_sut_id(query)
+                #if not index all suts and search
+                if not result:
+                    self.index_suts(props)
+                    result = self.find_sut_id(query)
+                    if not result:
+                        logFull("User {} there is no SUT having this id: {}".format(username, query))
+                        return False
+                query = result
+                sutType = query.split('.')[-1]
 
         # if the query is for a component return the entire SUT
         if query[1:].count('/') >= 1:
