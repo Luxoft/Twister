@@ -487,6 +487,7 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
         # in case is an ID get the path
         # will return result only if the SUT is in self.resources
         if '/' not in query and sutType == query:
+            initial_query = query
             res_id = self.get_resource(query)
             if isinstance(res_id, dict):
                 if len(res_id['path']) > 1:
