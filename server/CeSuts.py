@@ -591,7 +591,8 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
 
                 if initial_query:
                     result = self.get_info_sut(initial_query, props)
-                    result['path'] = '/'.join(result['path'])
+                    if isinstance(result, dict):
+                        result['path'] = '/'.join(result['path'])
                     return result
 
                 return retDict
@@ -634,14 +635,14 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
                 self.get_sut(res_query, props)
                 result = self.get_resource(res_query)
 
-
         if isinstance(result, dict):
 
-            # If this SUT / component is linked with a TB
+            #If this SUT / component is linked with a TB
             if result['meta'].get('_id'):
 
                 # Ok, this might be a Device path, instead of SUT path!
                 tb_id = result['meta']['_id']
+                self.project.tb.load_tb(verbose=False)
                 result = self.project.tb.get_tb(tb_id, props)
                 # If the Device ID is invalid, bye bye!
                 if not isinstance(result, dict):
