@@ -294,10 +294,9 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
             # make older resources files that don't have 'path' compatible
             valid_resources = True
             for res in self.resources.get('children'):
-                if not self.resources['children'][res].get('path', ''):
-                    valid_resources = False
-                    self.resources['children'][res]['path'] = [res]
-                    fix_path(self.resources['children'][res], [res])
+                valid_resources = False
+                self.resources['children'][res]['path'] = [res]
+                fix_path(self.resources['children'][res], [res])
 
             # save the resources updated (with path field) for later usage
             if not valid_resources:
