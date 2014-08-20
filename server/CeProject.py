@@ -1,7 +1,7 @@
 
 # File: CeProject.py ; This file is part of Twister.
 
-# version: 3.046
+# version: 3.047
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -2816,7 +2816,8 @@ class Project(object):
         # All Python source files from Libraries folder AND all library folders
         if all:
             # All files + all folders
-            glob_libs = self.localFs.list_system_files(libs_path, False, True, accept=['.py', '.zip'], reject=['__init__.py'])
+            glob_libs = self.localFs.list_system_files(libs_path, False, True,
+                reject=['__init__.py', '__init__.pyc'])
 
             if isinstance(glob_libs, dict):
                 glob_libs['data'] = '/libs'
@@ -2849,9 +2850,59 @@ class Project(object):
 
         # All libraries for user
         else:
-            # If `libraries` is empty, will default to ALL libraries
+            # Current project libraries
             proj_libs = self.get_user_info(user, 'libraries') or ''
-            return [x.strip() for x in proj_libs.split(';')] if proj_libs else []
+            libs = []
+
+            for lib in proj_libs.split(';'):
+                lib = lib.strip().strip('/')
+                if not lib:
+                    continue
+
+                # If this is a deep library, must inject the __init__.py files
+                if '/' in lib:
+                    # Check if library exists ...
+                    if os.path.exists(libs_path + lib):
+                        # This is a Global lib
+                        lib_path = libs_path + lib
+                        lib_root = os.path.split(lib_path)[0]
+                        lib_files = self.localFs.list_system_files(libs_path, False, True)
+
+                    elif os.path.exists(user_path + lib):
+                        # This is a User lib
+                        lib_path = user_path + lib
+                        lib_root = os.path.split(lib_path)[0]
+                        # Auto detect if ClearCase Test Config Path is active
+                        ccConfig = self.get_clearcase_config(user, 'libs_path')
+                        if ccConfig:
+                            view = ccConfig['view']
+                            actv = ccConfig['actv']
+                            path = ccConfig['path']
+                            if not path:
+                                return '*ERROR* User `{}` did not set ClearCase Libraries Path!'.format(user)
+                            user_view_actv = '{}:{}:{}'.format(user, view, actv)
+                            lib_files = self.clearFs.list_user_files(user_view_actv, lib_root, False, True)
+                        else:
+                            lib_files = self.localFs.list_user_files(user, lib_root, False, True)
+
+                    else:
+                        continue
+
+                    # List files failed ?
+                    if not isinstance(lib_files, dict):
+                        continue
+
+                    # Find __init__.py files in the same folder with our library
+                    for lib_child in lib_files['children']:
+                        if lib_child['path'] == '__init__.py':
+                            init_to_insert = os.path.split(lib)[0] + '/__init__.py'
+                            if init_to_insert not in libs:
+                                libs.append(init_to_insert)
+
+                libs.append(lib)
+
+            logDebug('Current project libraries for user `{}`: {}.'.format(user, libs))
+            return libs
 
 
     def send_mail(self, user, force=False):
