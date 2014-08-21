@@ -1,6 +1,6 @@
 #!/usr/bin/env python2.7
 
-# version: 3.018
+# version: 3.019
 
 # File: ExecutionProcess.py ; This file is part of Twister.
 
@@ -585,6 +585,8 @@ class TwisterRunner(object):
             # Null libraries ?
             if not lib:
                 continue
+            # Fix / and // issues
+            lib = lib.lstrip('/').replace('//', '/')
             # Already in the list ?
             if lib in zip_libs or lib in all_libs:
                 continue
@@ -617,20 +619,30 @@ class TwisterRunner(object):
 
             print('Downloading library `{}` ...'.format(lib_file))
 
-            lib_pth = libs_path + os.sep + lib_file
+            # If this is a "deep" file, or folder
+            if '/' in lib_file:
+                lib_pth = libs_path + '/deep'
+            else:
+                lib_pth = libs_path + '/' + lib_file
 
-            f = open(lib_pth, 'wb')
-            f.write(lib_data)
-            f.close() ; del f
+            try:
+                with open(lib_pth, 'wb') as f:
+                    f.write(lib_data)
+            except Exception as e:
+                print('Cannot save library file `{}`: `{}`!'.format(lib_file, e))
+                continue
 
-            # If the file doesn't have an ext, it's a TGZ library and must be extracted
-            if not os.path.splitext(lib_file)[1]:
+            # If the file doesn't have an ext, or it's a deep file, or folder,
+            # it's a TGZ library and must be extracted
+            if (not os.path.splitext(lib_file)[1]) or ('/' in lib_file):
                 # Rename the TGZ
                 tgz = lib_pth + '.tgz'
                 os.rename(lib_pth, tgz)
                 with tarfile.open(tgz, 'r:gz') as binary:
                     os.chdir(libs_path)
                     binary.extractall()
+                    time.sleep(0.05)
+                    os.remove(tgz)
 
         if reset_libs:
             print('... all libraries downloaded.\n')
@@ -676,6 +688,9 @@ class TwisterRunner(object):
         suite_data  = None
         suite_name  = None # Suite name string. This varies for each file.
         abort_suite = False # Abort suite X, when setup file fails.
+
+        # Import all custom exceptions
+        from TscCommonLib import *
 
 
         for id, node in suitesManager.iter_nodes(None, []):
@@ -728,11 +743,11 @@ class TwisterRunner(object):
             # Is this file a teardown file?
             teardown_file = node.get('teardown_file', False)
             # Test-case dependency, if any
-            dependency = node.get('dependency').strip()
+            dependency = node.get('_depend').strip()
             # Is this test file optional?
             optional_test = node.get('Optional')
             # Configuration files?
-            config_files = [c.strip() for c in node.get('config_files').split(';') if c]
+            config_files = [c['name'] for c in node.get('_cfg_files', [])]
             # Get args
             args = node.get('param')
             if args:
@@ -744,8 +759,8 @@ class TwisterRunner(object):
             props = dict(node)
             props.update(suite_data)
             for prop in ['type', 'ep', 'sut', 'name', 'pd', 'libraries', 'children', 'clearcase',
-                        'status', 'file', 'suite', 'dependency', 'Runnable',
-                        'setup_file', 'teardown_file', 'Optional', 'config_files', 'param']:
+                        'twister_tc_revision', 'status', 'file', 'suite', '_depend', '_dep_id',
+                        'Runnable', 'setup_file', 'teardown_file', 'Optional', '_cfg_files', 'param']:
                 # Removing all known File properties
                 try:
                     del props[prop]
@@ -1072,7 +1087,25 @@ class TwisterRunner(object):
                 if isinstance(result, tuple):
                     result, reason = result
 
-                print('\n>>> File `{}` returned `{}`. <<<\n'.format(filename, result))
+            except AssertionError as e:
+                result = 'FAIL'
+                reason = str(e)
+
+            except ExceptionTestFail as e:
+                result = 'FAIL'
+                reason = str(e)
+
+            except ExceptionTestAbort as e:
+                result = 'ABORT'
+                reason = str(e)
+
+            except ExceptionTestTimeout as e:
+                result = 'TIMEOUT'
+                reason = str(e)
+
+            except ExceptionTestSkip as e:
+                result = 'SKIP'
+                reason = str(e)
 
             except (Exception, SystemExit):
                 # On error, print the error message, but don't exit
@@ -1119,6 +1152,8 @@ class TwisterRunner(object):
                 # Skip this cycle, go to next file
                 continue
 
+            print('\n>>> File `{}` returned `{}`. <<<\n'.format(filename, result))
+
             # Stop counting time. END OF TEST!
             timer_f = time.time() - timer_i
             end_time = time.strftime('%Y-%m-%d %H:%M:%S')
@@ -1134,14 +1169,19 @@ class TwisterRunner(object):
 
             try:
                 if  result == 0 or result == STATUS_PASS or result == 'PASS':
+                    result = STATUS_PASS
                     proxy().set_file_status(self.epName, file_id, STATUS_PASS, timer_f) # File status PASS
                 elif result == STATUS_SKIPPED or result in ['SKIP', 'SKIPPED']:
+                    result = STATUS_SKIPPED
                     proxy().set_file_status(self.epName, file_id, STATUS_SKIPPED, timer_f) # File status SKIPPED
                 elif result == STATUS_ABORTED or result in ['ABORT', 'ABORTED']:
+                    result = STATUS_ABORTED
                     proxy().set_file_status(self.epName, file_id, STATUS_ABORTED, timer_f) # File status ABORTED
                 elif result == STATUS_NOT_EXEC or result in ['NOT-EXEC', 'NOT EXEC', 'NOT EXECUTED']:
+                    result = STATUS_NOT_EXEC
                     proxy().set_file_status(self.epName, file_id, STATUS_NOT_EXEC, timer_f) # File status NOT_EXEC
                 elif result == STATUS_TIMEOUT or result == 'TIMEOUT':
+                    result = STATUS_TIMEOUT
                     proxy().set_file_status(self.epName, file_id, STATUS_TIMEOUT, timer_f) # File status TIMEOUT
                 elif result == STATUS_INVALID or result == 'INVALID':
                     proxy().set_file_status(self.epName, file_id, STATUS_INVALID, timer_f) # File status INVALID
@@ -1178,8 +1218,15 @@ class TwisterRunner(object):
                     proxy().echo('*ERROR* Setup file for `{}::{}` returned FAIL! All suite will be ABORTED!'\
                         ''.format(self.epName, suite_name))
 
-            if result == STATUS_FAIL and reason:
-                print('Test failed because: "{}".\n'.format(reason))
+            if reason:
+                if result == STATUS_FAIL:
+                    print('Test failed because: `{}`.\n'.format(reason))
+                elif result == STATUS_ABORTED:
+                    print('Test was aborted because: `{}`.\n'.format(reason))
+                elif result == STATUS_TIMEOUT:
+                    print('Test timed out because: `{}`.\n'.format(reason))
+                elif result == STATUS_SKIPPED:
+                    print('Test was skipped because: `{}`.\n'.format(reason))
 
 
             print('<<< END filename: `{}:{}` >>>\n'.format(file_id, filename))

@@ -1,7 +1,7 @@
 
 # File: TscCommonLib.py ; This file is part of Twister.
 
-# version: 3.014
+# version: 3.015
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -49,7 +49,7 @@ if not TWISTER_PATH:
 
 from common import iniparser
 
-__all__ = ['TscCommonLib', 'TwisterTestFail', 'TwisterTestAbort', 'TwisterTestTimeout', 'TwisterTestSkip']
+__all__ = ['TscCommonLib', 'ExceptionTestFail', 'ExceptionTestAbort', 'ExceptionTestTimeout', 'ExceptionTestSkip']
 
 #
 
@@ -60,28 +60,28 @@ class TwisterException(Warning):
     def __init__(self, value=''):
         self.value = value
     def __str__(self):
-        return repr(self.value)
+        return str(self.value)
 
 
-class TwisterTestFail(TwisterException):
+class ExceptionTestFail(TwisterException):
     """
     Custom exception, caught by the EP.
     """
     pass
 
-class TwisterTestAbort(TwisterException):
+class ExceptionTestAbort(TwisterException):
     """
     Custom exception, caught by the EP.
     """
     pass
 
-class TwisterTestTimeout(TwisterException):
+class ExceptionTestTimeout(TwisterException):
     """
     Custom exception, caught by the EP.
     """
     pass
 
-class TwisterTestSkip(TwisterException):
+class ExceptionTestSkip(TwisterException):
     """
     Custom exception, caught by the EP.
     """
@@ -241,6 +241,38 @@ class TscCommonLib(object):
         Make this an instance property.
         """
         return self._ce_proxy()
+
+
+    @staticmethod
+    def test_fail(reason=''):
+        """
+        Gracefully crash test.
+        """
+        raise ExceptionTestFail(reason)
+
+
+    @staticmethod
+    def test_abort(reason=''):
+        """
+        Gracefully crash test.
+        """
+        raise ExceptionTestAbort(reason)
+
+
+    @staticmethod
+    def test_timeout(reason=''):
+        """
+        Gracefully crash test.
+        """
+        raise ExceptionTestTimeout(reason)
+
+
+    @staticmethod
+    def test_skip(reason=''):
+        """
+        Gracefully crash test.
+        """
+        raise ExceptionTestSkip(reason)
 
 
     def log_msg(self, log_type, log_message):

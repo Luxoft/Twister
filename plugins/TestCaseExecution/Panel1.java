@@ -82,6 +82,7 @@ public class Panel1 extends JPanel{
     public JTabbedPane tabs;
     public JMenuBar menu;
     public Dependency dependency;
+    public TestConfigManagement testconfigmngmnt;
     private JTabbedPane optionstabs;
     
     public Panel1(String user, final boolean applet, int width){
@@ -302,9 +303,14 @@ public class Panel1 extends JPanel{
             splitPane2.setDividerLocation(0.5);
         } 
         dependency = new Dependency();
+        testconfigmngmnt = new TestConfigManagement();
+        
+        //dependency = new Dependency();
         optionstabs = new JTabbedPane();
         optionstabs.add("Selection Options", suitaDetails);
         optionstabs.add("Dependencies", dependency);
+        optionstabs.add("Test Configurations", testconfigmngmnt);
+        //optionstabs.add("Dependencies", dependency);
         splitPane3 = new JSplitPane(JSplitPane.VERTICAL_SPLIT,
                                                 sc.pane,optionstabs);
         try{

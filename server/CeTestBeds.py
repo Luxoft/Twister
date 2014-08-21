@@ -220,29 +220,6 @@ def res_to_xml(parent_node, xml, skip_header = False):
     return xml
 
 
-def fix_path(res, path = []):
-    '''
-    Add path to resources that does not have this field.
-    '''
-
-    if not res:
-        return None
-
-    res['path'] = copy.deepcopy(path)
-
-    if not res.get('children'):
-        try:
-            path.pop(-1)
-        except:
-            pass
-        return None
-
-    for node in res.get('children'):
-        path.append(node)
-        fix_path(res['children'][node], path)
-
-    return True
-
 class TestBeds(_cptools.XMLRPCController, CommonAllocator):
     '''
     Basic operations for TestBeds.
@@ -292,21 +269,17 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
                 logError('Error loading TBs! {}'.format(e))
 
             # make older resources files that don't have 'path' compatible
-            valid_resources = True
             for res in self.resources.get('children'):
-                if not self.resources['children'][res].get('path', ''):
-                    valid_resources = False
-                    self.resources['children'][res]['path'] = [res]
-                    fix_path(self.resources['children'][res], [res])
+                self.resources['children'][res]['path'] = [res]
+                self.fix_path(self.resources['children'][res], [res])
 
             # save the resources updated (with path field) for later usage
-            if not valid_resources:
-                issaved = self.save_tb()
-                if isinstance(issaved, str):
-                    if issaved.startswith('*ERROR* '):
-                        msg = "We could not save this TB for user = {}.".format(user_info[0])
-                        logDebug(msg)
-                        return "*ERROR* " + msg
+            issaved = self.save_tb()
+            if isinstance(issaved, str):
+                if issaved.startswith('*ERROR* '):
+                    msg = "We could not save this TB for user = {}.".format(user_info[0])
+                    logDebug(msg)
+                    return "*ERROR* " + msg
 
         return self.resources
 

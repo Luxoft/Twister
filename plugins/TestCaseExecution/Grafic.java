@@ -1,6 +1,6 @@
 /*
 File: Grafic.java ; This file is part of Twister.
-Version: 2.0029
+Version: 2.0030
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -74,6 +74,7 @@ import com.twister.Item;
 import javax.swing.JList;
 import javax.swing.JScrollPane;
 import com.twister.CustomDialog;
+import com.twister.Configuration;
 import java.util.HashMap;
 import java.util.Set;
 import java.util.Iterator;
@@ -164,6 +165,7 @@ public class Grafic extends JPanel{
                 if(next.getType()==2&&next.getPos().size()==1){
                     int userDefNr = next.getUserDefNr();
                     RunnerRepository.window.mainpanel.p1.suitaDetails.setParent(next);
+                    RunnerRepository.window.mainpanel.p1.testconfigmngmnt.setParent(next);
                     if(userDefNr!=RunnerRepository.window.mainpanel.p1.suitaDetails.getDefsNr()){
                         System.out.println("Warning, suite "+next.getName()+
                             " has "+userDefNr+" fields while in database xml are defined "+
@@ -175,7 +177,8 @@ public class Grafic extends JPanel{
                 else{
                     RunnerRepository.window.mainpanel.p1.suitaDetails.setGlobalDetails();
                     RunnerRepository.window.mainpanel.p1.suitaDetails.clearDefs();
-                    RunnerRepository.window.mainpanel.p1.suitaDetails.setParent(null);}}
+                    RunnerRepository.window.mainpanel.p1.suitaDetails.setParent(null);
+                    RunnerRepository.window.mainpanel.p1.testconfigmngmnt.setParent(null);}}
             else{
                 if(!clearedSelection){
                     deselectAll();
@@ -208,6 +211,7 @@ public class Grafic extends JPanel{
                 if(next.getType()==2&&next.getPos().size()==1){
                     int userDefNr = next.getUserDefNr();
                     RunnerRepository.window.mainpanel.p1.suitaDetails.setParent(next);
+                    RunnerRepository.window.mainpanel.p1.testconfigmngmnt.setParent(next);
                     if(userDefNr!=RunnerRepository.window.mainpanel.p1.suitaDetails.getDefsNr()){
                         System.out.println("Warning, suite "+next.getName()+" has "+
                         userDefNr+" fields while in bd.xml are defined "+
@@ -219,7 +223,9 @@ public class Grafic extends JPanel{
                 else{
                     RunnerRepository.window.mainpanel.p1.suitaDetails.setGlobalDetails();
                     RunnerRepository.window.mainpanel.p1.suitaDetails.clearDefs();
-                    RunnerRepository.window.mainpanel.p1.suitaDetails.setParent(null);}}
+                    RunnerRepository.window.mainpanel.p1.suitaDetails.setParent(null);
+                    RunnerRepository.window.mainpanel.p1.testconfigmngmnt.setParent(null);
+                }}
             else{
                 if(!clearedSelection){
                     deselectAll();
@@ -246,6 +252,7 @@ public class Grafic extends JPanel{
         RunnerRepository.window.mainpanel.p1.suitaDetails.setGlobalDetails();
         RunnerRepository.window.mainpanel.p1.suitaDetails.clearDefs();
         RunnerRepository.window.mainpanel.p1.suitaDetails.setParent(null);
+        RunnerRepository.window.mainpanel.p1.testconfigmngmnt.setParent(null);
         dragammount=0;
         if(dragging){handleMouseDroped(ev.getY());}
         else handleClick(ev);}
@@ -1164,6 +1171,7 @@ public class Grafic extends JPanel{
                         int userDefNr = temp.getUserDefNr();
                         boolean root = false;
                         RunnerRepository.window.mainpanel.p1.suitaDetails.setParent(temp);
+                        RunnerRepository.window.mainpanel.p1.testconfigmngmnt.setParent(temp);
                         if(temp.getPos().size()==1){
                             root = true;
                             if(userDefNr!=RunnerRepository.window.mainpanel.p1.suitaDetails.getDefsNr()){
@@ -1185,6 +1193,7 @@ public class Grafic extends JPanel{
                     if(getItem(selected,false).getType()==1){
                         Item temp = getItem(selected,false);
                         RunnerRepository.window.mainpanel.p1.suitaDetails.setParent(temp);
+                        RunnerRepository.window.mainpanel.p1.testconfigmngmnt.setParent(temp);
                         RunnerRepository.window.mainpanel.p1.suitaDetails.setTCDetails();
                     }
                     if(getItem(selected,false).getCheckRectangle().intersects(
@@ -1297,11 +1306,13 @@ public class Grafic extends JPanel{
                     if(temp.getType()==0) propertyPopUp(ev,getItem(selected,false));
                     else if(temp.getType()==1){
                         RunnerRepository.window.mainpanel.p1.suitaDetails.setParent(temp);
+                        RunnerRepository.window.mainpanel.p1.testconfigmngmnt.setParent(temp);
                         RunnerRepository.window.mainpanel.p1.suitaDetails.setTCDetails();
                         tcPopUp(ev,getItem(selected,false));}
                     else{                        
                         boolean root = false;
                         RunnerRepository.window.mainpanel.p1.suitaDetails.setParent(temp);
+                        RunnerRepository.window.mainpanel.p1.testconfigmngmnt.setParent(temp);
                         if(temp.getPos().size()==1){//if it is a root suite
                             root = true;
                             int userDefNr = temp.getUserDefNr();   
@@ -1327,6 +1338,7 @@ public class Grafic extends JPanel{
                         if(getItem(selected,false).getType()==0) propertyPopUp(ev,getItem(selected,false));
                         else if(getItem(selected,false).getType()==1){
                             Item temp = getItem(selected,false);
+                            RunnerRepository.window.mainpanel.p1.testconfigmngmnt.setParent(temp);
                             RunnerRepository.window.mainpanel.p1.suitaDetails.setParent(temp);
                             RunnerRepository.window.mainpanel.p1.suitaDetails.setTCDetails();
                             tcPopUp(ev,getItem(selected,false));
@@ -1335,6 +1347,7 @@ public class Grafic extends JPanel{
                             Item temp = getItem(selected,false);
                             boolean root = false;
                             RunnerRepository.window.mainpanel.p1.suitaDetails.setParent(temp);
+                            RunnerRepository.window.mainpanel.p1.testconfigmngmnt.setParent(temp);
                             if(temp.getPos().size()==1){//if it is a root suite
                                 root = true;
                                 int userDefNr = temp.getUserDefNr();                            
@@ -1485,11 +1498,11 @@ public class Grafic extends JPanel{
                     public void actionPerformed(ActionEvent ev){
                         switchCheck();}});}
             if(type==1){
-                menuitem = new JMenuItem("Set Configurations");
+                menuitem = new JMenuItem("Add Configurations");
                 p.add(menuitem);
                 menuitem.addActionListener(new ActionListener(){
                     public void actionPerformed(ActionEvent ev){
-                        setConfigurations(false);}});
+                        addConfigurations(false);}});
                 menuitem = new JMenuItem("Switch Runnable");
                 p.add(menuitem);
                 menuitem.addActionListener(new ActionListener(){
@@ -1502,7 +1515,7 @@ public class Grafic extends JPanel{
                         switchOptional();}});}}
         p.show(this,ev.getX(),ev.getY());}
         
-    private void setConfigurations(boolean solo){
+    private void addConfigurations(boolean unitary){
         JPanel p = new JPanel();
         p.setLayout(null);
         p.setPreferredSize(new Dimension(515,200));
@@ -1515,7 +1528,7 @@ public class Grafic extends JPanel{
         p.add(scep);
         String [] vecresult = RunnerRepository.window.mainpanel.p4.getTestConfig().tree.getFiles();
         tep.setModel(new DefaultComboBoxModel(vecresult));
-        if(solo){
+        if(unitary){
             Item item=null;
             int nr = selectedcollection.size();
             ArrayList<Integer>temp = new ArrayList<Integer>();
@@ -1526,21 +1539,24 @@ public class Grafic extends JPanel{
                 item = getItem(temp,false);
             }
             ArrayList<String> array = new ArrayList<String>(Arrays.asList(vecresult));
-            String [] strings = item.getConfigurations();
-            int [] sel = new int[strings.length];
-            for(int i=0;i<strings.length;i++){
-                sel[i]=array.indexOf(strings[i]);
+            ArrayList<String> torem = new ArrayList<String>();
+            for(int i=0;i<vecresult.length;i++){
+                for(Configuration conf:item.getConfigurations()){
+                    if(conf.getFile().equals(vecresult[i])){
+                        torem.add(vecresult[i]);
+                        break;
+                    }
+                }
             }
-            tep.setSelectedIndices(sel);
-            
+            for(String s:torem){
+                array.remove(s);
+            }
+            Object [] resultingarray = array.toArray();
+            tep.setModel(new DefaultComboBoxModel(resultingarray));
         }
         int resp = (Integer)CustomDialog.showDialog(p,JOptionPane.PLAIN_MESSAGE, 
                             JOptionPane.OK_CANCEL_OPTION, Grafic.this, "Test Configurations Files",null);
         if(resp == JOptionPane.OK_OPTION){
-            String configs[] = new String[tep.getSelectedValuesList().size()];
-            for(int i=0;i<configs.length;i++){
-                configs[i] = tep.getSelectedValuesList().get(i).toString();
-            }
             Item item=null;
             int nr = selectedcollection.size();
             ArrayList<Integer>temp = new ArrayList<Integer>();
@@ -1549,7 +1565,19 @@ public class Grafic extends JPanel{
                 int [] indices = selectedcollection.get(i);
                 for(int j=0;j<indices.length;j++)temp.add(new Integer(indices[j]));
                 item = getItem(temp,false);
-                item.setConfigurations(configs);}
+                for(Object selection:tep.getSelectedValues()){
+                    boolean goon = true;
+                    for(Configuration config:item.getConfigurations()){//check for existing file in configuration
+                        if(config.getFile().equals(selection.toString())){
+                            goon = false;
+                            break;
+                        }
+                    }               
+                    if(goon)item.getConfigurations().add(new Configuration(selection.toString()));
+                }
+            }
+            TestConfigManagement tcm = RunnerRepository.window.mainpanel.p1.testconfigmngmnt;
+            tcm.setParent(tcm.getConfigParent());
         }
         repaint();
     }
@@ -1612,11 +1640,11 @@ public class Grafic extends JPanel{
         item.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 setParam(tc);}});
-        item = new JMenuItem("Set Configurations");
+        item = new JMenuItem("Add Configurations");
         p.add(item);
         item.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
-                setConfigurations(true);}});
+                addConfigurations(true);}});
         item = new JMenuItem("Repeat");
         p.add(item);
         item.addActionListener(new ActionListener(){
@@ -1764,6 +1792,7 @@ public class Grafic extends JPanel{
         updateLocations(i);
         deselectAll();
         selectItem(tc.getPos());
+        RunnerRepository.window.mainpanel.p1.testconfigmngmnt.setParent(tc);
         RunnerRepository.window.mainpanel.p1.suitaDetails.setParent(tc);
         RunnerRepository.window.mainpanel.p1.suitaDetails.setTCDetails();
         repaint();}
@@ -1791,6 +1820,7 @@ public class Grafic extends JPanel{
         deselectAll();
         selectItem(tc.getPos());
         RunnerRepository.window.mainpanel.p1.suitaDetails.setParent(tc);
+        RunnerRepository.window.mainpanel.p1.testconfigmngmnt.setParent(tc);
         RunnerRepository.window.mainpanel.p1.suitaDetails.setTCDetails();
         repaint();}
         
@@ -1841,6 +1871,7 @@ public class Grafic extends JPanel{
                 property.setSubItemVisible(false);
                 tc.addSubItem(property);
                 RunnerRepository.window.mainpanel.p1.suitaDetails.setParent(tc);
+                RunnerRepository.window.mainpanel.p1.testconfigmngmnt.setParent(tc);
                 RunnerRepository.window.mainpanel.p1.suitaDetails.setTCDetails();
             }
             else found = false;}}
@@ -1868,6 +1899,7 @@ public class Grafic extends JPanel{
             tc.addSubItem(property);
             updateLocations(tc);
             RunnerRepository.window.mainpanel.p1.suitaDetails.setParent(tc);
+            RunnerRepository.window.mainpanel.p1.testconfigmngmnt.setParent(tc);
             RunnerRepository.window.mainpanel.p1.suitaDetails.setTCDetails();
         }}
     
@@ -1955,6 +1987,7 @@ public class Grafic extends JPanel{
             RunnerRepository.window.mainpanel.p1.suitaDetails.setGlobalDetails();
             RunnerRepository.window.mainpanel.p1.suitaDetails.clearDefs();
             RunnerRepository.window.mainpanel.p1.suitaDetails.setParent(null);
+            RunnerRepository.window.mainpanel.p1.testconfigmngmnt.setParent(null);
             repaint();}}
         
     /*
@@ -2217,11 +2250,12 @@ public class Grafic extends JPanel{
             }
             StringBuilder sb = new StringBuilder();
             sb.append("- ");
-            String [] path;
-            for(String st:item.getConfigurations()){
-                path = st.split("/");
-                st = path[path.length-1];
-                sb.append(st);
+            //String [] path;
+//             for(String st:item.getConfigurations()){
+            for(Configuration st:item.getConfigurations()){
+                //path = st.getFile().split("/");
+                //st.setFile(path[path.length-1]);
+                sb.append(st.getFile());
                 sb.append("; ");
             }
             if(sb.length()>0) sb.deleteCharAt(sb.length()-2);
@@ -2293,6 +2327,7 @@ public class Grafic extends JPanel{
         RunnerRepository.window.mainpanel.p1.suitaDetails.setGlobalDetails();
         RunnerRepository.window.mainpanel.p1.suitaDetails.clearDefs();
         RunnerRepository.window.mainpanel.p1.suitaDetails.setParent(null);
+        RunnerRepository.window.mainpanel.p1.testconfigmngmnt.setParent(null);
         this.user = user;}
     
     /*
@@ -2495,6 +2530,7 @@ public class Grafic extends JPanel{
                     }
                     j.setName(name);
                     RunnerRepository.window.mainpanel.p1.suitaDetails.setParent(j);
+                    RunnerRepository.window.mainpanel.p1.testconfigmngmnt.setParent(j);
                     RunnerRepository.window.mainpanel.p1.suitaDetails.setSuiteDetails(false);
                     repaint();
                 }

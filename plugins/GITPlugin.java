@@ -2,7 +2,7 @@
 File: GITPlugin.java ; This file is part of Twister.
 
 Copyright (C) 2012 , Luxoft
-Version: 3.002
+Version: 3.003
 Authors: Andrei Costachi <acostachi@luxoft.com>
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -222,7 +222,7 @@ public class GITPlugin extends BasePlugin implements TwisterPluginInterface {
             if(ob!=null)System.out.println("Server response: "+ob.toString());
         }
         
-        System.out.println("List files IGT plugin");
+        System.out.println("List files GIT plugin for: "+dir);
         try{ob = client.execute("list_files", new Object[]{dir,true});
             if(ob.toString().indexOf("*ERROR*")!=-1){
                 CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,p,"ERROR", ob.toString());
@@ -231,26 +231,12 @@ public class GITPlugin extends BasePlugin implements TwisterPluginInterface {
             e.printStackTrace();
             if(ob!=null)System.out.println("Server response: "+ob.toString());
         }
-		HashMap hash = (HashMap)ob;
-        getList(root, hash,dir);
-        
-        
-        
-//        if(c!=null){
-//        	try{c.cd(tsnapshot.getText());}
-//        	catch(Exception e){e.printStackTrace();
-//        		try {
-//					c.cd(variables.get("remoteuserhome")+
-//							"/twister/config/");
-//				} catch (SftpException e1) {
-//					e1.printStackTrace();
-//				}
-//        	}
-//        	getList(root, c, true);
-//        }
-//        else{
-//        	System.out.println("SFTP connection not initialized");
-//        }
+		try{HashMap hash = (HashMap)ob;
+        	getList(root, hash,dir);
+		} catch (Exception e){
+			System.out.println("Could not build directory");
+			e.printStackTrace();
+		}
         
         tree = new JTree(root);
 		tree.expandRow(1);

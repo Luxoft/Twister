@@ -1,7 +1,7 @@
 
 # File: CeFs.py ; This file is part of Twister.
 
-# version: 3.016
+# version: 3.019
 
 # Copyright (C) 2012-2014, Luxoft
 
@@ -36,7 +36,6 @@ from plumbum import local
 import rpyc
 
 socket.setdefaulttimeout(3)
-from thread import allocate_lock
 
 TWISTER_PATH = os.getenv('TWISTER_PATH')
 if not TWISTER_PATH:
@@ -48,36 +47,17 @@ if TWISTER_PATH not in sys.path:
 from common.helpers    import *
 from common.tsclogging import *
 
-#
-__all__ = ['LocalFS']
-#
 
-
-def singleton(cls):
-    """ Lauch single instance"""
-    instances = {}
-    def getinstance(*args, **kwargs):
-        """ Return new/existing instance """
-        if cls not in instances:
-            instances[cls] = cls(*args, **kwargs)
-        return instances[cls]
-    return getinstance
-
-
-@singleton
-class LocalFS(object):
+class LocalFS(FsBorg):
     """
     All local file operations should be done via THIS class.
     This is a singleton.
     """
-    _services = {}
-    _srv_lock = allocate_lock()
 
-
-    def __init__(self, project=None):
+    def __init__(self):
+        FsBorg.__init__(self)
         if os.getuid():
             logError('Local FS: Central Engine must run as ROOT in order to start the User Service!')
-        self.project = project
         logInfo('Created Local FS.')
 
 
@@ -166,7 +146,7 @@ class LocalFS(object):
                     stream_r = rpyc.SocketStream.connect('127.0.0.1', port, timeout=5.0)
                     conn_read = rpyc.connect_stream(stream_r, config=config)
                     conn_read.root.hello()
-                    logDebug('Connected to User Service for `{}`.'.format(user))
+                    logDebug('Connected to User Service for `{}`, operation `read`.'.format(user))
                     success = True
                 except Exception as e:
                     logWarning('Cannot connect to User Service for `{}` - Exception: `{}`! '
@@ -177,6 +157,7 @@ class LocalFS(object):
                         stream_w = rpyc.SocketStream.connect('127.0.0.1', port, timeout=5.0)
                         conn_write = rpyc.connect_stream(stream_w, config=config)
                         conn_write.root.hello()
+                        logDebug('Connected to User Service for `{}`, operation `write`.'.format(user))
                         break
                     except Exception as e:
                         logWarning('Cannot connect to User Service for `{}` - Exception: `{}`! '
@@ -223,7 +204,7 @@ class LocalFS(object):
         Read 1 file. Client access via RPyc.
         """
         if not fpath:
-            return False
+            return '*ERROR* Empty `fpath` parameter on read file, user `{}`!'.format(user)
         srvr = self._usr_service(user)
         if srvr:
             try:
@@ -233,7 +214,7 @@ class LocalFS(object):
                 logWarning(err)
                 return err
         else:
-            return False
+            return '*ERROR* Cannot access the UserService on read file, user `{}`!'.format(user)
 
 
     def write_user_file(self, user, fpath, fdata, flag='w'):
@@ -241,7 +222,7 @@ class LocalFS(object):
         Read 1 file. Client access via RPyc.
         """
         if not fpath:
-            return False
+            return '*ERROR* Empty `fpath` parameter on write file, user `{}`!'.format(user)
         srvr = self._usr_service(user, 'write')
         if len(fdata) > 20*1000*1000:
             err = '*ERROR* File data too long `{}`: {}; User {}.'.format(fpath, len(fdata), user)
@@ -255,58 +236,67 @@ class LocalFS(object):
                 logWarning(err)
                 return err
         else:
-            return False
+            return '*ERROR* Cannot access the UserService on write file, user `{}`!'.format(user)
 
 
     def copy_user_file(self, user, fpath, newpath):
-        """ copy an user file """
+        """
+        Copy 1 user file.
+        """
         if not fpath:
-            return False
+            return '*ERROR* Empty `fpath` parameter on copy file, user `{}`!'.format(user)
         srvr = self._usr_service(user, 'write')
         if srvr:
             return srvr.root.copy_file(fpath, newpath)
         else:
-            return False
+            return '*ERROR* Cannot access the UserService on copy file, user `{}`!'.format(user)
 
 
     def move_user_file(self, user, fpath, newpath):
-        """ move/rename a user file """
+        """
+        Move/rename a user file.
+        """
         if not fpath:
-            return False
+            return '*ERROR* Empty `fpath` parameter on move file, user `{}`!'.format(user)
         srvr = self._usr_service(user, 'write')
         if srvr:
             return srvr.root.move_file(fpath, newpath)
         else:
-            return False
+            return '*ERROR* Cannot access the UserService on move file, user `{}`!'.format(user)
 
 
     def delete_user_file(self, user, fpath):
-        """ delete user file """
+        """
+        Delete user file.
+        """
         if not fpath:
-            return False
+            return '*ERROR* Empty `fpath` parameter on delete file, user `{}`!'.format(user)
         srvr = self._usr_service(user)
         if srvr:
             return srvr.root.delete_file(fpath)
         else:
-            return False
+            return '*ERROR* Cannot access the UserService on delete file, user `{}`!'.format(user)
 
 
     def create_user_folder(self, user, fdir):
-        """ create a folder in user client directory """
+        """
+        Create a folder in user client directory.
+        """
         if not fdir:
-            return False
+            return '*ERROR* Empty `fdir` parameter on create folder, user `{}`!'.format(user)
         srvr = self._usr_service(user)
         if srvr:
             return srvr.root.create_folder(fdir)
         else:
-            return False
+            return '*ERROR* Cannot access the UserService on create folder, user `{}`!'.format(user)
 
 
     def list_user_files(self, user, fdir, hidden=True, recursive=True, filter=[]):
-        """ list the files in user directory """
+        """
+        List the files in user directory.
+        """
         if not fdir:
-            return False
-
+            return '*ERROR* Empty `fdir` parameter on list files, user `{}`!'.format(user)
         srvr = self._usr_service(user)
         if srvr:
             try:
@@ -317,29 +307,33 @@ class LocalFS(object):
                 logWarning(err)
                 return err
         else:
-            return False
+            return '*ERROR* Cannot access the UserService on list files, user `{}`!'.format(user)
 
 
     def delete_user_folder(self, user, fdir):
-        """ Delete user folder """
+        """
+        Delete a user folder.
+        """
         if not fdir:
-            return False
+            return '*ERROR* Empty `fdir` parameter on delete folder, user `{}`!'.format(user)
         srvr = self._usr_service(user)
         if srvr:
             return srvr.root.delete_folder(fdir)
         else:
-            return False
+            return '*ERROR* Cannot access the UserService on delete folder, user `{}`!'.format(user)
 
 
-    def targz_user_folder(self, user, fdir):
-        """ Archive a folder """
+    def targz_user_folder(self, user, fdir, root=''):
+        """
+        Tar.gz a folder, or file.
+        """
         if not fdir:
-            return False
+            return '*ERROR* Empty `fdir` parameter on tar.gz folder, user `{}`!'.format(user)
         srvr = self._usr_service(user)
         if srvr:
-            return srvr.root.targz_folder(fdir)
+            return srvr.root.targz_folder(fdir, root)
         else:
-            return False
+            return '*ERROR* Cannot access the UserService on tar.gz folder, user `{}`!'.format(user)
 
 
     # ----- SYSTEM -------------------------------------------------------------

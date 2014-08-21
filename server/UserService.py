@@ -1,7 +1,7 @@
 
 # File: UserService.py ; This file is part of Twister.
 
-# version: 3.010
+# version: 3.011
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -399,17 +399,22 @@ class UserService(rpyc.Service):
 
 
     @staticmethod
-    def exposed_targz_folder(folder):
+    def exposed_targz_folder(folder, root=''):
         """
         Compress a folder in memory and return the result.
         """
+        if (root not in folder) or (not os.path.isdir(root)):
+            root = ''
         if folder[0] == '~':
             folder = userHome() + folder[1:]
-        if not os.path.isdir(folder):
-            err = '*ERROR* Invalid folder path `{}`!'.format(folder)
+        if not os.path.exists(folder):
+            err = '*ERROR* Invalid path `{}`!'.format(folder)
             log.warning(err)
             return err
-        root, name = os.path.split(folder)
+        if root:
+            name = folder[len(root):]
+        else:
+            root, name = os.path.split(folder)
         os.chdir(root)
         io = cStringIO.StringIO()
         # Write the folder tar.gz into memory

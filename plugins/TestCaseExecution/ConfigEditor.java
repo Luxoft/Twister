@@ -733,8 +733,7 @@ public class ConfigEditor extends JPanel{
     private String getPathForSut(String sutid){
         String sutpath = "";
         Object ob = null;
-        try{System.out.println("getting sut id:"+sutid);
-            ob = sutconfig.client.execute("get_sut", new Object[]{sutid});
+        try{ob = sutconfig.client.execute("get_sut", new Object[]{sutid});
             if(ob instanceof HashMap){
                 HashMap subhash= (HashMap)ob;
                 sutpath = subhash.get("path").toString();
@@ -748,7 +747,6 @@ public class ConfigEditor extends JPanel{
             e.printStackTrace();
             sutpath = "Sut not available!";
             if(ob!=null) System.out.println("Server response: "+ob.toString());
-            
         }
         return sutpath;
     }

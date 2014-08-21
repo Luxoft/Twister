@@ -1,7 +1,7 @@
 
 # File: CeRpyc.py ; This file is part of Twister.
 
-# version: 3.014
+# version: 3.015
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -663,19 +663,18 @@ class CeRpycService(rpyc.Service):
         Only a VALID client will be able to register EPs!
         The user is identified automatically.
         """
-        logFull('CeRpyc:register_eps')
         str_addr = self._get_addr()
         user = self._check_login()
         if not user:
             return False
 
         if not str_addr:
-            logError('*ERROR* Cannot identify the remote address!')
-            return False
+            # Crash, to send the exception to the client
+            raise Exception('*ERROR* Cannot identify the remote address!')
 
         if not isinstance(eps, type([])):
-            logError('*ERROR* Can only register a List of EP names!')
-            return False
+            # Crash, to send the exception to the client
+            raise Exception('*ERROR* Can only register a List of EP names!')
         else:
             eps = sorted(set(eps))
 
@@ -691,8 +690,14 @@ class CeRpycService(rpyc.Service):
         # On disconnect, this client address will be deleted
         # And the EPs will be automatically un-registered.
         with self.conn_lock:
+            reg_eps = []
             for epname in eps:
-                self.project._register_ep(user, epname)
+                resp = self.project._register_ep(user, epname)
+                reg_eps.append(resp)
+
+            if True not in reg_eps:
+                # Crash, to send the exception to the client
+                raise Exception('The EPs were not registered!')
 
             # Before register, find the clients that have already registered these EPs!
             for c_addr, data in self.conns.iteritems():
@@ -974,6 +979,8 @@ class CeRpycService(rpyc.Service):
         if not user:
             return False
 
+        # Maybe the name begins with /
+        name = name.lstrip('/')
         # Global lib path
         glob_lib_path = (TWISTER_PATH + '/lib/' + name).replace('//', '/')
 
@@ -988,12 +995,18 @@ class CeRpycService(rpyc.Service):
                 err = '*ERROR* Invalid path `{}`!'.format(fpath)
                 return err
 
-            root, name = os.path.split(fpath)
+            # If this is a "deep" file, or folder
+            if '/' in name:
+                root = fpath[:-len(name)]
+                fname = name
+            else:
+                root, fname = os.path.split(fpath)
 
-            if os.path.isfile(fpath):
+            # If the required library is a file and isn't inside a folder
+            if os.path.isfile(fpath) and ('/' not in name):
                 try:
                     with open(fpath, 'rb') as f:
-                        logDebug('User `{}` requested global lib file `{}`.'.format(user, name))
+                        logDebug('User `{}` requested global lib file `{}`.'.format(user, fname))
                         return f.read()
                 except Exception as e:
                     err = '*ERROR* Cannot read file `{}`! {}'.format(fpath, e)
@@ -1004,20 +1017,23 @@ class CeRpycService(rpyc.Service):
                 io = cStringIO.StringIO()
                 # Write the folder tar.gz into memory
                 with tarfile.open(fileobj=io, mode='w:gz') as binary:
-                    binary.add(name=name, recursive=True)
-                logDebug('User `{}` requested global lib folder `{}`.'.format(user, name))
+                    binary.add(name=fname, recursive=True)
+                if '/' in name:
+                    logDebug('User `{}` requested global `deep` library `{}`.'.format(user, fname))
+                else:
+                    logDebug('User `{}` requested global lib folder `{}`.'.format(user, fname))
                 return io.getvalue()
 
         # Auto detect if ClearCase Test Config Path is active
         ccConfig = self.project.get_clearcase_config(user, 'libs_path')
         if ccConfig:
             view = ccConfig['view']
-            path = ccConfig['path'].rstrip('/')
-            lib_path = path +'/'+ name
-            sz = self.project.clearFs.file_size
-            # Folder
-            if sz == 4096:
-                resp = self.project.clearFs.targz_user_folder(user +':'+ view, lib_path)
+            cc_lib = ccConfig['path'].rstrip('/') + '/'
+            lib_path = cc_lib + name
+            sz = self.project.clearFs.file_size(user +':'+ view, lib_path)
+            # If is folder, or "deep" file or folder, compress in memory and return the data
+            if sz == 4096 or '/' in name:
+                resp = self.project.clearFs.targz_user_folder(user +':'+ view, lib_path, cc_lib)
                 # Read as ROOT
                 if resp.startswith('*ERROR*'):
                     return _download_file(glob_lib_path)
@@ -1032,21 +1048,22 @@ class CeRpycService(rpyc.Service):
                 logDebug('User `{}` requested ClearCase lib file `{}`.'.format(user, name))
                 return resp
 
-        # Normal system path
+        # User's home path
         else:
-            lib_path = self.project.get_user_info(user, 'libs_path').rstrip('/') +'/'+ name
-            # If is file, read the file directly
-            if os.path.isfile(lib_path):
+            user_lib = self.project.get_user_info(user, 'libs_path').rstrip('/') + '/'
+            lib_path = user_lib + name
+            # If is root library file, read the file directly
+            if os.path.isfile(lib_path) and '/' not in name:
                 resp = self.project.localFs.read_user_file(user, lib_path)
-                # Read as ROOT
+                # Try as ROOT
                 if resp.startswith('*ERROR*'):
                     return _download_file(glob_lib_path)
                 logDebug('User `{}` requested local lib file `{}`.'.format(user, name))
                 return resp
-            # If is folder, compress in memory and return the data
+            # If is folder, or "deep" file or folder, compress in memory and return the data
             else:
-                resp = self.project.localFs.targz_user_folder(user, lib_path)
-                # Read as ROOT
+                resp = self.project.localFs.targz_user_folder(user, lib_path, user_lib)
+                # Try as ROOT
                 if resp.startswith('*ERROR*'):
                     return _download_file(glob_lib_path)
                 logDebug('User `{}` requested local lib folder `{}`.'.format(user, name))

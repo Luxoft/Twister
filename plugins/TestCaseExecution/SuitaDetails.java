@@ -17,6 +17,9 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
+
+
 import javax.swing.JOptionPane;
 import com.twister.Item;
 import javax.swing.JPanel;
@@ -70,6 +73,9 @@ import javax.swing.Box;
 import javax.swing.event.DocumentListener;
 import javax.swing.event.DocumentEvent;
 import javax.swing.tree.DefaultMutableTreeNode;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import javax.swing.DefaultListModel;
 
 public class SuitaDetails extends JPanel {
     private JPanel defsContainer,projectDefsContainer,global, suiteoptions, tcoptions, summary;
@@ -335,7 +341,8 @@ public class SuitaDetails extends JPanel {
     // show libraries selection window for root suite
     public void showSuiteLib(){
         JScrollPane jScrollPane1 = new JScrollPane();
-        JList jList1 = new JList();
+        LibrariesList jList1 = new LibrariesList();
+        jList1.setModel(new DefaultListModel());
         JPanel libraries = new JPanel();
         jScrollPane1.setViewportView(jList1);
         GroupLayout layout = new GroupLayout(libraries);
@@ -351,24 +358,34 @@ public class SuitaDetails extends JPanel {
                             300, Short.MAX_VALUE)
         );
         
-        try{Object [] s = (Object [])RunnerRepository.getRPCClient().execute("get_libraries_list",
-                                                                        new Object[]{RunnerRepository.user});
-            String [] libs = new String[s.length];
-            for(int i=0;i<s.length;i++){
-                libs[i] = s[i].toString();
+        try{HashMap librariesfolder =  (HashMap)RunnerRepository.getRPCClient().execute("get_libraries_list",
+                                                                        new Object[]{RunnerRepository.user}); 
+            Object [] children = (Object [])librariesfolder.get("children");
+            MyListElement [] libs = new MyListElement[children.length];
+            int i=0;
+            for(Object ob:children){
+                HashMap child = (HashMap)ob;
+                MyListElement el = new MyListElement(child.get("data").toString());
+                libs[i] = el;
+                DefaultListModel model = (DefaultListModel)jList1.getModel();
+                model.addElement(libs[i]);
+                i++;
+                if(child.get("folder") != null ){
+                    el.setName("/"+el.getName());
+                    buildMyListSubchilds(1,child,el);
+                }
             }
             ArrayList<Integer> ind = new ArrayList<Integer>();
-            jList1.setModel(new DefaultComboBoxModel(libs));
             if(parent.getLibs()!=null){
                 for(String st:parent.getLibs()){
-                    for(int i=0;i<libs.length;i++){
+                    for(i=0;i<libs.length;i++){
                         if(libs[i].equals(st)){
                             ind.add(new Integer(i));
                         }
                     }
                 }
                 int [] indices = new int [ind.size()];
-                for(int i=0;i<ind.size();i++){
+                for(i=0;i<ind.size();i++){
                     indices[i]=ind.get(i);
                 }
                 jList1.setSelectedIndices(indices);
@@ -376,6 +393,9 @@ public class SuitaDetails extends JPanel {
         } catch(Exception e){
             System.out.println("There was an error on calling get_libraries_list on CE");
             e.printStackTrace();
+        }
+        if(parent.getLibs()!=null){
+            selectLibraries(parent.getLibs(),jList1);
         }
         int resp = (Integer)CustomDialog.showDialog(libraries,JOptionPane.PLAIN_MESSAGE,
                                                         JOptionPane.OK_CANCEL_OPTION, 
@@ -385,16 +405,81 @@ public class SuitaDetails extends JPanel {
             List val = jList1.getSelectedValuesList();
             String [] libs = new String[val.size()];
             for(int s=0;s<val.size();s++){
-                libs[s]=val.get(s).toString();
+                MyListElement el = (MyListElement)val.get(s);
+//                 MyListElement parent = el.getParent();
+//                 ArrayList<String> list = new ArrayList();
+//                 list.add(el.getName().trim());
+//                 if(parent!=null)list.add("/");
+//                 while(parent!=null){
+//                     list.add(parent.getName().trim());
+//                     parent = parent.getParent();
+//                 }
+//                 StringBuilder sb = new StringBuilder();
+//                 for(int i=list.size()-1;i>-1;i--){
+//                     sb.append(list.get(i));
+//                 }
+//                 libs[s]=sb.toString();
+//                 System.out.println("libs[s]:"+libs[s]);
+//                     System.out.println("el:"+el.getName()+" - "+el.getFullPath());
+                    libs[s]=el.getFullPath();
             }
             parent.setLibs(libs);
         }
     }
     
+    public void selectLibraries(String [] libraries,LibrariesList list){
+        DefaultListModel model = (DefaultListModel)list.getModel();
+        //first expand all
+        MyListElement el;
+        for(int i=0;i<model.size();i++){
+            el = (MyListElement)model.get(i);
+            if(!el.isExpanded())el.doubleClicked(true,list,i);
+        }
+        //now search for elements
+        ArrayList <MyListElement> found = new ArrayList();
+        for(int i=0;i<model.size();i++){
+            el = (MyListElement)model.get(i);
+            for(String lib:libraries){
+                if(el.getFullPath().equals(lib)){
+                    MyListElement parent = el;
+                    found.add(parent);
+                    while(parent.getParent()!=null){
+                        parent = parent.getParent();
+                        found.add(parent);
+                    }
+                }
+            }
+        }
+        //close the ones that are not found
+        for(int i=0;i<model.size();i++){
+            el = (MyListElement)model.get(i);
+            if(el.isExpanded()&&!found.contains(el)){
+                el.doubleClicked(null, list, i);
+            }
+        }
+        //find selection indexes
+        ArrayList <Integer> index = new ArrayList();
+        for(int i=0;i<model.size();i++){
+            el = (MyListElement)model.get(i);
+            for(String lib:libraries){
+                if(el.getFullPath().equals(lib)){
+                    index.add(model.indexOf(el));
+                }
+            }
+        }
+        //finally select them
+        int [] indices = new int [index.size()];
+        for(int i=0;i<index.size();i++){
+            indices[i]=index.get(i);
+        }
+        list.setSelectedIndices(indices);
+    }
+    
     // show libraries selection window for project 
     private void showLib(){
         JScrollPane jScrollPane1 = new JScrollPane();
-        JList jList1 = new JList();
+        LibrariesList jList1 = new LibrariesList();
+        jList1.setModel(new DefaultListModel());
         JPanel libraries = new JPanel();
         jScrollPane1.setViewportView(jList1);
         GroupLayout layout = new GroupLayout(libraries);
@@ -407,32 +492,31 @@ public class SuitaDetails extends JPanel {
             layout.createParallelGroup(GroupLayout.Alignment.LEADING)
             .addComponent(jScrollPane1, GroupLayout.DEFAULT_SIZE, 300, Short.MAX_VALUE)
         );
-        
-        try{Object [] s = (Object [])RunnerRepository.getRPCClient().execute("get_libraries_list",
-                                                                        new Object[]{RunnerRepository.user});
-            String [] libs = new String[s.length];
-            for(int i=0;i<s.length;i++){
-                libs[i] = s[i].toString();
-            }
-            ArrayList<Integer> ind = new ArrayList<Integer>();
-            jList1.setModel(new DefaultComboBoxModel(libs));
-            for(String st:globallib){
-                for(int i=0;i<libs.length;i++){
-                    if(libs[i].equals(st)){
-                        ind.add(new Integer(i));
-                    }
-                }
-            }
-            int [] indices = new int [ind.size()];
-            for(int i=0;i<ind.size();i++){
-                indices[i]=ind.get(i);
-            }
-            jList1.setSelectedIndices(indices);
-            
-        } catch(Exception e){
-            System.out.println("There was an error on calling get_libraries_list on CE");
+        HashMap librariesfolder = null;
+        try{librariesfolder =  (HashMap)RunnerRepository.getRPCClient().execute("get_libraries_list", new Object[]{RunnerRepository.user});}
+        catch(Exception e){
             e.printStackTrace();
+            return;
         }
+        Object [] children = (Object [])librariesfolder.get("children");
+        MyListElement [] libs = new MyListElement[children.length];
+        int i=0;
+        for(Object ob:children){
+            HashMap child = (HashMap)ob;
+            MyListElement el = new MyListElement(child.get("data").toString());
+            libs[i] = el;
+            DefaultListModel model = (DefaultListModel)jList1.getModel();
+            model.addElement(libs[i]);
+            i++;
+            if(child.get("folder") != null ){
+                el.setName("/"+el.getName());
+                buildMyListSubchilds(1,child,el);
+            }
+        }
+        if(globallib!=null){
+            selectLibraries(globallib,jList1);
+        }
+        
         int resp = (Integer)CustomDialog.showDialog(libraries,JOptionPane.PLAIN_MESSAGE,
                                                         JOptionPane.OK_CANCEL_OPTION, 
                                                         RunnerRepository.window, "Libraries",
@@ -441,11 +525,43 @@ public class SuitaDetails extends JPanel {
             List val = jList1.getSelectedValuesList();
             globallib = new String[val.size()];
             for(int s=0;s<val.size();s++){
-                globallib[s]=val.get(s).toString();
+                MyListElement el = (MyListElement)val.get(s);
+//                 MyListElement parent = el.getParent();
+//                 ArrayList<String> list = new ArrayList();
+//                 list.add(el.getName().trim());
+//                 if(parent!=null)list.add("/");
+//                 while(parent!=null){
+//                     list.add(parent.getName().trim());
+//                     parent = parent.getParent();
+//                 }
+//                 StringBuilder sb = new StringBuilder();
+//                 for(i=list.size()-1;i>-1;i--){
+//                     sb.append(list.get(i));
+//                 }
+//                 globallib[s]=sb.toString();
+                    globallib[s] = el.getFullPath();
             }
         }
         
     }
+    
+    private void buildMyListSubchilds(int subelnr, HashMap hash, MyListElement parent){
+        Object [] children = (Object [])hash.get("children");
+        for(Object ob:children){
+            HashMap child = (HashMap)ob;
+            MyListElement el = new MyListElement(child.get("data").toString());
+            parent.addChild(el);
+            el.setParent(parent);
+            if(child.get("folder") != null){
+                el.setName("/"+el.getName());
+                buildMyListSubchilds(subelnr+1,child,el);
+            }
+            for(int i=0;i<subelnr;i++){
+                el.setName("    "+el.getName());
+            }
+        }
+    }
+    
     
     public String[] getGlobalLibs(){
         return globallib;
@@ -1390,4 +1506,120 @@ class DefPanel extends JPanel{
         if(removelistener){
             userDefinition.getDocument().addDocumentListener(doclistener);
         }
-    }}   
+    }
+} 
+
+
+//Jlist extended class to support expanding and contracting
+//of elements as a tree for folders, files representation
+class LibrariesList extends JList{
+    
+    public LibrariesList(){
+        super();
+        this.addMouseListener(new MouseAdapter() {
+            public void mouseClicked(MouseEvent evt) {
+                JList list = (JList)evt.getSource();
+                if (evt.getClickCount() == 2) {
+                    List selected = list.getSelectedValuesList();
+                    if(selected.size()==1){
+                        MyListElement element = (MyListElement)selected.get(0);
+                        element.doubleClicked(null,list,list.locationToIndex(evt.getPoint()));
+                    }
+                }
+            }
+        });
+    }
+}
+
+
+//element to be represented in LibrariesList to support
+//subelements to represent as subfiles,subfolders
+class MyListElement{
+    private String name;
+    private ArrayList <MyListElement> children = new ArrayList();
+    private MyListElement parent;
+    private boolean expanded = false;
+    
+    public String getFullPath(){
+        ArrayList<String> list = new ArrayList();
+        list.add(getName().trim());
+        if(parent!=null)list.add("/");
+        MyListElement temp = parent;
+        while(temp!=null){
+            list.add(temp.getName().trim());
+            temp = temp.getParent();
+        }
+        StringBuilder sb = new StringBuilder();
+        for(int i=list.size()-1;i>-1;i--){
+            sb.append(list.get(i));
+        }
+        return sb.toString();
+        
+    }
+    
+    public MyListElement(String name){
+        this.name = name;
+    }
+    
+    public String getName(){
+        return this.name;
+    }
+    
+    public void setName(String name){
+        this.name = name;
+    }
+    
+    public String toString(){
+        return this.name;
+    }
+    
+    public void addChild(MyListElement child){
+        children.add(child);
+    }
+    
+    public void setParent(MyListElement parent){
+        this.parent = parent;
+    }
+    
+    public MyListElement getParent(){
+        return this.parent;
+    }
+    
+    public boolean isExpanded(){
+        return this.expanded;
+    }
+    
+    public void doubleClicked(Boolean expand, JList parentlist, int index){
+        if(expand == null){
+            if(expanded){
+                for(MyListElement child:children){
+                    child.doubleClicked(false,parentlist,index);
+                }
+                expanded=!expanded;
+            } else {
+                for(MyListElement child:children){
+                    index+=1;
+                    ((DefaultListModel)parentlist.getModel()).add(index, child);
+                }
+                expanded=!expanded;
+            }
+        } else {
+            
+            if(expand){
+                if(!expanded){
+                    for(MyListElement child:children){
+                        index+=1;
+                        ((DefaultListModel)parentlist.getModel()).add(index, child);
+                    }
+                    this.expanded = expand;
+                }
+            } else {
+                ((DefaultListModel)parentlist.getModel()).removeElement(this);
+                for(MyListElement child:children){
+                    child.doubleClicked(false,parentlist,index);
+                }
+                this.expanded = expand;
+            }
+        }
+    }
+}

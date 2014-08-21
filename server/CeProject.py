@@ -1,7 +1,7 @@
 
 # File: CeProject.py ; This file is part of Twister.
 
-# version: 3.045
+# version: 3.047
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -127,12 +127,14 @@ from common.xmlparser  import *
 from common.suitesmanager import *
 from common import iniparser
 
-from CeServices  import ServiceManager
-from CeWebUi     import WebInterface
+from CeServices import ServiceManager
+from CeWebUi import WebInterface
 from CeResources import ResourceAllocator
-from CeReports   import ReportingServer
-from CeSuts      import Suts
-from CeTestBeds  import TestBeds
+from CeReports import ReportingServer
+from CeSuts import Suts
+from CeTestBeds import TestBeds
+from CeFs import LocalFS
+from CeClearCaseFs import ClearCaseFs
 
 usrs_and_pwds = {}
 usr_pwds_lock = allocate_lock()
@@ -226,8 +228,10 @@ class Project(object):
         self.sut = Suts(self)
         self.report = ReportingServer(self)
 
-        self.localFs = None # local FS pointer
-        self.clearFs = None # ClearCase FS pointer
+        self.localFs = LocalFS()     # Local FS pointer
+        self.localFs.project = self
+        self.clearFs = ClearCaseFs() # ClearCase FS pointer
+        self.clearFs.project = self
 
         # Users, parsers, IDs...
         self.users = {}
@@ -365,7 +369,6 @@ class Project(object):
         """
         Add all suites and test files for this EP.
         """
-        logFull('CeProject:_register_ep user `{}`.'.format(user))
         if (not user) or (not epname):
             return False
         if user not in self.users:
@@ -382,7 +385,10 @@ class Project(object):
 
             # Information about ALL suites for this EP
             # Some master-suites might have sub-suites, but all sub-suites must run on the same EP
-            suitesInfo = self.parsers[user].getAllSuitesInfo(epname)
+            if self.parsers.get(user):
+                suitesInfo = self.parsers[user].getAllSuitesInfo(epname)
+            else:
+                suitesInfo = None
 
             if suitesInfo:
                 self.users[user]['eps'][epname]['sut'] = suitesInfo.values()[0]['sut']
@@ -396,9 +402,15 @@ class Project(object):
                 files = []
 
             # Ordered list with all suite IDs, for all EPs
-            self.suite_ids[user].extend(suites)
+            try:
+                self.suite_ids[user].extend(suites)
+            except Exception as e:
+                logWarning('Exception on extend suite IDs: {}'.format(e))
             # Ordered list of file IDs, used for Get Status ALL
-            self.test_ids[user].extend(files)
+            try:
+                self.test_ids[user].extend(files)
+            except Exception as e:
+                logWarning('Exception on extend file IDs: {}'.format(e))
 
             logDebug('Reload Execution-Process `{}:{}` with `{}` suites and `{}` files.'.format(user, epname, len(suites), len(files)))
 
@@ -412,7 +424,6 @@ class Project(object):
         """
         Remove all suites and test files for this EP.
         """
-        logFull('CeProject:_unregister_ep user `{}`.'.format(user))
         if (not user) or (not epname):
             return False
         if user not in self.users:
@@ -1579,7 +1590,7 @@ class Project(object):
                 file_node = epinfo['suites'].find_id(file_id)
                 if not file_node:
                     continue
-                if file_node.get('dep_id') == dep_id:
+                if file_node.get('_dep_id') == dep_id:
                     found = dict(file_node)
                     found['ep'] = epname
                     found['id'] = file_id
@@ -2796,21 +2807,23 @@ class Project(object):
 
         libs_path = (TWISTER_PATH + '/lib/').replace('//', '/')
         user_path = ''
+
         if self.get_user_info(user, 'libs_path'):
             user_path = self.get_user_info(user, 'libs_path') + os.sep
         if user_path == '/':
             user_path = ''
 
-        glob_libs = [] # Default empty
-        user_libs = []
-
         # All Python source files from Libraries folder AND all library folders
         if all:
-            glob_libs = [d for d in os.listdir(libs_path) if \
-                ( os.path.isfile(libs_path + d) and \
-                '__init__.py' not in d and \
-                os.path.splitext(d)[1] in ['.py', '.zip']) or \
-                os.path.isdir(libs_path + d) ]
+            # All files + all folders
+            glob_libs = self.localFs.list_system_files(libs_path, False, True,
+                reject=['__init__.py', '__init__.pyc'])
+
+            if isinstance(glob_libs, dict):
+                glob_libs['data'] = '/libs'
+            else:
+                logWarning(glob_libs)
+                return {}
 
             # Auto detect if ClearCase Test Config Path is active
             ccConfig = self.get_clearcase_config(user, 'libs_path')
@@ -2821,25 +2834,75 @@ class Project(object):
                 if not path:
                     return '*ERROR* User `{}` did not set ClearCase Libraries Path!'.format(user)
                 user_view_actv = '{}:{}:{}'.format(user, view, actv)
-                user_libs_all = self.clearFs.list_user_files(user_view_actv, path, False, False)
+                user_libs_all = self.clearFs.list_user_files(user_view_actv, path, False, True)
             else:
-                user_libs_all = self.localFs.list_user_files(user, user_path, False, False)
+                user_libs_all = self.localFs.list_user_files(user, user_path, False, True)
 
-            # All .py and .zip files + all folders
+            # All files + all folders
             if isinstance(user_libs_all, dict):
-                user_libs = [ d['data'] for d in user_libs_all.get('children', []) if \
-                    d['data'].endswith('.py') or d['data'].endswith('.zip') or d.get('folder') ]
+                user_libs = dict(user_libs_all)
             else:
+                user_libs = {'children': []}
                 logWarning(user_libs_all)
+
+            glob_libs['children'].extend(user_libs['children'])
+            return glob_libs
 
         # All libraries for user
         else:
-            # If `libraries` is empty, will default to ALL libraries
-            tmp_libs = self.get_user_info(user, 'libraries') or ''
-            glob_libs = [x.strip() for x in tmp_libs.split(';')] if tmp_libs else []
+            # Current project libraries
+            proj_libs = self.get_user_info(user, 'libraries') or ''
+            libs = []
 
-        # Return a list with unique names, sorted alphabetically
-        return sorted( set(glob_libs + user_libs) )
+            for lib in proj_libs.split(';'):
+                lib = lib.strip().strip('/')
+                if not lib:
+                    continue
+
+                # If this is a deep library, must inject the __init__.py files
+                if '/' in lib:
+                    # Check if library exists ...
+                    if os.path.exists(libs_path + lib):
+                        # This is a Global lib
+                        lib_path = libs_path + lib
+                        lib_root = os.path.split(lib_path)[0]
+                        lib_files = self.localFs.list_system_files(libs_path, False, True)
+
+                    elif os.path.exists(user_path + lib):
+                        # This is a User lib
+                        lib_path = user_path + lib
+                        lib_root = os.path.split(lib_path)[0]
+                        # Auto detect if ClearCase Test Config Path is active
+                        ccConfig = self.get_clearcase_config(user, 'libs_path')
+                        if ccConfig:
+                            view = ccConfig['view']
+                            actv = ccConfig['actv']
+                            path = ccConfig['path']
+                            if not path:
+                                return '*ERROR* User `{}` did not set ClearCase Libraries Path!'.format(user)
+                            user_view_actv = '{}:{}:{}'.format(user, view, actv)
+                            lib_files = self.clearFs.list_user_files(user_view_actv, lib_root, False, True)
+                        else:
+                            lib_files = self.localFs.list_user_files(user, lib_root, False, True)
+
+                    else:
+                        continue
+
+                    # List files failed ?
+                    if not isinstance(lib_files, dict):
+                        continue
+
+                    # Find __init__.py files in the same folder with our library
+                    for lib_child in lib_files['children']:
+                        if lib_child['path'] == '__init__.py':
+                            init_to_insert = os.path.split(lib)[0] + '/__init__.py'
+                            if init_to_insert not in libs:
+                                libs.append(init_to_insert)
+
+                libs.append(lib)
+
+            logDebug('Current project libraries for user `{}`: {}.'.format(user, libs))
+            return libs
 
 
     def send_mail(self, user, force=False):
