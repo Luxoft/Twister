@@ -1,6 +1,6 @@
 /*
 File: Grafic.java ; This file is part of Twister.
-Version: 2.0030
+Version: 3.0031
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -151,7 +151,7 @@ public class Grafic extends JPanel{
     /*
      * handle up down press
      */
-    public void keyDownPressed(){
+public void keyDownPressed(){
         ArrayList <Integer> temp = new ArrayList <Integer>();  
         int last = selectedcollection.size()-1;
         if(last<0)return;
@@ -173,13 +173,24 @@ public class Grafic extends JPanel{
                     try{for(int i=0;i<userDefNr;i++){
                         RunnerRepository.window.mainpanel.p1.suitaDetails.
                             getDefPanel(i).setDescription(next.getUserDef(i)[1],true);}}
-                    catch(Exception e){e.printStackTrace();}}
-                else{
-                    RunnerRepository.window.mainpanel.p1.suitaDetails.setGlobalDetails();
-                    RunnerRepository.window.mainpanel.p1.suitaDetails.clearDefs();
-                    RunnerRepository.window.mainpanel.p1.suitaDetails.setParent(null);
-                    RunnerRepository.window.mainpanel.p1.testconfigmngmnt.setParent(null);}}
+                    catch(Exception e){e.printStackTrace();}
+                } else{
+                    RunnerRepository.window.mainpanel.p1.testconfigmngmnt.setParent(next);
+                    RunnerRepository.window.mainpanel.p1.suitaDetails.setParent(next);
+                    if(next.getType()==2)RunnerRepository.window.mainpanel.p1.suitaDetails.setSuiteDetails(false);
+                    else RunnerRepository.window.mainpanel.p1.suitaDetails.setTCDetails();
+                    
+                    
+//                     RunnerRepository.window.mainpanel.p1.suitaDetails.setGlobalDetails();
+//                     RunnerRepository.window.mainpanel.p1.suitaDetails.clearDefs();
+//                     RunnerRepository.window.mainpanel.p1.suitaDetails.setParent(null);
+//                     RunnerRepository.window.mainpanel.p1.testconfigmngmnt.setParent(null);
+                }}
             else{
+                RunnerRepository.window.mainpanel.p1.suitaDetails.setGlobalDetails();
+                RunnerRepository.window.mainpanel.p1.suitaDetails.clearDefs();
+                RunnerRepository.window.mainpanel.p1.suitaDetails.setParent(null);
+                RunnerRepository.window.mainpanel.p1.testconfigmngmnt.setParent(null);
                 if(!clearedSelection){
                     deselectAll();
                     clearedSelection = true;
@@ -220,13 +231,25 @@ public class Grafic extends JPanel{
                             RunnerRepository.window.mainpanel.p1.suitaDetails.getDefPanel(i).
                                 setDescription(next.getUserDef(i)[1],true);}}
                     catch(Exception e){e.printStackTrace();}}
-                else{
-                    RunnerRepository.window.mainpanel.p1.suitaDetails.setGlobalDetails();
-                    RunnerRepository.window.mainpanel.p1.suitaDetails.clearDefs();
-                    RunnerRepository.window.mainpanel.p1.suitaDetails.setParent(null);
-                    RunnerRepository.window.mainpanel.p1.testconfigmngmnt.setParent(null);
-                }}
-            else{
+                    
+                else {
+                    
+                    RunnerRepository.window.mainpanel.p1.testconfigmngmnt.setParent(next);
+                    RunnerRepository.window.mainpanel.p1.suitaDetails.setParent(next);
+                    if(next.getType()==2)RunnerRepository.window.mainpanel.p1.suitaDetails.setSuiteDetails(false);
+                    else RunnerRepository.window.mainpanel.p1.suitaDetails.setTCDetails();
+                    
+                    
+//                     RunnerRepository.window.mainpanel.p1.suitaDetails.setGlobalDetails();
+//                     RunnerRepository.window.mainpanel.p1.suitaDetails.clearDefs();
+//                     RunnerRepository.window.mainpanel.p1.suitaDetails.setParent(null);
+//                     RunnerRepository.window.mainpanel.p1.testconfigmngmnt.setParent(null);
+                }
+            } else{
+                RunnerRepository.window.mainpanel.p1.suitaDetails.setGlobalDetails();
+                RunnerRepository.window.mainpanel.p1.suitaDetails.clearDefs();
+                RunnerRepository.window.mainpanel.p1.suitaDetails.setParent(null);
+                RunnerRepository.window.mainpanel.p1.testconfigmngmnt.setParent(null);
                 if(!clearedSelection){
                     deselectAll();
                     clearedSelection = true;
@@ -325,50 +348,7 @@ public class Grafic extends JPanel{
                 if(found)break;}}
         for(int i=0;i<unnecessary.size();i++){clone.remove(unnecessary.get(i));}}
                             
-//     /*
-//      * Dragged items method
-//      * handles dragged items
-//      * and puts them in a clone array
-//      */                      
-//     public void handleDraggedItems(){
-//         if(getItem(selected,false).getType()!=0){
-//             setCursor(DragSource.DefaultCopyDrop);
-//             if(!getItem(selected,false).isSelected()){
-//                 deselectAll();
-//                 int [] temporary = new int[selected.size()];
-//                 for(int m=0;m<temporary.length;m++){
-//                     temporary[m]=selected.get(m).intValue();}
-//                 selectedcollection.add(temporary);}
-//             ArrayList <Integer> temp = new ArrayList <Integer>();
-//             for(int i=selectedcollection.size()-1;i>=0;i--){
-//                 for(int j=0;j<selectedcollection.get(i).length;j++){
-//                     temp.add(new Integer(selectedcollection.get(i)[j]));}
-//                 Item theone2 = getItem(temp,false).clone();  
-//                 if(theone2.getType()==0){
-//                     getItem(temp,false).select(false);
-//                     selectedcollection.remove(i);
-//                     temp.clear();
-//                     continue;}
-//                 clone.add(theone2);
-//                 temp.clear();}                                
-//             removeSelected();
-//             dragging = true;}
-//         ArrayList<Item> unnecessary = new ArrayList<Item>();                        
-//         for(int i=0;i<clone.size();i++){
-//             Item one = clone.get(i);
-//             ArrayList<Integer>pos = (ArrayList<Integer>)one.getPos().clone();
-//             while(pos.size()>1){
-//                 pos.remove(pos.size()-1);
-//                 boolean found = false;
-//                 for(int j=0;j<clone.size();j++){
-//                     Item one2 = clone.get(j);
-//                     ArrayList<Integer>pos2 = (ArrayList<Integer>)one2.getPos().clone();
-//                     if(compareArrays(pos,pos2)){
-//                         unnecessary.add(clone.get(i));
-//                         found = true;
-//                         break;}}
-//                 if(found)break;}}
-//         for(int i=0;i<unnecessary.size();i++){clone.remove(unnecessary.get(i));}}
+
             
     /*
      * handle automatic scrolling

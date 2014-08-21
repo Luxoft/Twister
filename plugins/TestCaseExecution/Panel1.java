@@ -1,6 +1,6 @@
 /*
 File: Panel1.java ; This file is part of Twister.
-Version: 3.002
+Version: 3.003
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -370,6 +370,10 @@ public class Panel1 extends JPanel{
                 sc.g.repaint();
                 return;
     }}
+    
+    public JTabbedPane getOptionsTabs(){
+        return this.optionstabs;
+    }
     
     
     /*

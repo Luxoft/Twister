@@ -1,6 +1,6 @@
 /*
 File: SuitaDetails.java ; This file is part of Twister.
-Version: 3.001
+Version: 3.002
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -17,9 +17,6 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-
-
-
 import javax.swing.JOptionPane;
 import com.twister.Item;
 import javax.swing.JPanel;
@@ -375,7 +372,17 @@ public class SuitaDetails extends JPanel {
                     buildMyListSubchilds(1,child,el);
                 }
             }
+                                                                        
+                                                                        
+                                                                        
+//             MyListElement [] libs = new MyListElement[s.length];
+//             for(int i=0;i<s.length;i++){
+//                 libs[i] = new MyListElement(s[i].toString());
+//                 ((DefaultListModel)(jList1.getModel())).addElement(libs[i]);
+//             }
             ArrayList<Integer> ind = new ArrayList<Integer>();
+//             jList1.setModel(new DefaultComboBoxModel(libs));
+            
             if(parent.getLibs()!=null){
                 for(String st:parent.getLibs()){
                     for(i=0;i<libs.length;i++){
@@ -418,12 +425,23 @@ public class SuitaDetails extends JPanel {
 //                 for(int i=list.size()-1;i>-1;i--){
 //                     sb.append(list.get(i));
 //                 }
-//                 libs[s]=sb.toString();
-//                 System.out.println("libs[s]:"+libs[s]);
-//                     System.out.println("el:"+el.getName()+" - "+el.getFullPath());
-                    libs[s]=el.getFullPath();
+                libs[s]=el.getFullPath();
             }
             parent.setLibs(libs);
+            
+            
+            
+            
+            
+            
+            
+            
+//             List val = jList1.getSelectedValuesList();
+//             String [] libs = new String[val.size()];
+//             for(int s=0;s<val.size();s++){
+//                 libs[s]=val.get(s).toString();
+//             }
+//             parent.setLibs(libs);
         }
     }
     
@@ -492,6 +510,10 @@ public class SuitaDetails extends JPanel {
             layout.createParallelGroup(GroupLayout.Alignment.LEADING)
             .addComponent(jScrollPane1, GroupLayout.DEFAULT_SIZE, 300, Short.MAX_VALUE)
         );
+        
+        
+        
+//         HashMap librariesfolder = RunnerRepository.getRemoteFolderStructure("/home/tscguest/twister/demo");
         HashMap librariesfolder = null;
         try{librariesfolder =  (HashMap)RunnerRepository.getRPCClient().execute("get_libraries_list", new Object[]{RunnerRepository.user});}
         catch(Exception e){
@@ -516,7 +538,6 @@ public class SuitaDetails extends JPanel {
         if(globallib!=null){
             selectLibraries(globallib,jList1);
         }
-        
         int resp = (Integer)CustomDialog.showDialog(libraries,JOptionPane.PLAIN_MESSAGE,
                                                         JOptionPane.OK_CANCEL_OPTION, 
                                                         RunnerRepository.window, "Libraries",
@@ -539,7 +560,7 @@ public class SuitaDetails extends JPanel {
 //                     sb.append(list.get(i));
 //                 }
 //                 globallib[s]=sb.toString();
-                    globallib[s] = el.getFullPath();
+                globallib[s] = el.getFullPath();
             }
         }
         
@@ -1623,3 +1644,10 @@ class MyListElement{
         }
     }
 }
+
+
+
+
+
+
+

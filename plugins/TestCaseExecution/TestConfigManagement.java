@@ -436,15 +436,27 @@ public class TestConfigManagement extends JPanel{
         }
     }
     
-    public void setParent(Item parent){
-        if(parent!=null&&parent.getType()!=1)return;//only tc's allowed
+     public void setParent(Item parent){
+        if(parent!=null&&parent.getType()!=1){//only tc's allowed
+            if(RunnerRepository.window.mainpanel.p1.getOptionsTabs().getComponentZOrder(this)!=-1){
+				RunnerRepository.window.mainpanel.p1.getOptionsTabs().remove(this);
+			}
+            return;
+        }
         this.parent = parent;
         DefaultTableModel model =(DefaultTableModel)jTable1.getModel();
         model.setRowCount(0);
         if(parent!=null){
+            if(RunnerRepository.window.mainpanel.p1.getOptionsTabs().getComponentZOrder(this)==-1){
+				RunnerRepository.window.mainpanel.p1.getOptionsTabs().addTab("Test Configurations", this);
+			}
             for(Configuration conf:parent.getConfigurations()){
                 model.addRow(new Object[]{conf.getFile(),new Boolean(conf.isEnabled()),new Boolean(conf.isIeratorOD()),new Boolean(conf.isIteratorSOF())});
             }
+        } else {
+            if(RunnerRepository.window.mainpanel.p1.getOptionsTabs().getComponentZOrder(this)!=-1){
+				RunnerRepository.window.mainpanel.p1.getOptionsTabs().remove(this);
+			}
         }
     }
     
