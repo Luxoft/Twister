@@ -62,7 +62,9 @@ class LocalFS(FsBorg):
 
 
     def _kill(self, user):
-        """ Stop service """
+        """
+        Kill all services for a user.
+        """
         ps   = local['ps']
         grep = local['grep']
 
@@ -291,7 +293,7 @@ class LocalFS(FsBorg):
             return '*ERROR* Cannot access the UserService on create folder, user `{}`!'.format(user)
 
 
-    def list_user_files(self, user, fdir, hidden=True, recursive=True, filter=[]):
+    def list_user_files(self, user, fdir, hidden=True, recursive=True, accept=[], reject=[]):
         """
         List the files in user directory.
         """
@@ -300,7 +302,7 @@ class LocalFS(FsBorg):
         srvr = self._usr_service(user)
         if srvr:
             try:
-                files = srvr.root.list_files(fdir, hidden, recursive, filter)
+                files = srvr.root.list_files(fdir, hidden, recursive, accept, reject)
                 return copy.copy(files)
             except Exception as e:
                 err = '*ERROR* Cannot list files `{}`, user `{}`! {}'.format(fdir, user, e)

@@ -1,7 +1,7 @@
 
 # File: UserService.py ; This file is part of Twister.
 
-# version: 3.011
+# version: 3.012
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -277,7 +277,7 @@ class UserService(rpyc.Service):
 
 
     @staticmethod
-    def exposed_list_files(folder, hidden=True, recursive=True, filter=[]):
+    def exposed_list_files(folder, hidden=True, recursive=True, accept=[], reject=[]):
         """
         List all files, recursively.
         """
@@ -322,10 +322,33 @@ class UserService(rpyc.Service):
 
             # Cycle a folder
             for fname in names:
-                long_path  = path + os.sep + fname
-                # If filter is active and file doesn't match, ignore
-                if filter and os.path.isfile(long_path) and long_path not in filter:
-                    continue
+                long_path  = path + '/' + fname
+
+                # If Accept is active and file doesn't match, ignore file
+                if accept and os.path.isfile(long_path):
+                    valid = True
+                    if isinstance(accept, list):
+                        # If nothing from the Accept matches the file
+                        if True not in [(long_path.startswith(f) or long_path.endswith(f)) for f in accept]:
+                            valid = False
+                    elif isinstance(accept, str):
+                        if not (long_path.startswith(accept) or long_path.endswith(accept)):
+                            valid = False
+                    if not valid:
+                        continue
+
+                # If Reject is active and file matches, ignore the file
+                if reject and os.path.isfile(long_path):
+                    valid = True
+                    if isinstance(reject, list):
+                        # If nothing from the Reject matches the file
+                        if True in [(long_path.startswith(f) or long_path.endswith(f)) for f in reject]:
+                            valid = False
+                    elif isinstance(reject, str):
+                        if long_path.startswith(reject) or long_path.endswith(reject):
+                            valid = False
+                    if not valid:
+                        continue
 
                 # Ignore hidden files
                 if hidden and fname[0] == '.':
@@ -367,7 +390,6 @@ class UserService(rpyc.Service):
 
             # Folders first, files second
             return dlist + flist
-
 
         paths = {
             'path' : '/',

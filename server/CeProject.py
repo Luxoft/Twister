@@ -1,7 +1,7 @@
 
 # File: CeProject.py ; This file is part of Twister.
 
-# version: 3.047
+# version: 3.048
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -2816,8 +2816,8 @@ class Project(object):
         # All Python source files from Libraries folder AND all library folders
         if all:
             # All files + all folders
-            glob_libs = self.localFs.list_system_files(libs_path, False, True,
-                reject=['__init__.py', '__init__.pyc'])
+            glob_libs = self.localFs.list_system_files(libs_path, hidden=False, recursive=True,
+                accept=['.py', '.zip'], reject=['__init__.py', '__init__.pyc'])
 
             if isinstance(glob_libs, dict):
                 glob_libs['data'] = '/libs'
@@ -2834,9 +2834,11 @@ class Project(object):
                 if not path:
                     return '*ERROR* User `{}` did not set ClearCase Libraries Path!'.format(user)
                 user_view_actv = '{}:{}:{}'.format(user, view, actv)
-                user_libs_all = self.clearFs.list_user_files(user_view_actv, path, False, True)
+                user_libs_all = self.clearFs.list_user_files(user_view_actv, path, hidden=False, recursive=True,
+                    accept=['.py', '.zip'], reject=['__init__.py', '__init__.pyc'])
             else:
-                user_libs_all = self.localFs.list_user_files(user, user_path, False, True)
+                user_libs_all = self.localFs.list_user_files(user, user_path, hidden=False, recursive=True,
+                    accept=['.py', '.zip'], reject=['__init__.py', '__init__.pyc'])
 
             # All files + all folders
             if isinstance(user_libs_all, dict):
@@ -2866,7 +2868,8 @@ class Project(object):
                         # This is a Global lib
                         lib_path = libs_path + lib
                         lib_root = os.path.split(lib_path)[0]
-                        lib_files = self.localFs.list_system_files(libs_path, False, True)
+                        lib_files = self.localFs.list_system_files(libs_path, hidden=False, recursive=True,
+                            accept=['.py', '.zip'], reject=['__init__.py', '__init__.pyc'])
 
                     elif os.path.exists(user_path + lib):
                         # This is a User lib
@@ -2883,7 +2886,8 @@ class Project(object):
                             user_view_actv = '{}:{}:{}'.format(user, view, actv)
                             lib_files = self.clearFs.list_user_files(user_view_actv, lib_root, False, True)
                         else:
-                            lib_files = self.localFs.list_user_files(user, lib_root, False, True)
+                            lib_files = self.localFs.list_user_files(user, lib_root, hidden=False, recursive=True,
+                                accept=['.py', '.zip'], reject=['__init__.py', '__init__.pyc'])
 
                     else:
                         continue

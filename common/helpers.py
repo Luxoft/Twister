@@ -1,7 +1,7 @@
 
 # File: helpers.py ; This file is part of Twister.
 
-# version: 3.004
+# version: 3.005
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -45,6 +45,17 @@ from tsclogging import logFull, logDebug, logWarning
 #
 
 class FsBorg(object):
+
+    _shared_state = {}
+    project = None
+    _services = {}
+    _srv_lock = allocate_lock()
+
+    def __init__(self):
+        self.__dict__ = self._shared_state
+
+
+class CcBorg(object):
 
     _shared_state = {}
     project = None

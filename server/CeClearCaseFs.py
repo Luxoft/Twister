@@ -1,7 +1,7 @@
 
 # File: CeClearCaseFs.py ; This file is part of Twister.
 
-# version: 3.013
+# version: 3.014
 
 # Copyright (C) 2012-2014, Luxoft
 
@@ -58,37 +58,17 @@ from common.tsclogging import *
 # def logWarning(s) : print s
 # def logError(s)   : print s
 
-#
-__all__ = ['ClearCaseFs']
-#
 
-def singleton(cls):
-    """
-    Single instance wrapper.
-    """
-    instances = {}
-    def getinstance(*args, **kwargs):
-        """ Return new/existing instance """
-        if cls not in instances:
-            instances[cls] = cls(*args, **kwargs)
-        return instances[cls]
-    return getinstance
-
-
-@singleton
-class ClearCaseFs(object):
+class ClearCaseFs(CcBorg):
     """
     All local file operations should be done via THIS class.
     This is a singleton.
     """
-    _services = {}
-    _srv_lock = allocate_lock()
 
-
-    def __init__(self, project=None):
+    def __init__(self):
+        CcBorg.__init__(self)
         if os.getuid():
             logError('ClearCase FS: Central Engine must run as ROOT in order to start the ClearCase Service!')
-        self.project = project
         logInfo('Init ClearCase FS.')
 
 
@@ -361,16 +341,18 @@ class ClearCaseFs(object):
             return False
 
 
-    def list_user_files(self, user, fdir, hidden=True, recursive=True):
-        """ list the files in user directory """
+    def list_user_files(self, user, fdir, hidden=True, recursive=True, accept=[], reject=[]):
+        """
+        List the files in user directory.
+        """
         if not fdir:
-            return False
+            return '*ERROR* Empty `fdir` parameter on list files, on `{}`!'.format(user)
         srvr = self._usr_service(user)
         if srvr:
-            files = srvr.root.list_files(fdir, hidden, recursive)
+            files = srvr.root.list_files(fdir, hidden, recursive, accept, reject)
             return copy.copy(files)
         else:
-            return False
+            return '*ERROR* Cannot access the ClearCaseService list files, on `{}`!'.format(user)
 
 
     def delete_user_folder(self, user, fdir):
