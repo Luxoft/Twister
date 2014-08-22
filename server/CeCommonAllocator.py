@@ -87,28 +87,30 @@ class CommonAllocator(object):
         return [user_roles.get('user'), user_roles]
 
 
-    def fix_path(self, res, path = []):
+    def fix_path(self, res, path = [], modified = False):
         '''
         Add path to resources that does not have this field.
         '''
-
         if not res:
-            return None
+            return modified
 
-        res['path'] = copy.deepcopy(path)
+        if not 'path' in res:
+            modified = True
+            res['path'] = copy.deepcopy(path)
 
         if not res.get('children'):
             try:
                 path.pop(-1)
             except:
                 pass
-            return None
+            return modified
 
         for node in res.get('children'):
             path.append(node)
-            self.fix_path(res['children'][node], path)
 
-        return True
+            modified = self.fix_path(res['children'][node], path, modified)
+
+        return modified
 
 
     def get_id(self, node_id, resource):

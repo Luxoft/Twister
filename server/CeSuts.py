@@ -332,7 +332,7 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
                     path = ccConfig['path']
                     user_view_actv = '{}:{}:{}'.format(user, view, actv)
                     fileName = ''.join(resource_name.split('.')[:-1])
-                    resp = self.project.clearFs.write_user_file(user_view_actv, path +'/'+ fileName, \
+                    resp = self.project.clearFs.write_user_file(user_view_actv, path +'/'+ fileName + '.json', \
                         json.dumps(self.resources['children'][resource_name], indent=4))
                 else:
                     # Get the user connection
@@ -608,13 +608,14 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
                     self.resources['children'][query] = sutContent
                     # make older resources files that don't have 'path' compatible
                     self.resources['children'][query]['path'] = [query]
-                    self.fix_path(self.resources['children'][query], [query])
+                    modified = self.fix_path(self.resources['children'][query], [query])
 
-                    #now we have to save the version with path
-                    issaved = self.save_sut(props, query)
-                    if  isinstance(issaved, str):
-                        logDebug("We could not save this Sut for user = {}.".format(user_info[0]))
-                        return False
+                    if modified:
+                        #now we have to save the version with path
+                        issaved = self.save_sut(props, query)
+                        if  isinstance(issaved, str):
+                            logDebug("We could not save this Sut for user = {}.".format(user_info[0]))
+                            return False
 
                 if initial_query:
                     if meta:

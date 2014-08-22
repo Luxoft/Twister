@@ -271,18 +271,22 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
             except Exception as e:
                 logError('Error loading TBs! {}'.format(e))
 
+            is_res_modified = False
             # make older resources files that don't have 'path' compatible
             for res in self.resources.get('children'):
                 self.resources['children'][res]['path'] = [res]
-                self.fix_path(self.resources['children'][res], [res])
+                modified = self.fix_path(self.resources['children'][res], [res])
+                if modified:
+                    is_res_modified = True
 
             # save the resources updated (with path field) for later usage
-            issaved = self.save_tb()
-            if isinstance(issaved, str):
-                if issaved.startswith('*ERROR* '):
-                    msg = "We could not save this TB for user = {}.".format(user_info[0])
-                    logDebug(msg)
-                    return "*ERROR* " + msg
+            if is_res_modified:
+                issaved = self.save_tb()
+                if isinstance(issaved, str):
+                    if issaved.startswith('*ERROR* '):
+                        msg = "We could not save this TB for user = {}.".format(user_info[0])
+                        logDebug(msg)
+                        return "*ERROR* " + msg
 
         return self.resources
 
