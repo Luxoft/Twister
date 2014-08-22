@@ -313,24 +313,34 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
             if not sutsPath:
                 sutsPath = '{}/config/sut/'.format(TWISTER_PATH)
 
-            if resource_name.split('.')[1] == 'user':
-                # Get the user connection
-                try:
-                    resp = self.project.localFs.write_user_file(user, filename, \
-                        json.dumps(self.resources['children'][resource_name], indent=4), 'w')
-                    if resp is not True:
-                        log.append(resp)
-                except Exception as e:
-                    log.append(e)
-                    logError('User {}: Saving ERROR user:: `{}`.'.format(user, e))
-
-            if resource_name.split('.')[1] == 'system' and not log:
+            if resource_name.split('.')[1] == 'system':
                 try:
                     resp = self.project.localFs.write_system_file(filename, \
                         json.dumps(self.resources['children'][resource_name], indent=4), 'w')
                 except Exception as e:
                     log.append(e)
                     logError('User {}: Saving ERROR system:: `{}`.'.format(user, e))
+
+            if resource_name.split('.')[1] == 'user':
+                # user SUT file; we have to check if the cleacase plugin
+                # is activated; if so, use it to write the SUT file; else
+                # use the UserService to read it
+                ccConfig = self.project.get_clearcase_config(user, 'sut_path')
+                if ccConfig:
+                    view = ccConfig['view']
+                    actv = ccConfig['actv']
+                    path = ccConfig['path']
+                    user_view_actv = '{}:{}:{}'.format(user, view, actv)
+                    fileName = ''.join(resource_name.split('.')[:-1])
+                    resp = self.project.clearFs.write_user_file(user_view_actv, path +'/'+ fileName, \
+                        json.dumps(self.resources['children'][resource_name], indent=4))
+                else:
+                    # Get the user connection
+                    resp = self.project.localFs.write_user_file(user, filename, \
+                        json.dumps(self.resources['children'][resource_name], indent=4), 'w')
+                if resp is not True:
+                    log.append(resp)
+                    logError('User {}: Saving ERROR user:: `{}`.'.format(user, resp))
 
                 # targeted resource is saved now; do not continue with
                 # the rest of resources
@@ -572,7 +582,10 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
                     sutContent = json.loads(resp)
                 else:
                     resp = self.project.localFs.read_user_file(user_info[0], sutPath + fileName)
-                    sutContent = json.loads(resp)
+                    try:
+                        sutContent = json.loads(resp)
+                    except:
+                        logError("User {}: *ERROR* could not load json: {}. Search in TB.".format(user_info[0], sutPath + fileName))
 
             if sutContent is False or (isinstance(sutContent, str) and sutContent.startswith('*ERROR*')):
                 return sutContent
