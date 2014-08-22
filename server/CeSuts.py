@@ -1591,13 +1591,15 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
             res_query = res_query.split(':')[0]
 
         if not self.reservedResources.get(user_info[0]):
-            logDebug("It seems that this user does not have changes to save! {}".format(user_info[0]))
-            return False
+            msg = "It seems that this user does not have changes to save! {}".format(user_info[0])
+            logDebug(msg)
+            return "*ERROR* " + msg
 
         resource_node = self.get_resource(res_query)
         if not resource_node or isinstance(resource_node, str):
-            logFull('User {}: can not find the tb {}'.format(res_query, user_info[0]))
-            return False
+            msg = 'User {}: can not find the tb {}'.format(res_query, user_info[0])
+            logFull(msg)
+            return "*ERROR* " + msg
 
         if len(resource_node['path']) > 1:
             resource_node = self.get_path(resource_node['path'][0], resources)
@@ -1619,7 +1621,7 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
 
         if  isinstance(issaved, str):
             logDebug("We could not save this Sut for user = {}.".format(user_info[0]))
-            return False
+            return "*ERROR* " + msg
         return True
 
 
@@ -1635,7 +1637,7 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
 
         result = self.save_reserved_sut(res_query, props)
 
-        if result:
+        if result and not isinstance(result, str):
             if ':' in res_query:
                 res_query = res_query.split(':')[0]
 

@@ -999,7 +999,7 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
         # save changes
         result = self.save_reserved_tb(res_query, props)
 
-        if result:
+        if result and not result.startswith("*ERROR*"):
             user_info = self.user_info(props)
 
             if ':' in res_query:
