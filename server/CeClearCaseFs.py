@@ -106,7 +106,7 @@ class ClearCaseFs(CcBorg):
         Launch a user service.
         Open a ClearCase view first.
         """
-        if user_view_actv[-1] != ':':
+        if user_view_actv.count(':') == 1 and user_view_actv[-1] != ':':
             user_view_actv += ':'
         try:
             user, view, actv = user_view_actv.split(':')
@@ -210,7 +210,7 @@ class ClearCaseFs(CcBorg):
             proc.sendline('')
             pread()
 
-            logDebug('ClearCase startup log \n:: -------\n{}\n:: -------'.format( '\n'.join(plog) ))
+            logDebug('ClearCase startup log \n:: -------\n{}\n:: -------'.format('\n'.join(plog)))
 
             config = {
                 'allow_pickle': True,
@@ -232,8 +232,8 @@ class ClearCaseFs(CcBorg):
                     success = True
                     break
                 except Exception as e:
-                    logWarning('Cannot connect to ClearCase Service for `{}` \
-                        - Exception: `{}`! Retry...'.format(user_view, e))
+                    logWarning('Cannot connect to ClearCase Service for `{}`!'\
+                        'Exception: `{}`! Retry...'.format(user_view, e))
                 time.sleep(delay)
                 retry -= 1
                 delay += 0.75
@@ -349,8 +349,13 @@ class ClearCaseFs(CcBorg):
             return '*ERROR* Empty `fdir` parameter on list files, on `{}`!'.format(user)
         srvr = self._usr_service(user)
         if srvr:
-            files = srvr.root.list_files(fdir, hidden, recursive, accept, reject)
-            return copy.copy(files)
+            try:
+                files = srvr.root.list_files(fdir, hidden, recursive, accept, reject)
+                return copy.copy(files)
+            except Exception as e:
+                err = '*ERROR* Cannot list files `{}` on `{}`! {}'.format(fdir, user, e)
+                logWarning(err)
+                return err
         else:
             return '*ERROR* Cannot access the ClearCaseService list files, on `{}`!'.format(user)
 
