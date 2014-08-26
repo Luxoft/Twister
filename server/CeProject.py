@@ -1,7 +1,7 @@
 
 # File: CeProject.py ; This file is part of Twister.
 
-# version: 3.048
+# version: 3.049
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -1614,7 +1614,7 @@ class Project(object):
         except Exception:
             pass
 
-        local_client = self.rsrv.service._findConnection(usr=user, addr=addr, hello='client')
+        local_client = self.rsrv.service._findConnection(usr=user, hello='client', addr=addr)
 
         # Cannot find local client conns
         if not local_client:
@@ -1624,19 +1624,11 @@ class Project(object):
         return self.rsrv.service.conns.get(local_client, {}).get('conn', False)
 
 
-    def _find_local_ep(self, user, epname='ep'):
+    def _find_specific_ep(self, user, epname='ep'):
         """
         Helper function to find a local EP connection.
         """
-        addr = ['127.0.0.1', 'localhost']
-        hostName = socket.gethostname()
-        addr.append(hostName)
-        try:
-            addr.append(socket.gethostbyaddr(hostName)[-1][0])
-        except Exception:
-            pass
-
-        ep_addr = self.rsrv.service._findConnection(usr=user, addr=addr, hello=epname)
+        ep_addr = self.rsrv.service._findConnection(usr=user, hello=epname)
 
         # Cannot find local conns
         if not ep_addr:
@@ -1663,7 +1655,7 @@ class Project(object):
 
         # Shortcut to the Rpyc Service
         rpyc_srv = self.rsrv.service
-        local_client = rpyc_srv._findConnection(usr=user, addr=addr, hello='client')
+        local_client = rpyc_srv._findConnection(usr=user, hello='client', addr=addr)
 
         # Cannot find local client conns
         if not local_client:
@@ -2080,11 +2072,7 @@ class Project(object):
             for pname in plugins:
                 plugin = self._build_plugin(user, pname)
                 try:
-                    # For ClearCase plugin, send the ClearCase View
-                    if pname == 'ClearCase':
-                        plugin.onStart( self.get_user_info(user, 'clear_case_view') )
-                    else:
-                        plugin.onStart()
+                    plugin.onStart()
                 except Exception:
                     trace = traceback.format_exc()[34:].strip()
                     logWarning('Error on running plugin `{} onStart` - Exception: `{}`!'.format(pname, trace))

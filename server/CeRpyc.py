@@ -1,7 +1,7 @@
 
 # File: CeRpyc.py ; This file is part of Twister.
 
-# version: 3.015
+# version: 3.016
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -156,15 +156,17 @@ class CeRpycService(rpyc.Service):
 
 
     @classmethod
-    def _findConnection(self, usr=None, addr=[], hello='', epname=''):
+    def _findConnection(self, usr, hello, addr=[], epname=''):
         """
-        Helper function to find the first address for 1 user,
-        that matches the Address, the hello, or the Ep.
-        Possible combinations are: (Addr & Hello), (Hello & Ep).
-        The address will match the IP/ host; ex: ['127.0.0.1', 'localhost'].
+        Helper function to find the first address for 1 user, that matches the hello,
+        the Address, or the Ep.
         The hello should be: `client`, `ep`, or `lib`.
-        The EP must be the name of the EP registered by a client;
-        it returns the client, not the EP.
+        The address will match the IP/ host; ex: ['127.0.0.1', 'localhost'].
+        The EP must be the name of the EP registered by a client; returns the client, not the EP.
+        Examples :
+        // Find a client that has a specific EP; need to send commands to the client.
+        // Find a local client, the EP is not important.
+        // Find a specific EP, to send debug commands.
         """
         logFull('CeRpyc:_findConnection')
         if isinstance(self, CeRpycService):
@@ -174,43 +176,49 @@ class CeRpycService(rpyc.Service):
         if not user:
             return False
 
+        # logDebug('Find connection:: usr={}, addr={}, hello={}, epname={} in `{}` conns::\n{}'.format(
+        #         usr, addr, (hello or None), (epname or None), len(self.conns),
+        #         pformat(self.conns, width=140)))
+
         found = False
 
         # Cycle all active connections (clients, eps, libs, cli)
         for str_addr, data in self.conns.iteritems():
-            # Skip invalid connections, without log-in, or other users
-            if not (data.get('user') or data.get('checked') or user == data['user']):
+            # Skip invalid connections, without log-in, or without hello
+            if not data.get('user') or not data.get('checked') or not data.get('hello'):
                 continue
-            # Check (Addr & Hello)
-            if (addr and hello) and (str_addr.split(':')[0] in addr and data.get('hello')):
-                # If the hello has : it's looking for a specific thing
-                if ':' in hello and data['hello'] == hello:
+            if user != data['user']:
+                continue
+            # Searching for a specific hello
+            if not (':' in data['hello'] and hello == data['hello'].split(':')[0] or hello == data['hello']):
+                continue
+
+            # If address is required, check
+            if addr:
+                # Invalid address !
+                if str_addr.split(':')[0] not in addr:
+                    continue
+
+                # If we are looking for a specific EP inside a client
+                if epname and epname in data.get('eps'):
                     found = str_addr
                     break
-                # Or, try to match the beggining of the remote hello
-                elif data['hello'].split(':')[0] == hello:
+                # If not looking for a specific EP, it's ok
+                elif not epname:
                     found = str_addr
                     break
-                # Client ?
-                elif hello == 'client' and data['hello'] == 'client' and data.get('eps'):
+            # Address is not required
+            else:
+                # If we are looking for a specific EP inside a client
+                if epname and epname in data.get('eps'):
                     found = str_addr
                     break
-            # Check (Hello & Ep)
-            elif (hello and epname) and data.get('hello') and ':' in hello and \
-                (data['hello'].split(':')[0] == hello or data['hello'] == epname):
-                # If this connection has registered EPs
-                eps = data.get('eps')
-                if eps and epname in eps:
+                # If not looking for a specific EP, it's ok
+                elif not epname:
                     found = str_addr
                     break
-            # Check Hello
-            elif (not addr and hello) and data.get('hello') == hello:
-                found = str_addr
-                break
-            # All filters are null! Return the first conn for this user!
-            elif not addr and not hello and not epname:
-                found = str_addr
-                break
+
+        # logDebug('Found conn:: {}'.format(pformat(self.conns.get(found), width=140)))
 
         return found
 
@@ -784,7 +792,7 @@ class CeRpycService(rpyc.Service):
         if not user:
             return False
 
-        addr = self._findConnection(user, hello='client', epname=epname)
+        addr = self._findConnection(usr=user, hello='client', epname=epname)
 
         if not addr:
             logError('Unknown Execution Process: `{}`! The project will not run.'.format(epname))
@@ -816,7 +824,7 @@ class CeRpycService(rpyc.Service):
         if not user:
             return False
 
-        addr = self._findConnection(user, hello='client', epname=epname)
+        addr = self._findConnection(usr=user, hello='client', epname=epname)
 
         if not addr:
             logError('Unknown Execution Process: `{}`! Cannot stop the EP.'.format(epname))
@@ -1132,19 +1140,12 @@ class CeRpycService(rpyc.Service):
             # Auto detect if ClearCase Test Config Path is active
             ccConfig = self.project.get_clearcase_config(user, 'tests_path')
             if ccConfig and data.get('clearcase'):
+                logDebug('Execution process `{}:{}` requested ClearCase file `{}`.'.format(user, epname, filename))
+                # Set TC Revision variable
+                self.project.set_file_info(user, epname, file_id, 'twister_tc_revision', -1)
                 view = ccConfig['view']
                 # Read ClearCase TestCase file
                 text = self.project.read_file(user, filename, type='clearcase:' + view)
-                tags = re.findall('^[ ]*?[#]*?[ ]*?<(?P<tag>\w+)>([ -~\n]+?)</(?P=tag)>', text, re.MULTILINE)
-                # File description
-                descr = '<br>\n'.join(['<b>' + title + '</b> : ' + descr.replace('<', '&lt;') for title, descr in tags])
-                cctag = '<b>ClearCase Version</b> :'
-                if descr and (descr.find(cctag) != -1):
-                    pos = descr.find(cctag) + len(cctag)
-                    rev = descr[pos:].strip()
-                    # Set TC Revision variable
-                    self.project.set_file_info(user, epname, file_id, 'twister_tc_revision', rev)
-                logDebug('Execution process `{}:{}` requested ClearCase file `{}`.'.format(user, epname, filename))
                 return text
             # End of ClearCase hack !
 

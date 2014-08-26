@@ -1,7 +1,7 @@
 
 # File: CeXmlRpc.py ; This file is part of Twister.
 
-# version: 3.004
+# version: 3.005
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -223,7 +223,7 @@ class CeXmlRpc(_cptools.XMLRPCController):
         Send remote echo. Used for debug.
         """
         user = cherrypy.session.get('username')
-        ep_conn = self.project._find_local_ep(user, epname)
+        ep_conn = self.project._find_specific_ep(user, epname)
         if not ep_conn:
             return False
         try:
@@ -240,7 +240,7 @@ class CeXmlRpc(_cptools.XMLRPCController):
         Send remote continue.
         """
         user = cherrypy.session.get('username')
-        ep_conn = self.project._find_local_ep(user, epname)
+        ep_conn = self.project._find_specific_ep(user, epname)
         if not ep_conn:
             return False
         try:
