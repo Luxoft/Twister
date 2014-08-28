@@ -690,7 +690,7 @@ class TwisterRunner(object):
         abort_suite = False # Abort suite X, when setup file fails.
 
         # Import all custom exceptions
-        from TscCommonLib import *
+        from TscCommonLib import ExceptionTestFail, ExceptionTestAbort, ExceptionTestTimeout, ExceptionTestSkip
 
 
         for id, node in suitesManager.iter_nodes(None, []):

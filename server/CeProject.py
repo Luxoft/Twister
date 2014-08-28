@@ -2822,10 +2822,12 @@ class Project(object):
                 if not path:
                     return '*ERROR* User `{}` did not set ClearCase Libraries Path!'.format(user)
                 user_view_actv = '{}:{}:{}'.format(user, view, actv)
-                user_libs_all = self.clearFs.list_user_files(user_view_actv, path, hidden=False, recursive=True,
+                user_libs_all = self.clearFs.list_user_files(user_view_actv, path,
+                    hidden=False, recursive=True,
                     accept=['.py', '.zip'], reject=['__init__.py', '__init__.pyc'])
             else:
-                user_libs_all = self.localFs.list_user_files(user, user_path, hidden=False, recursive=True,
+                user_libs_all = self.localFs.list_user_files(user, user_path,
+                    hidden=False, recursive=True,
                     accept=['.py', '.zip'], reject=['__init__.py', '__init__.pyc'])
 
             # All files + all folders
@@ -2859,7 +2861,7 @@ class Project(object):
                         lib_files = self.localFs.list_system_files(libs_path, hidden=False, recursive=True,
                             accept=['.py', '.zip'], reject=['__init__.py', '__init__.pyc'])
 
-                    elif os.path.exists(user_path + lib):
+                    else:
                         # This is a User lib
                         lib_path = user_path + lib
                         lib_root = os.path.split(lib_path)[0]
@@ -2872,13 +2874,13 @@ class Project(object):
                             if not path:
                                 return '*ERROR* User `{}` did not set ClearCase Libraries Path!'.format(user)
                             user_view_actv = '{}:{}:{}'.format(user, view, actv)
-                            lib_files = self.clearFs.list_user_files(user_view_actv, lib_root, False, True)
-                        else:
-                            lib_files = self.localFs.list_user_files(user, lib_root, hidden=False, recursive=True,
+                            lib_files = self.clearFs.list_user_files(user_view_actv, path,
+                                hidden=False, recursive=True,
                                 accept=['.py', '.zip'], reject=['__init__.py', '__init__.pyc'])
-
-                    else:
-                        continue
+                        else:
+                            lib_files = self.localFs.list_user_files(user, lib_root,
+                                hidden=False, recursive=True,
+                                accept=['.py', '.zip'], reject=['__init__.py', '__init__.pyc'])
 
                     # List files failed ?
                     if not isinstance(lib_files, dict):
