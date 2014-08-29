@@ -121,7 +121,6 @@ class CommonAllocator(object):
         '''
 
         logFull("CeCommonAllocator: get_id: Getting the id {}".format(node_id))
-
         if not resource:
             return None
 
@@ -244,13 +243,14 @@ class CommonAllocator(object):
 
         logDebug('CeCommonAllocator: generate_index')
 
-        res_id = False
-        while not res_id:
-            res_id = hexlify(os.urandom(5))
+        new_sut_id = False
+        while not new_sut_id:
+            new_sut_id = hexlify(os.urandom(5))
             # If by any chance, this ID already exists, generate another one!
-            if self.get_id(res_id, self.resources):
-                res_id = False
-        return res_id
+            exists_id = self.get_id(new_sut_id, self.resources)
+            if exists_id:
+                new_sut_id = False
+        return new_sut_id
 
 
     def format_resource(self, result, query):
@@ -268,7 +268,8 @@ class CommonAllocator(object):
                 node in result.get('children') or []],
                 key=lambda node: node.lower())
 
-            result['path'] = '/'.join(result.get('path', []))
+            if isinstance(result['path'], list):
+                result['path'] = '/'.join(result.get('path', []))
 
             if result['meta'] == '{}':
                 result['meta'] = dict()
@@ -322,8 +323,9 @@ class CommonAllocator(object):
                 return "*ERROR* " + msg
 
             #we need to set as reserved the root of this resource
-            if len(node_path['path']) > 1:
+            if isinstance(node_path['path'], list) and len(node_path['path']) > 1:
                 node_path = self.get_path(node_path['path'][0], self.resources)
+
                 if not node_path:
                     msg = 'User {}: Reserve Resource: Cannot find resource path or ID !'.format(user_info[0])
                     logError(msg)
@@ -347,7 +349,6 @@ class CommonAllocator(object):
         logFull('CeCommonAllocator:is_resource_reserved: res_query = {}'.format(res_query))
 
         resources = self.resources
-
         if '/' not in res_query:
             reservedForUser = [u for u in self.reservedResources if res_query in self.reservedResources[u]]
 
@@ -364,12 +365,13 @@ class CommonAllocator(object):
                 logError(msg)
                 return False
 
-            if len(node_path['path']) > 1:
+            if isinstance(node_path['path'], list) and len(node_path['path']) > 1:
                 node_path = self.get_path(node_path['path'][0], resources)
                 if not node_path and isinstance(node_path, str):
                     msg = "No such resource {}".format(res_query)
                     logError(msg)
                     return False
+
 
             reservedForUser = [u for u in self.reservedResources if node_path['id'] in self.reservedResources[u]]
 
@@ -421,7 +423,7 @@ class CommonAllocator(object):
             logError(msg)
             return False
 
-        if len(node_path['path']) > 1:
+        if isinstance(node_path['path'], list) and len(node_path['path']) > 1:
             node_path = self.get_path(node_path['path'][0], resources)
 
         self.reservedResources[user_info[0]][node_path['id']]['path'] = parent_path

@@ -267,13 +267,13 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
 
             if resource_name.split('.')[1] == 'user':
                 sutsPath = self.project.get_user_info(user, 'sut_path')
-                filename = os.path.join(sutsPath, '.'.join(resource_name.split('.')[:-1] + ['json']))
             else:
                 sutsPath = self.project.get_user_info(user, 'sys_sut_path')
-                filename = os.path.join(sutsPath, '.'.join(resource_name.split('.')[:-1] + ['json']))
 
             if not sutsPath:
                 sutsPath = '{}/config/sut/'.format(TWISTER_PATH)
+
+            filename = os.path.join(sutsPath, '.'.join(resource_name.split('.')[:-1] + ['json']))
 
             if resource_name.split('.')[1] == 'system':
                 try:
@@ -475,7 +475,7 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
                     try:
                         res_id = self.format_resource(res_id, query)
                     except:
-                        logFull("User {}: The sut is already formated {}".formate(user_info[0], query))
+                        logFull("User {}: The sut is already formated {}".format(user_info[0], query))
                         pass
                     return res_id
                 query = res_id['path'][0]
@@ -562,14 +562,13 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
 
                 if query[0] == "/":
                     query = query[1:]
-
                 if sutContent.get('path'):
                     sutContent['path'] = sutContent['path'][0]
                 else:
                     sutContent['path'] = query
 
                 if sutContent['path']:
-                    self.resources['children'][query] = sutContent
+                    self.resources['children'][query] = copy.deepcopy(sutContent)
                     # make older resources files that don't have 'path' compatible
                     self.resources['children'][query]['path'] = [query]
                     modified = self.fix_path(self.resources['children'][query], [query])
@@ -589,7 +588,7 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
                         try:
                             result = self.format_resource(result, query)
                         except:
-                            logFull("User {}: The sut is already formated {}".formate(user_info[0], query))
+                            logFull("User {}: The sut is already formated {}".format(user_info[0], query))
                             pass
                         if isinstance(result['path'], list):
                             result['path'] = '/'.join(result['path'])
@@ -778,7 +777,7 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
             if  isinstance(issaved, str):
                 msg = "We could not save this SUT {}".format(name)
                 logDebug(msg)
-                return "*ERROR* " + msg
+                return issaved
 
             return res_id
 
@@ -1080,13 +1079,14 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
                 logError('Cannot access reserved SUT, path or ID `{}` !'.format(res_query))
                 return False
             try:
-                 # modify meta to the parent
-                if len(parent_p['path']) == 1:
-                    child = parent_p
-                # modify to a component
-                else:
-                    base_path = "/".join(parent_p['path'][1:])
-                    child = self.get_path(base_path, parent_p)
+                if isinstance(parent_p['path'], list):
+                    # modify meta to the parent
+                    if len(parent_p['path']) == 1:
+                        child = parent_p
+                    # modify to a component
+                    else:
+                        base_path = "/".join(parent_p['path'][1:])
+                        child = self.get_path(base_path, parent_p)
                 child['meta'][new_name] = child['meta'].pop(meta)
             except:
                 msg = "This meta that you entered thoes not exist {}".format(meta)
