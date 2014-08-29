@@ -57,44 +57,6 @@ RESOURCE_RESERVED = 3
 constant_dictionary = {'version': 0, 'name': '/', 'meta': {}, 'children': {}}
 
 
-def _recursive_build_comp(parent, old_path, appendList=[]):
-    '''
-    parent - pointer in dictionary
-    old_path - string with the parent component name
-    appendList - list to append the sub-components
-    '''
-
-    if len(parent) == 0:
-        # there are no sub-components; return empty list
-        return []
-    else:
-        # there are sub-components
-
-        # loop through all of them
-        for child in parent:
-            new_dict = parent[child]
-            # build path name and add path, meta, id and children
-            new_path = old_path + '/' + child
-            add_dic = dict()
-            add_dic['path'] = new_path
-            add_dic['meta'] = new_dict['meta']
-            add_dic['id'] = new_dict['id']
-
-            if len(new_dict['children']) > 0:
-                # component has children, add them recursively
-                childList = list()
-                _recursive_build_comp(new_dict['children'], new_path, childList)
-                # append the list of sub-components
-                add_dic['children'] = childList
-            else:
-                # no children, just add an empy list
-                add_dic['children'] = []
-
-            appendList.append(add_dic)
-
-        return appendList
-
-
 def xml_to_res(xml, gparams):
     """
     Import xml file to SUT.
@@ -508,7 +470,13 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
             res_id = self.get_resource(query)
             if isinstance(res_id, dict):
                 if len(res_id['path']) > 1:
-                    res_id['path'] = '/'.join(res_id['path'])
+                    if isinstance(res_id, list):
+                        res_id['path'] = '/'.join(res_id['path'])
+                    try:
+                        res_id = self.format_resource(res_id, query)
+                    except:
+                        logFull("User {}: The sut is already formated {}".formate(user_info[0], query))
+                        pass
                     return res_id
                 query = res_id['path'][0]
                 sutType = query.split('.')[-1]
@@ -591,20 +559,16 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
                 return sutContent
 
             if isinstance(sutContent, dict):
+
                 if query[0] == "/":
                     query = query[1:]
-                # Now we have the SUT content; we need to format it for GUI
-                recursiveList = list()
-                retDict = dict()
-                if sutContent.get('path'):
-                    retDict['path'] = sutContent['path'][0]
-                else:
-                    retDict['path'] = query
-                retDict['meta'] = sutContent['meta']
-                retDict['id'] = sutContent['id']
-                retDict['children'] = _recursive_build_comp(sutContent.get('children'), retDict['path'], recursiveList)
 
-                if retDict['path']:
+                if sutContent.get('path'):
+                    sutContent['path'] = sutContent['path'][0]
+                else:
+                    sutContent['path'] = query
+
+                if sutContent['path']:
                     self.resources['children'][query] = sutContent
                     # make older resources files that don't have 'path' compatible
                     self.resources['children'][query]['path'] = [query]
@@ -622,11 +586,22 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
                         initial_query += ":" + meta
                     result = self.get_info_sut(initial_query, props)
                     if isinstance(result, dict):
+                        try:
+                            result = self.format_resource(result, query)
+                        except:
+                            logFull("User {}: The sut is already formated {}".formate(user_info[0], query))
+                            pass
                         if isinstance(result['path'], list):
                             result['path'] = '/'.join(result['path'])
                     return result
 
-                return retDict
+                try:
+                    sutContent = self.format_resource(sutContent, query)
+                except:
+                    logFull("User {}: The sut is already formated {}".formate(user_info[0], query))
+                    pass
+
+                return sutContent
 
         # if we get here, we cannot get read access to the SUT directory
         return '*ERROR* Cannot get access to SUT path for user {}'.format(user_info[0])
@@ -1619,9 +1594,9 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
         #now we have to save
         issaved = self.save_sut(props, resource_node['path'][0])
 
-        if  isinstance(issaved, str):
+        if isinstance(issaved, str):
             logDebug("We could not save this Sut for user = {}.".format(user_info[0]))
-            return "*ERROR* " + msg
+            return issaved
         return True
 
 
