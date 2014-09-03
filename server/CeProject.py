@@ -1683,6 +1683,7 @@ class Project(object):
         return epname
 
 
+
     def _edit_suite(self, ep, sut, config_root):
         '''
         Update suite props with sut name, ep id and id.
@@ -1697,52 +1698,168 @@ class Project(object):
             sut_name.text = sut
 
         for id_name in config_root.xpath('//ID'):
-            id_name.text = id_name.text + "#" + ep
+            if '#' not in id_name.text:
+                id_name.text = id_name.text + "#" + ep
 
+        # delete tc if running = false
         for prop in config_root.xpath("//Property"):
             if prop.find('propName').text == 'Running' and prop.find('propValue').text == 'false':
                 grand_parent = (prop.getparent()).getparent()
                 grand_parent.remove(prop.getparent())
 
+        # delete empty suites
+        for suite in config_root.xpath('TestSuite'):
+            if not suite.find('TestSuite') and not suite.find('TestCase'):
+                suite_parent = suite.getparent()
+                suite_parent.remove(suite)
+
         return True
 
 
-    def _do_repeat(self, config_root):
+    def _do_repeat(self, config_root, repeted_dict, ep):
         '''
         Repet Test Case or Suites as often as the tag <Reapet>
         says.
         '''
 
-        generated_ids = config_root.xpath('//ID')
+        generated_ids_elems = copy.deepcopy(config_root.xpath('//ID'))
+        generated_ids = []
+        for g_id in generated_ids_elems:
+            generated_ids.append(g_id.text)
 
         repeat_list = config_root.xpath('//Repeat')
         if not repeat_list:
             return True
 
         for repeat in reversed(repeat_list):
+            parent = repeat.getparent()
             if int(repeat.text) > 1:
-                parent = repeat.getparent()
-                grand_parent = (repeat.getparent()).getparent()
-
                 for i in range(int(repeat.text) - 1):
+
                     deep_copy = copy.deepcopy(repeat.getparent())
+                    deep_copy.find('Repeat').text = str(1)
 
                     # generate new unique id if necessary
                     new_id = uuid.uuid4()
                     while new_id in generated_ids:
                         new_id = uuid.uuid4()
-                        if not str(new_id) in generated_ids:
-                            generated_ids.append(str(new_id))
+                    generated_ids.append(str(new_id))
+
+                    self.add_to_repeated(copy.deepcopy(deep_copy.find('ID').text), str(new_id), repeted_dict, ep)
 
                     # update suite id
                     deep_copy.find('ID').text = str(new_id)
-                    deep_copy.find('Repeat').text = str(1)
 
                     if parent is None:
                         config_root.append(deep_copy)
                     else:
                         parent.addnext(deep_copy)
+
                 repeat.getparent().find('Repeat').text = str(1)
+
+            else:
+                self.add_to_repeated(copy.deepcopy(parent.find('ID').text), copy.deepcopy(parent.find('ID').text), repeted_dict, ep)
+
+        return True
+
+
+    def resolve_dependencies(self, repeted_dict, config_fs_root):
+        '''
+        Modify the dependency tag with the corresponding ones after
+        exploding the suite.
+        '''
+
+        dependencies = config_fs_root.xpath('//Dependency')
+
+        for dep_id in dependencies:
+
+            if dep_id.text is not None:
+                parent = dep_id.getparent()
+                parent_id = parent.find('ID').text
+                parent_id_ep = parent_id.split('#')[1]
+
+                grandparent_sut = parent.getparent()
+                sut_value = grandparent_sut.find('SutName').text
+
+                dep_id_list = dep_id.text.split(';')
+                clean_id = dep_id_list[0].split(':')[0]
+                status = dep_id_list[0].split(':')[1]
+
+                if clean_id in repeted_dict:
+                    repeted_dict[clean_id] = list(set(repeted_dict[clean_id]))
+                    dep_string = ''
+                    for elem in repeted_dict[clean_id]:
+                        if ("#" + sut_value + "-" + parent_id_ep) in elem:
+                            index = elem.find("#")
+                            elem = elem[:index] + "#" + parent_id_ep
+                            dep_string = dep_string + elem + ":" + status + ";"
+                    dep_id.text = dep_string
+
+
+    def add_to_repeated(self, kid_id, new_id, repeted_dict, ep):
+        '''
+        Add to repeated_dict.
+        '''
+        if "#" not in new_id:
+            new_id = new_id + "#" + ep
+        if kid_id not in repeted_dict.keys():
+            found = False
+            for key, values in repeted_dict.items():
+                #maybe this is a copy with a changed id of another copy
+                if kid_id in values:
+                    found = True
+                    repeted_dict[key].append(new_id)
+                    break
+            # create a key with the old id
+            if not found:
+                repeted_dict[kid_id] = [new_id]
+        else:
+            # add to the key found
+            repeted_dict[kid_id].append(new_id)
+
+
+    def change_ids(self, config_root, repeted_dict, config_fs_root, ep):
+        '''
+        Change IDs if a suite has to repeat
+        '''
+
+        generated_ids_elems = copy.deepcopy(config_root.xpath('//ID'))
+        generated_ids = []
+        for g_id in generated_ids_elems:
+            generated_ids.append(g_id.text)
+
+        suites_id = config_fs_root.xpath('//TestSuite/ID')
+        for s_id in suites_id:
+            clean_id = s_id.text.split('#')[0]
+            if config_root.find('ID').text != clean_id:
+                return True
+
+        # generate new unique id if necessary
+        new_id = uuid.uuid4()
+        while new_id in generated_ids:
+            new_id = uuid.uuid4()
+        generated_ids.append(str(new_id))
+
+        config_root.find('ID').text = str(new_id)
+
+        kid_ids = config_root.xpath('//ID')
+        for kid_id in kid_ids:
+            parent = kid_id.getparent()
+
+            # generate new unique id if necessary
+            new_id = uuid.uuid4()
+            while new_id in generated_ids:
+                new_id = uuid.uuid4()
+
+            generated_ids.append(str(new_id))
+
+            if parent == config_root:
+                # update suite id
+                config_root.find('ID').text = str(new_id)
+            else:
+                # add to repeated_dict the old id and the new one
+                self.add_to_repeated(copy.deepcopy(kid_id.text), str(new_id), repeted_dict, ep)
+                kid_id.text = str(new_id)
 
         return True
 
@@ -1773,10 +1890,15 @@ class Project(object):
         root.append(xml.find('dbautosave'))
         root.append(xml.find('tcdelay'))
 
+        config_ts_root = etree.tostring(root)
+        config_fs_root = etree.fromstring(config_ts_root)
+
+        repeted_dict = dict()
         # get all suites defined in project file
         all_suites = xml.findall('TestSuite')
         for suite in all_suites:
             # get all suts chosen by user
+            # try:
             all_suts = suite.find('SutName').text
             suts_list = [q for q in all_suts.split(';') if q]
             suts_list = [q.replace('(', '.').replace(')', '') for q in suts_list if q]
@@ -1788,6 +1910,7 @@ class Project(object):
             except:
                 no_repeat = 1
 
+            suite_name = suite.find('tsName').text
             for i in range(no_repeat):
 
                 deep_copy = copy.deepcopy(suite)
@@ -1795,21 +1918,10 @@ class Project(object):
                 config_root = etree.fromstring(config_ts)
 
                 if no_repeat > 1:
-                    generated_ids = config_root.xpath('//ID')
-
-                    # generate new unique id if necessary
-                    new_id = uuid.uuid4()
-                    while new_id in generated_ids:
-                        new_id = uuid.uuid4()
-                        if not str(new_id) in generated_ids:
-                            generated_ids.append(str(new_id))
-
                     try:
                         config_root.find('Repeat').text = str(1)
                     except:
                         pass
-                    config_root.find('ID').text = str(new_id)
-
                 # for every ep of a sut create entry
                 for sut in suts_list:
                     sut = '/' + sut
@@ -1819,19 +1931,32 @@ class Project(object):
                         sut_eps_list = [ep for ep in sut_eps.split(';') if ep]
 
                         for ep in sut_eps_list:
-                            # update sut, ep, id, tunning test cases
-                            self. _do_repeat(config_root)
-                            self._edit_suite(ep, sut, config_root)
+                            config_root_deep = copy.deepcopy(config_root)
 
+                            self.change_ids(config_root_deep, repeted_dict, config_fs_root, sut + "-" + ep)
+                            self._edit_suite(ep, sut, config_root_deep)
+                            # update sut, ep, id, tunning test cases
+                            self._do_repeat(config_root_deep, repeted_dict, sut + "-" + ep)
+
+                            # append suite to the xml root
+                            root.append(config_root_deep)
                     else:
                         # Find Anonimous EP in the active EPs
                         anonim_ep = self._find_anonim_ep(user)
 
-                        self. _do_repeat(config_root)
-                        self._edit_suite(str(anonim_ep), sut, config_root)
+                        config_root_deep = copy.deepcopy(config_root)
 
-                    # append suite to the xml root
-                    root.append(config_root)
+                        self.change_ids(config_root_deep, repeted_dict, config_fs_root, sut + "-" + anonim_ep)
+                        self._edit_suite(str(anonim_ep), sut, config_root_deep)
+
+                        self._do_repeat(config_root_deep, repeted_dict, sut + "-" + anonim_ep)
+
+                        # append suite to the xml root
+                        root.append(config_root_deep)
+
+        config_ts_root = etree.tostring(root)
+        config_fs_root = etree.fromstring(config_ts_root)
+        self.resolve_dependencies(repeted_dict, config_fs_root)
 
         # write the xml file
         xml_file = userHome(user) + '/twister/config/testsuites.xml'
@@ -1842,7 +1967,7 @@ class Project(object):
             logError(resp)
             return resp
 
-        resp = self.localFs.write_user_file(user, xml_file, etree.tostring(root, pretty_print=True), 'w')
+        resp = self.localFs.write_user_file(user, xml_file, etree.tostring(config_fs_root, pretty_print=True), 'w')
         if resp != True:
             logError(resp)
             return resp
