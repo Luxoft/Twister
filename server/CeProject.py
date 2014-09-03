@@ -1,7 +1,7 @@
 
 # File: CeProject.py ; This file is part of Twister.
 
-# version: 3.049
+# version: 3.050
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -2969,6 +2969,13 @@ class Project(object):
         else:
             # Current project libraries
             proj_libs = self.get_user_info(user, 'libraries') or ''
+
+            dl_libs = self.get_user_info(user, 'dl_libs') or 'flat'
+            if dl_libs == 'flat':
+                libs = [x.strip() for x in proj_libs.split(';')] if proj_libs else []
+                logDebug('Current project flat libraries for user `{}`: {}.'.format(user, libs))
+                return libs
+
             libs = []
 
             for lib in proj_libs.split(';'):
@@ -3020,7 +3027,7 @@ class Project(object):
 
                 libs.append(lib)
 
-            logDebug('Current project libraries for user `{}`: {}.'.format(user, libs))
+            logDebug('Current project deep libraries for user `{}`: {}.'.format(user, libs))
             return libs
 
 
