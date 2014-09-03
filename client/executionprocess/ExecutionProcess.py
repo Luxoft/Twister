@@ -1,6 +1,6 @@
 #!/usr/bin/env python2.7
 
-# version: 3.019
+# version: 3.020
 
 # File: ExecutionProcess.py ; This file is part of Twister.
 
@@ -552,6 +552,7 @@ class TwisterRunner(object):
         """
         libs_path = '{}/ce_libs'.format(EP_CACHE)
         reset_libs = False
+        dl_libs = proxy().get_user_variable('dl_libs')
 
         if not libs_list:
             # This is a list with unique names, sorted alphabetically
@@ -643,6 +644,12 @@ class TwisterRunner(object):
                     binary.extractall()
                     time.sleep(0.05)
                     os.remove(tgz)
+
+            # Flatten file ?
+            if dl_libs == 'flat':
+                lib_name = os.path.split(lib_file)[-1]
+                os.chdir(libs_path)
+                shutil.move(lib_file, libs_path + '/' + lib_name)
 
         if reset_libs:
             print('... all libraries downloaded.\n')
