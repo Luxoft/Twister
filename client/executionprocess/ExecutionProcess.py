@@ -1,6 +1,6 @@
 #!/usr/bin/env python2.7
 
-# version: 3.020
+# version: 3.021
 
 # File: ExecutionProcess.py ; This file is part of Twister.
 
@@ -614,7 +614,7 @@ class TwisterRunner(object):
         for lib_file in all_libs:
             lib_data = proxy().download_library(lib_file)
             time.sleep(0.1) # Must take it slow
-            if not lib_data:
+            if not lib_data or lib_data.startswith('*ERROR*'):
                 print('Library `{}` does not exist!'.format(lib_file))
                 continue
 
@@ -1250,6 +1250,12 @@ class TwisterRunner(object):
         # Print the final message
         diff_time = time.time() - glob_time
 
+        try:
+            shutil.rmtree(EP_CACHE)
+            os.makedirs(EP_CACHE)
+        except Exception as e:
+            print('Cannot clean cache! {}'.format(e))
+
         if PORTABLE:
             return self.stop(timer_f=diff_time)
         else:
@@ -1267,8 +1273,10 @@ def warmup():
     EP_LOG = '{}/.twister_cache/{}_LIVE.log'.format(TWISTER_PATH, EP_NAME)
 
     # Create the EP folder
-    try: os.makedirs(EP_CACHE)
-    except Exception: pass
+    try:
+        os.makedirs(EP_CACHE)
+    except Exception:
+        pass
 
     # If this scripts is running Portable from twister/client/exec ...
     path = TWISTER_PATH
