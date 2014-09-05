@@ -487,9 +487,26 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
                 if not result:
                     self.index_suts(props)
                     result = self.find_sut_id(query)
+                    #probably is a component not saved yet, get it from self.reservedResources
                     if not result:
-                        logFull("User {} there is no SUT having this id: {}".format(username, query))
-                        return False
+                        if meta:
+                            result = self.get_info_sut(query + ":" + meta, props)
+                        else:
+                            result = self.get_info_sut(query, props)
+                        if isinstance(result, dict):
+                            try:
+                                result = self.format_resource(result, query)
+                            except:
+                                logFull("User {}: The sut is already formated {}".format(user_info[0], query))
+                                pass
+                            if isinstance(result['path'], list):
+                                result['path'] = '/'.join(result['path'])
+                            return result
+                        else:
+                            msg = "User {} there is no SUT having this id: {}".format(username, query)
+                            logFull(msg)
+                            return False
+
                 query = result
                 sutType = query.split('.')[-1]
 
@@ -579,7 +596,6 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
                         if  isinstance(issaved, str):
                             logDebug("We could not save this Sut for user = {}.".format(user_info[0]))
                             return False
-
                 if initial_query:
                     if meta:
                         initial_query += ":" + meta
@@ -623,11 +639,14 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
             meta = ''
 
         result = None
-
         # If the SUT is reserved, get the latest unsaved changes
         if user_info[0] in self.reservedResources:
             for i in range(len(self.reservedResources[user_info[0]].values())):
-                result = self.get_resource(res_query, self.reservedResources[user_info[0]].values()[i])
+                current_res_reserved  = constant_dictionary
+                current_path_root = self.reservedResources[user_info[0]].values()[i]['path'][0]
+                current_res_reserved['children'][current_path_root] = self.reservedResources[user_info[0]].values()[i]
+
+                result = self.get_resource(res_query, current_res_reserved)
                 if isinstance(result, dict):
                     break
 
@@ -636,9 +655,9 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
             result = self.get_resource(res_query)
             # SUT not loaded
             if not isinstance(result, dict):
-                # load sut
-                self.get_sut(res_query, props)
-                result = self.get_resource(res_query)
+                msg = "User:{} Can not find: {}. Call get_sut for a sut, component, or meta.".format(user_info[0], res_query)
+                logError(msg)
+                return False
 
         if isinstance(result, dict):
 
