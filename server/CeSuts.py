@@ -1181,14 +1181,17 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
             return "true"
         # Delete component
         else:
+            full_path = ''
             #the resources is deep in the tree, we have to get its direct parent
             if len(parent_p['path']) > 2:
-                full_path = parent_p['path']
+                full_path = copy.deepcopy(parent_p['path'])
                 base_path = "/".join(parent_p['path'][1:-1])
-                parent_pp = self.get_path(base_path, parent_p)
+                parent_p = self.get_path(base_path, parent_p)
 
-            parent_pp['children'].pop(parent_p['path'][-1])
-            parent_pp['path'] = full_path[:-1]
+            if not full_path:
+                full_path = parent_p['path']
+            parent_p['children'].pop(full_path[-1])
+            parent_p['path'] = full_path[:-1]
         return "true"
 
 
@@ -1674,4 +1677,3 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
         '''
 
         return self.discard_release_reserved_resource(res_query, props)
-
