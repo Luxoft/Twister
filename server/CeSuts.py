@@ -1185,10 +1185,10 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
             if len(parent_p['path']) > 2:
                 full_path = parent_p['path']
                 base_path = "/".join(parent_p['path'][1:-1])
-                parent_p = self.get_path(base_path, parent_p)
-                parent_p['path'] = full_path
+                parent_pp = self.get_path(base_path, parent_p)
 
-            parent_p['children'].pop(parent_p['path'][-1])
+            parent_pp['children'].pop(parent_p['path'][-1])
+            parent_pp['path'] = full_path[:-1]
         return "true"
 
 
