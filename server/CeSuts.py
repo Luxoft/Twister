@@ -359,6 +359,17 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
         return False
 
 
+    def _format_dict_sut(self, result, query):
+        try:
+            result = self.format_resource(result, query)
+        except:
+            logFull("User {}: The sut is already formated {}".format(user_info[0], query))
+            pass
+        if isinstance(result['path'], list):
+            result['path'] = '/'.join(result['path'])
+        return result
+
+
     @cherrypy.expose
     def index_suts(self, props={}):
         '''
@@ -468,18 +479,15 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
         if '/' not in query and sutType == query:
             initial_query = query
             res_id = self.get_resource(query)
+
             if isinstance(res_id, dict):
                 if len(res_id['path']) > 1:
-                    if isinstance(res_id, list):
-                        res_id['path'] = '/'.join(res_id['path'])
-                    try:
-                        res_id = self.format_resource(res_id, query)
-                    except:
-                        logFull("User {}: The sut is already formated {}".format(user_info[0], query))
-                        pass
+                    res_id = self._format_dict_sut(res_id, query)
                     return res_id
+
                 query = res_id['path'][0]
                 sutType = query.split('.')[-1]
+
             else:
                 #maybe this sut is already indexed
                 result = self.find_sut_id(query)
@@ -493,14 +501,9 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
                             result = self.get_info_sut(query + ":" + meta, props)
                         else:
                             result = self.get_info_sut(query, props)
+
                         if isinstance(result, dict):
-                            try:
-                                result = self.format_resource(result, query)
-                            except:
-                                logFull("User {}: The sut is already formated {}".format(user_info[0], query))
-                                pass
-                            if isinstance(result['path'], list):
-                                result['path'] = '/'.join(result['path'])
+                            result = self._format_dict_sut(result, query)
                             return result
                         else:
                             msg = "User {} there is no SUT having this id: {}".format(username, query)
@@ -548,9 +551,8 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
             if sutType == 'system':
                 # system SUT file
                 try:
-                    f = open(sutFile, 'r')
-                    sutContent = json.load(f)
-                    f.close() ; del f
+                    with open(sutFile, 'r') as f:
+                        sutContent = json.load(f)
                 except Exception as e:
                     return '*ERROR* Cannot get access to SUT path for user {} Exception {}'.format(user_info[0], e)
             else:
@@ -570,7 +572,15 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
                     try:
                         sutContent = json.loads(resp)
                     except:
-                        logError("User {}: *ERROR* could not load json: {}. Search in TB.".format(user_info[0], sutPath + fileName))
+                        logInfo("User {}: Could not load json: {}. Search in TB.".format(user_info[0], sutPath + fileName))
+                        if meta:
+                            query += ":" + meta
+
+                        result = self.get_info_sut(query, props)
+                        if isinstance(result, dict):
+                            result = self._format_dict_sut(result, query)
+                        return result
+
 
             if sutContent is False or (isinstance(sutContent, str) and sutContent.startswith('*ERROR*')):
                 return sutContent
@@ -579,6 +589,7 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
 
                 if query[0] == "/":
                     query = query[1:]
+
                 if sutContent.get('path'):
                     sutContent['path'] = sutContent['path'][0]
                 else:
@@ -601,13 +612,7 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
                         initial_query += ":" + meta
                     result = self.get_info_sut(initial_query, props)
                     if isinstance(result, dict):
-                        try:
-                            result = self.format_resource(result, query)
-                        except:
-                            logFull("User {}: The sut is already formated {}".format(user_info[0], query))
-                            pass
-                        if isinstance(result['path'], list):
-                            result['path'] = '/'.join(result['path'])
+                        result = self._format_dict_sut(result, query)
                     return result
 
                 try:
