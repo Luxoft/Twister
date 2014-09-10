@@ -1769,31 +1769,80 @@ class Project(object):
         exploding the suite.
         '''
 
-        dependencies = config_fs_root.xpath('//Dependency')
+        suites_list =  config_fs_root.xpath('TestSuite')
+        #iterate suites
+        for suite_e in suites_list:
+            old_suite = suite_e
+            suite_e = etree.tostring(suite_e)
+            suite_e = etree.fromstring(suite_e)
 
-        for dep_id in dependencies:
+            index_ep = suite_e.find('ID').text.find('#')
+            suite_e_id = suite_e.find('ID').text[:index_ep]
 
-            if dep_id.text is not None:
+            #get dependencies for this suite
+            dependencies = suite_e.xpath('//Dependency')
+            dependencies = [x for x in dependencies if x.text]
+
+            for dep_id in dependencies:
+
+                # get ep of this suite
                 parent = dep_id.getparent()
                 parent_id = parent.find('ID').text
                 parent_id_ep = parent_id.split('#')[1]
 
+                #get the sut used in this suite
                 grandparent_sut = parent.getparent()
                 sut_value = grandparent_sut.find('SutName').text
 
+                #may be multimple dependecies
                 dep_id_list = dep_id.text.split(';')
-                clean_id = dep_id_list[0].split(':')[0]
-                status = dep_id_list[0].split(':')[1]
+                dep_id_list = [x for x in dep_id_list if x]
 
-                if clean_id in repeted_dict:
-                    repeted_dict[clean_id] = list(set(repeted_dict[clean_id]))
-                    dep_string = ''
-                    for elem in repeted_dict[clean_id]:
-                        if ("#" + sut_value + "-" + parent_id_ep) in elem:
-                            index = elem.find("#")
-                            elem = elem[:index] + "#" + parent_id_ep
-                            dep_string = dep_string + elem + ":" + status + ";"
-                    dep_id.text = dep_string
+                # iterate throught dependencies
+                for dep_id_s in dep_id_list:
+                    if "#" in dep_id_s:
+                        continue
+
+                    #separate id and status
+                    clean_id = dep_id_s.split(':')[0]
+                    status = dep_id_s.split(':')[1]
+
+                    if clean_id in repeted_dict:
+                        repeted_dict[clean_id] = list(set(repeted_dict[clean_id]))
+
+                        dep_string = ''
+                        found_dep = False
+
+                        for elem in repeted_dict[clean_id]:
+                            if ("#" + suite_e_id + "-" + sut_value + "-" + parent_id_ep) in elem:
+
+                                index = elem.find("#")
+
+                                elem_c = elem[:index] + "#" + parent_id_ep
+                                dep_string = elem_c + ":" + status + ";"
+                                if "#" in dep_id.text:
+                                    dep_id.text = dep_id.text + dep_string
+                                else:
+                                    dep_id.text = dep_string
+
+                                found_dep = True
+
+                        if not found_dep:
+                            for elem in repeted_dict[clean_id]:
+                                index = elem.find("#")
+
+                                elem_c = elem[:index] + "#" + parent_id_ep
+                                dep_string = elem_c + ":" + status + ";"
+
+                                if "#" in dep_id.text:
+                                    dep_id.text = dep_id.text + dep_string
+                                else:
+                                    dep_id.text = dep_string
+
+                config_fs_root.append(suite_e)
+                config_fs_root.remove(old_suite)
+
+        return True
 
 
     def add_to_repeated(self, kid_id, new_id, repeted_dict, ep):
@@ -1841,24 +1890,22 @@ class Project(object):
         generated_ids.append(str(new_id))
 
         config_root.find('ID').text = str(new_id)
+        suite_id = config_root.find('ID').text
 
         kid_ids = config_root.xpath('//ID')
         for kid_id in kid_ids:
-            parent = kid_id.getparent()
+            if kid_id.text != suite_id:
+                parent = kid_id.getparent()
 
-            # generate new unique id if necessary
-            new_id = uuid.uuid4()
-            while new_id in generated_ids:
+                # generate new unique id if necessary
                 new_id = uuid.uuid4()
+                while new_id in generated_ids:
+                    new_id = uuid.uuid4()
 
-            generated_ids.append(str(new_id))
+                generated_ids.append(str(new_id))
 
-            if parent == config_root:
-                # update suite id
-                config_root.find('ID').text = str(new_id)
-            else:
                 # add to repeated_dict the old id and the new one
-                self.add_to_repeated(copy.deepcopy(kid_id.text), str(new_id), repeted_dict, ep)
+                self.add_to_repeated(copy.deepcopy(kid_id.text), str(new_id), repeted_dict, suite_id + "-" + ep)
                 kid_id.text = str(new_id)
 
         return True
@@ -1913,6 +1960,7 @@ class Project(object):
             suite_name = suite.find('tsName').text
             for i in range(no_repeat):
 
+
                 deep_copy = copy.deepcopy(suite)
                 config_ts = etree.tostring(deep_copy)
                 config_root = etree.fromstring(config_ts)
@@ -1934,23 +1982,25 @@ class Project(object):
                             config_root_deep = copy.deepcopy(config_root)
 
                             self.change_ids(config_root_deep, repeted_dict, config_fs_root, sut + "-" + ep)
-                            self._edit_suite(ep, sut, config_root_deep)
-                            # update sut, ep, id, tunning test cases
-                            self._do_repeat(config_root_deep, repeted_dict, sut + "-" + ep)
 
+
+                            suite_id = config_root_deep.find('ID').text
+                            # update sut, ep, id, tunning test cases
+                            self._do_repeat(config_root_deep, repeted_dict, suite_id + "-" + sut + "-" + ep)
+                            self._edit_suite(ep, sut, config_root_deep)
                             # append suite to the xml root
                             root.append(config_root_deep)
                     else:
                         # Find Anonimous EP in the active EPs
                         anonim_ep = self._find_anonim_ep(user)
-
+                        if isinstance(anonim_ep, bool):
+                            return anonim_ep
                         config_root_deep = copy.deepcopy(config_root)
-
                         self.change_ids(config_root_deep, repeted_dict, config_fs_root, sut + "-" + anonim_ep)
+
+                        suite_id = config_root_deep.find('ID').text
+                        self._do_repeat(config_root_deep, repeted_dict, suite_id + "-" + sut + "-" + anonim_ep)
                         self._edit_suite(str(anonim_ep), sut, config_root_deep)
-
-                        self._do_repeat(config_root_deep, repeted_dict, sut + "-" + anonim_ep)
-
                         # append suite to the xml root
                         root.append(config_root_deep)
 
