@@ -1,6 +1,6 @@
 /*
 File: Grafic.java ; This file is part of Twister.
-Version: 3.0031
+Version: 3.0032
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -1748,7 +1748,8 @@ public void keyDownPressed(){
                          RunnerRepository.window.mainpanel.p1.suitaDetails.preStopOnFail(),
                          RunnerRepository.window.mainpanel.p1.suitaDetails.saveDB(),
                          RunnerRepository.window.mainpanel.p1.suitaDetails.getDelay(),
-                         true,array,RunnerRepository.window.mainpanel.p1.suitaDetails.getProjectDefs())){
+                         true,array,RunnerRepository.window.mainpanel.p1.suitaDetails.getProjectDefs(),
+                         RunnerRepository.window.mainpanel.p1.suitaDetails.getGlobalDownloadType())){
                 CustomDialog.showInfo(JOptionPane.PLAIN_MESSAGE, 
                                         RunnerRepository.window, "Success",
                                         "File successfully saved");
@@ -2330,7 +2331,7 @@ public void keyDownPressed(){
      */
     public boolean printXML(String user, boolean skip,
                             boolean local, boolean stoponfail,boolean prestoponfail,
-                            boolean savedb, String delay,boolean lib, ArrayList<Item> array,String [][] projdefined){
+                            boolean savedb, String delay,boolean lib, ArrayList<Item> array,String [][] projdefined,String downloadlibraryoption){
         //skip = true
         try{if(array==null)array = RunnerRepository.getSuite();
             XMLBuilder xml = new XMLBuilder(array);
@@ -2338,7 +2339,7 @@ public void keyDownPressed(){
                           RunnerRepository.window.mainpanel.p1.suitaDetails.getPreScript(),
                           RunnerRepository.window.mainpanel.p1.suitaDetails.getPostScript(),
                           savedb,delay,RunnerRepository.window.mainpanel.p1.suitaDetails.getGlobalLibs(),
-                          projdefined)){
+                          projdefined,downloadlibraryoption)){
                 return false;
             }
             return xml.writeXMLFile(user,local,false,lib);}
