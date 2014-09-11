@@ -55,13 +55,13 @@ def test():
 		return 'FAIL', _REASON
 	print
 
-	# print 'Reserving SUT...', reserve_sut(sut_id)
-	# child_id = set_sut('child', sut_id, {'some-meta': 'y'})
-	# print 'Create child::', child_id
-	# print 'Find by name::', get_sut('/{}/child'.format(sut_name))
-	# print 'Find by ID::', get_sut(child_id)
-	# print 'Releasing SUT...', save_release_reserved_sut(sut_id)
-	# print
+	print 'Reserving SUT...', reserve_sut(sut_id)
+	child_id = set_sut('child', sut_id, {'some-meta': 'y'})
+	print 'Create child::', child_id
+	print 'Find by name::', get_sut('/{}/child'.format(sut_name))
+	print 'Find by ID::', get_sut(child_id)
+	print 'Releasing SUT...', save_release_reserved_sut(sut_id)
+	print
 
 
 	for i in range(1, 4):

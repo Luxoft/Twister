@@ -1,7 +1,7 @@
 
 # File: CeProject.py ; This file is part of Twister.
 
-# version: 3.048
+# version: 3.050
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -88,8 +88,6 @@ import traceback
 import threading
 import MySQLdb
 import paramiko
-import copy
-import uuid
 
 import cherrypy
 import rpyc
@@ -106,7 +104,6 @@ from string import Template
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from common.tsclogging import *
-from lxml import etree
 
 if not sys.version.startswith('2.7'):
     print('Python version error! Central Engine must run on Python 2.7!')
@@ -127,6 +124,7 @@ from common.xmlparser  import *
 from common.suitesmanager import *
 from common import iniparser
 
+from CeParser import CeXmlParser
 from CeServices import ServiceManager
 from CeWebUi import WebInterface
 from CeResources import ResourceAllocator
@@ -222,6 +220,7 @@ class Project(object):
 
         self.rsrv    = None # RPyc server pointer
         self.ip_port = None # Will be injected by the Central Engine CherryPy
+        self.xparser = CeXmlParser(self)
         self.manager = ServiceManager()
         self.web   = WebInterface(self)
         self.tb = TestBeds(self)
@@ -454,7 +453,7 @@ class Project(object):
         logDebug('Common Project Reset for `{}` with params:\n\t`{}` & `{}`.'.format(user, base_config, files_config))
 
         if not files_config.endswith('testsuites.xml'):
-            self.generate_xml(user, files_config)
+            self.xparser.generate_xml(user, files_config)
             files_config = userHome(user) + '/twister/config/testsuites.xml'
             self.parsers[user].updateConfigTS(files_config)
 
@@ -1614,7 +1613,7 @@ class Project(object):
         except Exception:
             pass
 
-        local_client = self.rsrv.service._findConnection(usr=user, addr=addr, hello='client')
+        local_client = self.rsrv.service._findConnection(usr=user, hello='client', addr=addr)
 
         # Cannot find local client conns
         if not local_client:
@@ -1624,19 +1623,11 @@ class Project(object):
         return self.rsrv.service.conns.get(local_client, {}).get('conn', False)
 
 
-    def _find_local_ep(self, user, epname='ep'):
+    def _find_specific_ep(self, user, epname='ep'):
         """
         Helper function to find a local EP connection.
         """
-        addr = ['127.0.0.1', 'localhost']
-        hostName = socket.gethostname()
-        addr.append(hostName)
-        try:
-            addr.append(socket.gethostbyaddr(hostName)[-1][0])
-        except Exception:
-            pass
-
-        ep_addr = self.rsrv.service._findConnection(usr=user, addr=addr, hello=epname)
+        ep_addr = self.rsrv.service._findConnection(usr=user, hello=epname)
 
         # Cannot find local conns
         if not ep_addr:
@@ -1663,7 +1654,7 @@ class Project(object):
 
         # Shortcut to the Rpyc Service
         rpyc_srv = self.rsrv.service
-        local_client = rpyc_srv._findConnection(usr=user, addr=addr, hello='client')
+        local_client = rpyc_srv._findConnection(usr=user, hello='client', addr=addr)
 
         # Cannot find local client conns
         if not local_client:
@@ -1689,173 +1680,6 @@ class Project(object):
         # The Anonim EP becomes the first free EP
         logDebug('Found __Anonim__ EP for user `{}:{}` !'.format(user, epname))
         return epname
-
-
-    def _edit_suite(self, ep, sut, config_root):
-        '''
-        Update suite props with sut name, ep id and id.
-        Delete test cases having running = false.
-        Used only by generate_xml method.
-        '''
-
-        for epname in config_root.xpath('//EpId'):
-            epname.text = ep
-
-        for sut_name in config_root.xpath('//SutName'):
-            sut_name.text = sut
-
-        for id_name in config_root.xpath('//ID'):
-            id_name.text = id_name.text + "#" + ep
-
-        for prop in config_root.xpath("//Property"):
-            if prop.find('propName').text == 'Running' and prop.find('propValue').text == 'false':
-                grand_parent = (prop.getparent()).getparent()
-                grand_parent.remove(prop.getparent())
-
-        return True
-
-
-    def _do_repeat(self, config_root):
-        '''
-        Repet Test Case or Suites as often as the tag <Reapet>
-        says.
-        '''
-
-        generated_ids = config_root.xpath('//ID')
-
-        repeat_list = config_root.xpath('//Repeat')
-        if not repeat_list:
-            return True
-
-        for repeat in reversed(repeat_list):
-            if int(repeat.text) > 1:
-                parent = repeat.getparent()
-                grand_parent = (repeat.getparent()).getparent()
-
-                for i in range(int(repeat.text) - 1):
-                    deep_copy = copy.deepcopy(repeat.getparent())
-
-                    # generate new unique id if necessary
-                    new_id = uuid.uuid4()
-                    while new_id in generated_ids:
-                        new_id = uuid.uuid4()
-                        if not str(new_id) in generated_ids:
-                            generated_ids.append(str(new_id))
-
-                    # update suite id
-                    deep_copy.find('ID').text = str(new_id)
-                    deep_copy.find('Repeat').text = str(1)
-
-                    if parent is None:
-                        config_root.append(deep_copy)
-                    else:
-                        parent.addnext(deep_copy)
-                repeat.getparent().find('Repeat').text = str(1)
-
-        return True
-
-
-    def generate_xml(self, user, filename):
-        '''
-        Receives project file.
-        Creates testsuites.xml file by multiplying tests depending
-        on the suts number and eps.
-        '''
-
-        # try to parse the project file
-        try:
-            xml = etree.parse(filename)
-        except:
-            msg = "The file: '{}' it's not an xml file. Try again!".format(filename)
-            logDebug(msg)
-            return '*ERROR* ' + msg
-
-        # write general props to testsuties.xml file
-        root = etree.Element("Root")
-        root.append(xml.find('stoponfail'))
-        root.append(xml.find('PrePostMandatory'))
-        root.append(xml.find('ScriptPre'))
-        root.append(xml.find('ClearCaseView'))
-        root.append(xml.find('libraries'))
-        root.append(xml.find('ScriptPost'))
-        root.append(xml.find('dbautosave'))
-        root.append(xml.find('tcdelay'))
-
-        # get all suites defined in project file
-        all_suites = xml.findall('TestSuite')
-        for suite in all_suites:
-            # get all suts chosen by user
-            all_suts = suite.find('SutName').text
-            suts_list = [q for q in all_suts.split(';') if q]
-            suts_list = [q.replace('(', '.').replace(')', '') for q in suts_list if q]
-
-            # multiply Suite entry as often as the tag 'Repeat' says
-            try:
-                repeat = suite.find('Repeat')
-                no_repeat = int(repeat.text)
-            except:
-                no_repeat = 1
-
-            for i in range(no_repeat):
-
-                deep_copy = copy.deepcopy(suite)
-                config_ts = etree.tostring(deep_copy)
-                config_root = etree.fromstring(config_ts)
-
-                if no_repeat > 1:
-                    generated_ids = config_root.xpath('//ID')
-
-                    # generate new unique id if necessary
-                    new_id = uuid.uuid4()
-                    while new_id in generated_ids:
-                        new_id = uuid.uuid4()
-                        if not str(new_id) in generated_ids:
-                            generated_ids.append(str(new_id))
-
-                    try:
-                        config_root.find('Repeat').text = str(1)
-                    except:
-                        pass
-                    config_root.find('ID').text = str(new_id)
-
-                # for every ep of a sut create entry
-                for sut in suts_list:
-                    sut = '/' + sut
-                    sut_eps = self.sut.get_info_sut(sut + ':_epnames_' + user, {'__user': user})
-
-                    if sut_eps and sut_eps != "false":
-                        sut_eps_list = [ep for ep in sut_eps.split(';') if ep]
-
-                        for ep in sut_eps_list:
-                            # update sut, ep, id, tunning test cases
-                            self. _do_repeat(config_root)
-                            self._edit_suite(ep, sut, config_root)
-
-                    else:
-                        # Find Anonimous EP in the active EPs
-                        anonim_ep = self._find_anonim_ep(user)
-
-                        self. _do_repeat(config_root)
-                        self._edit_suite(str(anonim_ep), sut, config_root)
-
-                    # append suite to the xml root
-                    root.append(config_root)
-
-        # write the xml file
-        xml_file = userHome(user) + '/twister/config/testsuites.xml'
-
-        xml_header = '<?xml version="1.0" encoding="UTF-8" standalone="no"?>\n\n'
-        resp = self.localFs.write_user_file(user, xml_file, xml_header, 'w')
-        if resp != True:
-            logError(resp)
-            return resp
-
-        resp = self.localFs.write_user_file(user, xml_file, etree.tostring(root, pretty_print=True), 'w')
-        if resp != True:
-            logError(resp)
-            return resp
-
-        return True
 
 
     def set_exec_status(self, user, epname, new_status, msg=''):
@@ -2080,11 +1904,7 @@ class Project(object):
             for pname in plugins:
                 plugin = self._build_plugin(user, pname)
                 try:
-                    # For ClearCase plugin, send the ClearCase View
-                    if pname == 'ClearCase':
-                        plugin.onStart( self.get_user_info(user, 'clear_case_view') )
-                    else:
-                        plugin.onStart()
+                    plugin.onStart()
                 except Exception:
                     trace = traceback.format_exc()[34:].strip()
                     logWarning('Error on running plugin `{} onStart` - Exception: `{}`!'.format(pname, trace))
@@ -2834,10 +2654,12 @@ class Project(object):
                 if not path:
                     return '*ERROR* User `{}` did not set ClearCase Libraries Path!'.format(user)
                 user_view_actv = '{}:{}:{}'.format(user, view, actv)
-                user_libs_all = self.clearFs.list_user_files(user_view_actv, path, hidden=False, recursive=True,
+                user_libs_all = self.clearFs.list_user_files(user_view_actv, path,
+                    hidden=False, recursive=True,
                     accept=['.py', '.zip'], reject=['__init__.py', '__init__.pyc'])
             else:
-                user_libs_all = self.localFs.list_user_files(user, user_path, hidden=False, recursive=True,
+                user_libs_all = self.localFs.list_user_files(user, user_path,
+                    hidden=False, recursive=True,
                     accept=['.py', '.zip'], reject=['__init__.py', '__init__.pyc'])
 
             # All files + all folders
@@ -2854,6 +2676,13 @@ class Project(object):
         else:
             # Current project libraries
             proj_libs = self.get_user_info(user, 'libraries') or ''
+
+            dl_libs = self.get_user_info(user, 'dl_libs') or 'flat'
+            if dl_libs == 'flat':
+                libs = [x.strip() for x in proj_libs.split(';')] if proj_libs else []
+                logDebug('Current project flat libraries for user `{}`: {}.'.format(user, libs))
+                return libs
+
             libs = []
 
             for lib in proj_libs.split(';'):
@@ -2871,7 +2700,7 @@ class Project(object):
                         lib_files = self.localFs.list_system_files(libs_path, hidden=False, recursive=True,
                             accept=['.py', '.zip'], reject=['__init__.py', '__init__.pyc'])
 
-                    elif os.path.exists(user_path + lib):
+                    else:
                         # This is a User lib
                         lib_path = user_path + lib
                         lib_root = os.path.split(lib_path)[0]
@@ -2884,13 +2713,13 @@ class Project(object):
                             if not path:
                                 return '*ERROR* User `{}` did not set ClearCase Libraries Path!'.format(user)
                             user_view_actv = '{}:{}:{}'.format(user, view, actv)
-                            lib_files = self.clearFs.list_user_files(user_view_actv, lib_root, False, True)
-                        else:
-                            lib_files = self.localFs.list_user_files(user, lib_root, hidden=False, recursive=True,
+                            lib_files = self.clearFs.list_user_files(user_view_actv, path,
+                                hidden=False, recursive=True,
                                 accept=['.py', '.zip'], reject=['__init__.py', '__init__.pyc'])
-
-                    else:
-                        continue
+                        else:
+                            lib_files = self.localFs.list_user_files(user, lib_root,
+                                hidden=False, recursive=True,
+                                accept=['.py', '.zip'], reject=['__init__.py', '__init__.pyc'])
 
                     # List files failed ?
                     if not isinstance(lib_files, dict):
@@ -2905,7 +2734,7 @@ class Project(object):
 
                 libs.append(lib)
 
-            logDebug('Current project libraries for user `{}`: {}.'.format(user, libs))
+            logDebug('Current project deep libraries for user `{}`: {}.'.format(user, libs))
             return libs
 
 

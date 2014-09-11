@@ -69,7 +69,9 @@ def xml_to_res(xml, gparams, skip_header = False):
             tb_path = folder.find('path')
             if tb_path is not None:
                 nd = {'path':[], 'meta': {}, 'id': '', 'children': {}}
-                nd['path'].append(tb_path.text)
+                tb_path_text = tb_path.text
+                tb_path_list = [q for q in tb_path_text.split('/') if q]
+                nd['path'].extend(tb_path_list)
             else:
                 nd = {'meta': {}, 'id': '', 'children': {}}
 
@@ -104,9 +106,10 @@ def xml_to_res(xml, gparams, skip_header = False):
     # version is added only if it exists in xml;
     if not skip_header:
         root_dict = {'path':[], 'meta':{}, 'id':'', 'children':{}}
-        tb_path = xml.find('path').text
-        if tb_path:
-            root_dict['path'].append(tb_path)
+        tb_path_text = xml.find('path').text
+        if tb_path_text:
+            tb_path = [q for q in tb_path_text.split('/') if q]
+            root_dict['path'].extend(tb_path)
         meta = xml.find('meta')
         for meta_elem in meta:
             key = meta_elem.find('name').text
@@ -143,7 +146,7 @@ def res_to_xml(parent_node, xml, skip_header = False):
         # path is a list with 0 or 1 elements
         path = etree.SubElement(xml, 'path')
         if parent_node.get('path') is not None and len(parent_node.get('path')) == 1:
-            path.text = parent_node.get('path')[0]
+            path.text = '/'.join(parent_node.get('path'))
         else:
             path.text = ''
 
@@ -188,7 +191,7 @@ def res_to_xml(parent_node, xml, skip_header = False):
         # get the path if exists
         if nd.get('path'):
             path = etree.SubElement(folder, 'path')
-            path.text = nd.get('path')[0]
+            path.text = '/'.join(nd.get('path'))
 
         # get meta information
         meta = etree.SubElement(folder, 'meta')
@@ -268,18 +271,22 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
             except Exception as e:
                 logError('Error loading TBs! {}'.format(e))
 
+            is_res_modified = False
             # make older resources files that don't have 'path' compatible
             for res in self.resources.get('children'):
                 self.resources['children'][res]['path'] = [res]
-                self.fix_path(self.resources['children'][res], [res])
+                modified = self.fix_path(self.resources['children'][res], [res])
+                if modified:
+                    is_res_modified = True
 
             # save the resources updated (with path field) for later usage
-            issaved = self.save_tb()
-            if isinstance(issaved, str):
-                if issaved.startswith('*ERROR* '):
-                    msg = "We could not save this TB for user = {}.".format(user_info[0])
-                    logDebug(msg)
-                    return "*ERROR* " + msg
+            if is_res_modified:
+                issaved = self.save_tb()
+                if isinstance(issaved, str):
+                    if issaved.startswith('*ERROR* '):
+                        msg = "We could not save this TB for user = {}.".format(user_info[0])
+                        logDebug(msg)
+                        return "*ERROR* " + msg
 
         return self.resources
 
@@ -992,7 +999,7 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
         # save changes
         result = self.save_reserved_tb(res_query, props)
 
-        if result:
+        if result and not result.startswith("*ERROR*"):
             user_info = self.user_info(props)
 
             if ':' in res_query:

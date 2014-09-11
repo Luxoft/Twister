@@ -1,7 +1,7 @@
 
 # File: CeXmlRpc.py ; This file is part of Twister.
 
-# version: 3.004
+# version: 3.005
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -223,7 +223,7 @@ class CeXmlRpc(_cptools.XMLRPCController):
         Send remote echo. Used for debug.
         """
         user = cherrypy.session.get('username')
-        ep_conn = self.project._find_local_ep(user, epname)
+        ep_conn = self.project._find_specific_ep(user, epname)
         if not ep_conn:
             return False
         try:
@@ -240,7 +240,7 @@ class CeXmlRpc(_cptools.XMLRPCController):
         Send remote continue.
         """
         user = cherrypy.session.get('username')
-        ep_conn = self.project._find_local_ep(user, epname)
+        ep_conn = self.project._find_specific_ep(user, epname)
         if not ep_conn:
             return False
         try:
@@ -368,9 +368,9 @@ class CeXmlRpc(_cptools.XMLRPCController):
             if ccConfig:
                 view = ccConfig['view']
                 actv = ccConfig['actv']
-                fdir = ccConfig['path']
+                fdir = ccConfig['path'].rstrip('/')
                 if not fdir:
-                    return '*ERROR* User `{}` did not set ClearCase Project Path!'.format(user)
+                    return '*ERROR* You did not set ClearCase Predefined Suites Path!'
                 user_view_actv = '{}:{}:{}'.format(user, view, actv)
                 resp = self.project.clearFs.list_user_files(user_view_actv, fdir)
             else:
@@ -384,9 +384,9 @@ class CeXmlRpc(_cptools.XMLRPCController):
             if ccConfig:
                 view = ccConfig['view']
                 actv = ccConfig['actv']
-                fdir = ccConfig['path']
+                fdir = ccConfig['path'].rstrip('/')
                 if not fdir:
-                    return '*ERROR* Empty path for CC `{}:{}:{}`!'.format(user, view, actv)
+                    return '*ERROR* You did not set ClearCase Project Path!'
                 user_view_actv = '{}:{}:{}'.format(user, view, actv)
                 resp = self.project.clearFs.list_user_files(user_view_actv, fdir)
             else:
@@ -409,7 +409,7 @@ class CeXmlRpc(_cptools.XMLRPCController):
             actv = ccConfig['actv']
             path = ccConfig['path'].rstrip('/')
             if not path:
-                return '*ERROR* User `{}` did not set ClearCase Project Path!'.format(user)
+                return '*ERROR* You did not set ClearCase Project Path!'
             user_view_actv = '{}:{}:{}'.format(user, view, actv)
             return self.project.clearFs.read_user_file(user_view_actv, path +'/'+ fpath)
         else:
@@ -457,6 +457,27 @@ class CeXmlRpc(_cptools.XMLRPCController):
         else:
             dpath = self.project.get_user_info(user, 'projects_path').rstrip('/')
             return self.project.localFs.delete_user_file(user, dpath +'/'+ fpath)
+
+
+    @cherrypy.expose
+    def get_predef_suites_path(self):
+        """
+        Magically return the predefined suites path, from FWM or CC config.
+        """
+        # Check the username from CherryPy connection
+        user = cherrypy.session.get('username')
+
+        # Auto detect if ClearCase Test Config Path is active
+        ccConfig = self.project.get_clearcase_config(user, 'predefined_path')
+        if ccConfig:
+            fdir = ccConfig['path']
+            if not fdir:
+                return '*ERROR* You did not set ClearCase Project Path!'
+        else:
+            fdir = self.project.get_user_info(user, 'predefined_path')
+            if not fdir:
+                return '*ERROR* You did not set Predefined Suites Path!'
+        return fdir
 
 
     @cherrypy.expose
