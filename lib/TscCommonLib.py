@@ -279,6 +279,10 @@ class TscCommonLib(object):
         """
         Shortcut function for sending a message in a log to Central Engine.
         """
+        if not log_message:
+            log_message = ''
+        else:
+            log_message = str(log_message)
         self.ce_proxy.log_message(log_type, log_message)
 
 

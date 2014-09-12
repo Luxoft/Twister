@@ -1,6 +1,6 @@
 #!/usr/bin/env python2.7
 
-# version: 3.021
+# version: 3.022
 
 # File: ExecutionProcess.py ; This file is part of Twister.
 
@@ -607,9 +607,15 @@ class TwisterRunner(object):
 
             lib_pth = libs_path + os.sep + lib_file
 
-            f = open(lib_pth, 'wb')
-            f.write(lib_data)
-            f.close() ; del f
+            try: os.makedirs(os.path.split(lib_pth)[0])
+            except Exception: pass
+
+            try:
+                with open(lib_pth, 'wb') as f:
+                    f.write(lib_data)
+            except Exception as e:
+                print('Cannot save Zip library `{}`: `{}`!'.format(lib_file, e))
+                continue
 
         for lib_file in all_libs:
             lib_data = proxy().download_library(lib_file)
@@ -625,6 +631,9 @@ class TwisterRunner(object):
                 lib_pth = libs_path + '/deep'
             else:
                 lib_pth = libs_path + '/' + lib_file
+
+            try: os.makedirs(os.path.split(lib_pth)[0])
+            except Exception: pass
 
             try:
                 with open(lib_pth, 'wb') as f:
