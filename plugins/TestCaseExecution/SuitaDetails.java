@@ -1,6 +1,6 @@
 /*
 File: SuitaDetails.java ; This file is part of Twister.
-Version: 3.002
+Version: 3.003
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -82,7 +82,7 @@ public class SuitaDetails extends JPanel {
     private TitledBorder border;    
     private JCheckBox stoponfail, runnable, optional, prerequisites,
                       savedb, panicdetect,teardown,prestoponfail;
-    private JTextField tprescript, tpostscript,tview;
+    private JTextField tprescript, tpostscript,tview,tlibraries;
     private JButton browse1,browse2,suitelib;
     private Item parent;
     private JTextField tsuite,ttcname,ttcdelay;
@@ -92,6 +92,7 @@ public class SuitaDetails extends JPanel {
     private String [] globallib;
     private PropPanel prop;
     private ParamPanel param;
+    private JComboBox libraryoption;
     
     
     public void setEnabled(boolean enabled) {
@@ -217,6 +218,11 @@ public class SuitaDetails extends JPanel {
         browse2 = new JButton("...");
         prescript.setText("Pre execution script:");
         postscript.setText("Post execution script:");
+        libraryoption = new JComboBox();
+        libraryoption.setModel(new javax.swing.DefaultComboBoxModel(new String[] {"flat", "deep"}));
+        tlibraries = new JTextField();
+        tlibraries.setEditable(false);
+        JLabel libraries = new JLabel("Libraries");
         
         globallib.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
@@ -264,75 +270,95 @@ public class SuitaDetails extends JPanel {
             }
         });
         
-        layout = new GroupLayout(global);
+
+        layout = new javax.swing.GroupLayout(global);
         global.setLayout(layout);
         layout.setHorizontalGroup(
-            layout.createParallelGroup(GroupLayout.Alignment.LEADING)
+            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
-                .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
+                .addContainerGap()
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addGroup(layout.createSequentialGroup()
-                        .addContainerGap()
-                        .addComponent(stoponfail, GroupLayout.PREFERRED_SIZE, 105, GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(savedb, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(tcdelay)
-                        .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(ttcdelay, GroupLayout.DEFAULT_SIZE, 160, Short.MAX_VALUE)
-                        .addGap(10, 12, 12)
-                        .addComponent(globallib))
-                    .addGroup(layout.createSequentialGroup()
-                        .addGap(10, 10, 10)
                         .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addGroup(layout.createSequentialGroup()
-                                .addComponent(prescript)
-                                .addGap(20, 20, 20))
-                            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                                .addComponent(postscript)
-                                .addGap(18, 18, 18)))
+                            .addComponent(libraries)
+                            .addComponent(tcdelay)
+                            .addComponent(prescript)
+                            .addComponent(postscript))
+                        .addGap(18, 18, 18)
                         .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addComponent(tpostscript)
-                            .addComponent(tprescript))
+                            .addComponent(tpostscript, javax.swing.GroupLayout.DEFAULT_SIZE, 186, Short.MAX_VALUE)
+                            .addComponent(tprescript, javax.swing.GroupLayout.DEFAULT_SIZE, 186, Short.MAX_VALUE)
+                            .addComponent(tlibraries)
+                            .addComponent(ttcdelay, javax.swing.GroupLayout.DEFAULT_SIZE, 186, Short.MAX_VALUE))
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                         .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                             .addGroup(layout.createSequentialGroup()
-                                .addComponent(browse1)
+                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                    .addComponent(browse1)
+                                    .addComponent(browse2))
                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                                 .addComponent(prestoponfail))
-                            .addComponent(browse2))))
-                .addContainerGap()
-                )
+                            .addGroup(layout.createSequentialGroup()
+                                .addComponent(globallib)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(libraryoption, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))))
+                    .addGroup(layout.createSequentialGroup()
+                        .addComponent(stoponfail, javax.swing.GroupLayout.PREFERRED_SIZE, 105, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(18, 18, 18)
+                        .addComponent(savedb)
+                        .addGap(0, 0, Short.MAX_VALUE)))
+                .addContainerGap())
         );
+
+        layout.linkSize(javax.swing.SwingConstants.HORIZONTAL, new java.awt.Component[] {browse1, browse2, globallib});
+
+        layout.linkSize(javax.swing.SwingConstants.HORIZONTAL, new java.awt.Component[] {libraryoption, prestoponfail});
+
         layout.setVerticalGroup(
-            layout.createParallelGroup(GroupLayout.Alignment.LEADING)
+            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
                 .addGap(12, 12, 12)
-                .addGroup(layout.createParallelGroup(GroupLayout.Alignment.CENTER)
-                    .addComponent(stoponfail, GroupLayout.PREFERRED_SIZE, 20, GroupLayout.PREFERRED_SIZE)
-                    .addComponent(savedb, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
-                    .addComponent(tcdelay)
-                    .addComponent(ttcdelay, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
-                    .addComponent(globallib))
-                .addGap(11, 11, 11)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(prescript)
+                    .addComponent(stoponfail, javax.swing.GroupLayout.PREFERRED_SIZE, 20, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(savedb))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(ttcdelay, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(tcdelay))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(tprescript, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(prescript)
                     .addComponent(browse1)
                     .addComponent(prestoponfail))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(tpostscript, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(browse2)
-                    .addComponent(postscript))
+                    .addComponent(postscript)
+                    .addComponent(browse2))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(tlibraries, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(libraries)
+                    .addComponent(globallib)
+                    .addComponent(libraryoption, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                //.addContainerGap(12, Short.MAX_VALUE)
                 .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE)
+                
                 )
         );
 
+        layout.linkSize(javax.swing.SwingConstants.VERTICAL, new java.awt.Component[] {browse1, tprescript, ttcdelay});
+
+        layout.linkSize(javax.swing.SwingConstants.VERTICAL, new java.awt.Component[] {browse2, tpostscript, tlibraries});
+        
         layout.linkSize(SwingConstants.VERTICAL,
                         new Component[] {browse1, tprescript});
 
         layout.linkSize(SwingConstants.VERTICAL, 
                         new Component[] {browse2, tpostscript});
+    
+
     }
     
     // show libraries selection window for root suite
@@ -372,17 +398,7 @@ public class SuitaDetails extends JPanel {
                     buildMyListSubchilds(1,child,el);
                 }
             }
-                                                                        
-                                                                        
-                                                                        
-//             MyListElement [] libs = new MyListElement[s.length];
-//             for(int i=0;i<s.length;i++){
-//                 libs[i] = new MyListElement(s[i].toString());
-//                 ((DefaultListModel)(jList1.getModel())).addElement(libs[i]);
-//             }
             ArrayList<Integer> ind = new ArrayList<Integer>();
-//             jList1.setModel(new DefaultComboBoxModel(libs));
-            
             if(parent.getLibs()!=null){
                 for(String st:parent.getLibs()){
                     for(i=0;i<libs.length;i++){
@@ -413,35 +429,9 @@ public class SuitaDetails extends JPanel {
             String [] libs = new String[val.size()];
             for(int s=0;s<val.size();s++){
                 MyListElement el = (MyListElement)val.get(s);
-//                 MyListElement parent = el.getParent();
-//                 ArrayList<String> list = new ArrayList();
-//                 list.add(el.getName().trim());
-//                 if(parent!=null)list.add("/");
-//                 while(parent!=null){
-//                     list.add(parent.getName().trim());
-//                     parent = parent.getParent();
-//                 }
-//                 StringBuilder sb = new StringBuilder();
-//                 for(int i=list.size()-1;i>-1;i--){
-//                     sb.append(list.get(i));
-//                 }
                 libs[s]=el.getFullPath();
             }
             parent.setLibs(libs);
-            
-            
-            
-            
-            
-            
-            
-            
-//             List val = jList1.getSelectedValuesList();
-//             String [] libs = new String[val.size()];
-//             for(int s=0;s<val.size();s++){
-//                 libs[s]=val.get(s).toString();
-//             }
-//             parent.setLibs(libs);
         }
     }
     
@@ -510,10 +500,6 @@ public class SuitaDetails extends JPanel {
             layout.createParallelGroup(GroupLayout.Alignment.LEADING)
             .addComponent(jScrollPane1, GroupLayout.DEFAULT_SIZE, 300, Short.MAX_VALUE)
         );
-        
-        
-        
-//         HashMap librariesfolder = RunnerRepository.getRemoteFolderStructure("/home/tscguest/twister/demo");
         HashMap librariesfolder = null;
         try{librariesfolder =  (HashMap)RunnerRepository.getRPCClient().execute("get_libraries_list", new Object[]{RunnerRepository.user});}
         catch(Exception e){
@@ -545,23 +531,14 @@ public class SuitaDetails extends JPanel {
         if(resp == JOptionPane.OK_OPTION){
             List val = jList1.getSelectedValuesList();
             globallib = new String[val.size()];
+            StringBuilder tlibs = new StringBuilder();
             for(int s=0;s<val.size();s++){
                 MyListElement el = (MyListElement)val.get(s);
-//                 MyListElement parent = el.getParent();
-//                 ArrayList<String> list = new ArrayList();
-//                 list.add(el.getName().trim());
-//                 if(parent!=null)list.add("/");
-//                 while(parent!=null){
-//                     list.add(parent.getName().trim());
-//                     parent = parent.getParent();
-//                 }
-//                 StringBuilder sb = new StringBuilder();
-//                 for(i=list.size()-1;i>-1;i--){
-//                     sb.append(list.get(i));
-//                 }
-//                 globallib[s]=sb.toString();
                 globallib[s] = el.getFullPath();
+                tlibs.append(globallib[s]);
+                tlibs.append(";");
             }
+            tlibraries.setText(tlibs.toString());
         }
         
     }
@@ -590,6 +567,16 @@ public class SuitaDetails extends JPanel {
     
     public void setGlobalLibs(String [] globallib){
         this.globallib = globallib;
+        if(globallib!=null){
+            StringBuilder sb = new StringBuilder();
+            for(String lib:globallib){
+                sb.append(lib);
+                sb.append(";");            
+            }
+            tlibraries.setText(sb.toString());
+        } else {
+            tlibraries.setText("");
+        }
     }
             
     private void initComponents(ArrayList<String []> descriptions,ArrayList<String []> projectfields){
@@ -847,6 +834,26 @@ public class SuitaDetails extends JPanel {
     public void clearProjectsDefs(){
         for(int i=0;i<projectdefinitions.size();i++){
             projectdefinitions.get(i).setDescription("",true);}}
+            
+      
+    public String getGlobalDownloadType(){
+        return libraryoption.getSelectedItem().toString();
+    }
+    
+    public void setGlobalDownloadType(String type){
+        if(type==null){
+            libraryoption.setSelectedIndex(0);
+        } else {
+            int size = libraryoption.getItemCount();
+            for(int i=0;i<size;i++){
+                if(libraryoption.getItemAt(i).toString().equals(type)){
+                    libraryoption.setSelectedIndex(i);
+                    break;
+                }
+            }
+        }
+    }
+          
        
     /*
      * set options according to new selected item
@@ -1004,8 +1011,6 @@ public class SuitaDetails extends JPanel {
             combo.setSelectedIndices(sel);
             combo.addListSelectionListener(new MyListSelectionListener());
         }
-        
-        
     }
 
     public void setSuiteDetails(boolean rootsuite){

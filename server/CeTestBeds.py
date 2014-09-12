@@ -52,7 +52,7 @@ RESOURCE_FREE     = 1
 RESOURCE_BUSY     = 2
 RESOURCE_RESERVED = 3
 
-constant_dictionary = {'version': 0, 'name': '/', 'meta': {}, 'children': {}}
+constant_dictionary = {'version': 0, 'name': '/', 'path' : [], 'meta': {}, 'children': {}}
 
 
 def xml_to_res(xml, gparams, skip_header = False):

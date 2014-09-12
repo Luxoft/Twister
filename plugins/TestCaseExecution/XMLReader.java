@@ -1,6 +1,6 @@
 /*
 File: XMLReader.java ; This file is part of Twister.
-Version: 2.023
+Version: 2.024
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -350,6 +350,7 @@ public class XMLReader{
             RunnerRepository.window.mainpanel.p1.suitaDetails.setPreStopOnFail(false);
             RunnerRepository.window.mainpanel.p1.suitaDetails.setPostScript("");
             RunnerRepository.window.mainpanel.p1.suitaDetails.setPreScript("");
+            RunnerRepository.window.mainpanel.p1.suitaDetails.setGlobalDownloadType(null);
         }
         if(test)preprop-=2;//in testsuites repeat tag is not present
         NodeList nodeLst = doc.getChildNodes().item(0).getChildNodes();
@@ -408,6 +409,15 @@ public class XMLReader{
                         ClearCase.setView(view);}
                     catch(Exception e){
                         ClearCase.setView("");
+                    }
+                    continue;
+                }
+                else if(fstNode.getNodeName().equals("DownloadLibraries")){
+                    try{
+                        String librarydownloadtype = fstNode.getChildNodes().item(0).getNodeValue().toString();
+                        RunnerRepository.window.mainpanel.p1.suitaDetails.setGlobalDownloadType(librarydownloadtype);}
+                    catch(Exception e){
+                        RunnerRepository.window.mainpanel.p1.suitaDetails.setGlobalDownloadType(null);
                     }
                     continue;
                 }

@@ -220,7 +220,7 @@ class Project(object):
 
         self.rsrv    = None # RPyc server pointer
         self.ip_port = None # Will be injected by the Central Engine CherryPy
-        self.xparser = CeProjectParser(self)
+        self.xparser = CeXmlParser(self)
         self.manager = ServiceManager()
         self.web   = WebInterface(self)
         self.tb = TestBeds(self)

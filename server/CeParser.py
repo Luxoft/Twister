@@ -26,6 +26,8 @@ import copy
 import uuid
 from lxml import etree
 
+from common.helpers    import *
+
 
 class CeXmlParser(object):
     """
@@ -325,7 +327,7 @@ class CeXmlParser(object):
                 # for every ep of a sut create entry
                 for sut in suts_list:
                     sut = '/' + sut
-                    sut_eps = self.sut.get_info_sut(sut + ':_epnames_' + user, {'__user': user})
+                    sut_eps = self.project.sut.get_info_sut(sut + ':_epnames_' + user, {'__user': user})
 
                     if sut_eps and sut_eps != "false":
                         sut_eps_list = [ep for ep in sut_eps.split(';') if ep]
@@ -344,7 +346,7 @@ class CeXmlParser(object):
                             root.append(config_root_deep)
                     else:
                         # Find Anonimous EP in the active EPs
-                        anonim_ep = self._find_anonim_ep(user)
+                        anonim_ep = self.project._find_anonim_ep(user)
                         if isinstance(anonim_ep, bool):
                             return anonim_ep
                         config_root_deep = copy.deepcopy(config_root)
@@ -364,12 +366,12 @@ class CeXmlParser(object):
         xml_file = userHome(user) + '/twister/config/testsuites.xml'
 
         xml_header = '<?xml version="1.0" encoding="UTF-8" standalone="no"?>\n\n'
-        resp = self.localFs.write_user_file(user, xml_file, xml_header, 'w')
+        resp = self.project.localFs.write_user_file(user, xml_file, xml_header, 'w')
         if resp != True:
             logError(resp)
             return resp
 
-        resp = self.localFs.write_user_file(user, xml_file, etree.tostring(config_fs_root, pretty_print=True), 'w')
+        resp = self.project.localFs.write_user_file(user, xml_file, etree.tostring(config_fs_root, pretty_print=True), 'w')
         if resp != True:
             logError(resp)
             return resp

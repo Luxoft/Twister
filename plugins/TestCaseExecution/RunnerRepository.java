@@ -1,6 +1,6 @@
 /*
 File: RunnerRepository.java ; This file is part of Twister.
-Version: 3.002
+Version: 3.003
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -133,8 +133,8 @@ public class RunnerRepository {
     public static Container container;
     public static Applet applet;
     private static Document pluginsconfig;
-    private static String version = "3.026";
-    private static String builddate = "21.08.2014";
+    private static String version = "3.027";
+    private static String builddate = "11.09.2014";
     public static String logotxt,os,python;
     
     public static void setStarter(Starter starter){
@@ -1820,7 +1820,8 @@ public class RunnerRepository {
                     window.mainpanel.p1.sc.g.setUser((new StringBuilder()).append(RunnerRepository.getUsersDirectory()).
                                                         append(RunnerRepository.getBar()).append(user).append(".xml").
                                                         toString());
-                    window.mainpanel.p1.sc.g.printXML( window.mainpanel.p1.sc.g.getUser(),false,false,false,false,false,"",false,null,RunnerRepository.window.mainpanel.p1.suitaDetails.getProjectDefs());
+                    window.mainpanel.p1.sc.g.printXML( window.mainpanel.p1.sc.g.getUser(),false,false,false,false,false,"",false,null,
+                                                        RunnerRepository.window.mainpanel.p1.suitaDetails.getProjectDefs(),RunnerRepository.window.mainpanel.p1.suitaDetails.getGlobalDownloadType());
                     RunnerRepository.window.mainpanel.p1.suitaDetails.setPreScript("");
                     RunnerRepository.window.mainpanel.p1.suitaDetails.setPostScript("");
                     RunnerRepository.window.mainpanel.p1.suitaDetails.setGlobalLibs(null);

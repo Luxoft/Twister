@@ -1,6 +1,6 @@
 /*
 File: ConfigEditor.java ; This file is part of Twister.
-Version: 3.002
+Version: 3.003
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -191,7 +191,7 @@ public class ConfigEditor extends JPanel{
         tdescription.setWrapStyleWord(true);
         tdescription.setLineWrap(true);
 
-        ttype.setModel(new DefaultComboBoxModel(new String[] { "decimal", "hex", "octet", "string" }));
+        ttype.setModel(new DefaultComboBoxModel(new String[] {"iterator","decimal", "hex", "octet", "string"}));
         ttype.setMinimumSize(new Dimension(6, 20));
 
         GroupLayout layout = new GroupLayout(pdesc);
@@ -985,17 +985,20 @@ public class ConfigEditor extends JPanel{
         }
         if(type!=null){
             try{String str = type.getNodeValue();
-                if(str.equals("decimal")){
+                if(str.equals("iterator")){
                     ttype.setSelectedIndex(0);
+                    docum.setType('i');
+                } else if(str.equals("decimal")){
+                    ttype.setSelectedIndex(1);
                     docum.setType('d');
                 } else if(str.equals("hex")){
-                    ttype.setSelectedIndex(1);
+                    ttype.setSelectedIndex(2);
                     docum.setType('h');
                 } else if(str.equals("octet")){
-                    ttype.setSelectedIndex(2);
+                    ttype.setSelectedIndex(3);
                     docum.setType('b');
                 } else {
-                    ttype.setSelectedIndex(3);
+                    ttype.setSelectedIndex(4);
                     docum.setType('a');
                 }
             } catch(Exception e){}
@@ -1006,7 +1009,11 @@ public class ConfigEditor extends JPanel{
                             String selected = ttype.getSelectedItem().toString();
                             docum.setType('a');
                             tvalue.setText("");
-                            if(selected.equals("decimal")){
+                            if(selected.equals("iterator")){
+                                try{docum.setType('i');
+                                    type.setNodeValue("iterator");
+                                } catch (Exception e){e.printStackTrace();}
+                            } else if(selected.equals("decimal")){
                                 try{docum.setType('d');
                                     type.setNodeValue("decimal");
                                 } catch (Exception e){e.printStackTrace();}
@@ -1247,19 +1254,23 @@ public class ConfigEditor extends JPanel{
         try{name.setText(node.getName().getNodeValue());}
         catch(Exception e){}
         final JTextField value = new JTextField();
-        final JComboBox combo = new JComboBox(new String[]{"decimal","hex","octet","string"});
+        final JComboBox combo = new JComboBox(new String[]{"iterator","decimal","hex","octet","string"});
         final IntegerRangeDocument docum = new IntegerRangeDocument(0,255,'d');
         try{String type = node.getType().getNodeValue();
-            if(type.equals("decimal")){
+            if(type.equals("iterator")){
                 combo.setSelectedIndex(0);
-            } else if(type.equals("hex")){
+                docum.setType('i');
+            } else if(type.equals("decimal")){
                 combo.setSelectedIndex(1);
+                docum.setType('d');
+            } else if(type.equals("hex")){
+                combo.setSelectedIndex(2);
                 docum.setType('h');
             } else if(type.equals("octet")){
-                combo.setSelectedIndex(2);
+                combo.setSelectedIndex(3);
                 docum.setType('b');
             } else {
-                combo.setSelectedIndex(3);
+                combo.setSelectedIndex(4);
                 docum.setType('a');
             }
         } catch(Exception e){}
@@ -1270,7 +1281,10 @@ public class ConfigEditor extends JPanel{
                     String selected = combo.getSelectedItem().toString();
                     docum.setType('a');
                     value.setText("");
-                    if(selected.equals("decimal")){
+                    if(selected.equals("iterator")){
+                        try{docum.setType('i');
+                        } catch (Exception e){e.printStackTrace();}
+                    } else if(selected.equals("decimal")){
                         try{docum.setType('d');
                         } catch (Exception e){e.printStackTrace();}
                     } else if (selected.equals("hex")){
@@ -1399,7 +1413,7 @@ public class ConfigEditor extends JPanel{
         });
         
         final JTextField value = new JTextField();
-        final JComboBox combo = new JComboBox(new String[]{"decimal","hex","octet","string"});
+        final JComboBox combo = new JComboBox(new String[]{"iterator","decimal","hex","octet","string"});
         final IntegerRangeDocument docum = new IntegerRangeDocument(0,255,'d');
         value.setDocument(docum);
         combo.addItemListener(new ItemListener(){
@@ -1408,7 +1422,11 @@ public class ConfigEditor extends JPanel{
                     String selected = combo.getSelectedItem().toString();
                     docum.setType('a');
                     value.setText("");
-                    if(selected.equals("decimal")){
+                    if(selected.equals("iterator")){
+                        try{
+                            docum.setType('i');
+                        } catch (Exception e){e.printStackTrace();}
+                    } else if(selected.equals("decimal")){
                         try{
                             docum.setType('d');
                         } catch (Exception e){e.printStackTrace();}
@@ -1745,7 +1763,7 @@ public class ConfigEditor extends JPanel{
     class IntegerRangeDocument extends PlainDocument {
         private int minimum, maximum;
         private int currentValue = 0;
-        private char type;//b-byte, a-any, h-hex, d-decimal
+        private char type;//b-byte, a-any, h-hex, d-decimal, i-iteraotr
       
     
         public IntegerRangeDocument(int minimum, int maximum, char type) {
@@ -1796,6 +1814,12 @@ public class ConfigEditor extends JPanel{
                             super.insertString(offset, string, attributes);
                         }
                     } catch (Exception exception) {exception.printStackTrace();}
+                } else if(type=='i'){
+                    try {
+                        if (newValue.matches("[\\d,\\.]*")) {
+                            super.insertString(offset, string, attributes);
+                        }
+                    } catch (Exception exception) {exception.printStackTrace();}
                 }
             }
         }
@@ -1806,7 +1830,7 @@ public class ConfigEditor extends JPanel{
             String before = currentContent.substring(0, offset);
             String after = currentContent.substring(length + offset, currentLength);
             String newValue = before + after;
-            if(type=='a'){
+            if(type=='a'||type=='i'){
                 super.remove(offset, length);
             }
             else if(type=='b'){
