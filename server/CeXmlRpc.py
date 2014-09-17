@@ -1,7 +1,7 @@
 
 # File: CeXmlRpc.py ; This file is part of Twister.
 
-# version: 3.005
+# version: 3.006
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -1439,6 +1439,127 @@ class CeXmlRpc(_cptools.XMLRPCController):
         else:
             logWarning('Cannot find file `{}`! Null file description!'.format(fname))
             return ''
+
+    @cherrypy.expose
+    def is_file_checkout(self, fname):
+        """
+        Verify if the file is checked out in ClearCase.\n
+        Called from the Java GUI.
+        """
+        logFull('CeXmlRpc:if_file_checkout')
+
+        # If the user has roles and the ClearCase plugin is enabled...
+        user = cherrypy.session.get('username')
+        user_roles = self.project.authenticate(user)
+
+        # Auto detect if ClearCase Test Config Path is active
+        ccConfig = self.project.get_clearcase_config(user, 'tests_path')
+        if user_roles and ccConfig:
+            view = ccConfig['view']
+            actv = ccConfig['actv']
+
+            user_view_actv = '{}:{}:{}'.format(user, view, actv)
+            data = self.project.clearFs.system_command(user_view_actv, 'cleartool lsco {}'.format(fname))
+            if data:
+                if data.find("checkout version") != -1:
+                    return "True"
+            return "False"
+        else:
+            logWarning('Cannot find file `{}`! Null file description!'.format(fname))
+            return ''
+
+    @cherrypy.expose
+    def checkout_file(self, fname, comment):
+        """
+        Checkout ClearCase file.\n
+        Called from the Java GUI.
+        """
+        logFull('CeXmlRpc:checkout_file')
+
+        # If the user has roles and the ClearCase plugin is enabled...
+        user = cherrypy.session.get('username')
+        user_roles = self.project.authenticate(user)
+
+        # Auto detect if ClearCase Test Config Path is active
+        ccConfig = self.project.get_clearcase_config(user, 'tests_path')
+        if user_roles and ccConfig:
+            view = ccConfig['view']
+            actv = ccConfig['actv']
+
+            user_view_actv = '{}:{}:{}'.format(user, view, actv)
+            data = self.project.clearFs.system_command(user_view_actv, 'cleartool co {} {}'.format(comment, fname))
+            if data:
+                if data.find("cleartool: Error") != -1:
+                    # checkou error, we need to return the error
+                    data = data.split('\n')
+                    return '\n'.join(data[1:])
+            return 'True'
+        else:
+            logWarning('Cannot find file `{}`! Null file description!'.format(fname))
+            return ''
+
+    @cherrypy.expose
+    def uncheckout_file(self, fname):
+        """
+        UnCheckout ClearCase file.\n
+        Called from the Java GUI.
+        """
+        logFull('CeXmlRpc:checkout_file')
+
+        # If the user has roles and the ClearCase plugin is enabled...
+        user = cherrypy.session.get('username')
+        user_roles = self.project.authenticate(user)
+
+        # Auto detect if ClearCase Test Config Path is active
+        ccConfig = self.project.get_clearcase_config(user, 'tests_path')
+        if user_roles and ccConfig:
+            view = ccConfig['view']
+            actv = ccConfig['actv']
+
+            user_view_actv = '{}:{}:{}'.format(user, view, actv)
+            data = self.project.clearFs.system_command(user_view_actv, 'cleartool unco -rm {}'.format(fname))
+            if data:
+                if data.find("cleartool: Error") != -1:
+                    # checkou error, we need to return the error
+                    data = data.split('\n')
+                    return '\n'.join(data[1:])
+            return 'True'
+        else:
+            logWarning('Cannot find file `{}`! Null file description!'.format(fname))
+            return ''
+
+    @cherrypy.expose
+    def checkin_file(self, fname, comment):
+        """
+        Checkin ClearCase file.\n
+        Called from the Java GUI.
+        """
+        logFull('CeXmlRpc:checkin_file')
+
+        # If the user has roles and the ClearCase plugin is enabled...
+        user = cherrypy.session.get('username')
+        user_roles = self.project.authenticate(user)
+
+        # Auto detect if ClearCase Test Config Path is active
+        ccConfig = self.project.get_clearcase_config(user, 'tests_path')
+        if user_roles and ccConfig:
+            view = ccConfig['view']
+            actv = ccConfig['actv']
+
+            user_view_actv = '{}:{}:{}'.format(user, view, actv)
+            data = self.project.clearFs.system_command(user_view_actv, 'cleartool ci {} {}'.format(comment, fname))
+            if data:
+                if data.find("cleartool: Error") != -1:
+                    # checkou error, we need to return the error
+                    data = data.split('\n')
+                    return '\n'.join(data[1:])
+            return 'True'
+        else:
+            logWarning('Cannot find file `{}`! Null file description!'.format(fname))
+            return ''
+
+
+
 
 
 # --------------------------------------------------------------------------------------------------

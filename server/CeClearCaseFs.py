@@ -1,7 +1,7 @@
 
 # File: CeClearCaseFs.py ; This file is part of Twister.
 
-# version: 3.014
+# version: 3.015
 
 # Copyright (C) 2012-2014, Luxoft
 
@@ -387,6 +387,16 @@ class ClearCaseFs(CcBorg):
 
     def system_command(self, user_view, cmd):
         """ Execute a system command """
+        logDebug('System command {} {}'.format(user_view, cmd))
+
+        # if the view string ends with : , it means the activity is not set
+        # and we have to strip the last :
+        if user_view.endswith(':'):
+            user_view = user_view.rstrip(':')
+
+        # make sure the CC service is started
+        self._usr_service('bpopescu:twister_view_dev_2')
+
         proc = self._services.get(user_view, {}).get('proc')
         if proc:
             # Empty buffer
@@ -401,6 +411,7 @@ class ClearCaseFs(CcBorg):
                     break
             # Send command
             proc.sendline(cmd)
+            time.sleep(1)
             plog = []
             # Catch buffer
             while 1:

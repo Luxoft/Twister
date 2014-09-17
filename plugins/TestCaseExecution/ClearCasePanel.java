@@ -1,6 +1,6 @@
 /*
 File: ClearCasePanel.java ; This file is part of Twister.
-Version: 3.001
+Version: 3.002
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -195,9 +195,16 @@ public class ClearCasePanel{
                 } else {
                     remotefilename = tree.getSelectionPath().getLastPathComponent().toString();
                 }
-                HashMap<String, String> hash = new HashMap<String, String>();
-                hash.put("command", "cleartool lsco "+remotefilename);
-                String response = RunnerRepository.window.mainpanel.getP5().sendCommand(hash,true);
+
+                String response = "";
+                try {
+                    System.out.println("Check if file is checked out: "+remotefilename);
+                    response = RunnerRepository.getRPCClient().execute("is_file_checkout", new Object[]{remotefilename}).toString();
+                    System.out.println("response: "+response);
+                } catch (Exception e){
+                    e.printStackTrace();
+                }
+
                 refreshPopup(ev,response,remotefilename);
             } else {
                 refreshPopup(ev,null,null);
@@ -289,7 +296,7 @@ public class ClearCasePanel{
                 editable = "";
             }
             if ((tree.getSelectionPath()!=null)&&(tree.getSelectionPaths().length == 1)) {                
-                if(response.indexOf("checkout")==-1){
+                if(response.equals("False")){
                     item = new JMenuItem("Checkout");
                     p.add(item);
                     item.addActionListener(new ActionListener() {
@@ -366,9 +373,15 @@ public class ClearCasePanel{
     }
     
     public void uncheckout(String remotefilename){
-            HashMap<String,String>hash = new HashMap<String,String>();
-            hash.put("command","cleartool unco -rm \""+remotefilename+"\"");
-            String response = RunnerRepository.window.mainpanel.getP5().sendCommand(hash,false);
+            String response = "";
+            try {
+                System.out.println("Trying to uncheckout file: "+remotefilename);
+                response = RunnerRepository.getRPCClient().execute("uncheckout_file", new Object[]{remotefilename}).toString();
+                System.out.println("response: "+response);
+            } catch (Exception e){
+                e.printStackTrace();
+            }
+
             if(response.indexOf("Error")!=-1){
                 String[] lines = response.split("\n");
                 StringBuilder sb = new StringBuilder();
@@ -393,19 +406,26 @@ public class ClearCasePanel{
             } else {
                 comment = " -c "+" \""+comment+"\" ";
             }
-             HashMap<String,String>hash = new HashMap<String,String>();
-             hash.put("command","cleartool ci " +comment+remotefilename);
-             String response = RunnerRepository.window.mainpanel.getP5().sendCommand(hash,false);
-             if(response.indexOf("Error")!=-1){
-                String[] lines = response.split("\n");
-                StringBuilder sb = new StringBuilder();
-                sb.append("<html>");
-                for(String l:lines){
-                    sb.append(l);
-                    sb.append("<br>");
-                }
-                sb.append("</html>");
-                CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,tree, "ERROR", sb.toString());
+
+            String response = "";
+            try {
+                System.out.println("Trying to checkin file: "+remotefilename);
+                response = RunnerRepository.getRPCClient().execute("checkin_file", new Object[]{remotefilename, comment}).toString();
+                System.out.println("response: "+response);
+            } catch (Exception e){
+                e.printStackTrace();
+            }
+
+            if(response.indexOf("Error")!=-1){
+               String[] lines = response.split("\n");
+               StringBuilder sb = new StringBuilder();
+               sb.append("<html>");
+               for(String l:lines){
+                   sb.append(l);
+                   sb.append("<br>");
+               }
+               sb.append("</html>");
+               CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,tree, "ERROR", sb.toString());
             }
          }
      }
@@ -420,9 +440,16 @@ public class ClearCasePanel{
             } else {
                 comment = " -c "+" \""+comment+"\" ";
             }
-            HashMap<String,String>hash = new HashMap<String,String>();
-            hash.put("command","cleartool co " +comment+remotefilename);
-            String response = RunnerRepository.window.mainpanel.getP5().sendCommand(hash,false);
+
+            String response = "";
+            try {
+                System.out.println("Trying to checkout file: "+remotefilename);
+                response = RunnerRepository.getRPCClient().execute("checkout_file", new Object[]{remotefilename, comment}).toString();
+                System.out.println("response: "+response);
+            } catch (Exception e){
+                e.printStackTrace();
+            }
+
             if(response.indexOf("Error")!=-1){
                 String[] lines = response.split("\n");
                 StringBuilder sb = new StringBuilder();
