@@ -56,6 +56,7 @@ class CeXmlParser(object):
         for sut_name in config_root.xpath('//SutName'):
             sut_name.text = sut
 
+        # add the ep name to ID
         for id_name in config_root.xpath('//ID'):
             if '#' not in id_name.text:
                 id_name.text = id_name.text + "#" + ep
@@ -210,6 +211,7 @@ class CeXmlParser(object):
         Add to repeated_dict.
         '''
 
+        # add suite id, sut and ep
         if "#" not in new_id:
             new_id = new_id + "#" + ep
 
@@ -275,17 +277,26 @@ class CeXmlParser(object):
 
 
     def explode_by_config(self, config_root_deep, parent_tc, ep, repeated_dict, cartesian_list):
-        prop_template = copy.deepcopy(parent_tc.find('Property'))
+        '''
+        Add iterators if tc has config files.
+        Explode the tc as many times as tuples of iterators..
+        '''
 
+        # will need to add new prop to tc for iterator
+        prop_template = copy.deepcopy(parent_tc.find('Property'))
         parent_tc_copy = parent_tc
+        #get the ID to know the key in repeated_dict id dependency
         parent_id_initial = copy.deepcopy(parent_tc.find('ID').text)
 
+        # get all the current ids to avoid creating an identical one
         generated_ids_elems = copy.deepcopy(config_root_deep.xpath('//ID'))
         generated_ids = []
         for g_id in generated_ids_elems:
             generated_ids.append(g_id.text)
 
         for item in cartesian_list:
+            # the tc may alreay have iterator prop because it is a copy -
+            # we have to modify it
             find_prop = False
             props_list = parent_tc.findall('Property')
             for prop_p in props_list:
@@ -294,6 +305,7 @@ class CeXmlParser(object):
                     prop_value = prop_template.find('propValue')
                     find_prop = True
 
+            # first time the copy won't have iterator prop so add it
             if not find_prop:
                 prop_name = prop_template.find('propName')
                 prop_value = prop_template.find('propValue')
@@ -312,12 +324,14 @@ class CeXmlParser(object):
                     new_id = uuid.uuid4()
 
                 generated_ids.append(str(new_id))
+                # add to repeated dict - needed if dependency
                 self._add_to_repeated(parent_id_initial, str(new_id), repeated_dict, ep)
+
                 # update parent_tc_copy id
                 parent_tc_copy.find('ID').text = str(new_id)
 
             config_root_deep.append(parent_tc_copy)
-
+            # create a copy for next iteration
             parent_tc_copy = copy.deepcopy(parent_tc)
 
         return True
@@ -325,11 +339,14 @@ class CeXmlParser(object):
 
     def get_config_files(self, user, config_root_deep, ep, repeated_dict):
         '''
+        Get the iterators from all the confing files.
+        Call a method to multiply the tc.
         '''
 
         cfg_path = self.project.get_user_info(user, 'tcfg_path')
         cfg_prop = config_root_deep.xpath('//ConfigFiles')
 
+        #get all the ConfigFiles tags. A tc can have
         for cfg_item in cfg_prop:
 
             config_info = cfg_item.findall('Config')
@@ -374,13 +391,22 @@ class CeXmlParser(object):
                     # get the default value
                     index_dot = values_list[0].find("..")
                     if index_dot > -1:
-                        default_value = ast.literal_eval(values_list[0][:index_dot])
+                        try:
+                            default_value = ast.literal_eval(values_list[0][:index_dot])
+                            default_value = int(default_value)
+                        except:
+                            default_value = values_list[0][:index_dot]
                     else:
-                        default_value = ast.literal_eval(values_list[0])
+                        try:
+                            default_value = ast.literal_eval(values_list[0])
+                            default_value = int(default_value)
+                        except:
+                            default_value = values_list[0]
+
 
                     if iterator_default == "true":
-                        part_interval_values.append(int(default_value))
-                        default_values_list.append(int(default_value))
+                        part_interval_values.append(default_value)
+                        default_values_list.append(default_value)
                     else:
                         for interv in values_list:
                             try:
@@ -390,7 +416,10 @@ class CeXmlParser(object):
                                 range_res = range(int(x), int(y) + 1)
                                 part_interval_values.extend(range_res)
                             except:
-                                part_interval_values.append(ast.literal_eval(interv))
+                                try:
+                                    part_interval_values.append(ast.literal_eval(interv))
+                                except:
+                                    part_interval_values.append(interv)
 
                     if part_interval_values:
                         if config_file in interval_values.keys():
@@ -401,7 +430,6 @@ class CeXmlParser(object):
             cartesian_list = cartesian(interval_values.values())
             if default_values_list:
                 cartesian_list.extend(default_values_list)
-
             self.explode_by_config(config_root_deep, parent_tc, ep, repeated_dict, cartesian_list)
 
 
