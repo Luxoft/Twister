@@ -1,7 +1,7 @@
 
 # File: CeProject.py ; This file is part of Twister.
 
-# version: 3.050
+# version: 3.051
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -214,6 +214,11 @@ class Project(object):
             self.srv_ver = 'version `{}`'.format(self.srv_ver)
         except Exception:
             self.srv_ver = ''
+
+        try:
+            self.BRANCH = open(TWISTER_PATH + '/server/branch.txt').read().strip()
+        except Exception:
+            self.BRANCH = 'master'
 
         logInfo('STARTING TWISTER SERVER {}...'.format(self.srv_ver))
         ti = time.time()
@@ -2677,9 +2682,15 @@ class Project(object):
             # Current project libraries
             proj_libs = self.get_user_info(user, 'libraries') or ''
 
-            dl_libs = self.get_user_info(user, 'dl_libs') or 'flat'
+            dl_libs = self.get_user_info(user, 'dl_libs')
+            if not dl_libs:
+                if self.BRANCH == 'fujitsu':
+                    dl_libs = 'flat'
+                else:
+                    dl_libs = 'deep'
+
             if dl_libs == 'flat':
-                libs = [x.strip() for x in proj_libs.split(';')] if proj_libs else []
+                libs = [x.strip() for x in proj_libs.split(';') if x.strip()] if proj_libs else []
                 logDebug('Current project flat libraries for user `{}`: {}.'.format(user, libs))
                 return libs
 
