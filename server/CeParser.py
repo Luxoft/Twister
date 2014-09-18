@@ -24,10 +24,15 @@
 
 import copy
 import uuid
+import re
+import ast
 from lxml import etree
 
 from common.helpers    import *
 
+def cartesian (lists):
+    if lists == []: return [()]
+    return [x + (y,) for x in cartesian(lists[:-1]) for y in lists[-1]]
 
 class CeXmlParser(object):
     """
@@ -70,7 +75,7 @@ class CeXmlParser(object):
         return True
 
 
-    def _do_repeat(self, config_root, repeted_dict, ep):
+    def _do_repeat(self, config_root, repeated_dict, ep):
         '''
         Repet Test Case or Suites as often as the tag <Reapet>
         says.
@@ -97,9 +102,10 @@ class CeXmlParser(object):
                     new_id = uuid.uuid4()
                     while new_id in generated_ids:
                         new_id = uuid.uuid4()
+
                     generated_ids.append(str(new_id))
 
-                    self.add_to_repeated(copy.deepcopy(deep_copy.find('ID').text), str(new_id), repeted_dict, ep)
+                    self._add_to_repeated(copy.deepcopy(deep_copy.find('ID').text), str(new_id), repeated_dict, ep)
 
                     # update suite id
                     deep_copy.find('ID').text = str(new_id)
@@ -112,12 +118,12 @@ class CeXmlParser(object):
                 repeat.getparent().find('Repeat').text = str(1)
 
             else:
-                self.add_to_repeated(copy.deepcopy(parent.find('ID').text), copy.deepcopy(parent.find('ID').text), repeted_dict, ep)
+                self._add_to_repeated(copy.deepcopy(parent.find('ID').text), copy.deepcopy(parent.find('ID').text), repeated_dict, ep)
 
         return True
 
 
-    def resolve_dependencies(self, repeted_dict, config_fs_root):
+    def _resolve_dependencies(self, repeated_dict, config_fs_root):
         '''
         Modify the dependency tag with the corresponding ones after
         exploding the suite.
@@ -161,13 +167,13 @@ class CeXmlParser(object):
                     clean_id = dep_id_s.split(':')[0]
                     status = dep_id_s.split(':')[1]
 
-                    if clean_id in repeted_dict:
-                        repeted_dict[clean_id] = list(set(repeted_dict[clean_id]))
+                    if clean_id in repeated_dict:
+                        repeated_dict[clean_id] = list(set(repeated_dict[clean_id]))
 
                         dep_string = ''
                         found_dep = False
 
-                        for elem in repeted_dict[clean_id]:
+                        for elem in repeated_dict[clean_id]:
                             if ("#" + suite_e_id + "-" + sut_value + "-" + parent_id_ep) in elem:
 
                                 index = elem.find("#")
@@ -181,14 +187,14 @@ class CeXmlParser(object):
 
                                 found_dep = True
 
+                        # depends on tc from a another suite
                         if not found_dep:
-                            for elem in repeted_dict[clean_id]:
+                            for elem in repeated_dict[clean_id]:
                                 index = elem.find("#")
 
                                 elem_c = elem[:index] + "#" + parent_id_ep
                                 dep_string = elem_c + ":" + status + ";"
-
-                                if "#" in dep_id.text:
+                                if '#' in dep_id.text:
                                     dep_id.text = dep_id.text + dep_string
                                 else:
                                     dep_id.text = dep_string
@@ -199,29 +205,32 @@ class CeXmlParser(object):
         return True
 
 
-    def add_to_repeated(self, kid_id, new_id, repeted_dict, ep):
+    def _add_to_repeated(self, kid_id, new_id, repeated_dict, ep):
         '''
         Add to repeated_dict.
         '''
+
         if "#" not in new_id:
             new_id = new_id + "#" + ep
-        if kid_id not in repeted_dict.keys():
+
+        if kid_id not in repeated_dict.keys():
             found = False
-            for key, values in repeted_dict.items():
-                #maybe this is a copy with a changed id of another copy
-                if kid_id in values:
-                    found = True
-                    repeted_dict[key].append(new_id)
-                    break
+            for key, values in repeated_dict.items():
+                for v in values:
+                    #maybe this is a copy with a changed id of another copy
+                    if kid_id in v:
+                        found = True
+                        repeated_dict[key].append(new_id)
+                        break
             # create a key with the old id
             if not found:
-                repeted_dict[kid_id] = [new_id]
+                repeated_dict[kid_id] = [new_id]
         else:
             # add to the key found
-            repeted_dict[kid_id].append(new_id)
+            repeated_dict[kid_id].append(new_id)
 
 
-    def change_ids(self, config_root, repeted_dict, config_fs_root, ep):
+    def _change_ids(self, config_root, repeated_dict, config_fs_root, ep):
         '''
         Change IDs if a suite has to repeat
         '''
@@ -259,10 +268,141 @@ class CeXmlParser(object):
                 generated_ids.append(str(new_id))
 
                 # add to repeated_dict the old id and the new one
-                self.add_to_repeated(copy.deepcopy(kid_id.text), str(new_id), repeted_dict, suite_id + "-" + ep)
+                self._add_to_repeated(copy.deepcopy(kid_id.text), str(new_id), repeated_dict, suite_id + "-" + ep)
                 kid_id.text = str(new_id)
 
         return True
+
+
+    def explode_by_config(self, config_root_deep, parent_tc, ep, repeated_dict, cartesian_list):
+        prop_template = copy.deepcopy(parent_tc.find('Property'))
+
+        parent_tc_copy = parent_tc
+        parent_id_initial = copy.deepcopy(parent_tc.find('ID').text)
+
+        generated_ids_elems = copy.deepcopy(config_root_deep.xpath('//ID'))
+        generated_ids = []
+        for g_id in generated_ids_elems:
+            generated_ids.append(g_id.text)
+
+        for item in cartesian_list:
+            find_prop = False
+            props_list = parent_tc.findall('Property')
+            for prop_p in props_list:
+                if prop_p.find('propName').text == 'iterator':
+                    prop_template = prop_p
+                    prop_value = prop_template.find('propValue')
+                    find_prop = True
+
+            if not find_prop:
+                prop_name = prop_template.find('propName')
+                prop_value = prop_template.find('propValue')
+                prop_name.text = 'iterator'
+                parent_tc_copy.append(prop_template)
+
+            if isinstance(item, tuple):
+                prop_value.text = str(item)[1:-1]
+            else:
+                prop_value.text = str(item)
+
+            if parent_tc_copy != parent_tc:
+                # generate new unique id
+                new_id = uuid.uuid4()
+                while new_id in generated_ids:
+                    new_id = uuid.uuid4()
+
+                generated_ids.append(str(new_id))
+                self._add_to_repeated(parent_id_initial, str(new_id), repeated_dict, ep)
+                # update parent_tc_copy id
+                parent_tc_copy.find('ID').text = str(new_id)
+
+            config_root_deep.append(parent_tc_copy)
+
+            parent_tc_copy = copy.deepcopy(parent_tc)
+
+        return True
+
+
+    def get_config_files(self, user, config_root_deep, ep, repeated_dict):
+        '''
+        '''
+
+        cfg_path = self.project.get_user_info(user, 'tcfg_path')
+        cfg_prop = config_root_deep.xpath('//ConfigFiles')
+
+        for cfg_item in cfg_prop:
+
+            config_info = cfg_item.findall('Config')
+            if not config_info:
+                continue
+            parent_tc = cfg_item.getparent()
+
+            interval_values = dict()
+            default_values_list = []
+
+            for config_entry in config_info:
+                config_file = cfg_path + "/" + config_entry.get('name')
+                iterator_default = config_entry.get('iterator_default')
+                iterator_sof = config_entry.get('iterator_sof')
+
+                # try to parse the project file
+                try:
+                    xml_config = etree.parse(config_file)
+                except:
+                    msg = "The file: '{}' it's not an xml file. Try again!".format(filename)
+                    logDebug(msg)
+                    return '*ERROR* ' + msg
+
+                config_file_st = etree.tostring(xml_config)
+                config_file_fst = etree.fromstring(config_file_st)
+                #find all entries having tag = iterator
+                config_types = config_file_fst.xpath('//type')
+                config_types = [x for x in config_types if x.text == 'iterator']
+
+                # iterators from a config file
+                for item in config_types:
+                    part_interval_values = []
+                    prop_iterator = item.getparent()
+
+                    values = prop_iterator.find('value').text
+                    if not values:
+                        continue
+
+                    values = values.replace(" ", "")
+                    values_list = values.split(',')
+
+                    # get the default value
+                    index_dot = values_list[0].find("..")
+                    if index_dot > -1:
+                        default_value = ast.literal_eval(values_list[0][:index_dot])
+                    else:
+                        default_value = ast.literal_eval(values_list[0])
+
+                    if iterator_default == "true":
+                        part_interval_values.append(int(default_value))
+                        default_values_list.append(int(default_value))
+                    else:
+                        for interv in values_list:
+                            try:
+                                re_intervals = re.search('(\d*\.?\d+)\.+(\d*\.?\d+)', interv)
+                                x = ast.literal_eval(re_intervals.group(1))
+                                y = ast.literal_eval(re_intervals.group(2))
+                                range_res = range(int(x), int(y) + 1)
+                                part_interval_values.extend(range_res)
+                            except:
+                                part_interval_values.append(ast.literal_eval(interv))
+
+                    if part_interval_values:
+                        if config_file in interval_values.keys():
+                            interval_values[config_file].extend(part_interval_values)
+                        else:
+                            interval_values[config_file] = part_interval_values
+
+            cartesian_list = cartesian(interval_values.values())
+            if default_values_list:
+                cartesian_list.extend(default_values_list)
+
+            self.explode_by_config(config_root_deep, parent_tc, ep, repeated_dict, cartesian_list)
 
 
     def generate_xml(self, user, filename):
@@ -294,7 +434,7 @@ class CeXmlParser(object):
         config_ts_root = etree.tostring(root)
         config_fs_root = etree.fromstring(config_ts_root)
 
-        repeted_dict = dict()
+        repeated_dict = dict()
         # get all suites defined in project file
         all_suites = xml.findall('TestSuite')
         for suite in all_suites:
@@ -335,12 +475,14 @@ class CeXmlParser(object):
                         for ep in sut_eps_list:
                             config_root_deep = copy.deepcopy(config_root)
 
-                            self.change_ids(config_root_deep, repeted_dict, config_fs_root, sut + "-" + ep)
-
+                            self._change_ids(config_root_deep, repeated_dict, config_fs_root, sut + "-" + ep)
 
                             suite_id = config_root_deep.find('ID').text
                             # update sut, ep, id, tunning test cases
-                            self._do_repeat(config_root_deep, repeted_dict, suite_id + "-" + sut + "-" + ep)
+
+                            self.get_config_files(user, config_root_deep, suite_id + "-" + sut + "-" + ep, repeated_dict)
+
+                            self._do_repeat(config_root_deep, repeated_dict, suite_id + "-" + sut + "-" + ep)
                             self._edit_suite(ep, sut, config_root_deep)
                             # append suite to the xml root
                             root.append(config_root_deep)
@@ -350,17 +492,20 @@ class CeXmlParser(object):
                         if isinstance(anonim_ep, bool):
                             return anonim_ep
                         config_root_deep = copy.deepcopy(config_root)
-                        self.change_ids(config_root_deep, repeted_dict, config_fs_root, sut + "-" + anonim_ep)
+                        self._change_ids(config_root_deep, repeated_dict, config_fs_root, sut + "-" + anonim_ep)
 
                         suite_id = config_root_deep.find('ID').text
-                        self._do_repeat(config_root_deep, repeted_dict, suite_id + "-" + sut + "-" + anonim_ep)
+
+                        self.get_config_files(user, config_root_deep, suite_id + "-" + sut + "-" + anonim_ep, repeated_dict)
+
+                        self._do_repeat(config_root_deep, repeated_dict, suite_id + "-" + sut + "-" + anonim_ep)
                         self._edit_suite(str(anonim_ep), sut, config_root_deep)
                         # append suite to the xml root
                         root.append(config_root_deep)
 
         config_ts_root = etree.tostring(root)
         config_fs_root = etree.fromstring(config_ts_root)
-        self.resolve_dependencies(repeted_dict, config_fs_root)
+        self._resolve_dependencies(repeated_dict, config_fs_root)
 
         # write the xml file
         xml_file = userHome(user) + '/twister/config/testsuites.xml'
