@@ -1,6 +1,6 @@
 #!/usr/bin/env python2.7
 
-# version: 3.022
+# version: 3.023
 
 # File: ExecutionProcess.py ; This file is part of Twister.
 
@@ -660,6 +660,19 @@ class TwisterRunner(object):
                 os.chdir(libs_path)
                 shutil.move(lib_file, libs_path + '/' + lib_name)
 
+        # Flatten recursive ?
+        if dl_libs == 'flat':
+            os.chdir(libs_path)
+            llen = len(libs_path)
+            for dirName, subdirList, fileList in os.walk(libs_path):
+                for lib_name in fileList:
+                    lib_name = os.path.join(dirName, lib_name)
+                    try:
+                        shutil.move(lib_name, libs_path)
+                        print('Flatten `{}`.'.format(lib_name[llen+1:]))
+                    except Exception:
+                        pass # Nothing to report
+
         if reset_libs:
             print('... all libraries downloaded.\n')
 
@@ -1259,11 +1272,11 @@ class TwisterRunner(object):
         # Print the final message
         diff_time = time.time() - glob_time
 
-        try:
-            shutil.rmtree(EP_CACHE)
-            os.makedirs(EP_CACHE)
-        except Exception as e:
-            print('Cannot clean cache! {}'.format(e))
+        # try:
+        #     shutil.rmtree(EP_CACHE)
+        #     os.makedirs(EP_CACHE)
+        # except Exception as e:
+        #     print('Cannot clean cache! {}'.format(e))
 
         if PORTABLE:
             return self.stop(timer_f=diff_time)
