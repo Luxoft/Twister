@@ -1,6 +1,6 @@
 #!/usr/bin/env python2.7
 
-# version: 3.023
+# version: 3.024
 
 # File: ExecutionProcess.py ; This file is part of Twister.
 
@@ -777,6 +777,8 @@ class TwisterRunner(object):
             optional_test = node.get('Optional')
             # Configuration files?
             config_files = [c['name'] for c in node.get('_cfg_files', [])]
+            # Iteration number
+            iteration_nr = node.get('iterationNr')
             # Get args
             args = node.get('param')
             if args:
@@ -1096,6 +1098,7 @@ class TwisterRunner(object):
                 'FILE_NAME' : filename,
                 'PROPERTIES': props,
                 'CONFIG'    : config_files,
+                'ITERATION' : iteration_nr,
                 'PROXY'     : proxy(),
                 'breakpoint' : dbg_breakpoint
             }
