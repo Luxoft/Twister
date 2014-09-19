@@ -170,13 +170,11 @@ class CeXmlParser(object):
 
                     if clean_id in repeated_dict:
                         repeated_dict[clean_id] = list(set(repeated_dict[clean_id]))
-
                         dep_string = ''
                         found_dep = False
 
                         for elem in repeated_dict[clean_id]:
                             if ("#" + suite_e_id + "-" + sut_value + "-" + parent_id_ep) in elem:
-
                                 index = elem.find("#")
 
                                 elem_c = elem[:index] + "#" + parent_id_ep
@@ -211,6 +209,9 @@ class CeXmlParser(object):
         Add to repeated_dict.
         '''
 
+        if new_id in ep:
+            return True
+
         # add suite id, sut and ep
         if "#" not in new_id:
             new_id = new_id + "#" + ep
@@ -230,6 +231,7 @@ class CeXmlParser(object):
         else:
             # add to the key found
             repeated_dict[kid_id].append(new_id)
+        return True
 
 
     def _change_ids(self, config_root, repeated_dict, config_fs_root, ep):
