@@ -330,7 +330,7 @@ class CeXmlParser(object):
                 # update parent_tc_copy id
                 parent_tc_copy.find('ID').text = str(new_id)
 
-            config_root_deep.append(parent_tc_copy)
+            parent_tc.addnext(parent_tc_copy)
             # create a copy for next iteration
             parent_tc_copy = copy.deepcopy(parent_tc)
 
@@ -431,7 +431,7 @@ class CeXmlParser(object):
             if default_values_list:
                 cartesian_list.extend(default_values_list)
 
-            self.explode_by_config(config_root_deep, parent_tc, ep, repeated_dict, cartesian_list)
+            self.explode_by_config(config_root_deep, parent_tc, ep, repeated_dict, reversed(cartesian_list))
 
 
     def generate_xml(self, user, filename):
@@ -513,8 +513,10 @@ class CeXmlParser(object):
 
                             self._do_repeat(config_root_deep, repeated_dict, suite_id + "-" + sut + "-" + ep)
                             self._edit_suite(ep, sut, config_root_deep)
-                            # append suite to the xml root
-                            root.append(config_root_deep)
+
+                            if config_root_deep.find('TestSuite') or config_root_deep.find('TestCase'):
+                                # append suite to the xml root
+                                root.append(config_root_deep)
                     else:
                         # Find Anonimous EP in the active EPs
                         anonim_ep = self.project._find_anonim_ep(user)
@@ -529,8 +531,10 @@ class CeXmlParser(object):
 
                         self._do_repeat(config_root_deep, repeated_dict, suite_id + "-" + sut + "-" + anonim_ep)
                         self._edit_suite(str(anonim_ep), sut, config_root_deep)
-                        # append suite to the xml root
-                        root.append(config_root_deep)
+
+                        if config_root_deep.find('TestSuite') or config_root_deep.find('TestCase'):
+                            # append suite to the xml root
+                            root.append(config_root_deep)
 
         config_ts_root = etree.tostring(root)
         config_fs_root = etree.fromstring(config_ts_root)
