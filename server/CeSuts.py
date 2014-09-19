@@ -406,9 +406,11 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
         if not sutsPath:
             sutsPath = '{}/twister/config/sut/'.format(usrHome)
 
-        # # user SUT file; we have to check if the cleacase plugin
-        # # is activated; if so, use it to read the SUT file; else
-        # # use the UserService to read it
+        # user SUT file; we have to check if the cleacase plugin
+        # is activated; if so, use it to read the SUT file; else
+        # use the UserService to read it
+        # open all the json files and parse them - need to index all the ids
+        # that sut contains
         ccConfig = self.project.get_clearcase_config(user, 'sut_path')
         if ccConfig:
             view = ccConfig['view']
@@ -423,7 +425,12 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
             for sutPath in sutPaths:
                 sutName = '.'.join(['.'.join(sutPath.split('.')[:-1]  + ['user'])])
                 resp = self.project.clearFs.read_user_file(user_view_actv, path +'/'+ sutName)
-                sutContent = json.loads(resp)
+                try:
+                    sutContent = json.loads(resp)
+                except:
+                    msg = "User: {} - this sut does not exist: {}".format(user, sutName)
+                    logError(msg)
+                    return "*ERROR* " + msg
                 self.parse_sut(sutContent, sutName)
         else:
 
@@ -439,7 +446,12 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
                     complete_sut_path = sutsPath + sutPath
 
                 resp = self.project.localFs.read_user_file(user_info[0], complete_sut_path)
-                sutContent = json.loads(resp)
+                try:
+                    sutContent = json.loads(resp)
+                except:
+                    msg = "User: {} - this sut does not exist: {}".format(user, sutName)
+                    logError(msg)
+                    return "*ERROR* " + msg
                 self.parse_sut(sutContent, sutName)
 
         return True
