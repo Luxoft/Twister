@@ -300,7 +300,7 @@ class CeXmlParser(object):
             find_prop = False
             props_list = parent_tc.findall('Property')
             for prop_p in props_list:
-                if prop_p.find('propName').text == 'iterator':
+                if prop_p.find('propName').text == 'iterationNr':
                     prop_template = prop_p
                     prop_value = prop_template.find('propValue')
                     find_prop = True
@@ -309,11 +309,11 @@ class CeXmlParser(object):
             if not find_prop:
                 prop_name = prop_template.find('propName')
                 prop_value = prop_template.find('propValue')
-                prop_name.text = 'iterator'
+                prop_name.text = 'iterationNr'
                 parent_tc_copy.append(prop_template)
 
             if isinstance(item, tuple):
-                prop_value.text = str(item)[1:-1]
+                prop_value.text = ', '.join(str(x) for x in item)
             else:
                 prop_value.text = str(item)
 
@@ -382,6 +382,7 @@ class CeXmlParser(object):
                     prop_iterator = item.getparent()
 
                     values = prop_iterator.find('value').text
+
                     if not values:
                         continue
 
@@ -402,7 +403,6 @@ class CeXmlParser(object):
                             default_value = int(default_value)
                         except:
                             default_value = values_list[0]
-
 
                     if iterator_default == "true":
                         part_interval_values.append(default_value)
@@ -430,6 +430,7 @@ class CeXmlParser(object):
             cartesian_list = cartesian(interval_values.values())
             if default_values_list:
                 cartesian_list.extend(default_values_list)
+
             self.explode_by_config(config_root_deep, parent_tc, ep, repeated_dict, cartesian_list)
 
 
