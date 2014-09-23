@@ -661,7 +661,7 @@ class TwisterRunner(object):
                 shutil.move(lib_file, libs_path + '/' + lib_name)
 
         # Flatten recursive ? Default yes !
-        if dl_libs == '' or dl_libs == 'flat':
+        if not dl_libs or dl_libs == 'flat':
             os.chdir(libs_path)
             llen = len(libs_path)
             for dirName, subdirList, fileList in os.walk(libs_path):
