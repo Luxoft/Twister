@@ -1177,6 +1177,15 @@ class CeXmlRpc(_cptools.XMLRPCController):
 
 
     @cherrypy.expose
+    def generate_testsuites(self, user, project_file):
+        """
+        Reset project for 1 user.
+        """
+        logFull('CeXmlRpc:generate_xml user `{}`.'.format(user))
+        return self.project.generate_xml(user, project_file)
+
+
+    @cherrypy.expose
     def get_exec_status(self, user, epname):
         """
         Return execution status for one EP. (stopped, paused, running, invalid)\n

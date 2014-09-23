@@ -67,7 +67,7 @@ class CeXmlParser(object):
                 grand_parent = (prop.getparent()).getparent()
                 grand_parent.remove(prop.getparent())
 
-        # delete empty suites
+        # delete empty sub-suites from this suite
         for suite in config_root.xpath('TestSuite'):
             if not suite.find('TestSuite') and not suite.find('TestCase'):
                 suite_parent = suite.getparent()
@@ -82,42 +82,47 @@ class CeXmlParser(object):
         says.
         '''
 
+        # get all existing ids from the current testsuites.xml
         generated_ids_elems = copy.deepcopy(config_root.xpath('//ID'))
         generated_ids = []
         for g_id in generated_ids_elems:
             generated_ids.append(g_id.text)
 
+        # get all the repeat tags from this suite
         repeat_list = config_root.xpath('//Repeat')
         if not repeat_list:
             return True
 
         for repeat in reversed(repeat_list):
             parent = repeat.getparent()
+
             if int(repeat.text) > 1:
                 for i in range(int(repeat.text) - 1):
-
+                    # create a copy to multiplicate the entries
                     deep_copy = copy.deepcopy(repeat.getparent())
+                    # modify the repeat value of the current item
                     deep_copy.find('Repeat').text = str(1)
 
-                    # generate new unique id if necessary
+                    # generate new unique id
                     new_id = uuid.uuid4()
                     while new_id in generated_ids:
                         new_id = uuid.uuid4()
-
+                    # add the id to the already generated ids
                     generated_ids.append(str(new_id))
 
+                    # add the new_id to repeated_dict to know how the ids propagated
                     self._add_to_repeated(copy.deepcopy(deep_copy.find('ID').text), str(new_id), repeated_dict, ep)
 
                     # update suite id
                     deep_copy.find('ID').text = str(new_id)
 
+                    # the suite repeated - add to root
                     if parent is None:
                         config_root.append(deep_copy)
                     else:
                         parent.addnext(deep_copy)
 
                 repeat.getparent().find('Repeat').text = str(1)
-
             else:
                 self._add_to_repeated(copy.deepcopy(parent.find('ID').text), copy.deepcopy(parent.find('ID').text), repeated_dict, ep)
 
@@ -197,7 +202,7 @@ class CeXmlParser(object):
                                     dep_id.text = dep_id.text + dep_string
                                 else:
                                     dep_id.text = dep_string
-
+                # add the suite to the root element
                 config_fs_root.append(suite_e)
                 config_fs_root.remove(old_suite)
 
@@ -278,7 +283,7 @@ class CeXmlParser(object):
         return True
 
 
-    def explode_by_config(self, config_root_deep, parent_tc, ep, repeated_dict, cartesian_list):
+    def _explode_by_config(self, config_root_deep, parent_tc, ep, repeated_dict, cartesian_list):
         '''
         Add iterators if tc has config files.
         Explode the tc as many times as tuples of iterators..
@@ -339,7 +344,7 @@ class CeXmlParser(object):
         return True
 
 
-    def get_config_files(self, user, config_root_deep, ep, repeated_dict):
+    def _get_config_files(self, user, config_root_deep, ep, repeated_dict):
         '''
         Get the iterators from all the confing files.
         Call a method to multiply the tc.
@@ -433,7 +438,7 @@ class CeXmlParser(object):
             if default_values_list:
                 cartesian_list.extend(default_values_list)
 
-            self.explode_by_config(config_root_deep, parent_tc, ep, repeated_dict, reversed(cartesian_list))
+            self._explode_by_config(config_root_deep, parent_tc, ep, repeated_dict, reversed(cartesian_list))
 
 
     def generate_xml(self, user, filename):
@@ -511,9 +516,10 @@ class CeXmlParser(object):
                             suite_id = config_root_deep.find('ID').text
                             # update sut, ep, id, tunning test cases
 
-                            self.get_config_files(user, config_root_deep, suite_id + "-" + sut + "-" + ep, repeated_dict)
+                            self._get_config_files(user, config_root_deep, suite_id + "-" + sut + "-" + ep, repeated_dict)
 
                             self._do_repeat(config_root_deep, repeated_dict, suite_id + "-" + sut + "-" + ep)
+
                             self._edit_suite(ep, sut, config_root_deep)
 
                             if config_root_deep.find('TestSuite') or config_root_deep.find('TestCase'):
@@ -529,9 +535,10 @@ class CeXmlParser(object):
 
                         suite_id = config_root_deep.find('ID').text
 
-                        self.get_config_files(user, config_root_deep, suite_id + "-" + sut + "-" + anonim_ep, repeated_dict)
+                        self._get_config_files(user, config_root_deep, suite_id + "-" + sut + "-" + anonim_ep, repeated_dict)
 
                         self._do_repeat(config_root_deep, repeated_dict, suite_id + "-" + sut + "-" + anonim_ep)
+
                         self._edit_suite(str(anonim_ep), sut, config_root_deep)
 
                         if config_root_deep.find('TestSuite') or config_root_deep.find('TestCase'):
