@@ -1,7 +1,7 @@
 
 # File: CeXmlRpc.py ; This file is part of Twister.
 
-# version: 3.006
+# version: 3.007
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -1173,7 +1173,7 @@ class CeXmlRpc(_cptools.XMLRPCController):
         logFull('CeXmlRpc:reset_project user `{}`.'.format(user))
         twister_cache = userHome(user) + '/twister/.twister_cache'
         setFileOwner(user, twister_cache)
-        return self.project.xparser.reset_project(user)
+        return self.project.reset_project(user)
 
 
     @cherrypy.expose
@@ -1182,7 +1182,7 @@ class CeXmlRpc(_cptools.XMLRPCController):
         Reset project for 1 user.
         """
         logFull('CeXmlRpc:generate_xml user `{}`.'.format(user))
-        return self.project.generate_xml(user, project_file)
+        return self.project.xparser.generate_xml(user, project_file)
 
 
     @cherrypy.expose
