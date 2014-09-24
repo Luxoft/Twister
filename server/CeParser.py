@@ -69,7 +69,7 @@ class CeXmlParser(object):
 
         # delete empty sub-suites from this suite
         for suite in config_root.xpath('TestSuite'):
-            if not suite.find('TestSuite') and not suite.find('TestCase'):
+            if suite.find('TestSuite') is None and suite.find('TestCase') is None:
                 suite_parent = suite.getparent()
                 suite_parent.remove(suite)
 
@@ -302,6 +302,8 @@ class CeXmlParser(object):
             generated_ids.append(g_id.text)
 
         for item in cartesian_list:
+            if not item or isinstance(item, tuple) and len(item) < 1:
+                continue
             # the tc may alreay have iterator prop because it is a copy -
             # we have to modify it
             find_prop = False
@@ -416,17 +418,33 @@ class CeXmlParser(object):
                         default_values_list.append(default_value)
                     else:
                         for interv in values_list:
+                            re_intervals = re.search('(\w*\d*\.?\d+)\.+(\w*\d*\.?\d+)', interv)
                             try:
-                                re_intervals = re.search('(\d*\.?\d+)\.+(\d*\.?\d+)', interv)
                                 x = ast.literal_eval(re_intervals.group(1))
                                 y = ast.literal_eval(re_intervals.group(2))
                                 range_res = range(int(x), int(y) + 1)
+                                # avoid adding default value again ex: 2, 1...4
+                                if default_value in range_res and default_value in part_interval_values:
+                                    del(range_res[range_res.index(default_value)])
                                 part_interval_values.extend(range_res)
                             except:
                                 try:
-                                    part_interval_values.append(ast.literal_eval(interv))
+                                    x = re_intervals.group(1)
+                                    y = re_intervals.group(2)
+                                    #try to convert to int if possible
+                                    try:
+                                        part_interval_values.append(int(ast.literal_eval(x)))
+                                    except:
+                                        part_interval_values.append(x)
+                                    try:
+                                        part_interval_values.append(int(ast.literal_eval(y)))
+                                    except:
+                                        part_interval_values.append(y)
                                 except:
-                                    part_interval_values.append(interv)
+                                    interv = ast.literal_eval(interv)
+                                    # avoid adding default value again ex: 2, 1, 2, 3
+                                    if default_value != interv or default_value not in part_interval_values:
+                                        part_interval_values.append(interv)
 
                     if part_interval_values:
                         if config_file in interval_values.keys():
@@ -435,10 +453,12 @@ class CeXmlParser(object):
                             interval_values[config_file] = part_interval_values
 
             cartesian_list = cartesian(interval_values.values())
-            if default_values_list:
+            #avoid adding again default values - do not have to create cartesian product
+            if default_values_list and len(config_info) > 1:
                 cartesian_list.extend(default_values_list)
 
             self._explode_by_config(config_root_deep, parent_tc, ep, repeated_dict, reversed(cartesian_list))
+        return True
 
 
     def generate_xml(self, user, filename):
@@ -524,7 +544,7 @@ class CeXmlParser(object):
 
                             self._edit_suite(ep, sut, config_root_deep)
 
-                            if config_root_deep.find('TestSuite') or config_root_deep.find('TestCase'):
+                            if config_root_deep.find('TestSuite') is not None or config_root_deep.find('TestCase') is not None:
                                 # append suite to the xml root
                                 root.append(config_root_deep)
                     else:
@@ -543,7 +563,7 @@ class CeXmlParser(object):
 
                         self._edit_suite(str(anonim_ep), sut, config_root_deep)
 
-                        if config_root_deep.find('TestSuite') or config_root_deep.find('TestCase'):
+                        if config_root_deep.find('TestSuite') is not None or config_root_deep.find('TestCase') is not None:
                             # append suite to the xml root
                             root.append(config_root_deep)
 
