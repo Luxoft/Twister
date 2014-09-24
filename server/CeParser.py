@@ -448,6 +448,8 @@ class CeXmlParser(object):
         on the suts number and eps.
         '''
 
+        logDebug("CeParser: preparing to convert project file: {} for user: {}".format(filename, user))
+
         # try to parse the project file
         try:
             xml = etree.parse(filename)
@@ -563,6 +565,7 @@ class CeXmlParser(object):
             logError(resp)
             return resp
 
+        logDebug("CeParser: Successfully generated: {} for user: {}".format(xml_file, user))
         return True
 
 

@@ -1173,7 +1173,7 @@ class CeXmlRpc(_cptools.XMLRPCController):
         logFull('CeXmlRpc:reset_project user `{}`.'.format(user))
         twister_cache = userHome(user) + '/twister/.twister_cache'
         setFileOwner(user, twister_cache)
-        return self.project.reset_project(user)
+        return self.project.xparser.reset_project(user)
 
 
     @cherrypy.expose
