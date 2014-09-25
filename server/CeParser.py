@@ -97,6 +97,14 @@ class CeXmlParser(object):
             parent = repeat.getparent()
 
             if int(repeat.text) > 1:
+                if parent.find('tcName') is not None:
+                    elem_name = parent.find('tcName').text
+                else:
+                    elem_name = parent.find('tsName').text
+
+                logDebug("CeParser: Will repeat element {}, {} times."\
+                    .format(elem_name, repeat.text))
+
                 for i in range(int(repeat.text) - 1):
                     # create a copy to multiplicate the entries
                     deep_copy = copy.deepcopy(repeat.getparent())
@@ -202,9 +210,11 @@ class CeXmlParser(object):
                                     dep_id.text = dep_id.text + dep_string
                                 else:
                                     dep_id.text = dep_string
-                # add the suite to the root element
-                config_fs_root.append(suite_e)
-                config_fs_root.remove(old_suite)
+
+            # add the suite to the root element
+            config_fs_root.append(suite_e)
+            config_fs_root.remove(old_suite)
+
 
         return True
 
@@ -367,6 +377,9 @@ class CeXmlParser(object):
             default_values_list = []
 
             for config_entry in config_info:
+                enabled = config_entry.get('enabled')
+                if enabled == "false":
+                    continue
                 config_file = cfg_path + "/" + config_entry.get('name')
                 iterator_default = config_entry.get('iterator_default')
                 iterator_sof = config_entry.get('iterator_sof')
@@ -441,7 +454,10 @@ class CeXmlParser(object):
                                     except:
                                         part_interval_values.append(y)
                                 except:
-                                    interv = ast.literal_eval(interv)
+                                    try:
+                                        interv = ast.literal_eval(interv)
+                                    except:
+                                        pass
                                     # avoid adding default value again ex: 2, 1, 2, 3
                                     if default_value != interv or default_value not in part_interval_values:
                                         part_interval_values.append(interv)
@@ -454,8 +470,11 @@ class CeXmlParser(object):
 
             cartesian_list = cartesian(interval_values.values())
             #avoid adding again default values - do not have to create cartesian product
-            if default_values_list and len(config_info) > 1:
+            if default_values_list and len(interval_values.keys()) > 1:
                 cartesian_list.extend(default_values_list)
+
+            logDebug("CeParser: Will iterate test case {}, {} times, from values: {}, user {}."\
+                .format(parent_tc.find('tcName').text, len(cartesian_list), interval_values.values(), user))
 
             self._explode_by_config(config_root_deep, parent_tc, ep, repeated_dict, reversed(cartesian_list))
         return True
@@ -502,6 +521,7 @@ class CeXmlParser(object):
             suts_list = [q for q in all_suts.split(';') if q]
             suts_list = [q.replace('(', '.').replace(')', '') for q in suts_list if q]
 
+            suite_name = suite.find('tsName').text
             # multiply Suite entry as often as the tag 'Repeat' says
             try:
                 repeat = suite.find('Repeat')
@@ -509,10 +529,10 @@ class CeXmlParser(object):
             except:
                 no_repeat = 1
 
-            suite_name = suite.find('tsName').text
+            if no_repeat > 1:
+                logDebug("CeParser: Will repeat suite {}, {} times.".format(suite_name, no_repeat))
+
             for i in range(no_repeat):
-
-
                 deep_copy = copy.deepcopy(suite)
                 config_ts = etree.tostring(deep_copy)
                 config_root = etree.fromstring(config_ts)
