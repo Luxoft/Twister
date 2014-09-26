@@ -1,7 +1,7 @@
 
 # File: CeProject.py ; This file is part of Twister.
 
-# version: 3.051
+# version: 3.053
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -3145,6 +3145,7 @@ class Project(object):
                     subst_data['twister_ep_name']    = epname
                     subst_data['twister_suite_name'] = suite_info['name']
                     subst_data['twister_tc_reason']  = file_info.get('_reason', '')
+                    subst_data['twister_tc_iteration']  = file_info.get('iterationNr', '')
                     subst_data['twister_tc_full_path'] = file_info['file']
                     subst_data['twister_tc_name']  = os.path.split(subst_data['twister_tc_full_path'])[1]
                     subst_data['twister_tc_title'] = ''
