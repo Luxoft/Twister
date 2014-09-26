@@ -31,6 +31,7 @@ from __future__ import print_function
 
 import os
 import copy
+import ast
 import inspect
 import platform
 import marshal
@@ -499,6 +500,11 @@ class TscCommonLib(object):
         """
         Update a TB.
         """
+        if isinstance(props, str) or isinstance(props, unicode):
+            try:
+                props = ast.literal_eval(props)
+            except Exception:
+                pass
         try:
             return self.ce_proxy.set_tb(name, parent, props)
         except Exception as e:

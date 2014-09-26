@@ -9,7 +9,6 @@ Master config file for Twister.
     <GlobalParams>$HOME/twister/config/globals.xml</GlobalParams>
     <DbConfigFile>$HOME/twister/config/db.xml</DbConfigFile>
     <EmailConfigFile>$HOME/twister/config/email.xml</EmailConfigFile>
-    <GlobalParams>$HOME/twister/config/globalparams.xml</GlobalParams>
     <LibsPath>$HOME/twister/libs</LibsPath>
     <PredefinedSuitesPath>$HOME/Documents</PredefinedSuitesPath>
     <TestConfigPath>$HOME/Documents</TestConfigPath>

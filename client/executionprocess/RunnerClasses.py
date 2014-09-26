@@ -1,7 +1,7 @@
 
 # File: TestCaseRunnerClasses.py ; This file is part of Twister.
 
-# version: 3.006
+# version: 3.007
 
 # Copyright (C) 2012-2014, Luxoft
 
@@ -103,43 +103,24 @@ class TCRunTcl(object):
         self.epname = globs['EP']
 
         # Inject variables
-        self.tcl.setvar('USER',
-            globs['USER'])
-        self.tcl.setvar('EP',
-            globs['EP'])
-        self.tcl.setvar('SUT',
-            globs['SUT'])
-        self.tcl.setvar('SUITE_ID',
-            globs['SUITE_ID'])
-        self.tcl.setvar('SUITE_NAME',
-            globs['SUITE_NAME'])
-        self.tcl.setvar('FILE_ID',
-            globs['FILE_ID'])
-        self.tcl.setvar('FILE_NAME',
-            globs['FILE_NAME'])
-        self.tcl.setvar('CONFIG',
-            ';'.join(globs['CONFIG']))
+        self.tcl.setvar('USER', globs['USER'])
+        self.tcl.setvar('EP', globs['EP'])
+        self.tcl.setvar('SUT', globs['SUT'])
+        self.tcl.setvar('SUITE_ID', globs['SUITE_ID'])
+        self.tcl.setvar('SUITE_NAME', globs['SUITE_NAME'])
+        self.tcl.setvar('FILE_ID', globs['FILE_ID'])
+        self.tcl.setvar('FILE_NAME', globs['FILE_NAME'])
+        self.tcl.setvar('CONFIG', ';'.join(globs['CONFIG']))
+        self.tcl.setvar('ITERATION', globs['ITERATION'])
 
-        # Inject common functions
-        self.tcl.createcommand('logMessage',
-            globs['log_msg'])
-        self.tcl.createcommand('get_global',
-            globs['get_global'])
-        self.tcl.createcommand('set_global',
-            globs['set_global'])
-        self.tcl.createcommand('py_exec',
-            globs['py_exec'])
+        # Compatibility log message
+        self.tcl.createcommand('logMessage', globs['log_msg'])
 
-        self.tcl.createcommand('get_resource',
-            globs['get_resource'])
-        self.tcl.createcommand('set_resource',
-            globs['set_resource'])
-        self.tcl.createcommand('rename_resource',
-            globs['rename_resource'])
-        self.tcl.createcommand('delete_resource',
-            globs['delete_resource'])
-        self.tcl.createcommand('reserve_resource',
-            globs['reserve_resource'])
+        # Inject all functions
+        for f in globs:
+            # print('DEBUG: Exposing Python command `{}` into TCL...'.format(f))
+            if callable(globs[f]):
+                self.tcl.createcommand(f, globs[f])
 
         to_execute = '\nset argc %i\n' % len(params) + str_to_execute
         to_execute = 'set argv {%s}\n' % str(params)[1:-1] + to_execute
