@@ -388,7 +388,7 @@ class CeXmlParser(object):
                 try:
                     xml_config = etree.parse(config_file)
                 except:
-                    msg = "The file: '{}' it's not an xml file. Try again!".format(filename)
+                    msg = "The file: '{}' it's not an xml file. Try again!".format(config_file)
                     logDebug(msg)
                     return '*ERROR* ' + msg
 
