@@ -1,7 +1,7 @@
 
 # File: CeSuts.py ; This file is part of Twister.
 
-# version: 3.002
+# version: 3.003
 
 # Copyright (C) 2012-2014, Luxoft
 
@@ -1313,6 +1313,7 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
             resp = self.project.clearFs.list_user_files(user_view_actv, path, False, False)
             if isinstance(resp, str):
                 logWarning(resp)
+                return '*ERROR* ' + resp
             for file in resp['children']:
                 fileName, fileExt = os.path.splitext(file['path'])
                 if fileExt and fileExt == '.json':
