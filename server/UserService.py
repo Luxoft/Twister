@@ -1,7 +1,7 @@
 
 # File: UserService.py ; This file is part of Twister.
 
-# version: 3.012
+# version: 3.013
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -112,6 +112,21 @@ class UserService(rpyc.Service):
         Say hello to server.
         """
         return True
+
+
+    @staticmethod
+    def exposed_is_folder(fpath):
+        """
+        True or False ?
+        """
+        if fpath[0] == '~':
+            fpath = userHome() + fpath[1:]
+        try:
+            return os.path.isdir(fpath)
+        except Exception as e:
+            err = '*ERROR* Cannot find file/ folder `{}`! {}'.format(fpath, e)
+            log.warning(err)
+            return err
 
 
     @staticmethod
@@ -437,6 +452,7 @@ class UserService(rpyc.Service):
             name = folder[len(root):]
         else:
             root, name = os.path.split(folder)
+        log.debug('Tar.gz folder: `{}`, root: `{}`.'.format(name, root))
         os.chdir(root)
         io = cStringIO.StringIO()
         # Write the folder tar.gz into memory

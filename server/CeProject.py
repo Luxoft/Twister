@@ -2684,7 +2684,7 @@ class Project(object):
 
             dl_libs = self.get_user_info(user, 'dl_libs')
             if not dl_libs:
-                if self.BRANCH == 'ustijuf':
+                if self.BRANCH == 'sam1':
                     dl_libs = 'flat'
                 else:
                     dl_libs = 'deep'

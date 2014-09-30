@@ -1,7 +1,7 @@
 
 # File: CeRpyc.py ; This file is part of Twister.
 
-# version: 3.016
+# version: 3.017
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -992,32 +992,32 @@ class CeRpycService(rpyc.Service):
         # Global lib path
         glob_lib_path = (TWISTER_PATH + '/lib/' + name).replace('//', '/')
 
-        def _download_file(fpath):
+        def _download_lib():
             """
             Just read a file.
             """
             import tarfile
             import cStringIO
 
-            if not os.path.exists(fpath):
-                err = '*ERROR* Invalid path `{}`!'.format(fpath)
+            if not os.path.exists(glob_lib_path):
+                err = '*ERROR* Invalid library `{}`!'.format(glob_lib_path)
                 return err
 
             # If this is a "deep" file, or folder
             if '/' in name:
-                root = fpath[:-len(name)]
+                root = glob_lib_path[:-len(name)]
                 fname = name
             else:
-                root, fname = os.path.split(fpath)
+                root, fname = os.path.split(glob_lib_path)
 
             # If the required library is a file and isn't inside a folder
-            if os.path.isfile(fpath) and ('/' not in name):
+            if os.path.isfile(glob_lib_path) and ('/' not in name):
                 try:
-                    with open(fpath, 'rb') as f:
+                    with open(glob_lib_path, 'rb') as f:
                         logDebug('User `{}` requested global lib file `{}`.'.format(user, fname))
                         return f.read()
                 except Exception as e:
-                    err = '*ERROR* Cannot read file `{}`! {}'.format(fpath, e)
+                    err = '*ERROR* Cannot read file `{}`! {}'.format(glob_lib_path, e)
                     return err
 
             else:
@@ -1036,45 +1036,55 @@ class CeRpycService(rpyc.Service):
         ccConfig = self.project.get_clearcase_config(user, 'libs_path')
         if ccConfig:
             view = ccConfig['view']
+            actv = ccConfig['actv']
             cc_lib = ccConfig['path'].rstrip('/') + '/'
             lib_path = cc_lib + name
-            sz = self.project.clearFs.file_size(user +':'+ view, lib_path)
+            logDebug('Before downloading ClearCase lib `{}`.'.format(lib_path))
+            user_view_actv = '{}:{}:{}'.format(user, view, actv)
+            is_folder = self.project.clearFs.is_folder(user_view_actv, lib_path)
+            if str(is_folder).startswith('*ERROR*'):
+                logDebug(resp)
+                return _download_lib()
+
             # If is folder, or "deep" file or folder, compress in memory and return the data
-            if sz == 4096 or '/' in name:
-                resp = self.project.clearFs.targz_user_folder(user +':'+ view, lib_path, cc_lib)
+            if is_folder == True or '/' in name:
+                logDebug('User `{}` requested ClearCase lib folder `{}`.'.format(user, name))
+                resp = self.project.clearFs.targz_user_folder(user_view_actv, lib_path, cc_lib)
                 # Read as ROOT
                 if resp.startswith('*ERROR*'):
-                    return _download_file(glob_lib_path)
-                logDebug('User `{}` requested ClearCase lib folder `{}`.'.format(user, name))
+                    logDebug(resp)
+                    return _download_lib()
                 return resp
             # File
             else:
-                resp = self.project.clearFs.read_user_file(user +':'+ view, lib_path)
+                logDebug('User `{}` requested ClearCase lib file `{}`.'.format(user, name))
+                resp = self.project.clearFs.read_user_file(user_view_actv, lib_path)
                 # Read as ROOT
                 if resp.startswith('*ERROR*'):
-                    return _download_file(glob_lib_path)
-                logDebug('User `{}` requested ClearCase lib file `{}`.'.format(user, name))
+                    logDebug(resp)
+                    return _download_lib()
                 return resp
 
         # User's home path
         else:
             user_lib = self.project.get_user_info(user, 'libs_path').rstrip('/') + '/'
             lib_path = user_lib + name
-            # If is root library file, read the file directly
-            if os.path.isfile(lib_path) and '/' not in name:
-                resp = self.project.localFs.read_user_file(user, lib_path)
-                # Try as ROOT
-                if resp.startswith('*ERROR*'):
-                    return _download_file(glob_lib_path)
-                logDebug('User `{}` requested local lib file `{}`.'.format(user, name))
-                return resp
+            logDebug('Before downloading local lib `{}`.'.format(lib_path))
             # If is folder, or "deep" file or folder, compress in memory and return the data
-            else:
+            if os.path.isdir(lib_path) and '/' in name:
+                logDebug('User `{}` requested local lib folder `{}`.'.format(user, name))
                 resp = self.project.localFs.targz_user_folder(user, lib_path, user_lib)
                 # Try as ROOT
                 if resp.startswith('*ERROR*'):
-                    return _download_file(glob_lib_path)
-                logDebug('User `{}` requested local lib folder `{}`.'.format(user, name))
+                    return _download_lib()
+                return resp
+            # If is root library file, read the file directly
+            else:
+                logDebug('User `{}` requested local lib file `{}`.'.format(user, name))
+                resp = self.project.localFs.read_user_file(user, lib_path)
+                # Try as ROOT
+                if resp.startswith('*ERROR*'):
+                    return _download_lib()
                 return resp
 
 

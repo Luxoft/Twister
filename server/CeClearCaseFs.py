@@ -1,7 +1,7 @@
 
 # File: CeClearCaseFs.py ; This file is part of Twister.
 
-# version: 3.015
+# version: 3.016
 
 # Copyright (C) 2012-2014, Luxoft
 
@@ -252,6 +252,24 @@ class ClearCaseFs(CcBorg):
     # ----- USER ---------------------------------------------------------------
 
 
+    def is_folder(self, user, fpath):
+        """
+        Returns True of False. Client access via RPyc.
+        """
+        if not fpath:
+            return '*ERROR* Empty `fpath` parameter on is folder, user `{}`!'.format(user)
+        srvr = self._usr_service(user)
+        if srvr:
+            try:
+                return srvr.root.is_folder(fpath)
+            except Exception:
+                err = '*ERROR* Cannot detect file/ folder `{}`, user `{}`! {}'.format(fpath, user, e)
+                logWarning(err)
+                return err
+        else:
+            return '*ERROR* Cannot access the UserService on is folder, user `{}`!'.format(user)
+
+
     def file_size(self, user, fpath):
         """
         Get file size for 1 file. Client access via RPyc.
@@ -260,16 +278,19 @@ class ClearCaseFs(CcBorg):
             return False
         srvr = self._usr_service(user)
         if srvr:
-            return srvr.root.file_size(fpath)
+            try:
+                return srvr.root.file_size(fpath)
+            except Exception:
+                return -1
         else:
-            return False
+            return -1
 
 
     def read_user_file(self, user, fpath, flag='r', fstart=0):
         """
         Read 1 file. Client access via RPyc.
         """
-        logDebug('Read {} {} {}'.format(user, fpath, fstart))
+        # logDebug('Read {} {} {}'.format(user, fpath, fstart))
         if not fpath:
             return False
         srvr = self._usr_service(user)
