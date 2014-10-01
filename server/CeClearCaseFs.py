@@ -1,7 +1,7 @@
 
 # File: CeClearCaseFs.py ; This file is part of Twister.
 
-# version: 3.016
+# version: 3.017
 
 # Copyright (C) 2012-2014, Luxoft
 
@@ -52,6 +52,7 @@ if pexpect.__version__ < '3.1':
 
 from common.helpers    import *
 from common.tsclogging import *
+from CeFs import BaseFS
 
 # def logDebug(s)   : print s
 # def logInfo(s)    : print s
@@ -59,46 +60,18 @@ from common.tsclogging import *
 # def logError(s)   : print s
 
 
-class ClearCaseFs(CcBorg):
+class ClearCaseFs(BaseFS, CcBorg):
     """
-    All local file operations should be done via THIS class.
+    All ClearCase file operations should be done via THIS class.
     This is a singleton.
     """
 
     def __init__(self):
         CcBorg.__init__(self)
+        self.name = 'ClearCase'
         if os.getuid():
-            logError('ClearCase FS: Central Engine must run as ROOT in order to start the ClearCase Service!')
-        logInfo('Init ClearCase FS.')
-
-
-    @staticmethod
-    def _kill(user):
-        """
-        Kill all services for a user.
-        """
-        ps   = local['ps']
-        grep = local['grep']
-
-        try:
-            pids = (ps['aux'] | grep['/server/UserService.py'] | grep['^' + user] | grep['ClearCase'])()
-        except Exception:
-            return
-
-        # Kill all leftover processes
-        for line in pids.strip().splitlines():
-            li = line.strip().decode('utf').split()
-            PID = int(li[1])
-            del li[2:5]
-            if '/bin/sh' in li:
-                continue
-            if '/bin/grep' in li:
-                continue
-            logDebug('Killing ugly zombie `{}`.'.format(' '.join(li)))
-            try:
-                os.kill(PID, 9)
-            except:
-                pass
+            logError('{} FS: Central Engine must run as ROOT in order to start the User Service!'.format(self.name))
+        logInfo('Created {} FS.'.format(self.name))
 
 
     def _usr_service(self, user_view_actv):
@@ -201,7 +174,7 @@ class ClearCaseFs(CcBorg):
                     break
 
             # Launching 1 UserService inside the SSH terminal, with ClearCase View open
-            p_cmd = '{} -u {}/server/UserService.py {} ClearCase & '.format(sys.executable, TWISTER_PATH, port)
+            p_cmd = '{} -u {}/server/UserService.py {} {} & '.format(sys.executable, TWISTER_PATH, port, self.name)
             proc.sendline(p_cmd)
             time.sleep(2.0)
             pread()
@@ -249,163 +222,6 @@ class ClearCaseFs(CcBorg):
         return conn
 
 
-    # ----- USER ---------------------------------------------------------------
-
-
-    def is_folder(self, user, fpath):
-        """
-        Returns True of False. Client access via RPyc.
-        """
-        if not fpath:
-            return '*ERROR* Empty `fpath` parameter on is folder, user `{}`!'.format(user)
-        srvr = self._usr_service(user)
-        if srvr:
-            try:
-                return srvr.root.is_folder(fpath)
-            except Exception:
-                err = '*ERROR* Cannot detect file/ folder `{}`, user `{}`! {}'.format(fpath, user, e)
-                logWarning(err)
-                return err
-        else:
-            return '*ERROR* Cannot access the UserService on is folder, user `{}`!'.format(user)
-
-
-    def file_size(self, user, fpath):
-        """
-        Get file size for 1 file. Client access via RPyc.
-        """
-        if not fpath:
-            return False
-        srvr = self._usr_service(user)
-        if srvr:
-            try:
-                return srvr.root.file_size(fpath)
-            except Exception:
-                return -1
-        else:
-            return -1
-
-
-    def read_user_file(self, user, fpath, flag='r', fstart=0):
-        """
-        Read 1 file. Client access via RPyc.
-        """
-        # logDebug('Read {} {} {}'.format(user, fpath, fstart))
-        if not fpath:
-            return False
-        srvr = self._usr_service(user)
-        if srvr:
-            return srvr.root.read_file(fpath, flag, fstart)
-        else:
-            logError('Cannot read {} {} {}'.format(user, fpath, fstart))
-            return False
-
-
-    def write_user_file(self, user, fpath, fdata, flag='w'):
-        """
-        Read 1 file. Client access via RPyc.
-        """
-        if not fpath:
-            return False
-        srvr = self._usr_service(user)
-        if len(fdata) > 20*1000*1000:
-            err = '*ERROR* File data too long `{}`: {}!'.format(fpath, len(fdata))
-            logWarning(err)
-            return err
-        if srvr:
-            return srvr.root.write_file(fpath, fdata, flag)
-        else:
-            return False
-
-
-    def copy_user_file(self, user, fpath, newpath):
-        """ copy an user file """
-        if not fpath:
-            return False
-        srvr = self._usr_service(user)
-        if srvr:
-            return srvr.root.copy_file(fpath, newpath)
-        else:
-            return False
-
-
-    def move_user_file(self, user, fpath, newpath):
-        """ move/rename a user file """
-        if not fpath:
-            return False
-        srvr = self._usr_service(user)
-        if srvr:
-            return srvr.root.move_file(fpath, newpath)
-        else:
-            return False
-
-
-    def delete_user_file(self, user, fpath):
-        """ delete user file """
-        if not fpath:
-            return False
-        srvr = self._usr_service(user)
-        if srvr:
-            return srvr.root.delete_file(fpath)
-        else:
-            return False
-
-
-    def create_user_folder(self, user, fdir):
-        """ create a folder in user client directory """
-        if not fdir:
-            return False
-        srvr = self._usr_service(user)
-        if srvr:
-            return srvr.root.create_folder(fdir)
-        else:
-            return False
-
-
-    def list_user_files(self, user, fdir, hidden=True, recursive=True, accept=[], reject=[]):
-        """
-        List the files in user directory.
-        """
-        if not fdir:
-            return '*ERROR* Empty `fdir` parameter on list files, on `{}`!'.format(user)
-        srvr = self._usr_service(user)
-        if srvr:
-            try:
-                files = srvr.root.list_files(fdir, hidden, recursive, accept, reject)
-                return copy.copy(files)
-            except Exception as e:
-                err = '*ERROR* Cannot list files `{}` on `{}`! {}'.format(fdir, user, e)
-                logWarning(err)
-                return err
-        else:
-            return '*ERROR* Cannot access the ClearCaseService list files, on `{}`!'.format(user)
-
-
-    def delete_user_folder(self, user, fdir):
-        """ Delete user folder """
-        if not fdir:
-            return False
-        srvr = self._usr_service(user)
-        if srvr:
-            return srvr.root.delete_folder(fdir)
-        else:
-            return False
-
-
-    def targz_user_folder(self, user, fdir, root=''):
-        """ Archive a folder """
-        if not fdir:
-            return False
-        srvr = self._usr_service(user)
-        if srvr:
-            return srvr.root.targz_folder(fdir, root)
-        else:
-            return False
-
-
-    # ----- COMMAND-------------------------------------------------------------
-
-
     def system_command(self, user_view, cmd):
         """ Execute a system command """
         logDebug('System command {} {}'.format(user_view, cmd))
@@ -446,51 +262,6 @@ class ClearCaseFs(CcBorg):
             return '\n'.join(plog)
         else:
             return False
-
-
-    # ----- SYSTEM -------------------------------------------------------------
-
-
-    @staticmethod
-    def sys_file_size(fpath):
-        """ Dummy Method """
-        pass
-
-
-    @staticmethod
-    def read_system_file(fpath, flag='r', fstart=0):
-        """ Dummy Method """
-        pass
-
-
-    @staticmethod
-    def write_system_file(fpath, fdata, flag='a'):
-        """ Dummy Method """
-        pass
-
-
-    @staticmethod
-    def delete_system_file(fname):
-        """ Dummy Method """
-        pass
-
-
-    @staticmethod
-    def create_system_folder(fdir):
-        """ Dummy Method """
-        pass
-
-
-    @staticmethod
-    def list_system_files(fdir):
-        """ Dummy Method """
-        pass
-
-
-    @staticmethod
-    def delete_system_folder(fdir):
-        """ Dummy Method """
-        pass
 
 #
 

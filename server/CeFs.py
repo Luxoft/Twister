@@ -1,7 +1,7 @@
 
 # File: CeFs.py ; This file is part of Twister.
 
-# version: 3.020
+# version: 3.021
 
 # Copyright (C) 2012-2014, Luxoft
 
@@ -48,18 +48,11 @@ from common.helpers    import *
 from common.tsclogging import *
 
 
-class LocalFS(FsBorg):
+class BaseFS(object):
     """
-    All local file operations should be done via THIS class.
-    This is a singleton.
+    Base file system class.
     """
-
-    def __init__(self):
-        FsBorg.__init__(self)
-        if os.getuid():
-            logError('Local FS: Central Engine must run as ROOT in order to start the User Service!')
-        logInfo('Created Local FS.')
-
+    name = ''
 
     def _kill(self, user):
         """
@@ -69,7 +62,7 @@ class LocalFS(FsBorg):
         grep = local['grep']
 
         try:
-            pids = (ps['aux'] | grep['/server/UserService.py'] | grep['^' + user] | grep['FS'])()
+            pids = (ps['aux'] | grep['/server/UserService.py'] | grep['^' + user] | grep[self.name])()
         except Exception:
             return
 
@@ -87,99 +80,6 @@ class LocalFS(FsBorg):
                 os.kill(PID, 9)
             except:
                 pass
-
-
-    def _usr_service(self, user, op='read'):
-        """
-        Launch a user service.
-        """
-        if op not in ['read', 'write']:
-            logWarning('Invalid FS operation `{}`, for user `{}`! Will reset to "read".'.format(op, user))
-            op = 'read'
-
-        # Must block here, so more users cannot launch Logs at the same time and lose the PID
-        with self._srv_lock:
-
-            # Try to re-use the logger server, if available
-            conn = self._services.get(user, {}).get('conn_' + op, None)
-            if conn:
-                try:
-                    conn.ping(data='Hello', timeout=30.0)
-                    #logDebug('Reuse old {} User Service connection for `{}` OK.'.format(op, user))
-                    return conn
-                except Exception as e:
-                    logWarning('Cannot reuse {} User Service for `{}`: `{}`.'.format(op, user, e))
-                    self._kill(user)
-            else:
-                logInfo('Launching a User Service for `{}`, the first time...'.format(user))
-
-            port = None
-
-            # If the server is not available, search for a free port in the safe range...
-            while 1:
-                port = random.randrange(63000, 65000)
-                try:
-                    socket.create_connection((None, port), 1)
-                except:
-                    break
-
-            p_cmd = 'su {} -c "{} -u {}/server/UserService.py {} FS"'.format(user, sys.executable, TWISTER_PATH, port)
-            proc = subprocess.Popen(p_cmd, cwd='{}/twister'.format(userHome(user)), shell=True,
-                   close_fds=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            proc.poll()
-            time.sleep(2.0)
-
-            config = {
-                'allow_pickle': True,
-                'allow_getattr': True,
-                'allow_setattr': True,
-                'allow_delattr': True
-            }
-
-            retry = 10
-            delay = 0.5
-            success = False
-
-            while retry > 0:
-                if success:
-                    break
-
-                try:
-                    stream_r = rpyc.SocketStream.connect('127.0.0.1', port, timeout=5.0)
-                    conn_read = rpyc.connect_stream(stream_r, config=config)
-                    conn_read.root.hello()
-                    logDebug('Connected to User Service for `{}`, operation `read`.'.format(user))
-                    success = True
-                except Exception as e:
-                    logWarning('Cannot connect to User Service for `{}` - Exception: `{}`! '
-                            'Wait {}s...'.format(user, e, delay))
-
-                if success:
-                    try:
-                        stream_w = rpyc.SocketStream.connect('127.0.0.1', port, timeout=5.0)
-                        conn_write = rpyc.connect_stream(stream_w, config=config)
-                        conn_write.root.hello()
-                        logDebug('Connected to User Service for `{}`, operation `write`.'.format(user))
-                        break
-                    except Exception as e:
-                        logWarning('Cannot connect to User Service for `{}` - Exception: `{}`! '
-                                'Wait {}s...'.format(user, e, delay))
-                        success = False
-
-                time.sleep(delay)
-                retry -= 1
-                delay += 0.75
-
-            if not success:
-                logError('Error on starting User Service for `{}`!'.format(user))
-                return None
-
-            # Save the process inside the block.  99% of the time, this block is executed instantly!
-            self._services[user] = {'proc': proc, 'conn_read': conn_read, 'conn_write': conn_write, 'port': port}
-
-        logDebug('User Service for `{}` launched on `127.0.0.1:{}` - PID `{}`.'.format(user, port, proc.pid))
-
-        return self._services[user].get('conn_' + op, None)
 
 
     # ----- USER ---------------------------------------------------------------
@@ -575,6 +475,115 @@ class LocalFS(FsBorg):
     def delete_system_folder(self, fdir):
         """ Dummy method """
         pass
+
+#
+
+class LocalFS(BaseFS, FsBorg):
+    """
+    All local file operations should be done via THIS class.
+    This is a singleton.
+    """
+
+    def __init__(self):
+        FsBorg.__init__(self)
+        self.name = 'Local'
+        if os.getuid():
+            logError('{} FS: Central Engine must run as ROOT in order to start the User Service!'.format(self.name))
+        logInfo('Created {} FS.'.format(self.name))
+
+
+    def _usr_service(self, user, op='read'):
+        """
+        Launch a user service.
+        """
+        if op not in ['read', 'write']:
+            logWarning('Invalid FS operation `{}`, for user `{}`! Will reset to "read".'.format(op, user))
+            op = 'read'
+
+        # Must block here, so more users cannot launch Logs at the same time and lose the PID
+        with self._srv_lock:
+
+            # Try to re-use the logger server, if available
+            conn = self._services.get(user, {}).get('conn_' + op, None)
+            if conn:
+                try:
+                    conn.ping(data='Hello', timeout=30.0)
+                    #logDebug('Reuse old {} User Service connection for `{}` OK.'.format(op, user))
+                    return conn
+                except Exception as e:
+                    logWarning('Cannot reuse {} User Service for `{}`: `{}`.'.format(op, user, e))
+                    self._kill(user)
+            else:
+                logInfo('Launching a User Service for `{}`, the first time...'.format(user))
+
+            port = None
+
+            # If the server is not available, search for a free port in the safe range...
+            while 1:
+                port = random.randrange(63000, 65000)
+                try:
+                    socket.create_connection((None, port), 1)
+                except:
+                    break
+
+            p_cmd = 'su {} -c "{} -u {}/server/UserService.py {} {}"'.format(user, sys.executable,
+                TWISTER_PATH, port, self.name)
+            proc = subprocess.Popen(p_cmd, cwd='{}/twister'.format(userHome(user)), shell=True,
+                   close_fds=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            proc.poll()
+            time.sleep(2.0)
+
+            config = {
+                'allow_pickle': True,
+                'allow_getattr': True,
+                'allow_setattr': True,
+                'allow_delattr': True
+            }
+
+            retry = 10
+            delay = 0.5
+            success = False
+
+            while retry > 0:
+                if success:
+                    break
+
+                try:
+                    stream_r = rpyc.SocketStream.connect('127.0.0.1', port, timeout=5.0)
+                    conn_read = rpyc.connect_stream(stream_r, config=config)
+                    conn_read.root.hello()
+                    logDebug('Connected to User Service for `{}`, operation `read`.'.format(user))
+                    success = True
+                except Exception as e:
+                    logWarning('Cannot connect to User Service for `{}` - Exception: `{}`! '
+                            'Wait {}s...'.format(user, e, delay))
+
+                if success:
+                    try:
+                        stream_w = rpyc.SocketStream.connect('127.0.0.1', port, timeout=5.0)
+                        conn_write = rpyc.connect_stream(stream_w, config=config)
+                        conn_write.root.hello()
+                        logDebug('Connected to User Service for `{}`, operation `write`.'.format(user))
+                        break
+                    except Exception as e:
+                        logWarning('Cannot connect to User Service for `{}` - Exception: `{}`! '
+                                'Wait {}s...'.format(user, e, delay))
+                        success = False
+
+                time.sleep(delay)
+                retry -= 1
+                delay += 0.75
+
+            if not success:
+                logError('Error on starting User Service for `{}`!'.format(user))
+                return None
+
+            # Save the process inside the block.  99% of the time, this block is executed instantly!
+            self._services[user] = {'proc': proc, 'conn_read': conn_read, 'conn_write': conn_write, 'port': port}
+
+        logDebug('User Service for `{}` launched on `127.0.0.1:{}` - PID `{}`.'.format(user, port, proc.pid))
+
+        return self._services[user].get('conn_' + op, None)
 
 #
 
