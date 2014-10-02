@@ -1,7 +1,7 @@
 
 # File: CeRpyc.py ; This file is part of Twister.
 
-# version: 3.017
+# version: 3.018
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -1039,7 +1039,7 @@ class CeRpycService(rpyc.Service):
             actv = ccConfig['actv']
             cc_lib = ccConfig['path'].rstrip('/') + '/'
             lib_path = cc_lib + name
-            logDebug('Before downloading ClearCase lib `{}`.'.format(lib_path))
+            # logDebug('Before downloading ClearCase lib `{}`.'.format(lib_path))
             user_view_actv = '{}:{}:{}'.format(user, view, actv)
             is_folder = self.project.clearFs.is_folder(user_view_actv, lib_path)
             if str(is_folder).startswith('*ERROR*'):
@@ -1069,9 +1069,9 @@ class CeRpycService(rpyc.Service):
         else:
             user_lib = self.project.get_user_info(user, 'libs_path').rstrip('/') + '/'
             lib_path = user_lib + name
-            logDebug('Before downloading local lib `{}`.'.format(lib_path))
+            # logDebug('Before downloading local lib `{}`.'.format(lib_path))
             # If is folder, or "deep" file or folder, compress in memory and return the data
-            if os.path.isdir(lib_path) and '/' in name:
+            if os.path.isdir(lib_path) or '/' in name:
                 logDebug('User `{}` requested local lib folder `{}`.'.format(user, name))
                 resp = self.project.localFs.targz_user_folder(user, lib_path, user_lib)
                 # Try as ROOT

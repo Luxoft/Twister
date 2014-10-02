@@ -1,6 +1,6 @@
 #!/usr/bin/env python2.7
 
-# version: 3.025
+# version: 3.026
 
 # File: ExecutionProcess.py ; This file is part of Twister.
 
@@ -670,6 +670,7 @@ class TwisterRunner(object):
                     try:
                         shutil.copy2(lib_name, libs_path)
                         print('Flatten `{}`.'.format(lib_name[llen+1:]))
+                        os.remove(lib_name)
                     except Exception:
                         pass # Nothing to report
 
@@ -954,7 +955,7 @@ class TwisterRunner(object):
             str_to_execute = proxy().download_file(self.epName, file_id)
 
             # If CE sent False, it means the file is empty, does not exist, or it's not runnable.
-            if str_to_execute == '':
+            if str_to_execute == '' or str_to_execute.startswith('*ERROR*'):
                 print('EP Debug: File path `{}` does not exist!\n'.format(filename))
                 if setup_file:
                     abort_suite = suite_id
