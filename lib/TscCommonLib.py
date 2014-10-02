@@ -1,7 +1,7 @@
 
 # File: TscCommonLib.py ; This file is part of Twister.
 
-# version: 3.015
+# version: 3.016
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -361,9 +361,22 @@ class TscCommonLib(object):
         return sut.get('path', False)
 
 
+    def get_iter_value(self, iter_name):
+        """
+        Find iteration value, for a specific iterator name.
+        @param iter_name the name of the iterator to search.
+        @return The iterator value.
+        """
+        iterNr = self.ce_proxy.get_file_variable(self.epName, self._FILE_ID, 'iterationNr')
+        found = [i.split('=')[-1] for i in iterNr.split(',') if '#{}='.format(iter_name) in i]
+        if not found:
+            return ''
+        return found[0]
+
+
     def count_project_files(self):
         """
-        Returns the number of files inside the current project.
+        @return The number of files inside the current project.
         """
         data = self.ce_proxy.get_ep_variable(self.epName, 'suites')
         SuitesManager = copy.deepcopy(data)
