@@ -1,7 +1,7 @@
 
 # File: CeParser.py ; This file is part of Twister.
 
-# version: 3.001
+# version: 3.002
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -22,17 +22,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import copy
-import uuid
 import re
+import copy
 import ast
+import uuid
+import json
+
 from lxml import etree
+from collections import OrderedDict
 
-from common.helpers    import *
+from common.helpers import *
 
-def cartesian (lists):
-    if lists == []: return [()]
+
+def cartesian(lists):
+    if lists == []:
+        return [()]
     return [x + (y,) for x in cartesian(lists[:-1]) for y in lists[-1]]
+
 
 class CeXmlParser(object):
     """
@@ -215,7 +221,6 @@ class CeXmlParser(object):
             config_fs_root.append(suite_e)
             config_fs_root.remove(old_suite)
 
-
         return True
 
 
@@ -314,6 +319,7 @@ class CeXmlParser(object):
         for item in cartesian_list:
             if not item or isinstance(item, tuple) and len(item) < 1:
                 continue
+
             # the tc may alreay have iterator prop because it is a copy -
             # we have to modify it
             find_prop = False
@@ -359,27 +365,29 @@ class CeXmlParser(object):
     def _get_config_files(self, user, config_root_deep, ep, repeated_dict):
         '''
         Get the iterators from all the confing files.
-        Call a method to multiply the tc.
+        Call a method to multiply the test cases.
         '''
 
         cfg_path = self.project.get_user_info(user, 'tcfg_path')
         cfg_prop = config_root_deep.xpath('//ConfigFiles')
 
-        #get all the ConfigFiles tags. A tc can have
+        # get all the ConfigFiles tags
         for cfg_item in cfg_prop:
 
             config_info = cfg_item.findall('Config')
             if not config_info:
                 continue
             parent_tc = cfg_item.getparent()
+            tc_name = parent_tc.find('tcName').text
 
-            interval_values = dict()
+            interval_values = OrderedDict()
             default_values_list = []
 
             for config_entry in config_info:
                 enabled = config_entry.get('enabled')
                 if enabled == "false":
                     continue
+
                 config_file = cfg_path + "/" + config_entry.get('name')
                 iterator_default = config_entry.get('iterator_default')
                 iterator_sof = config_entry.get('iterator_sof')
@@ -388,31 +396,31 @@ class CeXmlParser(object):
                 try:
                     xml_config = etree.parse(config_file)
                 except:
-                    msg = "The file: '{}' it's not an xml file. Try again!".format(config_file)
+                    msg = "The file: `{}` is not an xml file!".format(config_file)
                     logDebug(msg)
                     return '*ERROR* ' + msg
 
                 config_file_st = etree.tostring(xml_config)
                 config_file_fst = etree.fromstring(config_file_st)
-                #find all entries having tag = iterator
+                # find all entries having tag = iterator
                 config_types = config_file_fst.xpath('//type')
                 config_types = [x for x in config_types if x.text == 'iterator']
 
-                # iterators from a config file
+                # Iterators from config file
                 for item in config_types:
+                    # Current iterator values
                     part_interval_values = []
                     prop_iterator = item.getparent()
 
+                    config_name = config_entry.get('name') + '#' + prop_iterator.find('name').text
                     values = prop_iterator.find('value').text
-
                     if not values:
                         continue
 
-                    values = values.replace(" ", "")
-                    values_list = values.split(',')
+                    values_list = values.replace(' ', '').split(',')
 
                     # get the default value
-                    index_dot = values_list[0].find("..")
+                    index_dot = values_list[0].find('..')
                     if index_dot > -1:
                         try:
                             default_value = ast.literal_eval(values_list[0][:index_dot])
@@ -426,9 +434,9 @@ class CeXmlParser(object):
                         except:
                             default_value = values_list[0]
 
-                    if iterator_default == "true":
-                        part_interval_values.append(default_value)
-                        default_values_list.append(default_value)
+                    if iterator_default == 'true':
+                        part_interval_values.append('{}={}'.format(config_name, default_value))
+                        default_values_list.append('{}={}'.format(config_name, default_value))
                     else:
                         for interv in values_list:
                             re_intervals = re.search('(\w*\d*\.?\d+)\.+(\w*\d*\.?\d+)', interv)
@@ -439,20 +447,22 @@ class CeXmlParser(object):
                                 # avoid adding default value again ex: 2, 1...4
                                 if default_value in range_res and default_value in part_interval_values:
                                     del(range_res[range_res.index(default_value)])
-                                part_interval_values.extend(range_res)
+                                part_interval_values.extend('{}={}'.format(config_name, i) for i in range_res)
                             except:
                                 try:
                                     x = re_intervals.group(1)
                                     y = re_intervals.group(2)
-                                    #try to convert to int if possible
+                                    # try to convert to int if possible
                                     try:
-                                        part_interval_values.append(int(ast.literal_eval(x)))
+                                        v = int(ast.literal_eval(x))
+                                        part_interval_values.append('{}={}'.format(config_name, v))
                                     except:
-                                        part_interval_values.append(x)
+                                        part_interval_values.append('{}={}'.format(config_name, x))
                                     try:
-                                        part_interval_values.append(int(ast.literal_eval(y)))
+                                        v = int(ast.literal_eval(y))
+                                        part_interval_values.append('{}={}'.format(config_name, v))
                                     except:
-                                        part_interval_values.append(y)
+                                        part_interval_values.append('{}={}'.format(config_name, y))
                                 except:
                                     try:
                                         interv = ast.literal_eval(interv)
@@ -460,23 +470,24 @@ class CeXmlParser(object):
                                         pass
                                     # avoid adding default value again ex: 2, 1, 2, 3
                                     if default_value != interv or default_value not in part_interval_values:
-                                        part_interval_values.append(interv)
+                                        part_interval_values.append('{}={}'.format(config_name, interv))
 
                     if part_interval_values:
-                        if config_file in interval_values.keys():
-                            interval_values[config_file].extend(part_interval_values)
+                        if config_name in interval_values.keys():
+                            interval_values[config_name].extend(part_interval_values)
                         else:
-                            interval_values[config_file] = part_interval_values
+                            interval_values[config_name] = part_interval_values
 
             cartesian_list = cartesian(interval_values.values())
-            #avoid adding again default values - do not have to create cartesian product
+            # avoid adding default values again - do not have to create cartesian product
             if default_values_list and len(interval_values.keys()) > 1:
                 cartesian_list.extend(default_values_list)
 
-            logDebug("CeParser: Will iterate test case {}, {} times, from values: {}, user {}."\
-                .format(parent_tc.find('tcName').text, len(cartesian_list), interval_values.values(), user))
+            logDebug("CeParser: Will iterate test case `{}`, {} times, from values: {}, user `{}`."\
+                .format(tc_name, len(cartesian_list), interval_values.values(), user))
 
             self._explode_by_config(config_root_deep, parent_tc, ep, repeated_dict, reversed(cartesian_list))
+
         return True
 
 
@@ -487,7 +498,7 @@ class CeXmlParser(object):
         on the suts number and eps.
         '''
 
-        logDebug("CeParser: preparing to convert project file: {} for user: {}".format(filename, user))
+        logDebug("CeParser: preparing to convert project file: `{}`, user `{}`.".format(filename, user))
 
         # try to parse the project file
         try:
@@ -510,18 +521,16 @@ class CeXmlParser(object):
 
         config_ts_root = etree.tostring(root)
         config_fs_root = etree.fromstring(config_ts_root)
+        repeated_dict = {}
 
-        repeated_dict = dict()
         # get all suites defined in project file
-        all_suites = xml.findall('TestSuite')
-        for suite in all_suites:
+        for suite in xml.findall('TestSuite'):
             # get all suts chosen by user
             # try:
             all_suts = suite.find('SutName').text
-            suts_list = [q for q in all_suts.split(';') if q]
-            suts_list = [q.replace('(', '.').replace(')', '') for q in suts_list if q]
-
+            suts_list = [q.replace('(', '.').replace(')', '') for q in all_suts.split(';') if q]
             suite_name = suite.find('tsName').text
+
             # multiply Suite entry as often as the tag 'Repeat' says
             try:
                 repeat = suite.find('Repeat')
@@ -530,7 +539,7 @@ class CeXmlParser(object):
                 no_repeat = 1
 
             if no_repeat > 1:
-                logDebug("CeParser: Will repeat suite {}, {} times.".format(suite_name, no_repeat))
+                logDebug("CeParser: Will repeat suite `{}`, {} times.".format(suite_name, no_repeat))
 
             for i in range(no_repeat):
                 deep_copy = copy.deepcopy(suite)
@@ -542,6 +551,7 @@ class CeXmlParser(object):
                         config_root.find('Repeat').text = str(1)
                     except:
                         pass
+
                 # for every ep of a sut create entry
                 for sut in suts_list:
                     sut = '/' + sut
@@ -556,8 +566,8 @@ class CeXmlParser(object):
                             self._change_ids(config_root_deep, repeated_dict, config_fs_root, sut + "-" + ep)
 
                             suite_id = config_root_deep.find('ID').text
-                            # update sut, ep, id, tunning test cases
 
+                            # update sut, ep, id, tunning test cases
                             self._get_config_files(user, config_root_deep, suite_id + "-" + sut + "-" + ep, repeated_dict)
 
                             self._do_repeat(config_root_deep, repeated_dict, suite_id + "-" + sut + "-" + ep)
@@ -572,6 +582,7 @@ class CeXmlParser(object):
                         anonim_ep = self.project._find_anonim_ep(user)
                         if isinstance(anonim_ep, bool):
                             return anonim_ep
+
                         config_root_deep = copy.deepcopy(config_root)
                         self._change_ids(config_root_deep, repeated_dict, config_fs_root, sut + "-" + anonim_ep)
 
@@ -605,7 +616,7 @@ class CeXmlParser(object):
             logError(resp)
             return resp
 
-        logDebug("CeParser: Successfully generated: {} for user: {}".format(xml_file, user))
+        logDebug("CeParser: Successfully generated: `{}`, user `{}`.".format(xml_file, user))
         return True
 
 

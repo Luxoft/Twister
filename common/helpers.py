@@ -1,7 +1,7 @@
 
 # File: helpers.py ; This file is part of Twister.
 
-# version: 3.005
+# version: 3.006
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -120,7 +120,7 @@ def getFileTags(fname):
     # This returns 2 groups : the tag name and the text inside it.
     tags = re.findall('^[ ]*?[#]*?[ ]*?<(?P<tag>\w+)>([ -~\n]+?)</(?P=tag)>', text, re.MULTILINE)
 
-    return '<br>\n'.join(['<b>' + title + '</b> : ' + descr.replace('<', '&lt;') for title, descr in tags])
+    return '<br>\n'.join(['<b>' + title + '</b> : ' + descr for title, descr in tags])
 
 
 def dirList(tests_path, path, newdict):
