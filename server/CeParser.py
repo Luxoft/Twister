@@ -371,7 +371,8 @@ class CeXmlParser(object):
         cfg_path = self.project.get_user_info(user, 'tcfg_path')
         cfg_prop = config_root_deep.xpath('//ConfigFiles')
 
-        # get all the ConfigFiles tags
+        #get all the ConfigFiles tags. A tc can have multiple config files
+        part_interval_values = []
         for cfg_item in cfg_prop:
 
             config_info = cfg_item.findall('Config')
@@ -408,8 +409,6 @@ class CeXmlParser(object):
 
                 # Iterators from config file
                 for item in config_types:
-                    # Current iterator values
-                    part_interval_values = []
                     prop_iterator = item.getparent()
 
                     config_name = config_entry.get('name') + '#' + prop_iterator.find('name').text
@@ -435,9 +434,12 @@ class CeXmlParser(object):
                             default_value = values_list[0]
 
                     if iterator_default == 'true':
-                        part_interval_values.append('{}={}'.format(config_name, default_value))
+                        part_interval_values.append(['{}={}'.format(config_name, default_value)])
                         default_values_list.append('{}={}'.format(config_name, default_value))
                     else:
+                        iter_interval_values = list()
+                        key_default_value = '{}={}'.format(config_name, default_value)
+
                         for interv in values_list:
                             re_intervals = re.search('(\w*\d*\.?\d+)\.+(\w*\d*\.?\d+)', interv)
                             try:
@@ -445,9 +447,10 @@ class CeXmlParser(object):
                                 y = ast.literal_eval(re_intervals.group(2))
                                 range_res = range(int(x), int(y) + 1)
                                 # avoid adding default value again ex: 2, 1...4
-                                if default_value in range_res and default_value in part_interval_values:
+                                if default_value in range_res and key_default_value in iter_interval_values:
                                     del(range_res[range_res.index(default_value)])
-                                part_interval_values.extend('{}={}'.format(config_name, i) for i in range_res)
+                                for i in range_res:
+                                    iter_interval_values.append('{}={}'.format(config_name, i))
                             except:
                                 try:
                                     x = re_intervals.group(1)
@@ -455,22 +458,24 @@ class CeXmlParser(object):
                                     # try to convert to int if possible
                                     try:
                                         v = int(ast.literal_eval(x))
-                                        part_interval_values.append('{}={}'.format(config_name, v))
+                                        iter_interval_values.append('{}={}'.format(config_name, v))
                                     except:
-                                        part_interval_values.append('{}={}'.format(config_name, x))
+                                        iter_interval_values.append('{}={}'.format(config_name, x))
                                     try:
                                         v = int(ast.literal_eval(y))
-                                        part_interval_values.append('{}={}'.format(config_name, v))
+                                        iter_interval_values.append('{}={}'.format(config_name, v))
                                     except:
-                                        part_interval_values.append('{}={}'.format(config_name, y))
+                                        iter_interval_values.append('{}={}'.format(config_name, y))
                                 except:
                                     try:
                                         interv = ast.literal_eval(interv)
                                     except:
                                         pass
                                     # avoid adding default value again ex: 2, 1, 2, 3
-                                    if default_value != interv or default_value not in part_interval_values:
-                                        part_interval_values.append('{}={}'.format(config_name, interv))
+                                    if default_value != interv or key_default_value not in iter_interval_values:
+                                        iter_interval_values.append('{}={}'.format(config_name, interv))
+
+                        part_interval_values.append(iter_interval_values)
 
                     if part_interval_values:
                         if config_name in interval_values.keys():
@@ -478,10 +483,10 @@ class CeXmlParser(object):
                         else:
                             interval_values[config_name] = part_interval_values
 
-            cartesian_list = cartesian(interval_values.values())
+            cartesian_list = cartesian(interval_values.values()[0])
             # avoid adding default values again - do not have to create cartesian product
-            if default_values_list and len(interval_values.keys()) > 1:
-                cartesian_list.extend(default_values_list)
+            #if default_values_list and len(interval_values.keys()) > 1:
+                #cartesian_list.extend(default_values_list)
 
             logDebug("CeParser: Will iterate test case `{}`, {} times, from values: {}, user `{}`."\
                 .format(tc_name, len(cartesian_list), interval_values.values(), user))
@@ -609,12 +614,12 @@ class CeXmlParser(object):
         resp = self.project.localFs.write_user_file(user, xml_file, xml_header, 'w')
         if resp != True:
             logError(resp)
-            return '*ERROR* ' + resp
+            return resp
 
         resp = self.project.localFs.write_user_file(user, xml_file, etree.tostring(config_fs_root, pretty_print=True), 'w')
         if resp != True:
             logError(resp)
-            return '*ERROR* ' + resp
+            return resp
 
         logDebug("CeParser: Successfully generated: `{}`, user `{}`.".format(xml_file, user))
         return True
