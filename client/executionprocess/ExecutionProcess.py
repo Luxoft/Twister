@@ -1,6 +1,6 @@
 #!/usr/bin/env python2.7
 
-# version: 3.026
+# version: 3.027
 
 # File: ExecutionProcess.py ; This file is part of Twister.
 
@@ -639,20 +639,26 @@ class TwisterRunner(object):
                 with open(lib_pth, 'wb') as f:
                     f.write(lib_data)
             except Exception as e:
-                print('Cannot save library file `{}`: `{}`!'.format(lib_file, e))
+                print('Cannot save library file `{}`: {}!'.format(lib_file, e))
                 continue
 
             # If the file doesn't have an ext, or it's a deep file, or folder,
             # it's a TGZ library and must be extracted
             if (not os.path.splitext(lib_file)[1]) or ('/' in lib_file):
-                # Rename the TGZ
+                # Rename the TGZ, so you can extract it
                 tgz = lib_pth + '.tgz'
                 os.rename(lib_pth, tgz)
+                os.chdir(libs_path)
                 with tarfile.open(tgz, 'r:gz') as binary:
-                    os.chdir(libs_path)
-                    binary.extractall()
+                    try:
+                        binary.extractall()
+                    except Exception as e:
+                        print('Cannot extract library `{}`: {}!'.format(lib_file, e))
+                        os.remove(tgz)
+                        continue
                     time.sleep(0.05)
                     os.remove(tgz)
+                os.system('chmod -R 777 ' + libs_path)
 
             # Flatten file ?
             if dl_libs == 'flat':
