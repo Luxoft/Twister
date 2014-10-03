@@ -1,7 +1,7 @@
 
 # File: CeFs.py ; This file is part of Twister.
 
-# version: 3.021
+# version: 3.022
 
 # Copyright (C) 2012-2014, Luxoft
 
@@ -139,7 +139,7 @@ class BaseFS(object):
 
     def write_user_file(self, user, fpath, fdata, flag='w'):
         """
-        Read 1 file. Client access via RPyc.
+        Write 1 file. Client access via RPyc.
         """
         if not fpath:
             return '*ERROR* Empty `fpath` parameter on write file, user `{}`!'.format(user)

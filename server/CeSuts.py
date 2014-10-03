@@ -1,7 +1,7 @@
 
 # File: CeSuts.py ; This file is part of Twister.
 
-# version: 3.003
+# version: 3.004
 
 # Copyright (C) 2012-2014, Luxoft
 
@@ -1268,12 +1268,26 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
             except:
                 logDebug('User {}: id_list does not contain the sut: {}'.format(user_info[0], res_query))
 
-            if usrSutPath[-1] != '/' and res_query[-1] != '/':
-                complete_sut_path = usrSutPath + '/' + res_query.split('.')[0] + '.json'
+            # get user SUT file; we have to check if the cleacase plugin
+            # is activated; if so, use it to read the SUT files from view;
+            # else use the UserService to read it
+            ccConfig = self.project.get_clearcase_config(user_info[0], 'sut_path')
+            if ccConfig:
+                view = ccConfig['view']
+                actv = ccConfig['actv']
+                path = ccConfig['path']
+                user_view_actv = '{}:{}:{}'.format(user_info[0], view, actv)
+                if path[-1] != '/' and res_query[-1] != '/':
+                    complete_sut_path = path + '/' + res_query.split('.')[0] + '.json'
+                else:
+                    complete_sut_path = path + res_query.split('.')[0] + '.json'
+                return self.project.clearFs.delete_user_file(user_view_actv, complete_sut_path)
             else:
-                complete_sut_path = usrSutPath + res_query.split('.')[0] + '.json'
-            return self.project.localFs.delete_user_file(user_info[0], complete_sut_path)
-
+                if usrSutPath[-1] != '/' and res_query[-1] != '/':
+                    complete_sut_path = usrSutPath + '/' + res_query.split('.')[0] + '.json'
+                else:
+                    complete_sut_path = usrSutPath + res_query.split('.')[0] + '.json'
+                return self.project.localFs.delete_user_file(user_info[0], complete_sut_path)
 
     @cherrypy.expose
     def list_all_suts(self, user):

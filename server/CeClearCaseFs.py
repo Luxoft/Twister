@@ -1,7 +1,7 @@
 
 # File: CeClearCaseFs.py ; This file is part of Twister.
 
-# version: 3.017
+# version: 3.018
 
 # Copyright (C) 2012-2014, Luxoft
 
@@ -74,7 +74,7 @@ class ClearCaseFs(BaseFS, CcBorg):
         logInfo('Created {} FS.'.format(self.name))
 
 
-    def _usr_service(self, user_view_actv):
+    def _usr_service(self, user_view_actv, op='read'):
         """
         Launch a user service.
         Open a ClearCase view first.
