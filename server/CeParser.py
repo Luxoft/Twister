@@ -1,7 +1,7 @@
 
 # File: CeParser.py ; This file is part of Twister.
 
-# version: 3.002
+# version: 3.003
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -483,15 +483,15 @@ class CeXmlParser(object):
                         else:
                             interval_values[config_name] = part_interval_values
 
-            cartesian_list = cartesian(interval_values.values()[0])
-            # avoid adding default values again - do not have to create cartesian product
-            #if default_values_list and len(interval_values.keys()) > 1:
-                #cartesian_list.extend(default_values_list)
+            # get the xartesian list and explode the test case only if there
+            # are iterators
+            if len(interval_values.values()) > 0:
+                cartesian_list = cartesian(interval_values.values()[0])
 
-            logDebug("CeParser: Will iterate test case `{}`, {} times, from values: {}, user `{}`."\
-                .format(tc_name, len(cartesian_list), interval_values.values(), user))
+                logDebug("CeParser: Will iterate test case `{}`, {} times, from values: {}, user `{}`."\
+                    .format(tc_name, len(cartesian_list), interval_values.values(), user))
 
-            self._explode_by_config(config_root_deep, parent_tc, ep, repeated_dict, reversed(cartesian_list))
+                self._explode_by_config(config_root_deep, parent_tc, ep, repeated_dict, reversed(cartesian_list))
 
         return True
 
@@ -539,19 +539,19 @@ class CeXmlParser(object):
             # multiply Suite entry as often as the tag 'Repeat' says
             try:
                 repeat = suite.find('Repeat')
-                no_repeat = int(repeat.text)
+                nb_repeat = int(repeat.text)
             except:
-                no_repeat = 1
+                nb_repeat = 1
 
-            if no_repeat > 1:
-                logDebug("CeParser: Will repeat suite `{}`, {} times.".format(suite_name, no_repeat))
+            if nb_repeat > 1:
+                logDebug("CeParser: Will repeat suite `{}`, {} times.".format(suite_name, nb_repeat))
 
-            for i in range(no_repeat):
+            for i in range(nb_repeat):
                 deep_copy = copy.deepcopy(suite)
                 config_ts = etree.tostring(deep_copy)
                 config_root = etree.fromstring(config_ts)
 
-                if no_repeat > 1:
+                if nb_repeat > 1:
                     try:
                         config_root.find('Repeat').text = str(1)
                     except:
