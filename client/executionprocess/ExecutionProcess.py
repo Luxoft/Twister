@@ -1,6 +1,6 @@
 #!/usr/bin/env python2.7
 
-# version: 3.027
+# version: 3.028
 
 # File: ExecutionProcess.py ; This file is part of Twister.
 
@@ -724,6 +724,7 @@ class TwisterRunner(object):
         suite_data  = None
         suite_name  = None # Suite name string. This varies for each file.
         abort_suite = False # Abort suite X, when setup file fails.
+        abort_iter  = False # Abort repeated file X, when Iteration has Stop on Fail.
 
         # Import all custom exceptions
         from TscCommonLib import ExceptionTestFail, ExceptionTestAbort, ExceptionTestTimeout, ExceptionTestSkip
@@ -784,8 +785,10 @@ class TwisterRunner(object):
             optional_test = node.get('Optional')
             # Configuration files?
             config_files = [c['name'] for c in node.get('_cfg_files', [])]
+            # If ANY config file has Iteration Stop on Fail, this will be True
+            iteration_sof = 'true' in [it['iter_sof'].lower() for it in node.get('_cfg_files', [])]
             # Iteration number
-            iteration_nr = node.get('iterationNr')
+            iteration_nr = node.get('iterationNr', '')
             # Get args
             args = node.get('param')
             if args:
@@ -826,8 +829,8 @@ class TwisterRunner(object):
                     if teardown_file and (file_id in current_ids):
                         print('Running a tear-down file...\n')
                     else:
-                        print('EP Debug: Not executed file `{}` because of failed setup file!\n\n'.format(filename))
-                        proxy().set_file_status(self.epName, file_id, STATUS_NOT_EXEC, 0.0) # File status ABORTED
+                        print('Not executed file `{}` because of failed setup file!\n\n'.format(filename))
+                        proxy().set_file_status(self.epName, file_id, STATUS_NOT_EXEC, 0.0) # File status NOT EXEC
                         try:
                             proxy().set_file_variable(self.epName, file_id, '_reason', 'Not executed, because of failed setup file!')
                         except Exception:
@@ -836,6 +839,22 @@ class TwisterRunner(object):
                         print('<<< END filename: `{}:{}` >>>\n'.format(file_id, filename))
                         continue
                 del aborted_ids, current_ids
+
+            # If an iteration file failed and Stop on Fail is True
+            if abort_iter == filename and iteration_nr and iteration_sof:
+                print('Not executed file `{}` because of iteration stop on fail!\n'.format(filename))
+                print('Iteration `{}` will not run!!\n\n'.format(iteration_nr))
+                proxy().set_file_status(self.epName, file_id, STATUS_NOT_EXEC, 0.0) # File status NOT EXEC
+                try:
+                    proxy().set_file_variable(self.epName, file_id, '_reason', 'Not executed, because of failed iteration file!')
+                except Exception:
+                    trace = traceback.format_exc()[34:].strip()
+                    print('Exception on sending reason `{}`!'.format(trace))
+                print('<<< END filename: `{}:{}` >>>\n'.format(file_id, filename))
+                continue
+            else:
+                abort_iter = False
+
 
             try:
                 STATUS = proxy().get_ep_status(self.epName)
@@ -1256,6 +1275,12 @@ class TwisterRunner(object):
                     print('*ERROR* Setup file for suite `{}` did not PASS! All suite will be ABORTED!\n\n'.format(suite_name))
                     proxy().echo('*ERROR* Setup file for `{}::{}` returned FAIL! All suite will be ABORTED!'\
                         ''.format(self.epName, suite_name))
+
+                if iteration_sof:
+                    # If the file has Iteration Stop on Fail, CANCEL all files from same iteration
+                    abort_iter = filename
+                    print('*ERROR* Iteration file `{}` did not PASS, for value `{}`!\n\n'\
+                        'All iteration files will be ABORTED!\n'.format(filename, iteration_nr))
 
             if reason:
                 if result == STATUS_FAIL:
