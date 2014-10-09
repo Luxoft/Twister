@@ -614,12 +614,12 @@ class CeXmlParser(object):
         resp = self.project.localFs.write_user_file(user, xml_file, xml_header, 'w')
         if resp != True:
             logError(resp)
-            return resp
+            return '*ERROR* ' + resp
 
         resp = self.project.localFs.write_user_file(user, xml_file, etree.tostring(config_fs_root, pretty_print=True), 'w')
         if resp != True:
             logError(resp)
-            return resp
+            return '*ERROR* ' + resp
 
         logDebug("CeParser: Successfully generated: `{}`, user `{}`.".format(xml_file, user))
         return True

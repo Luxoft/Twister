@@ -1,7 +1,7 @@
 
 # File: CeProject.py ; This file is part of Twister.
 
-# version: 3.053
+# version: 3.054
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -457,8 +457,10 @@ class Project(object):
 
         logDebug('Common Project Reset for `{}` with params:\n\t`{}` & `{}`.'.format(user, base_config, files_config))
 
-        if not files_config.endswith('testsuites.xml'):
-            self.xparser.generate_xml(user, files_config)
+        if not files_config.endswith('/testsuites.xml'):
+            resp = self.xparser.generate_xml(user, files_config)
+            if isinstance(resp, str) and resp.startswith('*ERROR*'):
+                return False
             files_config = userHome(user) + '/twister/config/testsuites.xml'
             self.parsers[user].updateConfigTS(files_config)
 
@@ -1861,13 +1863,15 @@ class Project(object):
         # This will always happen when the START button is pressed, if CE is stopped
         if executionStatus in [STATUS_STOP, STATUS_INVALID] and new_status == STATUS_RUNNING:
 
+            proj_reset = False
+
             # If the Msg contains 2 paths, separated by comma
             if msg and len(msg.split(',')) == 2:
                 path1 = msg.split(',')[0]
                 path2 = msg.split(',')[1]
                 if os.path.isfile(path1) and os.path.isfile(path2):
                     logDebug('Using custom XML files: `{}` & `{}`.'.format(path1, path2))
-                    self.reset_project(user, path1, path2)
+                    proj_reset = self.reset_project(user, path1, path2)
                     msg = ''
 
             # Or if the Msg is a path to an existing file...
@@ -1876,15 +1880,20 @@ class Project(object):
                 # If the file is XML, send it to project reset function
                 if data[0] == '<' and data [-1] == '>':
                     logDebug('Using custom XML file: `{}`...'.format(msg))
-                    self.reset_project(user, msg)
+                    proj_reset = self.reset_project(user, msg)
                     msg = ''
                 else:
                     logDebug('You are probably trying to use file `{}` as config file, but it\'s not a valid XML!'.format(msg))
-                    self.reset_project(user)
+                    proj_reset = self.reset_project(user)
                 del data
 
             else:
-                self.reset_project(user)
+                proj_reset = self.reset_project(user)
+
+            if not proj_reset:
+                msg = '*ERROR* User `{}` could not generate project file!'.format(user)
+                logError(msg)
+                return msg
 
             self.reset_logs(user)
 
