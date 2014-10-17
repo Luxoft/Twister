@@ -1,7 +1,7 @@
 
 # File: CeXmlRpc.py ; This file is part of Twister.
 
-# version: 3.007
+# version: 3.008
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -414,7 +414,10 @@ class CeXmlRpc(_cptools.XMLRPCController):
             return self.project.clearFs.read_user_file(user_view_actv, path +'/'+ fpath)
         else:
             dpath = self.project.get_user_info(user, 'projects_path').rstrip('/')
-            return self.project.localFs.read_user_file(user, dpath +'/'+ fpath)
+            if fpath.startswith(dpath):
+                return self.project.localFs.read_user_file(user, fpath)
+            else:
+                return self.project.localFs.read_user_file(user, dpath +'/'+ fpath)
 
 
     @cherrypy.expose

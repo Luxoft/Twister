@@ -1,7 +1,7 @@
 
 # File: CeParser.py ; This file is part of Twister.
 
-# version: 3.003
+# version: 3.004
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -502,12 +502,15 @@ class CeXmlParser(object):
         Creates testsuites.xml file by multiplying tests depending
         on the suts number and eps.
         '''
-
         logDebug("CeParser: preparing to convert project file: `{}`, user `{}`.".format(filename, user))
+
+        data = self.project.xmlrpc.read_project_file(filename)
+        if data.startswith('*ERROR*'):
+            return data
 
         # try to parse the project file
         try:
-            xml = etree.parse(filename)
+            xml = etree.fromstring(data)
         except:
             msg = "The file: '{}' it's not an xml file. Try again!".format(filename)
             logDebug(msg)
