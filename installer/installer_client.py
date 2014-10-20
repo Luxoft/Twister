@@ -1,5 +1,5 @@
 
-# version: 2.003
+# version: 2.004
 
 # File: installer.py ; This file is part of Twister.
 
@@ -71,6 +71,7 @@ except:
 
 # Twister client path
 INSTALL_PATH = userHome(user_name) + os.sep + 'twister/'
+cfg_path = INSTALL_PATH + 'config/'
 tmp_config   = ''
 
 print('Hello `{}` !\n'.format(user_name))
@@ -84,7 +85,7 @@ if os.path.exists(INSTALL_PATH):
     if selected.strip().lower() in ['y', 'yes']:
 
         # Backup CONFIG folder for client
-        if os.path.exists(INSTALL_PATH + 'config'):
+        if os.path.exists(cfg_path):
             if os.getuid() != 0: # Normal user
                 tmp_config = userHome(user_name) + '/.twister'
                 try: os.mkdir(tmp_config)
@@ -92,16 +93,15 @@ if os.path.exists(INSTALL_PATH):
                     print('Error! Cannot create .twister dir `{}`! The installation cannot continue!\n'.format(tmp_config))
                     exit(1)
             else: # ROOT user
-                tmp_config = '/tmp/twister_server_config'
-            print('\nBack-up `config` folder (from `{}` to `{}`)...'.format(INSTALL_PATH+'config', tmp_config))
+                tmp_config = '/tmp/twister_client_config'
+
+            print('\nBack-up config folder (from `{}` to `{}`)...'.format(cfg_path, tmp_config))
             try:
-                shutil.move(INSTALL_PATH+'config', tmp_config)
+                shutil.move(cfg_path, tmp_config)
             except Exception as e:
                 print('\nInsuficient rights to move the config folder `{}`!\n'
                       'The installation cannot continue if you don\'t have permissions to move that folder!\n'.format(INSTALL_PATH+'config'))
                 exit(1)
-        else:
-            tmp_config = ''
 
         # Deleting previous versions of Twister
         try: dir_util.remove_tree(INSTALL_PATH)
@@ -174,15 +174,17 @@ for fname in to_copy:
 
 # Restore CONFIG folder, if any
 if os.path.exists(tmp_config):
-    print('\nMoving `config` folder back (from `{}` to `{}`)...'.format(tmp_config, INSTALL_PATH))
-    dir_util.copy_tree(tmp_config, INSTALL_PATH)
+    print('\nMoving `config` folder back (from `{}` to `{}`)...'.format(tmp_config, cfg_path))
+    dir_util.copy_tree(tmp_config, cfg_path)
     dir_util.remove_tree(tmp_config)
 
 
 # Create cache and logs folders
 try: os.mkdir(INSTALL_PATH +os.sep+ '.twister_cache')
 except: pass
-try: os.mkdir(INSTALL_PATH +os.sep+ 'logs')
+try: os.mkdir(INSTALL_PATH + '/logs')
+except: pass
+try: os.mkdir(INSTALL_PATH + '/config/sut')
 except: pass
 # Delete Server config files...
 try: os.remove(INSTALL_PATH +os.sep+ 'config/resources.json')

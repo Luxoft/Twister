@@ -1,5 +1,5 @@
 
-# version: 2.003
+# version: 2.004
 
 # File: installer.py ; This file is part of Twister.
 
@@ -99,7 +99,8 @@ if os.path.exists(INSTALL_PATH):
         exit(0)
 
 # Backup CONFIG folder for server
-if os.path.exists(INSTALL_PATH + 'config'):
+cfg_path = INSTALL_PATH + 'config/'
+if os.path.exists(cfg_path):
     if os.getuid() != 0: # Normal user
         tmp_config = userHome(user_name) + '/.twister'
         try: os.mkdir(tmp_config)
@@ -108,12 +109,13 @@ if os.path.exists(INSTALL_PATH + 'config'):
             exit(1)
     else: # ROOT user
         tmp_config = '/tmp/twister_server_config'
-    print('\nBack-up `config` folder (from `{}` to `{}`)...'.format(INSTALL_PATH+'config', tmp_config))
+
+    print('\nBack-up config folder (from `{}` to `{}`)...'.format(cfg_path, tmp_config))
     try:
-        shutil.move(INSTALL_PATH+'config', tmp_config)
+        shutil.move(cfg_path, tmp_config)
     except Exception as e:
         print('\nInsuficient rights to move the config folder `{}`!\n'
-              'The installation cannot continue if you don\'t have permissions to move that folder!\n'.format(INSTALL_PATH+'config'))
+              'The installation cannot continue if you don\'t have permissions to move that folder!\n'.format(cfg_path))
         exit(1)
 else:
     tmp_config = ''
@@ -121,17 +123,17 @@ else:
 # Deleting previous versions of Twister
 try:
     dir_util.remove_tree(INSTALL_PATH)
-    print('Removed folder `%s`.' % INSTALL_PATH)
+    print('Removed folder `{}`.'.format(INSTALL_PATH))
     err1 = False
 except:
-    print('Warning! Cannot delete Twister dir `{0}` !'.format(INSTALL_PATH))
+    print('Warning! Cannot delete Twister dir `{}` !'.format(INSTALL_PATH))
     err1 = True
 try:
     os.makedirs(INSTALL_PATH)
-    print('Created folder `%s`.' % INSTALL_PATH)
+    print('Created folder `{}`.'.format(INSTALL_PATH))
     err2 = False
 except:
-    print('Warning! Cannot create Twister dir `{0}` !'.format(INSTALL_PATH))
+    print('Warning! Cannot create Twister dir `{}` !'.format(INSTALL_PATH))
     err2 = True
 
 if err1 and err2:
@@ -197,8 +199,8 @@ for fname in to_copy:
 
 # Restore CONFIG folder, if any
 if os.path.exists(tmp_config):
-    print('\nMoving `config` folder back (from `{}` to `{}`)...'.format(tmp_config, INSTALL_PATH+'config'))
-    dir_util.copy_tree(tmp_config, INSTALL_PATH+'config')
+    print('\nMoving `config` folder back (from `{}` to `{}`)...'.format(tmp_config, cfg_path))
+    dir_util.copy_tree(tmp_config, cfg_path)
     dir_util.remove_tree(tmp_config)
 
 
