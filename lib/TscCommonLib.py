@@ -1,7 +1,7 @@
 
 # File: TscCommonLib.py ; This file is part of Twister.
 
-# version: 3.016
+# version: 3.017
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -25,7 +25,10 @@
 
 """
 This module contains common functions to communicate with the Central Engine.
-You can use : get_global, set_global, get_resource, set_resource, log_message.
+
+The most important class is `TscCommonLib`, which is exposed both in Twister tests and libraries.
+
+The exception classes are used to gracefully crash the Twister tests.
 """
 from __future__ import print_function
 
@@ -40,15 +43,13 @@ from rpyc import BgServingThread
 
 # This will work, because TWISTER_PATH is appended to sys.path.
 try:
-    from ce_libs import *
+    from ce_libs import PROXY_ADDR, USER, EP, SUT
 except Exception:
     raise Exception('CommonLib must run from Twister!\n')
 
 TWISTER_PATH = os.getenv('TWISTER_PATH')
 if not TWISTER_PATH:
     raise Exception('$TWISTER_PATH environment variable is not set!\n')
-
-from common import iniparser
 
 __all__ = ['TscCommonLib', 'ExceptionTestFail', 'ExceptionTestAbort', 'ExceptionTestTimeout', 'ExceptionTestSkip']
 
@@ -92,15 +93,29 @@ class ExceptionTestSkip(TwisterException):
 
 class TscCommonLib(object):
     """
-    Base library for Twister; imported in all test cases automatically
+    Base library for Twister tests and libraries.
+
+    All functions are exposed automatically.
     """
 
     platform_sys = platform.system().lower()
+    """ Current platform. (ex: Windows, Linux) """
+
     __ce_proxy = None
+    """ Pointer to Central Engine via RPyc. """
+
     proxy_path = PROXY_ADDR
+    """ The Central Engine RPyc address. """
+
     userName = USER
+    """ The username running this test, or libary. """
+
     epName = EP
+    """ The EP running this test, or libary. """
+
     global_vars = {}
+    """ All global variables, shared between tests and libaries. """
+
     _SUITE_ID = 0
     _FILE_ID = 0
 
@@ -113,7 +128,8 @@ class TscCommonLib(object):
 
 
     def _reload_libs(self):
-        """ reload libraries """
+        """ Internal function. Reload libraries. """
+        from common import iniparser
         ce_path = '{}/.twister_cache/{}/ce_libs/ce_libs.py'.format(TWISTER_PATH, self.epName)
         cfg = iniparser.ConfigObj(ce_path)
         for n, v in cfg.iteritems():
@@ -123,7 +139,7 @@ class TscCommonLib(object):
 
     @property
     def sutName(self):
-        """ return  SUT name """
+        """ Returns current SUT name. """
         self._reload_libs()
         name = self.ce_proxy.get_suite_variable(self.epName, self._SUITE_ID, 'sut')
         return name
@@ -131,7 +147,7 @@ class TscCommonLib(object):
 
     @property
     def SUT(self):
-        """ return  SUT name; same as sutName """
+        """ Returns current SUT name; same as sutName. """
         self._reload_libs()
         name = self.ce_proxy.get_suite_variable(self.epName, self._SUITE_ID, 'sut')
         return name
@@ -139,21 +155,21 @@ class TscCommonLib(object):
 
     @property
     def SUITE_ID(self):
-        """ return suite ID """
+        """ Returns current suite ID. """
         self._reload_libs()
         return self._SUITE_ID
 
 
     @property
     def FILE_ID(self):
-        """ return file ID """
+        """ Returns current file ID. """
         self._reload_libs()
         return self._FILE_ID
 
 
     @property
     def SUITE_NAME(self):
-        """ return suite name """
+        """ Returns current suite name. """
         self._reload_libs()
         name = self.ce_proxy.get_suite_variable(self.epName, self._SUITE_ID, 'name')
         return name
@@ -161,7 +177,7 @@ class TscCommonLib(object):
 
     @property
     def FILE_NAME(self):
-        """ return file name """
+        """ Returns current file name. """
         self._reload_libs()
         name = self.ce_proxy.get_file_variable(self.epName, self._FILE_ID, 'file')
         if name:
@@ -239,7 +255,7 @@ class TscCommonLib(object):
     @property
     def ce_proxy(self):
         """
-        Make this an instance property.
+        Pointer to the Central Engine RPyc connection.
         """
         return self._ce_proxy()
 
@@ -247,7 +263,7 @@ class TscCommonLib(object):
     @staticmethod
     def test_fail(reason=''):
         """
-        Gracefully crash test.
+        Gracefully crash test with status `Fail`.
         """
         raise ExceptionTestFail(reason)
 
@@ -255,7 +271,7 @@ class TscCommonLib(object):
     @staticmethod
     def test_abort(reason=''):
         """
-        Gracefully crash test.
+        Gracefully crash test with status `Abort`.
         """
         raise ExceptionTestAbort(reason)
 
@@ -263,7 +279,7 @@ class TscCommonLib(object):
     @staticmethod
     def test_timeout(reason=''):
         """
-        Gracefully crash test.
+        Gracefully crash test with status `Timeout`.
         """
         raise ExceptionTestTimeout(reason)
 
@@ -271,14 +287,14 @@ class TscCommonLib(object):
     @staticmethod
     def test_skip(reason=''):
         """
-        Gracefully crash test.
+        Gracefully crash test with status `Skip`.
         """
         raise ExceptionTestSkip(reason)
 
 
     def log_msg(self, log_type, log_message):
         """
-        Shortcut function for sending a message in a log to Central Engine.
+        Send a message in a specific log, on Central Engine.
         """
         if not log_message:
             log_message = ''
@@ -291,7 +307,7 @@ class TscCommonLib(object):
     def get_global(cls, var):
         """
         Function to get variables saved from Test files.
-        The same dictionary must be used, both in Testcase and derived Library.
+        The same data must be used, both in Testcase and derived Libraries.
         """
         if var in cls.global_vars:
             return cls.global_vars[var]
@@ -304,7 +320,7 @@ class TscCommonLib(object):
     def set_global(cls, var, value):
         """
         Function to keep variables sent from Test files.
-        The same dictionary must be used, both in Testcase and derived Library.
+        The same data must be used, both in Testcase and derived Libraries.
         """
         try:
             marshal.dumps(value)
@@ -317,7 +333,7 @@ class TscCommonLib(object):
 
     def get_config(self, cfg_path, var_path=''):
         """
-        Function to get a config, using the full path to a config file and
+        Get data from a config, using the full path to the config file and
         the full path to a config variable in that file.
         """
         return self.ce_proxy.get_config(cfg_path, var_path)
@@ -325,7 +341,7 @@ class TscCommonLib(object):
 
     def get_binding(self, cfg_root):
         """
-        Function to get a cfg -> SUT binding.
+        Function to get a config -> SUT binding.
         """
         bindings = self.ce_proxy.get_user_variable('bindings') or {}
         return bindings.get(cfg_root)
@@ -333,8 +349,8 @@ class TscCommonLib(object):
 
     def get_bind_id(self, component_name, test_config='default_binding'):
         """
-        Function to get a cfg -> SUT binding ID.
-        Some syntactic sugar.
+        Function to get a config -> SUT binding ID.
+        Shortcut function.
         """
         bindings = self.ce_proxy.get_user_variable('bindings') or {}
         # Fix cfg root maybe ?
@@ -350,7 +366,7 @@ class TscCommonLib(object):
     def get_bind_name(self, component_name, test_config='default_binding'):
         """
         Function to get a cfg -> SUT binding name.
-        Some syntactic sugar.
+        Shortcut function.
         """
         sid = self.get_bind_id(component_name, test_config)
         if not sid:
@@ -364,8 +380,8 @@ class TscCommonLib(object):
     def get_iter_value(self, iter_name):
         """
         Find iteration value, for a specific iterator name.
-        @param iter_name the name of the iterator to search.
-        @return The iterator value.
+        `iter_name` is the name of the iterator to search.
+        Returns The iterator value.
         """
         iterNr = self.ce_proxy.get_file_variable(self.epName, self._FILE_ID, 'iterationNr')
         found = [i.split('=')[-1] for i in iterNr.split(',') if '#{}='.format(iter_name) in i]
@@ -376,7 +392,7 @@ class TscCommonLib(object):
 
     def count_project_files(self):
         """
-        @return The number of files inside the current project.
+        Returns the number of files inside the current project.
         """
         data = self.ce_proxy.get_ep_variable(self.epName, 'suites')
         SuitesManager = copy.deepcopy(data)
@@ -387,7 +403,7 @@ class TscCommonLib(object):
     def current_file_index(self):
         """
         Returns the index of this file in the project.
-        If the ID is not found, the count will fail.
+        If the file ID is not found, the count will fail.
         """
         data = self.ce_proxy.get_ep_variable(self.epName, 'suites')
         SuitesManager = copy.deepcopy(data)
@@ -401,7 +417,7 @@ class TscCommonLib(object):
     def count_suite_files(self):
         """
         Returns the number of files inside a suite ID.
-        If the ID is not found, the count will fail.
+        If the suite ID is not found, the count will fail.
         """
         data = self.ce_proxy.get_suite_variable(self.epName, self.SUITE_ID, 'children')
         SuitesManager = copy.deepcopy(data)
@@ -412,7 +428,7 @@ class TscCommonLib(object):
     def current_fsuite_index(self):
         """
         Returns the index of this file, inside this suite.
-        If the ID is not found, the count will fail.
+        If the suite ID and file ID are not found, the count will fail.
         """
         data = self.ce_proxy.get_suite_variable(self.epName, self.SUITE_ID, 'children')
         SuitesManager = copy.deepcopy(data)
@@ -425,7 +441,7 @@ class TscCommonLib(object):
 
     def py_exec(self, code_string):
         """
-        Exposed Python function and class instances for TCL.
+        Expose Python functions and class instances in TCL.
         """
         if not isinstance(code_string, str):
             print('py_exec: Error, the code must be a string `{}`!'.format(code_string))
@@ -471,7 +487,7 @@ class TscCommonLib(object):
 
     def get_resource(self, query, dtype=unicode):
         """
-        Get TB content. Alias function.
+        Get TB content. Alias function for `get_tb`.
         """
         return self.get_tb(query, dtype)
 
@@ -511,7 +527,7 @@ class TscCommonLib(object):
 
     def set_tb(self, name, parent='/', props={}):
         """
-        Update a TB.
+        Update a TB. High level function.
         """
         if isinstance(props, str) or isinstance(props, unicode):
             try:
@@ -527,7 +543,7 @@ class TscCommonLib(object):
 
     def set_resource(self, name, parent='/', props={}):
         """
-        Update a TB. Alias function.
+        Update a TB. Alias function for `set_tb`.
         """
         return self.set_tb(name, parent, props)
 
@@ -545,7 +561,7 @@ class TscCommonLib(object):
 
     def rename_resource(self, res_query, new_name):
         """
-        Rename a TB. Alias function.
+        Rename a TB. Alias function for `rename_tb`.
         """
         return self.rename_tb(res_query, new_name)
 
@@ -563,7 +579,7 @@ class TscCommonLib(object):
 
     def delete_resource(self, query):
         """
-        Delete a TB. Alias function.
+        Delete a TB. Alias function for `delete_tb`.
         """
         return self.delete_tb(query)
 
