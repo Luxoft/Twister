@@ -1089,7 +1089,7 @@ class CeXmlRpc(_cptools.XMLRPCController):
                 err = '*ERROR* Cannot save CC config file `{}`, because it\'s not locked!'.format(fpath)
                 logDebug(err)
                 return err
-            return self.write_file(path +'/'+ fpath, content, 'w', type='clearcase:' + view_actv)
+            return self.write_file(path +'/'+ fpath, content, 'w', type='clearcase:{}:{}'.format(view, actv))
         else:
             dirpath = self.project.get_user_info(user, 'tcfg_path')
             # If file exists
