@@ -660,8 +660,8 @@ class TscCommonLib(object):
         """
         try:
             return self.ce_proxy.rename_sut(res_query, new_name)
-            print('Error on rename SUT! `{}`!'.format(e))
         except Exception as e:
+            print('Error on rename SUT! `{}`!'.format(e))
             return None
 
 
