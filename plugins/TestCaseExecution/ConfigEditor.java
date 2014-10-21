@@ -1,6 +1,6 @@
 /*
 File: ConfigEditor.java ; This file is part of Twister.
-Version: 3.003
+Version: 3.006
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -112,6 +112,9 @@ import javax.xml.bind.DatatypeConverter;
 import org.xml.sax.InputSource;
 import java.io.StringReader;
 import java.util.Enumeration;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 
 public class ConfigEditor extends JPanel{
     public JScrollPane panel;
@@ -182,7 +185,7 @@ public class ConfigEditor extends JPanel{
         tvalue = new JTextField();
         JLabel type = new JLabel("Type:");
         ttype = new JComboBox();
-        docum = new IntegerRangeDocument(0,255,'d');
+        docum = new IntegerRangeDocument(0,255,'i');
         tvalue.setDocument(docum);
         tdescription.setColumns(20);
         tdescription.setRows(5);
@@ -909,15 +912,19 @@ public class ConfigEditor extends JPanel{
         }
         AbstractAction action = new AbstractAction(){
             public void actionPerformed(ActionEvent ev){
+                String initialname = remotelocation;
                 remotelocation = tf.getText();
                 writeXML();
                 saveBinding();
                 lastsave = true;
                 bindingsave = true;
                 displayname.setText(displayname.getText().replace(" (need save)", ""));
+                remotelocation = initialname;
             }
         };
-        new MySftpBrowser(RunnerRepository.host,RunnerRepository.user,RunnerRepository.password,RunnerRepository.CENTRALENGINEPORT,tf,this,true).setAction(action);
+        MySftpBrowser browser = new MySftpBrowser(RunnerRepository.host,RunnerRepository.user,RunnerRepository.password,RunnerRepository.CENTRALENGINEPORT,tf,this,true);
+        browser.setAction(action);
+        browser.setButtonText("Save");
     }
     
     public void save(){
@@ -1255,7 +1262,7 @@ public class ConfigEditor extends JPanel{
         catch(Exception e){}
         final JTextField value = new JTextField();
         final JComboBox combo = new JComboBox(new String[]{"iterator","decimal","hex","octet","string"});
-        final IntegerRangeDocument docum = new IntegerRangeDocument(0,255,'d');
+        final IntegerRangeDocument docum = new IntegerRangeDocument(0,255,'i');
         try{String type = node.getType().getNodeValue();
             if(type.equals("iterator")){
                 combo.setSelectedIndex(0);
@@ -1414,7 +1421,7 @@ public class ConfigEditor extends JPanel{
         
         final JTextField value = new JTextField();
         final JComboBox combo = new JComboBox(new String[]{"iterator","decimal","hex","octet","string"});
-        final IntegerRangeDocument docum = new IntegerRangeDocument(0,255,'d');
+        final IntegerRangeDocument docum = new IntegerRangeDocument(0,255,'i');
         value.setDocument(docum);
         combo.addItemListener(new ItemListener(){
             public void itemStateChanged(ItemEvent ev){
@@ -1690,7 +1697,7 @@ public class ConfigEditor extends JPanel{
     
     public void writeXML(){
         try{
-            System.out.println("Writing config..."+remotelocation);
+            System.out.println("Writing config... "+remotelocation);
             XPath xp = XPathFactory.newInstance().newXPath(); // remove white spaces
             NodeList nl = (NodeList) xp.evaluate("//text()[normalize-space(.)='']", doc, XPathConstants.NODESET);
             for (int i=0; i < nl.getLength(); ++i) {
@@ -1707,6 +1714,7 @@ public class ConfigEditor extends JPanel{
             transformer.transform(source, result);
             StringBuffer sb = ((StringWriter)outWriter).getBuffer();
             String content = sb.toString();
+            System.out.println("-----:"+content);
             content = DatatypeConverter.printBase64Binary(content.getBytes());
             String resp = RunnerRepository.getRPCClient().execute("save_config_file", new Object[]{remotelocation,content}).toString();
             if(resp.indexOf("*ERROR*")!=-1){
@@ -1816,8 +1824,32 @@ public class ConfigEditor extends JPanel{
                     } catch (Exception exception) {exception.printStackTrace();}
                 } else if(type=='i'){
                     try {
-                        if (newValue.matches("[\\d,\\.]*")) {
-                            super.insertString(offset, string, attributes);
+                        if(newValue.length()>1){
+                            if(string.equals(".")){
+                                if(!Character.isLetter(newValue.charAt(newValue.length()-2))){
+                                    if (newValue.matches("[\\d,\\.a-zA-Z]*")) {
+                                        super.insertString(offset, string, attributes);
+                                    }
+                                }
+                            } else if(string.equals("-")||string.equals(":")){
+                                if(Character.isDigit(newValue.charAt(newValue.length()-2))){
+                                    super.insertString(offset, string, attributes);
+                                }    
+                            }else if(Character.isLetter(string.charAt(string.length()-1))){
+                                if(newValue.charAt(newValue.length()-2)!='.'){
+                                    if (newValue.matches("[\\d,\\.a-zA-Z]*")) {
+                                        super.insertString(offset, string, attributes);
+                                    }
+                                }
+                            } else {
+                                if (newValue.matches("[\\d,\\.a-zA-Z:\\-]*")) {
+                                    super.insertString(offset, string, attributes);
+                                }
+                            }
+                        } else {
+                            if (newValue.matches("[\\d,\\.a-zA-Z:\\-]*")){
+                                super.insertString(offset, string, attributes);
+                            }
                         }
                     } catch (Exception exception) {exception.printStackTrace();}
                 }
@@ -1830,7 +1862,22 @@ public class ConfigEditor extends JPanel{
             String before = currentContent.substring(0, offset);
             String after = currentContent.substring(length + offset, currentLength);
             String newValue = before + after;
-            if(type=='a'||type=='i'){
+            if(type=='i'){
+                Pattern p = Pattern.compile("\\.[a-zA-Z]");
+                Matcher m = p.matcher(newValue);
+                boolean cond = m.find();
+                p = Pattern.compile("[a-zA-Z]\\.");
+                m = p.matcher(newValue);
+                boolean cond2 = m.find();
+                p = Pattern.compile("[a-zA-Z]:");
+                m = p.matcher(newValue);
+                boolean cond3 = m.find();
+                p = Pattern.compile("[a-zA-Z]\\-");
+                m = p.matcher(newValue);
+                boolean cond4 = m.find();
+                if(!cond&&!cond2&&!cond3&&!cond4)super.remove(offset, length);
+            }
+            if(type=='a'){
                 super.remove(offset, length);
             }
             else if(type=='b'){

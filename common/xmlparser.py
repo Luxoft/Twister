@@ -1267,8 +1267,8 @@ class ClearCaseParser(object):
                 if xobj.get('active') == 'true':
                     path = xobj.get('path')
                     view = xobj.get('view')
-                    actv = xobj.get('activity')
-                    self.config[name] = {'path': path, 'view': view, 'actv': actv}
+                    # actv = xobj.get('activity')
+                    self.config[name] = {'path': path, 'view': view, 'actv': ''}
 
         if filter_tag and filter_name:
             return self.config.get(filter_name, {})

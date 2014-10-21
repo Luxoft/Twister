@@ -1,6 +1,6 @@
 /*
 File: ClearCase.java ; This file is part of Twister.
-Version: 3.025
+Version: 2.025
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -153,6 +153,16 @@ public class ClearCase extends JPanel{
                                     CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,ClearCase.this,"Error", "No view selected");
                                     return;
                                 }
+//                             } else {
+//                                 String command = "cleartool lsview";
+//                                 if(cshort.isSelected()){
+//                                     command+=" -short";
+//                                 } else if(clong.isSelected()){
+//                                     command+=" -long";
+//                                 }
+//                                 hash.put("command", command+" | grep "+RunnerRepository.user);
+//                             }
+                            
                             String resp = sendCommand(hash,false);
 //                             if(conf.getType()!=BASE){
 //                                 resp = "one\ntwo\nthree\nfour";
@@ -198,6 +208,15 @@ public class ClearCase extends JPanel{
             public void actionPerformed(ActionEvent ev){
                     new Thread(){
                         public void run(){
+//                             refresh.setEnabled(false);
+//                             tfilter.setEnabled(false);
+//                             if(conf.getType()==BASE){
+//                             HashMap<String, String> hash = new HashMap<String, String>();
+//                             hash.put("command", " cleartool lsview -short | grep "+RunnerRepository.user);
+//                             String [] resp = sendCommand(hash,false).split("\n");
+//                             showViews(resp);
+//                             } else {
+//                                 String view = conf.listViews(null);
                                 if(view.equals(""))return;
                                 HashMap<String, String> hash = new HashMap<String, String>();
                                 hash.put("view", view);
@@ -208,8 +227,30 @@ public class ClearCase extends JPanel{
                                                                 "Error", resp);
                                     return ;
                                 }
+//                                 resp = "one\ntwo\nthree\nfour";
                                 String [] activities = resp.split("\n");
                                 showActivities(activities,view);
+//                                 String activity = conf.listActivities(view, null);
+//                                 if(activity.equals(""))return;
+//                                 hash = new HashMap<String, String>();
+//                                 hash.put("command", "cleartool setactivity "+view);
+//                                 sendCommand(hash,false);
+//                                 root = jTextField1.getText();
+//                                 RunnerRepository.window.mainpanel.p1.cp.refreshStructure();
+//                                 lview.setText("View: "+view);
+//                                 vob.setText("Path: "+root);
+//                                 lactivity.setText("Activity: "+activity);
+//                                 showconf.setEnabled(true);
+//                                 mkelem.setEnabled(true);
+//                                 rmelem.setEnabled(true);
+//                                 mklabel.setEnabled(true);
+//                                 mkattr.setEnabled(true);
+//                                 mkview.setEnabled(true);
+//                                 describe.setEnabled(true);
+                                //hash.put("view", view);
+                                //hash.put("command", "lsactivity");
+                                //hash.put("command", " cleartool lsactivity | grep "+RunnerRepository.user);
+//                             }
                         }
                     }.start();
             }
@@ -1030,6 +1071,42 @@ public class ClearCase extends JPanel{
                             hash.put("command", " cleartool lsview -short | grep "+RunnerRepository.user);
                             String [] resp = sendCommand(hash,false).split("\n");
                             showViews(resp);
+//                             } else {
+//                                 String view = conf.listViews(null);
+//                                 if(view.equals(""))return;
+//                                 HashMap<String, String> hash = new HashMap<String, String>();
+//                                 hash.put("view", view);
+//                                 hash.put("command", "lsactivity");
+//                                 String resp = sendCommand(hash,false).toString();
+//                                 if(resp.indexOf("*ERROR*")!=-1){
+//                                     CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,ClearCase.this,
+//                                                                 "Error", resp);
+//                                     return ;
+//                                 }
+// //                                 resp = "one\ntwo\nthree\nfour";
+//                                 String [] activities = resp.split("\n");
+//                                 showActivities(activities,view);
+// //                                 String activity = conf.listActivities(view, null);
+// //                                 if(activity.equals(""))return;
+// //                                 hash = new HashMap<String, String>();
+// //                                 hash.put("command", "cleartool setactivity "+view);
+// //                                 sendCommand(hash,false);
+// //                                 root = jTextField1.getText();
+// //                                 RunnerRepository.window.mainpanel.p1.cp.refreshStructure();
+// //                                 lview.setText("View: "+view);
+// //                                 vob.setText("Path: "+root);
+// //                                 lactivity.setText("Activity: "+activity);
+// //                                 showconf.setEnabled(true);
+// //                                 mkelem.setEnabled(true);
+// //                                 rmelem.setEnabled(true);
+// //                                 mklabel.setEnabled(true);
+// //                                 mkattr.setEnabled(true);
+// //                                 mkview.setEnabled(true);
+// //                                 describe.setEnabled(true);
+//                                 //hash.put("view", view);
+//                                 //hash.put("command", "lsactivity");
+//                                 //hash.put("command", " cleartool lsactivity | grep "+RunnerRepository.user);
+//                             }
                         }
                     }.start();
             }
@@ -1185,11 +1262,42 @@ public class ClearCase extends JPanel{
                         )
                         )
                 .addContainerGap()));
+                
+                
+                
+//                 layout.setVerticalGroup(
+//             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+//             .addGroup(layout.createSequentialGroup()
+//                 .addGap(4, 4, 4)
+//                 .addComponent(typepanel,javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+//                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+//                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+//                     .addGroup(layout.createSequentialGroup()
+//                         .addComponent(lview)
+//                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+//                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+//                         .addComponent(vob)
+//                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+//                         .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+//                             .addComponent(filter)
+//                             .addComponent(tfilter, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+//                             .addComponent(refresh))
+//                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+//                         .addComponent(jScrollPane2)
+//                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+//                         .addComponent(activity)
+//                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+//                         .addComponent(jScrollPane3))
+//                     .addGroup(layout.createSequentialGroup()
+//                         .addComponent(jPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+//                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+//                         .addComponent(ucmpanel, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
+//                 .addContainerGap()));
         
         layout.linkSize(javax.swing.SwingConstants.VERTICAL, new java.awt.Component[] {refresh, tfilter});
         
         layout.linkSize(javax.swing.SwingConstants.HORIZONTAL, new java.awt.Component[] {typepanel,jPanel1,ucmpanel});
-        ClearCase.view = "";
+		ClearCase.view = "";
     }
     
     //interprets the configuration and enables accordingly the ucm panel
@@ -1414,5 +1522,78 @@ public class ClearCase extends JPanel{
             DefaultMutableTreeNode child2 = new DefaultMutableTreeNode(files.get(i).getAsString(),false);
             node.add(child2);
         }
+//         HashMap<String, String> hash = new HashMap<String, String>();
+//         hash.put("command", "get_path_tree");
+//         hash.put("path", root);
+//         String result = "";
+//         try{result= RunnerRepository.getRPCClient().execute("run_plugin", new Object[]{RunnerRepository.user,
+//                                                                      "ClearCase",hash}).toString();
+//             System.out.println(result);}
+//         catch(Exception e){
+//             System.out.println("Could not biuld tree");
+//             e.printStackTrace();
+//             return;
+//         }
+//         JsonElement el = new JsonParser().parse(result);
+//         JsonObject jobject = el.getAsJsonObject();
+//         for(Object o:jobject.entrySet().toArray()){
+//             System.out.println(o.toString());
+//         }
     }
+    
+    /*
+     * used to create ClearCase tc tree, uses
+     * ssh commands and interprets the result
+     */
+//     public void buildTree(DefaultMutableTreeNode node){
+//         String curentdir = sendCommand("cleartool pwd");
+//         curentdir = curentdir.replace("\n", "");   
+//         DefaultMutableTreeNode child = new DefaultMutableTreeNode(curentdir,true);
+//         node.add(child);
+//         Vector<String> folders = new Vector<String>();
+//         Vector<String> files = new Vector<String>();
+//         boolean directory = false;
+//         int firstindex,lastindex;
+//         String [] lines = sendCommand("cleartool ls -l").split("\n");
+//         for(String line:lines){
+//             if(line.indexOf("directory")==-1){
+//                 directory = false;
+//             } else {
+//                 directory = true;
+//             }
+//             if(line.indexOf("version")==-1)continue;
+//             firstindex = line.indexOf("version")+7; 
+//             lastindex = line.indexOf("@@"); 
+//             line = line.substring(firstindex, lastindex);
+//             for(int i=0;i<line.length();i++){
+//                 if(line.charAt(i)!=' '){
+//                     line = line.substring(i);
+//                     break;
+//                 }
+//             }
+//             if(directory){
+//                 folders.add(line);
+//             } else {
+//                 files.add(line);
+//             }
+//         }
+//         for(String folder:folders){
+//             System.out.println("folder: "+folder);
+//         }
+//         for(String file:files){
+//             System.out.println("file: "+file);
+//         }
+//         for(String folder:folders){
+//             sendCommand("cd  "+curentdir+"/"+folder);
+// //             readOutput(null);
+//             buildTree(child);
+//             sendCommand("cd  "+curentdir);
+// //             readOutput(null);
+//         }
+//         for(String file:files){
+//             DefaultMutableTreeNode child2 = new DefaultMutableTreeNode(file,false);
+//             child.add(child2);
+//         }
+// 
+//     }
 }

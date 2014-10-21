@@ -1,6 +1,6 @@
 /*
 File: ConfigTree.java ; This file is part of Twister.
-Version: 3.001
+Version: 3.002
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -371,8 +371,8 @@ public class ConfigTree extends JPanel{
             }
             //getList(root,struct);
         } catch (Exception e) {
-            if(ob.toString().indexOf("*ERROR*")!=-1)CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,ConfigTree.this,"ERROR", ob.toString());
-            System.out.println("Server response: "+ob.toString());
+            if(ob!=null && ob.toString().indexOf("*ERROR*")!=-1)CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,ConfigTree.this,"ERROR", ob.toString());
+            if(ob!=null)System.out.println("Server response: "+ob.toString());
             e.printStackTrace();
         }
         ((DefaultTreeModel) tree.getModel()).reload();

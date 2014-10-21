@@ -469,7 +469,6 @@ class CeXmlRpc(_cptools.XMLRPCController):
         """
         # Check the username from CherryPy connection
         user = cherrypy.session.get('username')
-
         # Auto detect if ClearCase Test Config Path is active
         ccConfig = self.project.get_clearcase_config(user, 'predefined_path')
         if ccConfig:
@@ -481,6 +480,41 @@ class CeXmlRpc(_cptools.XMLRPCController):
             if not fdir:
                 return '*ERROR* You did not set Predefined Suites Path!'
         return fdir
+
+
+    @cherrypy.expose
+    def read_predefined_suite(self, abspath):
+        """
+        Read a predefined suite file - returns a string.
+        """
+        user = cherrypy.session.get('username')
+        # Auto detect if ClearCase Test Config Path is active
+        logDebug('GUI read_predefined_suite {} {}'.format(user, abspath))
+        ccConfig = self.project.get_clearcase_config(user, 'predefined_path')
+        if ccConfig:
+            view = ccConfig['view']
+            actv = ccConfig['actv']
+            user_view_actv = '{}:{}:{}'.format(user, view, actv)
+            return self.project.clearFs.read_user_file(user_view_actv, abspath)
+        else:
+            return self.project.localFs.read_user_file(user, abspath)
+
+
+    @cherrypy.expose
+    def save_predefined_suite(self, abspath, content):
+        """
+        Write a predefined suite file - returns a True/ False.
+        """
+        user = cherrypy.session.get('username')
+        # Auto detect if ClearCase Test Config Path is active
+        ccConfig = self.project.get_clearcase_config(user, 'predefined_path')
+        if ccConfig:
+            view = ccConfig['view']
+            actv = ccConfig['actv']
+            user_view_actv = '{}:{}:{}'.format(user, view, actv)
+            return self.project.clearFs.write_user_file(user_view_actv, abspath, content)
+        else:
+            return self.project.localFs.write_user_file(user, abspath, content)
 
 
     @cherrypy.expose
@@ -1036,11 +1070,23 @@ class CeXmlRpc(_cptools.XMLRPCController):
             err = '*ERROR* Config file `{}` is locked by `{}`! Cannot save!'.format(fpath, lock)
             logDebug(err)
             return err
+
+        # if it's not locked, we have to lock it first; it might be a new
+        # configuration file ( from GUI Save As )
+        if not lock:
+            self.lock_config(fpath)
+        lock = self.is_lock_config(fpath)
+
         # Cannot save a file that isn't locked!
         if not lock:
             err = '*ERROR* Cannot save config file `{}`, because it\'s not locked!'.format(fpath)
             logDebug(err)
             return err
+
+        # extract the filename from absolute path
+        if fpath.endswith('/'):
+            fpath = fpath.rstrip('/')
+        fpath = fpath.split('/')[-1]
 
         # Auto detect if ClearCase Test Config Path is active
         ccConfig = self.project.get_clearcase_config(user, 'tcfg_path')

@@ -1,6 +1,6 @@
 /*
 File: SutEditor.java ; This file is part of Twister.
-Version: 3.001
+Version: 3.003
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -261,6 +261,7 @@ public class SutEditor extends JPanel{
                         HashMap <String,String>hm = new <String,String>HashMap();
                         hm.put("_id","");
                         String resp = client.execute("delete_component_sut", new Object[]{parentid,name,hm}).toString();
+                        System.out.println("delete_component_sut"+parentid+" - "+name+" - "+hm+" - "+resp);
                         if(resp.indexOf("ERROR")==-1){
                             DefaultTreeModel model = (DefaultTreeModel)tree.getModel();
                             model.removeNodeFromParent(treenode);
@@ -270,7 +271,9 @@ public class SutEditor extends JPanel{
                         }
                     } else if (userobj instanceof Comp) {
                         torem = ((Comp)userobj).getID();
+                        System.out.println("delete_component_sut"+torem);
                         String s = client.execute("delete_component_sut", new Object[]{torem}).toString();
+                        System.out.println("respons: "+s);
                         if(s.indexOf("ERROR")==-1){
                             ((DefaultTreeModel)tree.getModel()).removeNodeFromParent(treenode);
                             selectedSUT(null);                        
@@ -498,13 +501,17 @@ public class SutEditor extends JPanel{
     public void getSUT(String sutname,DefaultMutableTreeNode sutnode,boolean editable){
         try{
             Object ob = client.execute("get_sut", new Object[]{sutname});
-    	    HashMap hash = (HashMap)ob;
-    	    this.editable = editable;
+            HashMap hash = (HashMap)ob;
+            this.editable = editable;
+//          Object[] children = (Object[])hash.get("children");
             DefaultMutableTreeNode epsnode;//child
             DefaultTreeModel model = (DefaultTreeModel)tree.getModel();
             root.removeAllChildren();
             String name,path,eps;
             Object[] subchildren;
+//          for(Object o:children){
+//                 hash= (HashMap)client.execute("get_sut", new Object[]{o.toString()});
+//                 hash= (HashMap)o;
                 path = hash.get("path").toString();
                 name = path.split("/")[path.split("/").length-1];
                 try{eps = ((HashMap)hash.get("meta")).get("_epnames_"+RunnerRepository.user).toString();}
@@ -541,7 +548,10 @@ public class SutEditor extends JPanel{
         String childid, subchildid;
         for(Object o:children){
             try{
-                HashMap subhash= (HashMap)o;
+                childid = o.toString();
+                HashMap subhash= (HashMap)client.execute("get_sut", new Object[]{childid});
+                System.out.println("get_sut:"+childid+" - "+subhash);
+                //HashMap subhash= (HashMap)o;
                 String subpath = subhash.get("path").toString();
                 String subname = subpath.split("/")[subpath.split("/").length-1];
                 HashMap meta = (HashMap)subhash.get("meta");
@@ -554,13 +564,14 @@ public class SutEditor extends JPanel{
                 if(meta.get("_id")!=null){
                     String referenceid = meta.get("_id").toString();
                     Node child = getTB(referenceid,null);
-                    if(child==null)continue;
-                    DefaultMutableTreeNode treechild = new DefaultMutableTreeNode(child);
-                    DefaultMutableTreeNode temp = new DefaultMutableTreeNode("ID: "+child.getID(),false);
-                    treechild.add(temp);
-                    DefaultMutableTreeNode temp2 = new DefaultMutableTreeNode(child.getPath(),false);
-                    treechild.add(temp2);
-                    ((DefaultTreeModel)tree.getModel()).insertNodeInto(treechild, component,component.getChildCount());
+                    if(child!=null){
+                        DefaultMutableTreeNode treechild = new DefaultMutableTreeNode(child);
+                        DefaultMutableTreeNode temp = new DefaultMutableTreeNode("ID: "+child.getID(),false);
+                        treechild.add(temp);
+                        DefaultMutableTreeNode temp2 = new DefaultMutableTreeNode(child.getPath(),false);
+                        treechild.add(temp2);
+                        ((DefaultTreeModel)tree.getModel()).insertNodeInto(treechild, component,component.getChildCount());
+                    }
                 }
                 Object [] subchildren = (Object[])subhash.get("children");
                 buildChildren(subchildren,component);
@@ -664,18 +675,18 @@ public class SutEditor extends JPanel{
         catch(Exception e){System.out.println("Could not conect to "+
                             RunnerRepository.host+" :"+RunnerRepository.getCentralEnginePort()+"/sut/"+
                             "for RPC client initialization");}
-	try{XmlRpcClientConfigImpl configuration2 = new XmlRpcClientConfigImpl();
-	    configuration2.setServerURL(new URL("http://"+RunnerRepository.host+
-		                        ":"+RunnerRepository.getCentralEnginePort()+"/tb/"));
-	    configuration2.setEnabledForExtensions(true);
-	    configuration2.setBasicPassword(RunnerRepository.password);
-	    configuration2.setBasicUserName(RunnerRepository.user);
-	    client2 = new XmlRpcClient();
-	    client2.setConfig(configuration2);
-	    System.out.println("XMLRPC Client for SutEditor initialized: "+client2);}
-	catch(Exception e){System.out.println("Could not conect to "+
-		            RunnerRepository.host+" :"+RunnerRepository.getCentralEnginePort()+"/tb/"+
-		            "for RPC client initialization");}
+    try{XmlRpcClientConfigImpl configuration2 = new XmlRpcClientConfigImpl();
+        configuration2.setServerURL(new URL("http://"+RunnerRepository.host+
+                                ":"+RunnerRepository.getCentralEnginePort()+"/tb/"));
+        configuration2.setEnabledForExtensions(true);
+        configuration2.setBasicPassword(RunnerRepository.password);
+        configuration2.setBasicUserName(RunnerRepository.user);
+        client2 = new XmlRpcClient();
+        client2.setConfig(configuration2);
+        System.out.println("XMLRPC Client for SutEditor initialized: "+client2);}
+    catch(Exception e){System.out.println("Could not conect to "+
+                    RunnerRepository.host+" :"+RunnerRepository.getCentralEnginePort()+"/tb/"+
+                    "for RPC client initialization");}
     }
     
     class ImportTreeTransferHandler extends TransferHandler {  
@@ -775,7 +786,11 @@ public class SutEditor extends JPanel{
                     try{
                         String id = "";
                         if(nodes[i].getType()==0){
-                            try{HashMap hash = (HashMap)client.execute("get_sut", new Object[]{"/"+nodes[i].getName()});
+                            try{//Object ob = client.execute("get_sut", new Object[]{"/"+nodes[i].getName()});
+                                Object ob = client2.execute("get_tb", new Object[]{"/"+nodes[i].getName()});
+                                //System.out.println("get_tb:"+"/"+nodes[i].getName()+": "+ob.toString());
+                                //HashMap hash = (HashMap)client.execute("get_sut", new Object[]{"/"+nodes[i].getName()});
+                                HashMap hash = (HashMap)ob;
                                 id = hash.get("id").toString();
                             } catch(Exception e){
                                 e.printStackTrace();
@@ -796,7 +811,6 @@ public class SutEditor extends JPanel{
                             name = ((Comp)((DefaultMutableTreeNode)parent.getParent()).getUserObject()).getID();
                         }
                         String resp = client.execute("update_meta_sut", new Object[]{parentid,name,hm}).toString();
-                        
                         if(resp.indexOf("ERROR")==-1){
                             DefaultMutableTreeNode element = createChildren(nodes[i]);
                             model.insertNodeInto(element, parent, 1);

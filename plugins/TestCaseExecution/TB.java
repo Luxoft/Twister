@@ -1,6 +1,6 @@
 /*
 File: TB.java ; This file is part of Twister.
-Version: 3.002
+Version: 3.003
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -1069,7 +1069,7 @@ public class TB extends JPanel{
             }
             return node;
         }catch(Exception e){
-            System.out.println("requested id: "+id+" server respons: "+ob.toString());
+            if(ob!=null)System.out.println("requested id: "+id+" server respons: "+ob.toString());
             e.printStackTrace();
             return null;
         }
