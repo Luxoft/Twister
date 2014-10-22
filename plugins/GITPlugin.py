@@ -1,5 +1,5 @@
 
-# version: 2.005
+# version: 2.006
 
 import os, sys
 import shutil
@@ -50,8 +50,29 @@ class Plugin(BasePlugin):
 
     def execCheckout(self, src, dst, command, overwrite=False):
         
+        usr = self.data['username']
+        pwd = self.data['password']
+        
         child = pexpect.spawn(['bash'])
         child.logfile = sys.stdout
+        
+        child.sendline('su {}'.format(self.user))
+        try:
+            child.expect('.*$')
+        except Exception as e:
+            print 'Error: Unable to switch to user {}'.format(self.user)
+            return 'Error on switching to user {usr}'.format(usr=self.user)
+        
+        time.sleep(1)
+        
+        child.sendline('cd')
+        try:
+            child.expect('.*')
+        except Exception as e:
+            print 'Error: Unable to navigate to the user\'s {} home folder.'.format(self.user)
+            return 'Error on navigating to user\'s {usr} home folder.'.format(usr=self.user)
+        
+        time.sleep(1)
         
         if not src:
             return '*ERROR* Git source folder is NULL !'
@@ -59,9 +80,6 @@ class Plugin(BasePlugin):
             return '*ERROR* Git source folder `{}` is invalid !'.format(src)
         if not dst:
             return '*ERROR* Git destination folder is NULL !'
-
-        usr = self.data['username']
-        pwd = self.data['password']
 
         src = src.replace('//', '//{}@'.format(usr))
 
@@ -79,27 +97,27 @@ class Plugin(BasePlugin):
             to_exec = 'git clone -b {branch} {src} {dst}'.format(branch=branch, src=src, dst=dst)
             print('GIT Plugin: Exec `{}` .'.format(to_exec.strip()))
 
+            child.sendline(to_exec.strip())                
             try:
-                child.sendline(to_exec.strip())
-                
-                try:
-                    i = child.expect(['.*password:','Are you sure.*'], 10)
-                    if i == 0 and pwd:
+                i = child.expect(['.*password:','Are you sure.*','Permission denied'], 10)
+                if i == 0 and pwd:
+                    child.sendline(pwd)
+                elif i == 1 and pwd:
+                    child.sendline('yes')
+
+                    time.sleep(1)
+
+                    try:
+                        child.expect('.*password:')
                         child.sendline(pwd)
-                    elif i == 1 and pwd:
-                        child.sendline('yes')
-
-                        time.sleep(1)
-
-                        try:
-                            child.expect('.*password:')
-                            child.sendline(pwd)
-                        except Exception as e:
-                            return 'Error on calling GIT {cmd} (from `{src}` to `{dst}`): `{e}`!'.format(
-                                cmd=command, src=src, dst=dst, e=e)
-                except Exception as e:
+                    except Exception as e:
+                        return 'Error on calling GIT {cmd} (from `{src}` to `{dst}`): `{e}`!'.format(
+                            cmd=command, src=src, dst=dst, e=e)
+                elif i == 2:
+                    print 'Error on calling GIT {cmd} (from `{src}` to `{dst}`): `{e}`!'.format(
+                            cmd=command, src=src, dst=dst, e='Permission denied!')
                     return 'Error on calling GIT {cmd} (from `{src}` to `{dst}`): `{e}`!'.format(
-                        cmd=command, src=src, dst=dst, e=e)
+                            cmd=command, src=src, dst=dst, e='Permission denied!')         
             except Exception as e:
                 return 'Error on calling GIT {cmd} (from `{src}` to `{dst}`): `{e}`!'.format(
                     cmd=command, src=src, dst=dst, e=e)
@@ -125,8 +143,18 @@ class Plugin(BasePlugin):
 
         # Git pull operation
         elif command == 'pull':
-            
+            if not os.path.exists(dst):
+                return 'Error: path `{}` does not exist!'.format(dst)
             child.sendline('cd {}'.format(dst))
+            try:
+                i = child.expect(['Permission denied','No such file or directory'])
+                if i == 0:
+                    return 'Error: cannot enter in directory: {}. Permission denied!'.format(dst)
+                elif i == 1:
+                    return 'Error: cannot enter in directory: {}. No such file or directory!'.format(dst)
+            except Exception as e:
+                print 'Error: cannot enter in directory: {}'.format(dst)
+                return 'Error: cannot enter indirectory: `{dst}`!\n{e}'.format(dst=dst, e=e)
 
             time.sleep(1)
 
