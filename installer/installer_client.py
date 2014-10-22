@@ -1,5 +1,5 @@
 
-# version: 2.004
+# version: 2.005
 
 # File: installer.py ; This file is part of Twister.
 
@@ -85,29 +85,32 @@ if os.path.exists(INSTALL_PATH):
     if selected.strip().lower() in ['y', 'yes']:
 
         # Backup CONFIG folder for client
-        if os.path.exists(cfg_path):
+        if os.path.isdir(cfg_path):
             if os.getuid() != 0: # Normal user
-                tmp_config = userHome(user_name) + '/.twister'
-                try: os.mkdir(tmp_config)
-                except:
-                    print('Error! Cannot create .twister dir `{}`! The installation cannot continue!\n'.format(tmp_config))
-                    exit(1)
+                tmp_config = userHome(user_name) + '/.twister/'
             else: # ROOT user
-                tmp_config = '/tmp/twister_client_config'
+                tmp_config = '/tmp/twister_client_config/'
+            # Remove old tmp config
+            if os.path.isdir(tmp_config):
+                shutil.rmtree(tmp_config)
 
             print('\nBack-up config folder (from `{}` to `{}`)...'.format(cfg_path, tmp_config))
             try:
                 shutil.move(cfg_path, tmp_config)
             except Exception as e:
                 print('\nInsuficient rights to move the config folder `{}`!\n'
-                      'The installation cannot continue if you don\'t have permissions to move that folder!\n'.format(INSTALL_PATH+'config'))
+                      'The installation cannot continue if you don\'t have permissions to move that folder!\n'.format(cfg_path))
                 exit(1)
 
         # Deleting previous versions of Twister
         try: dir_util.remove_tree(INSTALL_PATH)
-        except: print('Error! Cannot delete Twister dir `{}` !'.format(INSTALL_PATH))
+        except:
+            print('Error! Cannot delete Twister dir `{}` !'.format(INSTALL_PATH))
         try: os.mkdir(INSTALL_PATH)
-        except: print('Error! Cannot create Twister dir `{}` !'.format(INSTALL_PATH))
+        except:
+            print('Error! Cannot create Twister dir `{}` !'.format(INSTALL_PATH))
+            print('You probably don\'t have enough privileges to read and write in `{}` !\n'.format(INSTALL_PATH))
+            exit(1)
 
     else:
         print('\nPlease backup your data, then restart the installer.')
@@ -175,8 +178,15 @@ for fname in to_copy:
 # Restore CONFIG folder, if any
 if os.path.exists(tmp_config):
     print('\nMoving `config` folder back (from `{}` to `{}`)...'.format(tmp_config, cfg_path))
-    dir_util.copy_tree(tmp_config, cfg_path)
-    dir_util.remove_tree(tmp_config)
+    for xname in os.listdir(tmp_config):
+        src_name = tmp_config + xname
+        dst_name = cfg_path + xname
+        if os.path.isfile(dst_name):
+            os.remove(dst_name)
+        elif os.path.isdir(dst_name):
+            shutil.rmtree(dst_name)
+        print('Restoring config `{}`.'.format(dst_name))
+        shutil.move(src_name, cfg_path)
 
 
 # Create cache and logs folders
@@ -235,7 +245,7 @@ user_key = '{}config/twister.key'.format(INSTALL_PATH)
 if os.path.isfile(user_key) and open(user_key).read():
     print('User key ok.')
 else:
-    print('Generating user key...')
+    print('Generating new user key...')
     with open(user_key, 'w') as f:
         f.write(binascii.hexlify(os.urandom(16)))
     print('User key saved in "config/twister.key". Don\'t change this file!')

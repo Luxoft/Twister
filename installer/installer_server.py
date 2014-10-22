@@ -1,5 +1,5 @@
 
-# version: 2.004
+# version: 2.005
 
 # File: installer.py ; This file is part of Twister.
 
@@ -102,13 +102,12 @@ if os.path.exists(INSTALL_PATH):
 cfg_path = INSTALL_PATH + 'config/'
 if os.path.exists(cfg_path):
     if os.getuid() != 0: # Normal user
-        tmp_config = userHome(user_name) + '/.twister'
-        try: os.mkdir(tmp_config)
-        except:
-            print('Error! Cannot create .twister dir `{}`! The installation cannot continue!\n'.format(tmp_config))
-            exit(1)
+        tmp_config = userHome(user_name) + '/.twister/'
     else: # ROOT user
-        tmp_config = '/tmp/twister_server_config'
+        tmp_config = '/tmp/twister_server_config/'
+    # Remove old tmp config
+    if os.path.isdir(tmp_config):
+        shutil.rmtree(tmp_config)
 
     print('\nBack-up config folder (from `{}` to `{}`)...'.format(cfg_path, tmp_config))
     try:
@@ -200,8 +199,15 @@ for fname in to_copy:
 # Restore CONFIG folder, if any
 if os.path.exists(tmp_config):
     print('\nMoving `config` folder back (from `{}` to `{}`)...'.format(tmp_config, cfg_path))
-    dir_util.copy_tree(tmp_config, cfg_path)
-    dir_util.remove_tree(tmp_config)
+    for xname in os.listdir(tmp_config):
+        src_name = tmp_config + xname
+        dst_name = cfg_path + xname
+        if os.path.isfile(dst_name):
+            os.remove(dst_name)
+        elif os.path.isdir(dst_name):
+            shutil.rmtree(dst_name)
+        print('Restoring config `{}`.'.format(dst_name))
+        shutil.move(src_name, cfg_path)
 
 
 tcr_proc = subprocess.Popen(['chmod', '775', INSTALL_PATH, '-R'],)
