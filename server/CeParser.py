@@ -1,7 +1,7 @@
 
 # File: CeParser.py ; This file is part of Twister.
 
-# version: 3.005
+# version: 3.006
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -367,134 +367,139 @@ class CeXmlParser(object):
         Get the iterators from all the confing files.
         Call a method to multiply the test cases.
         '''
-        cfg_prop = config_root_deep.xpath('//ConfigFiles')
-        # get all the ConfigFiles tags. A tc can have multiple config files
-        part_interval_values = []
+        # get list of test cases
+        tests_list = config_root_deep.xpath('TestCase')
 
-        for cfg_item in cfg_prop:
+        for test_case in tests_list:
+            part_interval_values = []
 
-            config_info = cfg_item.findall('Config')
-            if not config_info:
-                continue
-            parent_tc = cfg_item.getparent()
-            tc_name = parent_tc.find('tcName').text
-
-            interval_values = OrderedDict()
-            default_values_list = []
-
-            for config_entry in config_info:
-                enabled = config_entry.get('enabled')
-                if enabled == 'false':
+            # get all the ConfigFiles tags for this test case. 
+            # A tc can have multiple config files
+            cfg_prop = test_case.xpath('ConfigFiles')
+            for cfg_item in cfg_prop:
+                config_info = cfg_item.findall('Config')
+                if not config_info:
                     continue
+                parent_tc = cfg_item.getparent()
+                tc_name = parent_tc.find('tcName').text
 
-                config_file = config_entry.get('name')
-                iterator_default = config_entry.get('iterator_default')
-                iterator_sof = config_entry.get('iterator_sof')
+                interval_values = OrderedDict()
+                default_values_list = []
 
-                data = self.project.read_config_file(user, config_file)
-                if data.startswith('*ERROR*'):
-                    logWarning(data)
-                    continue
-
-                # Try to parse the project file
-                try:
-                    xml_config = etree.fromstring(data)
-                except:
-                    msg = "Config file `{}` is invalid!".format(config_file)
-                    logWarning(msg)
-                    continue
-
-                config_file_st = etree.tostring(xml_config)
-                config_file_fst = etree.fromstring(config_file_st)
-                # find all entries having tag = iterator
-                config_types = config_file_fst.xpath('//type')
-                config_types = [x for x in config_types if x.text == 'iterator']
-
-                # Iterators from config file
-                for item in config_types:
-                    prop_iterator = item.getparent()
-
-                    config_name = config_entry.get('name') + '#' + prop_iterator.find('name').text
-                    values = prop_iterator.find('value').text
-                    if not values:
+                for config_entry in config_info:
+                    enabled = config_entry.get('enabled')
+                    if enabled == 'false':
                         continue
 
-                    values_list = values.replace(' ', '').split(',')
+                    config_file = config_entry.get('name')
+                    iterator_default = config_entry.get('iterator_default')
+                    iterator_sof = config_entry.get('iterator_sof')
 
-                    # get the default value
-                    index_dot = values_list[0].find('..')
-                    if index_dot > -1:
-                        try:
-                            default_value = ast.literal_eval(values_list[0][:index_dot])
-                            default_value = int(default_value)
-                        except:
-                            default_value = values_list[0][:index_dot]
-                    else:
-                        try:
-                            default_value = ast.literal_eval(values_list[0])
-                            default_value = int(default_value)
-                        except:
-                            default_value = values_list[0]
+                    data = self.project.read_config_file(user, config_file)
+                    if data.startswith('*ERROR*'):
+                        logWarning(data)
+                        continue
 
-                    if iterator_default == 'true':
-                        part_interval_values.append(['{}={}'.format(config_name, default_value)])
-                        default_values_list.append('{}={}'.format(config_name, default_value))
-                    else:
-                        iter_interval_values = list()
-                        key_default_value = '{}={}'.format(config_name, default_value)
+                    # Try to parse the project file
+                    try:
+                        xml_config = etree.fromstring(data)
+                    except:
+                        msg = "Config file `{}` is invalid!".format(config_file)
+                        logWarning(msg)
+                        continue
 
-                        for interv in values_list:
-                            re_intervals = re.search('(\w*\d*\.?\d+)\.+(\w*\d*\.?\d+)', interv)
+                    config_file_st = etree.tostring(xml_config)
+                    config_file_fst = etree.fromstring(config_file_st)
+                    # find all entries having tag = iterator
+                    config_types = config_file_fst.xpath('//type')
+                    config_types = [x for x in config_types if x.text == 'iterator']
+
+                    # Iterators from config file
+                    for item in config_types:
+                        prop_iterator = item.getparent()
+
+                        config_name = config_entry.get('name') + '#' + prop_iterator.find('name').text
+                        values = prop_iterator.find('value').text
+                        if not values:
+                            continue
+
+                        values_list = values.replace(' ', '').split(',')
+
+                        # get the default value
+                        index_dot = values_list[0].find('..')
+                        if index_dot > -1:
                             try:
-                                x = ast.literal_eval(re_intervals.group(1))
-                                y = ast.literal_eval(re_intervals.group(2))
-                                range_res = range(int(x), int(y) + 1)
-                                # avoid adding default value again ex: 2, 1...4
-                                if default_value in range_res and key_default_value in iter_interval_values:
-                                    del(range_res[range_res.index(default_value)])
-                                for i in range_res:
-                                    iter_interval_values.append('{}={}'.format(config_name, i))
+                                default_value = ast.literal_eval(values_list[0][:index_dot])
+                                default_value = int(default_value)
                             except:
+                                default_value = values_list[0][:index_dot]
+                        else:
+                            try:
+                                default_value = ast.literal_eval(values_list[0])
+                                default_value = int(default_value)
+                            except:
+                                default_value = values_list[0]
+
+                        if iterator_default == 'true':
+                            part_interval_values.append(['{}={}'.format(config_name, default_value)])
+                            default_values_list.append('{}={}'.format(config_name, default_value))
+                        else:
+                            iter_interval_values = list()
+                            key_default_value = '{}={}'.format(config_name, default_value)
+
+                            for interv in values_list:
+                                re_intervals = re.search('(\w*\d*\.?\d+)\.+(\w*\d*\.?\d+)', interv)
                                 try:
-                                    x = re_intervals.group(1)
-                                    y = re_intervals.group(2)
-                                    # try to convert to int if possible
-                                    try:
-                                        v = int(ast.literal_eval(x))
-                                        iter_interval_values.append('{}={}'.format(config_name, v))
-                                    except:
-                                        iter_interval_values.append('{}={}'.format(config_name, x))
-                                    try:
-                                        v = int(ast.literal_eval(y))
-                                        iter_interval_values.append('{}={}'.format(config_name, v))
-                                    except:
-                                        iter_interval_values.append('{}={}'.format(config_name, y))
+                                    x = ast.literal_eval(re_intervals.group(1))
+                                    y = ast.literal_eval(re_intervals.group(2))
+                                    range_res = range(int(x), int(y) + 1)
+                                    # avoid adding default value again ex: 2, 1...4
+                                    if default_value in range_res and key_default_value in iter_interval_values:
+                                        del(range_res[range_res.index(default_value)])
+                                    for i in range_res:
+                                        iter_interval_values.append('{}={}'.format(config_name, i))
                                 except:
                                     try:
-                                        interv = ast.literal_eval(interv)
+                                        x = re_intervals.group(1)
+                                        y = re_intervals.group(2)
+                                        # try to convert to int if possible
+                                        try:
+                                            v = int(ast.literal_eval(x))
+                                            iter_interval_values.append('{}={}'.format(config_name, v))
+                                        except:
+                                            iter_interval_values.append('{}={}'.format(config_name, x))
+                                        try:
+                                            v = int(ast.literal_eval(y))
+                                            iter_interval_values.append('{}={}'.format(config_name, v))
+                                        except:
+                                            iter_interval_values.append('{}={}'.format(config_name, y))
                                     except:
-                                        pass
-                                    # avoid adding default value again ex: 2, 1, 2, 3
-                                    if default_value != interv or key_default_value not in iter_interval_values:
-                                        iter_interval_values.append('{}={}'.format(config_name, interv))
+                                        try:
+                                            interv = ast.literal_eval(interv)
+                                        except:
+                                            pass
+                                        # avoid adding default value again ex: 2, 1, 2, 3
+                                        if default_value != interv or key_default_value not in iter_interval_values:
+                                            iter_interval_values.append('{}={}'.format(config_name, interv))
 
-                        part_interval_values.append(iter_interval_values)
+                            part_interval_values.append(iter_interval_values)
 
-                    if part_interval_values:
-                        if config_name in interval_values.keys():
-                            interval_values[config_name].extend(part_interval_values)
-                        else:
-                            interval_values[config_name] = part_interval_values
+                        if part_interval_values:
+                            if config_name in interval_values.keys():
+                                interval_values[config_name].extend(part_interval_values)
+                            else:
+                                interval_values[config_name] = part_interval_values
 
-            # get the xartesian list and explode the test case only if there
-            # are iterators
-            if len(interval_values.values()) > 0:
-                cartesian_list = cartesian(interval_values.values()[0])
+                # get the cartesian list and explode the test case only if there
+                # are iterators
+                cartesian_list = list()
+                if len(interval_values.values()) > 0:
+                    cartesian_list = cartesian(interval_values.values()[0])
 
-                logDebug("CeParser: Will iterate test case `{}`, {} times, from values: {}, user `{}`."\
-                    .format(tc_name, len(cartesian_list), interval_values.values(), user))
+                    logDebug("CeParser: Will iterate test case `{}`, {} times, from values: {}, user `{}`."\
+                        .format(tc_name, len(cartesian_list), interval_values.values(), user))
 
-                self._explode_by_config(config_root_deep, parent_tc, ep, repeated_dict, reversed(cartesian_list))
+                    self._explode_by_config(config_root_deep, parent_tc, ep, repeated_dict, reversed(cartesian_list))
 
         return True
 
