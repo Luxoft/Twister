@@ -1050,17 +1050,10 @@ class CeXmlRpc(_cptools.XMLRPCController):
         """
         user = cherrypy.session.get('username')
         logDebug('GUI read_config_file {} {}'.format(user, fpath))
-        # Auto detect if ClearCase Test Config Path is active
-        ccConfig = self.project.get_clearcase_config(user, 'tcfg_path')
-        if ccConfig:
-            view = ccConfig['view']
-            actv = ccConfig['actv']
-            path = ccConfig['path']
-            view_actv = view + ':' + actv
-            return self.read_file(path +'/'+ fpath, type='clearcase:' + view_actv)
-        else:
-            dirpath = self.project.get_user_info(user, 'tcfg_path')
-            return self.read_file(dirpath + '/' + fpath)
+        resp = self.project.read_config_file(user, fpath)
+        if resp.startswith('*ERROR*'):
+            logWarning(resp)
+        return binascii.b2a_base64(resp)
 
 
     @cherrypy.expose

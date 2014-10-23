@@ -1,7 +1,7 @@
 
 # File: CeParser.py ; This file is part of Twister.
 
-# version: 3.004
+# version: 3.005
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -367,12 +367,10 @@ class CeXmlParser(object):
         Get the iterators from all the confing files.
         Call a method to multiply the test cases.
         '''
-
-        cfg_path = self.project.get_user_info(user, 'tcfg_path')
         cfg_prop = config_root_deep.xpath('//ConfigFiles')
-
-        #get all the ConfigFiles tags. A tc can have multiple config files
+        # get all the ConfigFiles tags. A tc can have multiple config files
         part_interval_values = []
+
         for cfg_item in cfg_prop:
 
             config_info = cfg_item.findall('Config')
@@ -386,20 +384,25 @@ class CeXmlParser(object):
 
             for config_entry in config_info:
                 enabled = config_entry.get('enabled')
-                if enabled == "false":
+                if enabled == 'false':
                     continue
 
-                config_file = cfg_path + "/" + config_entry.get('name')
+                config_file = config_entry.get('name')
                 iterator_default = config_entry.get('iterator_default')
                 iterator_sof = config_entry.get('iterator_sof')
 
-                # try to parse the project file
+                data = self.project.read_config_file(user, config_file)
+                if data.startswith('*ERROR*'):
+                    logWarning(data)
+                    continue
+
+                # Try to parse the project file
                 try:
-                    xml_config = etree.parse(config_file)
+                    xml_config = etree.fromstring(data)
                 except:
-                    msg = "The file: `{}` is not an xml file!".format(config_file)
-                    logDebug(msg)
-                    return '*ERROR* ' + msg
+                    msg = "Config file `{}` is invalid!".format(config_file)
+                    logWarning(msg)
+                    continue
 
                 config_file_st = etree.tostring(xml_config)
                 config_file_fst = etree.fromstring(config_file_st)
@@ -506,6 +509,7 @@ class CeXmlParser(object):
 
         data = self.project.xmlrpc.read_project_file(filename)
         if data.startswith('*ERROR*'):
+            logWarning(data)
             return data
 
         # try to parse the project file

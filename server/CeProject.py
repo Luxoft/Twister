@@ -1,7 +1,7 @@
 
 # File: CeProject.py ; This file is part of Twister.
 
-# version: 3.054
+# version: 3.055
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -2369,6 +2369,25 @@ class Project(object):
             del self.config_locks[fpath]
             logDebug('User `{}` is releasing config file `{}`.'.format(user, fpath))
             return True
+
+
+    def read_config_file(self, user, fpath):
+        """
+        Read a config file.
+        """
+        # Auto detect if ClearCase Test Config Path is active
+        ccConfig = self.get_clearcase_config(user, 'tcfg_path')
+        if ccConfig:
+            view = ccConfig['view']
+            actv = ccConfig['actv']
+            path = ccConfig['path'].rstrip('/')
+            if not path:
+                return '*ERROR* You did not set ClearCase Config Path!'
+            user_view_actv = '{}:{}:{}'.format(user, view, actv)
+            return self.clearFs.read_user_file(user_view_actv, path +'/'+ fpath)
+        else:
+            dirpath = self.get_user_info(user, 'tcfg_path')
+            return self.localFs.read_user_file(user, dirpath + '/' + fpath)
 
 
 # # #
