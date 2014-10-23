@@ -373,7 +373,7 @@ class CeXmlParser(object):
         for test_case in tests_list:
             part_interval_values = []
 
-            # get all the ConfigFiles tags for this test case. 
+            # get all the ConfigFiles tags for this test case.
             # A tc can have multiple config files
             cfg_prop = test_case.xpath('ConfigFiles')
             for cfg_item in cfg_prop:
@@ -540,15 +540,19 @@ class CeXmlParser(object):
         config_fs_root = etree.fromstring(config_ts_root)
         repeated_dict = {}
 
-        # get all suites defined in project file
+        # Get all suites defined in project file
         for suite in xml.findall('TestSuite'):
             # get all suts chosen by user
-            # try:
             all_suts = suite.find('SutName').text
-            suts_list = [q.replace('(', '.').replace(')', '') for q in all_suts.split(';') if q]
             suite_name = suite.find('tsName').text
+            if not all_suts:
+                err = 'User `{}`: Invalid SUT for suite `{}`! Cannot generate project!'.format(user, suite_name)
+                logWarning(err)
+                return '*ERROR* ' + err
 
-            # multiply Suite entry as often as the tag 'Repeat' says
+            suts_list = [q.replace('(', '.').replace(')', '') for q in all_suts.split(';') if q]
+
+            # Multiply suite entry as often as the tag 'Repeat' says
             try:
                 repeat = suite.find('Repeat')
                 nb_repeat = int(repeat.text)
