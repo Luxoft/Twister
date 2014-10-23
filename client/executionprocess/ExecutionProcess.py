@@ -1,6 +1,6 @@
 #!/usr/bin/env python2.7
 
-# version: 3.028
+# version: 3.029
 
 # File: ExecutionProcess.py ; This file is part of Twister.
 
@@ -679,6 +679,12 @@ class TwisterRunner(object):
                         os.remove(lib_name)
                     except Exception:
                         pass # Nothing to report
+                if dirName > libs_path:
+                    try:
+                        shutil.rmtree(dirName)
+                        # print('Cleanup folder `{}`.'.format(dirName))
+                    except Exception as e:
+                        print('Cannot cleanup flattened folder `{}`: {}!'.format(dirName, e))
 
         if reset_libs:
             print('... all libraries downloaded.\n')
