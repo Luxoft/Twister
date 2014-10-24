@@ -1,14 +1,14 @@
 
 # File: CeXmlRpc.py ; This file is part of Twister.
 
-# version: 3.009
+# version: 3.010
 
 # Copyright (C) 2012-2014 , Luxoft
 
 # Authors:
-#    Andreea Proca <aproca@luxoft.com>
 #    Andrei Costachi <acostachi@luxoft.com>
 #    Cristi Constantin <crconstantin@luxoft.com>
+#    Mihai Dobre <mihdobre@luxoft.com>
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -975,7 +975,7 @@ class CeXmlRpc(_cptools.XMLRPCController):
         Send a global variable, using a path to the variable.
         """
         logFull('CeXmlRpc:get_global_variable user `{}`.'.format(user))
-        return self.project.get_global_variable(user, var_path, False)
+        return self.project.configs.get_global_variable(user, var_path, False)
 
 
     @cherrypy.expose
@@ -985,7 +985,7 @@ class CeXmlRpc(_cptools.XMLRPCController):
         The change is not persistent.
         """
         logFull('CeXmlRpc:set_global_variable user `{}`.'.format(user))
-        return self.project.set_global_variable(user, var_path, value)
+        return self.project.configs.set_global_variable(user, var_path, value)
 
 
 # # #   Config files and folders   # # #
@@ -1019,28 +1019,28 @@ class CeXmlRpc(_cptools.XMLRPCController):
         Function used by EPs / tests.
         """
         logFull('CeXmlRpc:get_config user `{}`.'.format(user))
-        return self.project.get_global_variable(user, var_path, cfg_path)
+        return self.project.configs.get_global_variable(user, var_path, cfg_path)
 
 
     @cherrypy.expose
     def is_lock_config(self, fpath):
         """ check if config is locked """
         cherry_user = cherrypy.session.get('username')
-        return self.project.is_lock_config(cherry_user, fpath)
+        return self.project.configs.is_lock_config(cherry_user, fpath)
 
 
     @cherrypy.expose
     def lock_config(self, fpath):
         """ lock config """
         cherry_user = cherrypy.session.get('username')
-        return self.project.lock_config(cherry_user, fpath)
+        return self.project.configs.lock_config(cherry_user, fpath)
 
 
     @cherrypy.expose
     def unlock_config(self, fpath):
         """ unlock config """
         cherry_user = cherrypy.session.get('username')
-        return self.project.unlock_config(cherry_user, fpath)
+        return self.project.configs.unlock_config(cherry_user, fpath)
 
 
     @cherrypy.expose
@@ -1050,7 +1050,7 @@ class CeXmlRpc(_cptools.XMLRPCController):
         """
         user = cherrypy.session.get('username')
         logDebug('GUI read_config_file {} {}'.format(user, fpath))
-        resp = self.project.read_config_file(user, fpath)
+        resp = self.project.configs.read_config_file(user, fpath)
         if resp.startswith('*ERROR*'):
             logWarning(resp)
         return binascii.b2a_base64(resp)

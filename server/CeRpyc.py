@@ -1,14 +1,14 @@
 
 # File: CeRpyc.py ; This file is part of Twister.
 
-# version: 3.019
+# version: 3.020
 
 # Copyright (C) 2012-2014 , Luxoft
 
 # Authors:
-#    Andreea Proca <aproca@luxoft.com>
 #    Andrei Costachi <acostachi@luxoft.com>
 #    Cristi Constantin <crconstantin@luxoft.com>
+#    Mihai Dobre <mihdobre@luxoft.com>
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -601,7 +601,7 @@ class CeRpycService(rpyc.Service):
         user = self._check_login()
         if not user:
             return False
-        return self.project.get_global_variable(user, var_path, False)
+        return self.project.configs.get_global_variable(user, var_path, False)
 
 
     def exposed_set_global_variable(self, var_path, value):
@@ -612,7 +612,7 @@ class CeRpycService(rpyc.Service):
         user = self._check_login()
         if not user:
             return False
-        return self.project.set_global_variable(user, var_path, value)
+        return self.project.configs.set_global_variable(user, var_path, value)
 
 
     def exposed_get_config(self, cfg_path, var_path):
@@ -623,7 +623,7 @@ class CeRpycService(rpyc.Service):
         user = self._check_login()
         if not user:
             return False
-        return self.project.get_global_variable(user, var_path, cfg_path)
+        return self.project.configs.get_global_variable(user, var_path, cfg_path)
 
 
 # # #   Register / Start / Stop EPs   # # #

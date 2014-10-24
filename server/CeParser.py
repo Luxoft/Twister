@@ -395,7 +395,7 @@ class CeXmlParser(object):
                     iterator_default = config_entry.get('iterator_default')
                     iterator_sof = config_entry.get('iterator_sof')
 
-                    data = self.project.read_config_file(user, config_file)
+                    data = self.project.configs.read_config_file(user, config_file)
                     if data.startswith('*ERROR*'):
                         logWarning(data)
                         continue

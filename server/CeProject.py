@@ -133,6 +133,7 @@ from CeSuts import Suts
 from CeTestBeds import TestBeds
 from CeFs import LocalFS
 from CeClearCaseFs import ClearCaseFs
+from CeConfigs import CeConfigs
 
 usrs_and_pwds = {}
 usr_pwds_lock = allocate_lock()
@@ -236,6 +237,7 @@ class Project(object):
         self.localFs.project = self
         self.clearFs = ClearCaseFs() # ClearCase FS pointer
         self.clearFs.project = self
+        self.configs = CeConfigs(self)
 
         # Users, parsers, IDs...
         self.users = {}
@@ -243,18 +245,15 @@ class Project(object):
         self.test_ids = {}  # IDs shortcut
         self.suite_ids = {} # IDs shortcut
         self.plugins = {}   # User plugins
-        self.config_locks = {} # Config locks list
 
         self.usr_lock = allocate_lock()  # User change lock
         self.auth_lock = allocate_lock()  # Authenticate change lock
         self.epl_lock = allocate_lock()  # EP lock
         self.stt_lock = allocate_lock()  # File status lock
         self.int_lock = allocate_lock()  # Internal use lock
-        self.glb_lock = allocate_lock()  # Global variables lock
         self.log_lock = allocate_lock()  # Log access lock
         self.eml_lock = allocate_lock()  # E-mail lock
         self.db_lock  = allocate_lock()  # Database lock
-        self.cfg_lock = allocate_lock()  # Config access lock
 
         # Read the production/ development option.
         cfg_path = '{}/config/server_init.ini'.format(TWISTER_PATH)
@@ -510,7 +509,7 @@ class Project(object):
             self.users[user]['log_types'][logType] = self.parsers[user].getLogFileForType(logType)
 
         # Global params for user
-        self.users[user]['global_params'] = self.parsers[user].getGlobalParams()
+        self.users[user]['global_params'] = self.configs._parse_globals(user)
 
         # Cfg -> Sut bindings for user
         self.users[user]['bindings'] = self.parsers[user].getBindingsConfig()
@@ -2226,168 +2225,6 @@ class Project(object):
         else:
             logInfo('All file statuses for `{}` are reset to `{}`.'.format(user, new_status))
         return True
-
-
-# # #
-
-
-    def _find_global_variable(self, user, node_path, globs_file=False):
-        """
-        Helper function.
-        """
-        logFull('CeProject:_find_global_variable user `{}`.'.format(user))
-        if not globs_file:
-            var_pointer = self.users[user]['global_params']
-        else:
-            var_pointer = self.parsers[user].getGlobalParams(globs_file)
-        if not var_pointer:
-            return False
-
-        for node in node_path:
-            if node in var_pointer:
-                var_pointer = var_pointer[node]
-            else:
-                # Invalid variable path
-                return False
-
-        return var_pointer
-
-
-    def get_global_variable(self, user, variable, globs_file=False):
-        """
-        Sending a global variable, using a path.
-        """
-        logFull('CeProject:get_global_variable user `{}`.'.format(user))
-        r = self.authenticate(user)
-        if not r:
-            return False
-
-        try:
-            node_path = [v for v in variable.split('/') if v]
-        except Exception:
-            logWarning('Global Variable: Invalid variable type `{}`, for user `{}`!'.format(variable, user))
-            return False
-
-        var_pointer = self._find_global_variable(user, node_path, globs_file)
-
-        if not var_pointer:
-            node_path = '/'.join(node_path)
-            if globs_file:
-                logWarning('Global Variable: Invalid variable path `{}` in file `{}`, for user `{}`!'.format(node_path, globs_file, user))
-            else:
-                logWarning('Global Variable: Invalid variable path `{}`, for user `{}`!'.format(node_path, user))
-            return False
-
-        return var_pointer
-
-
-    def set_global_variable(self, user, variable, value):
-        """
-        Set a global variable path, for a user.\n
-        The change is not persistent.
-        """
-        logFull('CeProject:set_global_variable user `{}`.'.format(user))
-        r = self.authenticate(user)
-        if not r:
-            return False
-
-        try:
-            node_path = [v for v in variable.split('/') if v]
-        except Exception:
-            logWarning('Global Variable: Invalid variable type `{}`, for user `{}`!'.format(variable, user))
-            return False
-
-        if (not value) or (not str(value)):
-            logWarning('Global Variable: Invalid value `{}`, for global variable `{}` from user `{}`!'\
-                ''.format(value, variable, user))
-            return False
-
-        # If the path is in ROOT, it's a root variable
-        if len(node_path) == 1:
-            with self.glb_lock:
-                self.users[user]['global_params'][node_path[0]] = value
-            return True
-
-        # If the path is more complex, the pointer here will go to the parent
-        var_pointer = self._find_global_variable(user, node_path[:-1])
-
-        if not var_pointer:
-            logWarning('Global Variable: Invalid variable path `{}`, for user `{}`!'.format(node_path, user))
-            return False
-
-        with self.glb_lock:
-            var_pointer[node_path[-1]] = value
-
-        logDebug('Global Variable: Set variable `{} = {}`, for user `{}`!'.format(value, variable, user))
-        return True
-
-
-    def is_lock_config(self, user, fpath):
-        """
-        Complete path from tree - returns True/ False
-        """
-        logFull('CeProject:is_lock_config user `{}`.'.format(user))
-        if fpath in self.config_locks:
-            logDebug('Config file `{}` is locked by `{}`.'.format(fpath, user))
-        else:
-            logDebug('Config file `{}` is not locked.'.format(fpath))
-        return self.config_locks.get(fpath, False)
-
-
-    def lock_config(self, user, fpath):
-        """
-        Complete path from tree - returns True/ False
-        """
-        logFull('CeProject:lock_config user `{}`.'.format(user))
-        # If already locked, return False
-        if fpath in self.config_locks:
-            err = '*ERROR* Config file `{}` is already locked by `{}`! Cannot lock!'.format(fpath, self.config_locks[fpath])
-            logDebug(err)
-            return err
-        with self.cfg_lock:
-            self.config_locks[fpath] = user
-            logDebug('User `{}` is locking config file `{}`.'.format(user, fpath))
-            return True
-
-
-    def unlock_config(self, user, fpath):
-        """
-        Complete path from tree - returns True/ False
-        """
-        logFull('CeProject:unlock_config user `{}`.'.format(user))
-        # If not locked, return False
-        if fpath not in self.config_locks:
-            err = '*ERROR* Config file `{}` is not locked'.format(fpath)
-            logDebug(err)
-            return err
-        # If not locked by this user, return False
-        if self.config_locks[fpath] != user:
-            err = '*ERROR* Config file `{}` is locked by `{}`! Cannot unlock!'.format(fpath, self.config_locks[fpath])
-            logDebug(err)
-            return err
-        with self.cfg_lock:
-            del self.config_locks[fpath]
-            logDebug('User `{}` is releasing config file `{}`.'.format(user, fpath))
-            return True
-
-
-    def read_config_file(self, user, fpath):
-        """
-        Read a config file.
-        """
-        # Auto detect if ClearCase Test Config Path is active
-        ccConfig = self.get_clearcase_config(user, 'tcfg_path')
-        if ccConfig:
-            view = ccConfig['view']
-            actv = ccConfig['actv']
-            path = ccConfig['path'].rstrip('/')
-            if not path:
-                return '*ERROR* You did not set ClearCase Config Path!'
-            user_view_actv = '{}:{}:{}'.format(user, view, actv)
-            return self.clearFs.read_user_file(user_view_actv, path +'/'+ fpath)
-        else:
-            dirpath = self.get_user_info(user, 'tcfg_path')
-            return self.localFs.read_user_file(user, dirpath + '/' + fpath)
 
 
 # # #

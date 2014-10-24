@@ -906,41 +906,6 @@ class TSCParser(object):
         return res
 
 
-    def getGlobalParams(self, globs_file=None):
-        """
-        Returns a dictionary containing All global parameters,
-        that will be available for all tests.
-        """
-        logFull('xmlparser:getGlobalParams')
-        # First check, the parameter
-        if not globs_file:
-            globs_file = self.project_globals['glob_params']
-        # Second check, the user config file
-        if not globs_file:
-            logError('User {}: Get Globals: Globals Config file is not ' \
-            ' defined! Please check framework config XML file!'.\
-            format(self.user))
-            return {}
-        if not os.path.isfile(globs_file):
-            logError('User {}: Get Globals: Globals Config file `{}` does not exist!'.format(self.user, globs_file))
-            return {}
-
-        params_xml = parseXML(self.user, globs_file)
-        if params_xml is None:
-            return {}
-
-        def recursive(xml, gparams):
-            """ recursive update """
-            for folder in xml.xpath('folder'):
-                tmp = {gparam.find('name').text: gparam.find('value').text or '' for gparam in folder.xpath('param')}
-                tmp.update( recursive(folder, tmp) )
-                gparams[folder.find('fname').text] = tmp
-            return gparams
-
-        gparams = recursive(params_xml, {})
-        return gparams
-
-
 # # #   Database Parser   # # #
 
 
