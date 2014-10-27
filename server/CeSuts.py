@@ -1,7 +1,7 @@
 
 # File: CeSuts.py ; This file is part of Twister.
 
-# version: 3.004
+# version: 3.005
 
 # Copyright (C) 2012-2014, Luxoft
 
@@ -250,9 +250,8 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
         for both, before saving.
         '''
         user = self.user_info(props)[0]
-
         logDebug('CeSuts:_save {} {} {} '.format(props, resource_name, user))
-        log = list()
+        log = []
 
         # Write changes, using the Access Lock.
         with self.save_lock:
@@ -342,9 +341,9 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
 
 
     def find_sut_id(self, sut_id):
-        '''
-        Search for an id in id_list.
-        '''
+        """
+        Search for an ID in id_list.
+        """
         for key, value in self.id_list.items():
             if sut_id in value:
                 return key
@@ -352,6 +351,9 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
 
 
     def _format_dict_sut(self, result, query):
+        """
+        Helper function.
+        """
         try:
             result = self.format_resource(result, query)
         except Exception:
@@ -368,7 +370,6 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
         Open all SUT files and creats dict having
         entries like: {sutName : [ids]}
         '''
-
         user_info = self.user_info(props)
         user = user_info[0]
         usrHome = userHome(user)
@@ -457,7 +458,6 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
 
         If query is an id -> positive answer only if sut is in self.resources
         '''
-
         user_info = self.user_info(props)
         username = user_info[0]
 
@@ -545,101 +545,111 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
         if query[0] == '/' and sutPath[-1] == '/':
             query = query[1:]
         elif query[0] != '/' and sutPath[-1] != '/':
-            query = "/" + query
+            query = '/' + query
 
         fileName = query.split('.')[0] + '.json'
         sutFile = sutPath + fileName
         sutContent = False
 
-        if os.path.isdir(sutPath):
-            if sutType == 'system':
-                # system SUT file
+        if not os.path.isdir(sutPath):
+            # Cannot get read access to the SUT directory
+            msg = '*ERROR* Cannot get access to SUT path for user {}'.format(user_info[0])
+            return msg
+
+        if sutType == 'system':
+            # System SUT file
+            try:
+                with open(sutFile, 'r') as f:
+                    sutContent = json.load(f)
+            except Exception as e:
+                return '*ERROR* User {}: Cannot read SUT file `{}`! Exception {}'.format(
+                    user_info[0], sutFile, e)
+
+        else:
+            # User SUT file, check if the ClearCase plugin is activated
+            # If so, use it to read the SUT file; else use the UserService to read it
+            ccConfig = self.project.get_clearcase_config(user_info[0], 'sut_path')
+            if ccConfig:
+                view = ccConfig['view']
+                actv = ccConfig['actv']
+                path = ccConfig['path']
+                user_view_actv = '{}:{}:{}'.format(user_info[0], view, actv)
+                sut_path = (path +'/'+ fileName).replace('//', '/')
+                resp = self.project.clearFs.read_user_file(user_view_actv, sut_path)
+                # Invalid sut file?
+                if resp.startswith('*ERROR*'):
+                    logWarning(resp)
+                    return resp
                 try:
-                    with open(sutFile, 'r') as f:
-                        sutContent = json.load(f)
-                except Exception as e:
-                    return '*ERROR* Cannot get access to SUT path for user {} Exception {}'.format(user_info[0], e)
+                    sutContent = json.loads(resp)
+                except Exception:
+                    logWarning('User {}: Cannot load ClearCase SUT `{}`!'.format(user_info[0], sut_path))
+                    sutContent = False
             else:
-                # user SUT file; we have to check if the cleacase plugin
-                # is activated; if so, use it to read the SUT file; else
-                # use the UserService to read it
-                ccConfig = self.project.get_clearcase_config(user_info[0], 'sut_path')
-                if ccConfig:
-                    view = ccConfig['view']
-                    actv = ccConfig['actv']
-                    path = ccConfig['path']
-                    user_view_actv = '{}:{}:{}'.format(user_info[0], view, actv)
-                    resp = self.project.clearFs.read_user_file(user_view_actv, path +'/'+ fileName)
-                    # Invalid sut file?
-                    if resp.startswith('*ERROR*'):
-                        logWarning(resp)
-                        return resp
-                    try:
-                        sutContent = json.loads(resp)
-                    except Exception:
-                        logWarning("User {}: Cannot load ClearCase SUT `{}`!".format(user_info[0], path +'/'+ fileName))
-                else:
-                    resp = self.project.localFs.read_user_file(user_info[0], sutPath + fileName)
-                    # Invalid sut file?
-                    if resp.startswith('*ERROR*'):
-                        logWarning(resp)
-                        return resp
-                    try:
-                        sutContent = json.loads(resp)
-                    except Exception:
-                        logWarning("User {}: Cannot load SUT `{}`!".format(user_info[0], sutPath + fileName))
-                        if meta:
-                            query += ":" + meta
+                sut_path = (sutPath + '/' + fileName).replace('//', '/')
+                resp = self.project.localFs.read_user_file(user_info[0], sut_path)
+                # Invalid sut file?
+                if resp.startswith('*ERROR*'):
+                    logWarning(resp)
+                    return resp
+                try:
+                    sutContent = json.loads(resp)
+                except Exception:
+                    logWarning('User {}: Cannot load SUT `{}`!'.format(user_info[0], sut_path))
+                    sutContent = False
 
-                        result = self.get_info_sut(query, props)
-                        if isinstance(result, dict):
-                            result = self._format_dict_sut(result, query)
-                        return result
-
-
-            if sutContent is False or (isinstance(sutContent, str) and sutContent.startswith('*ERROR*')):
-                return sutContent
-
-            if isinstance(sutContent, dict):
-
-                if query[0] == "/":
-                    query = query[1:]
-
-                if sutContent.get('path'):
-                    sutContent['path'] = sutContent['path'][0]
-                else:
-                    sutContent['path'] = query
-
-                if sutContent['path']:
-                    self.resources['children'][query] = copy.deepcopy(sutContent)
-                    # make older resources files that don't have 'path' compatible
-                    self.resources['children'][query]['path'] = [query]
-                    modified = self.fix_path(self.resources['children'][query], [query])
-
-                    if modified:
-                        #now we have to save the version with path
-                        issaved = self.save_sut(props, query)
-                        if  isinstance(issaved, str):
-                            logDebug("We could not save this Sut for user = {}.".format(user_info[0]))
-                            return False
-                if initial_query:
                     if meta:
-                        initial_query += ":" + meta
-                    result = self.get_info_sut(initial_query, props)
+                        query += ':' + meta
+                    result = self.get_info_sut(query, props)
+
                     if isinstance(result, dict):
                         result = self._format_dict_sut(result, query)
                     return result
 
-                try:
-                    sutContent = self.format_resource(sutContent, query)
-                except Exception:
-                    logFull("User {}: The sut is already formated {}".formate(user_info[0], query))
-                    pass
+        if isinstance(sutContent, str) and sutContent.startswith('*ERROR*'):
+            return sutContent
 
-                return sutContent
+        if (sutContent is False) or (not isinstance(sutContent, dict)):
+            msg = 'User {}: Invalid SUT `{}`!'.format(user_info[0], fileName)
+            logWarning(msg)
+            return '*ERROR* ' + msg
 
-        # if we get here, we cannot get read access to the SUT directory
-        return '*ERROR* Cannot get access to SUT path for user {}'.format(user_info[0])
+        # In this case, the SUT is a valid dictionary
+        if query[0] == '/':
+            query = query[1:]
+
+        if sutContent.get('path'):
+            sutContent['path'] = sutContent['path'][0]
+        else:
+            sutContent['path'] = query
+
+        if sutContent['path']:
+            self.resources['children'][query] = copy.deepcopy(sutContent)
+            # make older resources files that don't have 'path' compatible
+            self.resources['children'][query]['path'] = [query]
+            modified = self.fix_path(self.resources['children'][query], [query])
+
+            if modified:
+                #now we have to save the version with path
+                issaved = self.save_sut(props, query)
+                if  isinstance(issaved, str):
+                    logDebug("We could not save this Sut for user = {}.".format(user_info[0]))
+                    return False
+        if initial_query:
+            if meta:
+                initial_query += ":" + meta
+            result = self.get_info_sut(initial_query, props)
+            if isinstance(result, dict):
+                result = self._format_dict_sut(result, query)
+            return result
+
+        try:
+            sutContent = self.format_resource(sutContent, query)
+        except Exception:
+            logFull("User {}: The sut is already formated {}".formate(user_info[0], query))
+            pass
+
+        return sutContent
 
 
     @cherrypy.expose
@@ -648,9 +658,8 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
         Get the current version of the meta SUT modified and unsaved or
         the version from the disk.
         '''
-
-        logDebug('CeSuts:get_meta_sut {} {}'.format(res_query, props))
         user_info = self.user_info(props)
+        logDebug('CeSuts:get_meta_sut {} {}'.format(res_query, props))
 
         if ':' in res_query:
             meta      = res_query.split(':')[1]
@@ -715,7 +724,7 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
         '''
         Create new component for an existing SUT
         '''
-        logDebug('CeSuts:create_component_sut: parent = {}  props = {}  name = {}'.format(parent, props, name))
+        logFull('CeSuts:create_component_sut: parent = {}  props = {}  name = {}'.format(parent, props, name))
 
         if parent == '/' or parent == '1':
             msg = "The parent value is not an existing SUT. Mayebe you want to add a new SUT. Parent: {}".format(parent)
@@ -783,8 +792,8 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
         '''
         Create a SUT.
         '''
-        logDebug('CeSuts: create_new_sut: parent = {} -- props = {} -- name = {}'.format(parent, props, name))
         user_info = self.user_info(props)
+        logFull('CeSuts: create_new_sut: parent = {} -- props = {} -- name = {}'.format(parent, props, name))
         props = self.valid_props(props)
 
         if parent != '/' and parent != "1":
@@ -948,8 +957,8 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
         we add ".user". We do that by creating a new Sut having
         name: new_name and delete the old Sut.
         '''
-        logFull('CeSuts:rename_sut {} {}'.format(res_query, props))
         user_info = self.user_info(props)
+        logFull('CeSuts:rename_sut {} {}'.format(res_query, props))
 
         if '/' in new_name or ':' in new_name:
             msg = 'New resource name ({}) cannot contain `/` or `:`!'.format(new_name)
@@ -1032,7 +1041,6 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
             '''
             Delete the new SUT if the rename Failed.
             '''
-
             self.reservedResources[user].pop(new_sut)
             if not self.reservedResources[user]:
                 self.reservedResources.pop(user)
@@ -1084,8 +1092,8 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
         Rename meta for SUT.
         SUT must be reserved.
         '''
-        logFull('CeSuts:get_meta_sut {} {}'.format(res_query, props))
         user_info = self.user_info(props)
+        logFull('CeSuts:get_meta_sut {} {}'.format(res_query, props))
 
         if ':' in res_query:
             meta      = res_query.split(':')[1]
@@ -1139,8 +1147,8 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
         Permanently delete a component of a SUT or meta.
         It can be deleted only if SUT is reserved.
         '''
-        logFull('CeSuts:delete_component_sut {}'.format(res_query))
         user_info = self.user_info(props)
+        logFull('CeSuts:delete_component_sut {}'.format(res_query))
 
         if ':' in res_query:
             meta      = res_query.split(':')[1]
@@ -1213,8 +1221,8 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
         Permanently delete a SUT.
         Sut can be deteleted only if it is not reserved by anyone.
         '''
-        logFull('CeSuts:delete_sut {}'.format(res_query))
         user_info = self.user_info(props)
+        logFull('CeSuts:delete_sut {}'.format(res_query))
 
         # Check if resource is reserved; if so, it cannot be deleted
         _isResourceReserved = self.is_resource_reserved(res_query, props)
@@ -1288,12 +1296,12 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
                     complete_sut_path = usrSutPath + res_query.split('.')[0] + '.json'
                 return self.project.localFs.delete_user_file(user_info[0], complete_sut_path)
 
+
     @cherrypy.expose
     def list_all_suts(self, user):
         """
         Fast list suts.
         """
-
         suts = []
         result = []
         usrHome = userHome(user)
@@ -1345,7 +1353,6 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
             '''
             Find path.
             '''
-
             for usr, locks in dictionary.iteritems():
                 for id_sut, data in locks.iteritems():
                     path = data.get('path', [''])
@@ -1379,10 +1386,10 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
         '''
         Import one sut XML file.
         '''
-
         user_info = self.user_info(props)
         user = user_info[0]
-        logDebug('User {}: importing XML file `{}`...'.format(user, xml_file))
+
+        logDebug('User {}: import XML file `{}`...'.format(user, xml_file))
 
         try:
             params_xml = etree.parse(xml_file)
@@ -1427,11 +1434,10 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
         '''
         Export as XML file.
         '''
-
         user_info = self.user_info(props)
         user = user_info[0]
 
-        logDebug('User {}: importing XML file `{}`,  query = {}...'.format(user, xml_file, query))
+        logDebug('User {}: export XML file `{}`, query = {}...'.format(user, xml_file, query))
 
         sutPath = None
         sutType = query.split('.')[-1]
@@ -1525,8 +1531,8 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
         '''
         Save a reserved SUT as.
         '''
-        logFull('CeSuts:save_reserved_sut_as {} {} {}'.format(name, res_query, user_info[0]))
         user_info = self.user_info(props)
+        logFull('CeSuts:save_reserved_sut_as {} {} {}'.format(name, res_query, user_info[0]))
 
         target_name = '/'+name+'.user'
 
@@ -1600,8 +1606,8 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
         In this method we sync self.reserved_resources with self.resources
         and the store on the disk
         """
-        logFull('CeSuts:save_reserved_sut {} {}'.format(res_query, user_info[0]))
         user_info = self.user_info(props)
+        logFull('CeSuts:save_reserved_sut {} {}'.format(res_query, user_info[0]))
 
         resources = self.resources
 
@@ -1623,7 +1629,7 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
 
         resource_node = self.get_resource(res_query)
         if not resource_node or isinstance(resource_node, str):
-            msg = 'User {}: can not find the tb {}'.format(res_query, user_info[0])
+            msg = 'User {}: Cannot find SUT {}'.format(user_info[0], res_query)
             logFull(msg)
             return "*ERROR* " + msg
 
@@ -1657,8 +1663,8 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
         Save the changes. Sync self.resources with self.reserved_resources
         and save to the disk
         """
-        logFull('CeSuts:save_release_reserved_sut {} {} {}'.format(res_query, props, user_info[0]))
         user_info = self.user_info(props)
+        logFull('CeSuts:save_release_reserved_sut {} {} {}'.format(res_query, props, user_info[0]))
 
         result = self.save_reserved_sut(res_query, props)
 

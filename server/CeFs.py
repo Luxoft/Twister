@@ -508,7 +508,7 @@ class LocalFS(BaseFS, FsBorg):
             if conn:
                 try:
                     conn.ping(data='Hello', timeout=30.0)
-                    #logDebug('Reuse old {} User Service connection for `{}` OK.'.format(op, user))
+                    # logDebug('Reuse old {} User Service connection for `{}` OK.'.format(op, user))
                     return conn
                 except Exception as e:
                     logWarning('Cannot reuse {} User Service for `{}`: `{}`.'.format(op, user, e))
@@ -523,7 +523,7 @@ class LocalFS(BaseFS, FsBorg):
                 port = random.randrange(63000, 65000)
                 try:
                     socket.create_connection((None, port), 1)
-                except:
+                except Exception:
                     break
 
             p_cmd = 'su {} -c "{} -u {}/server/UserService.py {} {}"'.format(user, sys.executable,
