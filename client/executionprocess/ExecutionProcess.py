@@ -1044,7 +1044,7 @@ class TwisterRunner(object):
             file_ext = os.path.splitext(filename)[1].lower()
 
             # If file type is TCL
-            if file_ext in ['.tcl']:
+            if file_ext in ['.tcl', '.exp']:
                 if not self.runners['tcl']:
                     self.runners['tcl'] = TCRunTcl()
                 current_runner = self.runners['tcl']

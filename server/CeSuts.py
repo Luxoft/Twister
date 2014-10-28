@@ -1143,11 +1143,12 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
 
     @cherrypy.expose
     def delete_component_sut(self, res_query, props={}):
-        '''
+        """
         Permanently delete a component of a SUT or meta.
         It can be deleted only if SUT is reserved.
-        '''
+        """
         user_info = self.user_info(props)
+        user = user_info[0]
         logFull('CeSuts:delete_component_sut {}'.format(res_query))
 
         if ':' in res_query:
@@ -1158,24 +1159,25 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
 
         # Check if resource is reserved; if so, it cannot be deleted
         _isResourceReserved = self.is_resource_reserved(res_query, props)
-        if _isResourceReserved and _isResourceReserved != user_info[0]:
-            msg = 'User {}: Cannot delete: The resource is reserved for {} !'\
-            .format(user_info[0], _isResourceReserved)
-            logError(msg)
+        if _isResourceReserved and _isResourceReserved != user:
+            msg = 'User {}: Cannot delete: The resource is reserved for {} !'.format(
+                user, _isResourceReserved)
+            logWarning(msg)
             return '*ERROR* ' + msg
 
         _isResourceLocked = self.is_resource_locked(res_query)
-        if _isResourceLocked and _isResourceLocked != user_info[0]:
-            msg = 'User {}: Reserve resource: The resource is locked for {} !'\
-            .format(user_info[0], _isResourceLocked)
-            logError(msg)
+        if _isResourceLocked and _isResourceLocked != user:
+            msg = 'User {}: Cannot delete: The resource is locked for {} !'.format(
+                user, _isResourceLocked)
+            logWarning(msg)
             return '*ERROR* ' + msg
 
-        #the resource should be reserved previously
+        # The resource should be reserved
         parent_p = self.get_reserved_resource(res_query, props)
 
         if not parent_p:
-            logError('Cannot access reserved SUT, path or ID `{}` !'.format(res_query))
+            logWarning('User {}: Cannot access reserved SUT, path or ID `{}` !'.format(
+                user, res_query))
             return False
 
         # Delete meta
@@ -1183,26 +1185,25 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
             # we have to delete only the meta property
             correct_path = copy.deepcopy(parent_p['path'])
 
-            #modify meta for parent
+            # modify meta for parent
             if len(parent_p['path']) == 1:
                 child = parent_p
-            # modify meta for a component
+            # modify meta for component
             else:
                 base_path = "/".join(parent_p['path'][1:])
                 child = self.get_path(base_path, parent_p)
             try:
                 child['meta'].pop(meta)
             except Exception:
-                msg = "This meta that you entered does not exist {}".format(meta)
-                logError(msg)
-                return "false"
+                msg = 'User {}: Property `{}` does not exist!'.format(user, meta)
+                logWarning(msg)
+                return 'false'
             child['path'] = correct_path
 
-            return "true"
         # Delete component
         else:
             full_path = ''
-            #the resources is deep in the tree, we have to get its direct parent
+            # the resources is deep in the tree, have to get its direct parent
             if len(parent_p['path']) > 2:
                 full_path = copy.deepcopy(parent_p['path'])
                 base_path = "/".join(parent_p['path'][1:-1])
@@ -1212,7 +1213,8 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
                 full_path = parent_p['path']
             parent_p['children'].pop(full_path[-1])
             parent_p['path'] = full_path[:-1]
-        return "true"
+
+        return 'true'
 
 
     @cherrypy.expose
