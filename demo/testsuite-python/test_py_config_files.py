@@ -1,5 +1,5 @@
 
-# version: 2.001
+# version: 3.001
 
 """
 <title>Test Configuration Files</title>
@@ -14,9 +14,7 @@ from pprint import pformat
 cfg_path = PROXY.get_user_variable('tcfg_path')
 
 # Consider that this EP is running on the same machine with the Central Engine...
-cfg_files = [ (cfg_path +'/'+ p) for p in os.listdir(cfg_path) if os.path.isfile(cfg_path +'/'+ p) ]
-
-for cfg in cfg_files:
+for cfg in os.listdir(cfg_path):
 	print 'All params for `{}`:'.format(cfg)
 	print pformat(get_config(cfg, ''), indent=4, width=60), '\n'
 

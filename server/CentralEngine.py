@@ -114,7 +114,6 @@ if __name__ == "__main__":
     PROJ.rsrv = RPYC_SERVER
     # CE is the XML-RPC interface
     CE = CeXmlRpc(PROJ)
-    PROJ.xmlrpc = CE
 
     def close():
         """ Close server. """

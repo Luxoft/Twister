@@ -1,14 +1,14 @@
 
 # File: CeRpyc.py ; This file is part of Twister.
 
-# version: 3.018
+# version: 3.020
 
 # Copyright (C) 2012-2014 , Luxoft
 
 # Authors:
-#    Andreea Proca <aproca@luxoft.com>
 #    Andrei Costachi <acostachi@luxoft.com>
 #    Cristi Constantin <crconstantin@luxoft.com>
+#    Mihai Dobre <mihdobre@luxoft.com>
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -601,7 +601,7 @@ class CeRpycService(rpyc.Service):
         user = self._check_login()
         if not user:
             return False
-        return self.project.get_global_variable(user, var_path, False)
+        return self.project.configs.get_global_variable(user, var_path, False)
 
 
     def exposed_set_global_variable(self, var_path, value):
@@ -612,7 +612,7 @@ class CeRpycService(rpyc.Service):
         user = self._check_login()
         if not user:
             return False
-        return self.project.set_global_variable(user, var_path, value)
+        return self.project.configs.set_global_variable(user, var_path, value)
 
 
     def exposed_get_config(self, cfg_path, var_path):
@@ -623,7 +623,7 @@ class CeRpycService(rpyc.Service):
         user = self._check_login()
         if not user:
             return False
-        return self.project.get_global_variable(user, var_path, cfg_path)
+        return self.project.configs.get_global_variable(user, var_path, cfg_path)
 
 
 # # #   Register / Start / Stop EPs   # # #
@@ -1043,7 +1043,6 @@ class CeRpycService(rpyc.Service):
             user_view_actv = '{}:{}:{}'.format(user, view, actv)
             is_folder = self.project.clearFs.is_folder(user_view_actv, lib_path)
             if str(is_folder).startswith('*ERROR*'):
-                logDebug(resp)
                 return _download_lib()
 
             # If is folder, or "deep" file or folder, compress in memory and return the data
@@ -1052,7 +1051,6 @@ class CeRpycService(rpyc.Service):
                 resp = self.project.clearFs.targz_user_folder(user_view_actv, lib_path, cc_lib)
                 # Read as ROOT
                 if resp.startswith('*ERROR*'):
-                    logDebug(resp)
                     return _download_lib()
                 return resp
             # File
@@ -1061,7 +1059,6 @@ class CeRpycService(rpyc.Service):
                 resp = self.project.clearFs.read_user_file(user_view_actv, lib_path)
                 # Read as ROOT
                 if resp.startswith('*ERROR*'):
-                    logDebug(resp)
                     return _download_lib()
                 return resp
 
@@ -1070,8 +1067,11 @@ class CeRpycService(rpyc.Service):
             user_lib = self.project.get_user_info(user, 'libs_path').rstrip('/') + '/'
             lib_path = user_lib + name
             # logDebug('Before downloading local lib `{}`.'.format(lib_path))
+            is_folder = self.project.localFs.is_folder(user, lib_path)
+            is_global_folder = os.path.isdir(glob_lib_path)
+
             # If is folder, or "deep" file or folder, compress in memory and return the data
-            if os.path.isdir(lib_path) or '/' in name:
+            if is_folder == True or is_global_folder == True or '/' in name:
                 logDebug('User `{}` requested local lib folder `{}`.'.format(user, name))
                 resp = self.project.localFs.targz_user_folder(user, lib_path, user_lib)
                 # Try as ROOT

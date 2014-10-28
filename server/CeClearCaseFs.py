@@ -89,6 +89,10 @@ class ClearCaseFs(BaseFS, CcBorg):
             logWarning(msg)
             return '*ERROR* ' + msg
 
+        if op not in ['read', 'write']:
+            logWarning('Invalid CC operation `{}`, for user `{}`! Will reset to "read".'.format(op, user))
+            op = 'read'
+
         view = view.strip()
         actv = actv.strip()
         user_view = user + ':' + view
@@ -99,26 +103,26 @@ class ClearCaseFs(BaseFS, CcBorg):
             logWarning(msg)
             return '*ERROR* ' + msg
 
+        def pread():
+            """ Read proc stdout """
+            while 1:
+                try:
+                    line = proc.readline().strip()
+                    if not line:
+                        continue
+                    plog.append(line)
+                except:
+                    break
+
         # Must block here, so more users cannot launch Logs at the same time and lose the PID
         with self._srv_lock:
 
-            def pread():
-                """ Read proc stdout """
-                while 1:
-                    try:
-                        line = proc.readline().strip()
-                        if not line:
-                            continue
-                        plog.append(line)
-                    except:
-                        break
-
             # Try to re-use the FS, if available
-            conn = self._services.get(user_view, {}).get('conn', None)
+            conn = self._services.get(user_view, {}).get('conn_' + op, None)
             if conn:
                 try:
                     conn.ping(data='Hello', timeout=30.0)
-                    # logDebug('Reuse old ClearCase Service connection for `{}` OK.'.format(user))
+                    # logDebug('Reuse old {} ClearCase Service connection for `{}` OK.'.format(op, user_view))
                     proc = self._services.get(user_view, {}).get('proc', None)
                     old_actv = self._services.get(user_view, {}).get('actv', None)
                     if actv != old_actv:
@@ -130,7 +134,8 @@ class ClearCaseFs(BaseFS, CcBorg):
                         self._services.get(user_view, {})['actv'] = actv
                     return conn
                 except Exception as e:
-                    logWarning('Cannot connect to ClearCase Service for `{}`: `{}`.'.format(user_view, e))
+                    logWarning('Cannot connect to `{}` ClearCase Service for `{}`: `{}`.'.format(
+                        op, user_view, e))
                     self._kill(user)
                     proc = self._services.get(user_view, {}).get('proc', None)
                     PID = proc.pid
@@ -140,11 +145,11 @@ class ClearCaseFs(BaseFS, CcBorg):
                 logInfo('Launching a ClearCase Service for `{}`, the first time...'.format(user_view))
 
             proc = pexpect.spawn(['bash'], timeout=2.5, maxread=2048)
-            time.sleep(2.0)
+            time.sleep(1.0)
             plog = []
 
             proc.sendline('su {}'.format(user))
-            time.sleep(2.0)
+            time.sleep(1.0)
             pread()
             # User's home folder
             proc.sendline('cd ~/twister')
@@ -170,7 +175,7 @@ class ClearCaseFs(BaseFS, CcBorg):
                 port = random.randrange(63000, 65000)
                 try:
                     socket.create_connection((None, port), 1)
-                except:
+                except Exception:
                     break
 
             # Launching 1 UserService inside the SSH terminal, with ClearCase View open
@@ -197,16 +202,31 @@ class ClearCaseFs(BaseFS, CcBorg):
             success = False
 
             while retry > 0:
-                try:
-                    stream = rpyc.SocketStream.connect('127.0.0.1', port, timeout=5.0)
-                    conn = rpyc.connect_stream(stream, config=config)
-                    conn.root.hello()
-                    logDebug('Connected to ClearCase Service for `{}`.'.format(user_view))
-                    success = True
+                if success:
                     break
+
+                try:
+                    stream_r = rpyc.SocketStream.connect('127.0.0.1', port, timeout=5.0)
+                    conn_read = rpyc.connect_stream(stream_r, config=config)
+                    conn_read.root.hello()
+                    logDebug('Connected to ClearCase Service for `{}`, operation `read`.'.format(user_view))
+                    success = True
                 except Exception as e:
                     logWarning('Cannot connect to ClearCase Service for `{}`!'\
                         'Exception: `{}`! Retry...'.format(user_view, e))
+
+                if success:
+                    try:
+                        stream_w = rpyc.SocketStream.connect('127.0.0.1', port, timeout=5.0)
+                        conn_write = rpyc.connect_stream(stream_w, config=config)
+                        conn_write.root.hello()
+                        logDebug('Connected to ClearCase Service for `{}`, operation `write`.'.format(user_view))
+                        break
+                    except Exception as e:
+                        logWarning('Cannot connect to ClearCase Service for `{}`!'\
+                                'Exception: `{}`! Retry...'.format(user_view, e))
+                        success = False
+
                 time.sleep(delay)
                 retry -= 1
                 delay += 0.75
@@ -216,10 +236,14 @@ class ClearCaseFs(BaseFS, CcBorg):
                 return None
 
             # Save the process inside the block.
-            self._services[user_view] = {'proc': proc, 'conn': conn, 'port': port, 'actv': actv}
+            self._services[user_view] = {'proc': proc, 'port': port,
+                'conn_read': conn_read,
+                'conn_write': conn_write,
+                'actv': actv}
 
         logDebug('ClearCase Service for `{}` launched on `127.0.0.1:{}`.'.format(user_view, port))
-        return conn
+
+        return self._services[user_view].get('conn_' + op, None)
 
 
     def system_command(self, user_view, cmd):

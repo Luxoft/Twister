@@ -1,7 +1,7 @@
 
 # File: UserService.py ; This file is part of Twister.
 
-# version: 3.013
+# version: 3.014
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -35,15 +35,11 @@ import grp
 import time
 import shutil
 import subprocess
-import logging
 import tarfile
 import cStringIO
 
 import rpyc
 from rpyc.utils.server import ThreadedServer
-
-
-log = logging.getLogger(__name__)
 
 TYPE = sys.argv[2:3]
 
@@ -52,38 +48,32 @@ if TYPE == ['ClearCase']:
 else:
     log_file = 'usr_srv.log'
 
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s  %(levelname)-8s %(message)s',
-    datefmt='%y-%m-%d %H:%M:%S',
-    filename=log_file,
-    filemode='w')
+def log_msg(level, msg):
+    """ common logger """
+    date_tag = time.strftime('%Y-%b-%d %H-%M-%S')
+    with open(log_file, 'a') as f:
+        f.write('{}\t{}\t{}\n'.format(date_tag, level, msg))
 
-console = logging.StreamHandler()
-console.setLevel(logging.INFO)
-log.addHandler(console)
+def logDebug(msg):
+    """ debug """
+    log_msg("DEBUG", msg)
 
+def logInfo(msg):
+    """ info """
+    log_msg("INFO", msg)
+
+def logWarning(msg):
+    """ warning """
+    log_msg("WARN", msg)
+
+def logError(msg):
+    """ error """
+    log_msg("ERROR", msg)
 
 if sys.version < '2.7':
-    log.error('Python version error! User Service must run on Python 2.7++ !')
+    logError('Python version error! User Service must run on Python 2.7++ !')
     exit(1)
 
-try:
-    userName = os.getenv('USER') or os.getenv('USERNAME')
-    if userName == 'root':
-        userName = os.getenv('SUDO_USER') or userName
-    log.debug('Hello username `{}`!'.format(userName))
-except Exception:
-    userName = ''
-if not userName:
-    log.error('Cannot guess user name for the User Service! Exiting!')
-    exit(1)
-
-def userHome():
-    """
-    Find the home folder for a given user.
-    """
-    return subprocess.check_output('echo ~' + userName, shell=True).strip().rstrip('/')
 
 lastMsg = ''
 
@@ -92,18 +82,18 @@ lastMsg = ''
 class UserService(rpyc.Service):
 
     def __init__(self, conn):
-        log.debug('Warming up the User Service ({})...'.format(TYPE))
+        logInfo('Warming up the User Service ({})...'.format(TYPE))
         self._conn = conn
 
 
     def on_connect(self):
         client_addr = self._conn._config['endpoints'][1]
-        log.debug('User Service: Connected from endpoint `{}`.'.format(client_addr))
+        logDebug('User Service: Connected from endpoint `{}`.'.format(client_addr))
 
 
     def on_disconnect(self):
         client_addr = self._conn._config['endpoints'][1]
-        log.debug('User Service: Disconnected from endpoint `{}`.'.format(client_addr))
+        logDebug('User Service: Disconnected from endpoint `{}`.'.format(client_addr))
 
 
     @staticmethod
@@ -120,12 +110,12 @@ class UserService(rpyc.Service):
         True or False ?
         """
         if fpath[0] == '~':
-            fpath = userHome() + fpath[1:]
+            fpath = USER_HOME + fpath[1:]
         try:
             return os.path.isdir(fpath)
         except Exception as e:
             err = '*ERROR* Cannot find file/ folder `{}`! {}'.format(fpath, e)
-            log.warning(err)
+            logWarning(err)
             return err
 
 
@@ -137,17 +127,17 @@ class UserService(rpyc.Service):
         """
         global lastMsg
         if fpath[0] == '~':
-            fpath = userHome() + fpath[1:]
+            fpath = USER_HOME + fpath[1:]
         try:
             fsize = os.stat(fpath).st_size
             msg = 'File `{}` is size `{}`.'.format(fpath, fsize)
             if msg != lastMsg:
-                log.debug(msg)
+                logDebug(msg)
                 lastMsg = msg
             return fsize
         except Exception as e:
             err = '*ERROR* Cannot find file `{}`! {}'.format(fpath, e)
-            log.warning(err)
+            logWarning(err)
             return err
 
 
@@ -159,20 +149,20 @@ class UserService(rpyc.Service):
         """
         global lastMsg
         if fpath[0] == '~':
-            fpath = userHome() + fpath[1:]
+            fpath = USER_HOME + fpath[1:]
         if flag not in ['r', 'rb']:
             err = '*ERROR* Invalid flag `{}`! Cannot read!'.format(flag)
-            log.warning(err)
+            logWarning(err)
             return err
         if not os.path.isfile(fpath):
             err = '*ERROR* No such file `{}`!'.format(fpath)
-            log.warning(err)
+            logWarning(err)
             return err
         try:
             with open(fpath, flag) as f:
                 msg = 'Reading file `{}`, flag `{}`.'.format(fpath, flag)
                 if msg != lastMsg:
-                    log.debug(msg)
+                    logDebug(msg)
                     lastMsg = msg
                 if fstart:
                     f.seek(fstart)
@@ -184,7 +174,7 @@ class UserService(rpyc.Service):
                 return fdata
         except Exception as e:
             err = '*ERROR* Cannot read file `{}`! {}'.format(fpath, e)
-            log.warning(err)
+            logWarning(err)
             return err
 
 
@@ -196,26 +186,26 @@ class UserService(rpyc.Service):
         Show me the spam.
         """
         if fpath[0] == '~':
-            fpath = userHome() + fpath[1:]
+            fpath = USER_HOME + fpath[1:]
         if flag not in ['w', 'wb', 'a', 'ab']:
             err = '*ERROR* Invalid flag `{}`! Cannot read!'.format(flag)
-            log.warning(err)
+            logWarning(err)
             return err
         try:
             with open(fpath, flag) as f:
                 f.write(fdata)
             if flag == 'w':
-                log.debug('Written `{}` chars in ascii file `{}`.'.format(len(fdata), fpath))
+                logDebug('Written `{}` chars in ascii file `{}`.'.format(len(fdata), fpath))
             elif flag == 'wb':
-                log.debug('Written `{}` chars in binary file `{}`.'.format(len(fdata), fpath))
+                logDebug('Written `{}` chars in binary file `{}`.'.format(len(fdata), fpath))
             elif flag == 'a':
-                log.debug('Appended `{}` chars in ascii file `{}`.'.format(len(fdata), fpath))
+                logDebug('Appended `{}` chars in ascii file `{}`.'.format(len(fdata), fpath))
             else:
-                log.debug('Appended `{}` chars in binary file `{}`.'.format(len(fdata), fpath))
+                logDebug('Appended `{}` chars in binary file `{}`.'.format(len(fdata), fpath))
             return True
         except Exception as e:
             err = '*ERROR* Cannot write into file `{}`! {}'.format(fpath, e)
-            log.warning(err)
+            logWarning(err)
             return err
 
 
@@ -225,16 +215,16 @@ class UserService(rpyc.Service):
         Copy 1 file.
         """
         if fpath[0] == '~':
-            fpath = userHome() + fpath[1:]
+            fpath = USER_HOME + fpath[1:]
         if newpath[0] == '~':
-            newpath = userHome() + newpath[1:]
+            newpath = USER_HOME + newpath[1:]
         try:
             shutil.copy2(fpath, newpath)
-            log.debug('Copied file `{}` in `{}`.'.format(fpath, newpath))
+            logDebug('Copied file `{}` in `{}`.'.format(fpath, newpath))
             return True
         except Exception as e:
             err = '*ERROR* Cannot copy file `{}`! {}'.format(fpath, e)
-            log.warning(err)
+            logWarning(err)
             return err
 
 
@@ -244,16 +234,16 @@ class UserService(rpyc.Service):
         Move 1 file.
         """
         if fpath[0] == '~':
-            fpath = userHome() + fpath[1:]
+            fpath = USER_HOME + fpath[1:]
         if newpath[0] == '~':
-            newpath = userHome() + newpath[1:]
+            newpath = USER_HOME + newpath[1:]
         try:
             shutil.move(fpath, newpath)
-            log.debug('Moved file `{}` in `{}`.'.format(fpath, newpath))
+            logDebug('Moved file `{}` in `{}`.'.format(fpath, newpath))
             return True
         except Exception as e:
             err = '*ERROR* Cannot move file `{}`! {}'.format(fpath, e)
-            log.warning(err)
+            logWarning(err)
             return err
 
 
@@ -263,14 +253,14 @@ class UserService(rpyc.Service):
         Delete a file. This is IREVERSIBLE!
         """
         if fpath[0] == '~':
-            fpath = userHome() + fpath[1:]
+            fpath = USER_HOME + fpath[1:]
         try:
             os.remove(fpath)
-            log.debug('Deleted file `{}`.'.format(fpath))
+            logDebug('Deleted file `{}`.'.format(fpath))
             return True
         except Exception as e:
             err = '*ERROR* Cannot delete file `{}`! {}'.format(fpath, e)
-            log.warning(err)
+            logWarning(err)
             return err
 
 
@@ -280,14 +270,14 @@ class UserService(rpyc.Service):
         Create a new folder.
         """
         if folder[0] == '~':
-            folder = userHome() + folder[1:]
+            folder = USER_HOME + folder[1:]
         try:
             os.makedirs(folder)
-            log.debug('Created folder `{}`.'.format(folder))
+            logDebug('Created folder `{}`.'.format(folder))
             return True
         except Exception as e:
             err = '*ERROR* Cannot create folder `{}`! {}'.format(folder, e)
-            log.warning(err)
+            logWarning(err)
             return err
 
 
@@ -297,17 +287,17 @@ class UserService(rpyc.Service):
         List all files, recursively.
         """
         if folder[0] == '~':
-            folder = userHome() + folder[1:]
+            folder = USER_HOME + folder[1:]
         if folder == '/':
             base_path = '/'
-            log.warning('*WARN* Listing folders from system ROOT.')
+            logWarning('*WARN* Listing folders from system ROOT.')
             recursive = False
         else:
             base_path = folder.rstrip('/')
 
         if not os.path.isdir(folder):
             err = '*ERROR* Invalid folder path `{}`!'.format(folder)
-            log.warning(err)
+            logWarning(err)
             return err
 
         def dirList(path):
@@ -332,7 +322,7 @@ class UserService(rpyc.Service):
             try:
                 names = sorted(os.listdir(path), key=str.lower)
             except Exception as e:
-                log.warning('*WARN* Cannot list folder `{}`: `{}`!'.format(path, e))
+                logWarning('*WARN* Cannot list folder `{}`: `{}`!'.format(path, e))
                 return []
 
             # Cycle a folder
@@ -414,7 +404,7 @@ class UserService(rpyc.Service):
         }
 
         clen = len(paths['children'])
-        log.debug('Listing dir `{}`, it has `{}` direct children.'.format(base_path, clen))
+        logDebug('Listing dir `{}`, it has `{}` direct children.'.format(base_path, clen))
         return paths
 
 
@@ -424,14 +414,14 @@ class UserService(rpyc.Service):
         Create a user folder.
         """
         if folder[0] == '~':
-            folder = userHome() + folder[1:]
+            folder = USER_HOME + folder[1:]
         try:
             shutil.rmtree(folder)
-            log.debug('Deleted folder `{}`.'.format(folder))
+            logDebug('Deleted folder `{}`.'.format(folder))
             return True
         except Exception as e:
             err = '*ERROR* Cannot delete folder `{}`! {}'.format(folder, e)
-            log.warning(err)
+            logWarning(err)
             return err
 
 
@@ -443,16 +433,16 @@ class UserService(rpyc.Service):
         if (root not in folder) or (not os.path.isdir(root)):
             root = ''
         if folder[0] == '~':
-            folder = userHome() + folder[1:]
+            folder = USER_HOME + folder[1:]
         if not os.path.exists(folder):
             err = '*ERROR* Invalid path `{}`!'.format(folder)
-            log.warning(err)
+            logWarning(err)
             return err
         if root:
             name = folder[len(root):]
         else:
             root, name = os.path.split(folder)
-        log.debug('Tar.gz folder: `{}`, root: `{}`.'.format(name, root))
+        logDebug('Tar.gz folder: `{}`, root: `{}`.'.format(name, root))
         os.chdir(root)
         io = cStringIO.StringIO()
         # Write the folder tar.gz into memory
@@ -464,7 +454,7 @@ class UserService(rpyc.Service):
     @staticmethod
     def exposed_exit():
         """ Must Exit """
-        log.warning('User Service: *sigh* received EXIT signal...')
+        logWarning('User Service: *sigh* received EXIT signal...')
         t.close()
         # Reply to client.
         return True
@@ -476,7 +466,7 @@ if __name__ == '__main__':
     PORT = sys.argv[1:2]
 
     if not PORT:
-        log.error('User Service: Must start with parameter PORT number!')
+        logError('User Service: Must start with parameter PORT number!')
         exit(1)
 
     config = {
@@ -486,10 +476,27 @@ if __name__ == '__main__':
         'allow_delattr': True
     }
 
+    try:
+        userName = os.getenv('USER') or os.getenv('USERNAME')
+        if userName == 'root':
+            userName = os.getenv('SUDO_USER') or userName
+        logDebug('Hello username `{}`!'.format(userName))
+    except Exception:
+        userName = ''
+    if not userName:
+        logError('Cannot guess user name for the User Service! Exiting!')
+        exit(1)
+
+    open(log_file, 'w').close()
+
+    logInfo('User Service: Starting...')
+
+    USER_HOME = subprocess.check_output('echo ~' + userName, shell=True).strip().rstrip('/')
+
     t = ThreadedServer(UserService, port=int(PORT[0]), protocol_config=config, listener_timeout=1)
     t.start()
 
-    log.warning('User Service: Bye bye.')
+    logInfo('User Service: Bye bye.')
 
 
 # Eof()
