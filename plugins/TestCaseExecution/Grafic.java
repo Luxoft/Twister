@@ -1,6 +1,6 @@
 /*
 File: Grafic.java ; This file is part of Twister.
-Version: 3.0032
+Version: 3.0033
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -84,6 +84,7 @@ import javax.swing.DefaultComboBoxModel;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.GroupLayout;
 import javax.swing.LayoutStyle;
+import javax.swing.tree.DefaultTreeCellRenderer;
 
 public class Grafic extends JPanel{
     private static final long serialVersionUID = 1L;
@@ -151,7 +152,7 @@ public class Grafic extends JPanel{
     /*
      * handle up down press
      */
-public void keyDownPressed(){
+	public void keyDownPressed(){
         ArrayList <Integer> temp = new ArrayList <Integer>();  
         int last = selectedcollection.size()-1;
         if(last<0)return;
@@ -631,6 +632,7 @@ public void keyDownPressed(){
         y=10;
         foundfirstitem=true;
         for(int i=0;i<clone.size();i++){
+           if(clone.get(i).getType()==1)continue;
            ArrayList<Integer> selected2 = new ArrayList<Integer>();
            selected2.add(new Integer(i));
            clone.get(i).setPos(selected2);                               
@@ -653,6 +655,7 @@ public void keyDownPressed(){
         int position = upper.getPos().size();                                
         int temp1 = upper.getPos().get(position-1);                                    
         for(int i=0;i<clone.size();i++){
+           if(clone.get(i).getType()==1)continue;
            ArrayList<Integer> selected2 = (ArrayList<Integer>)upper.getPos().clone();
            selected2.set(0,new Integer(upper.getPos().get(0)+i+1));
            clone.get(i).setPos(selected2);
@@ -2179,7 +2182,9 @@ public void keyDownPressed(){
      * on item type
      */
     public void drawItem(Item item,Graphics g){
-        g.setFont(new Font("TimesRoman", Font.PLAIN, 12));
+        Font font = ((DefaultTreeCellRenderer)RunnerRepository.window.mainpanel.p1.ep.tree.getCellRenderer()).getFont();
+        font = font.deriveFont(12);
+        g.setFont(font);
         g.setColor(Color.BLACK);
         if(item.isSelected()){
             g.setColor(new Color(220,220,220));
@@ -2231,13 +2236,11 @@ public void keyDownPressed(){
             }
             StringBuilder sb = new StringBuilder();
             sb.append("- ");
-            //String [] path;
-//             for(String st:item.getConfigurations()){
             for(Configuration st:item.getConfigurations()){
-                //path = st.getFile().split("/");
-                //st.setFile(path[path.length-1]);
-                sb.append(st.getFile());
-                sb.append("; ");
+                if(st.isEnabled()){
+                    sb.append(st.getFile());
+                    sb.append("; ");
+                }
             }
             if(sb.length()>0) sb.deleteCharAt(sb.length()-2);
             g.drawString(sb.toString(),(int)(item.getRectangle().getX()+item.getRectangle().getWidth()),

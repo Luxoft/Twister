@@ -1,6 +1,6 @@
 /*
 File: XMLBuilder.java ; This file is part of Twister.
-Version: 3.003
+Version: 3.004
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -87,7 +87,8 @@ public class XMLBuilder{
                           boolean prestoponfail,
                           boolean temp, String prescript, String postscript,
                           boolean savedb, String delay, String[] globallibs,
-                          String [][] projectdefined,String downloadlibraryoption){//skip checks if it is user or test xml
+                          String [][] projectdefined,String downloadlibraryoption
+                          ){//skip checks if it is user or test xml
         int nrsuite = suite.size();
         Item current =null;
         if(!skip){
@@ -128,9 +129,9 @@ public class XMLBuilder{
                 root.appendChild(userdef);}
         }
         root.appendChild(em2);
-        em2 = document.createElement("DownloadLibraries");
-        em2.appendChild(document.createTextNode(downloadlibraryoption));
-        root.appendChild(em2);
+         em2 = document.createElement("DownloadLibraries");
+         em2.appendChild(document.createTextNode(downloadlibraryoption));
+         root.appendChild(em2);
         em2 = document.createElement("ScriptPre");
         em2.appendChild(document.createTextNode(prescript));
         root.appendChild(em2);
@@ -688,7 +689,7 @@ public class XMLBuilder{
                     return RunnerRepository.uploadRemoteFile(result2.toString(), in,null, file.getName(),false,null);
                 }else{
                     if(lib){ //predefined suites  
-                        return RunnerRepository.savePredefinedProjectFile(file.getName(),new Scanner(file).useDelimiter("\\A").next());
+                        return RunnerRepository.savePredefinedProjectFile(RunnerRepository.getPredefinedSuitesPath()+"/"+file.getName(),new Scanner(file).useDelimiter("\\A").next());
                     } else {//normal suites                        
                         if(RunnerRepository.saveProjectFile(file.getName(),new Scanner(file).useDelimiter("\\A").next())==null){
                             return false;
