@@ -1,7 +1,7 @@
 
 # File: CeProject.py ; This file is part of Twister.
 
-# version: 3.055
+# version: 3.057
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -1244,6 +1244,47 @@ class Project(object):
             return self.clearFs.delete_user_folder(user +':'+ view_actv, fdir)
         else:
             return self.localFs.delete_user_folder(user, fdir)
+
+
+    def read_project_file(self, user, fpath):
+        """
+        Read a project file - returns a string.
+        """
+        # Auto detect if ClearCase Test Config Path is active
+        ccConfig = self.get_clearcase_config(user, 'projects_path')
+        if ccConfig:
+            view = ccConfig['view']
+            actv = ccConfig['actv']
+            path = ccConfig['path'].rstrip('/')
+            if not path:
+                return '*ERROR* User `{}` did not set ClearCase Project Path!'.format(user)
+            user_view_actv = '{}:{}:{}'.format(user, view, actv)
+            return self.clearFs.read_user_file(user_view_actv, path +'/'+ fpath)
+        else:
+            dpath = self.get_user_info(user, 'projects_path').rstrip('/')
+            if fpath.startswith(dpath):
+                return self.localFs.read_user_file(user, fpath)
+            else:
+                return self.localFs.read_user_file(user, dpath +'/'+ fpath)
+
+
+    def save_project_file(self, user, fpath, content):
+        """
+        Write a project file - returns a True/ False.
+        """
+        # Auto detect if ClearCase Test Config Path is active
+        ccConfig = self.get_clearcase_config(user, 'projects_path')
+        if ccConfig:
+            view = ccConfig['view']
+            actv = ccConfig['actv']
+            path = ccConfig['path'].rstrip('/')
+            if not path:
+                return '*ERROR* User `{}` did not set ClearCase Project Path!'.format(user)
+            user_view_actv = '{}:{}:{}'.format(user, view, actv)
+            return self.clearFs.write_user_file(user_view_actv, path +'/'+ fpath, content)
+        else:
+            dpath = self.get_user_info(user, 'projects_path').rstrip('/')
+            return self.localFs.write_user_file(user, dpath +'/'+ fpath, content)
 
 
 # # #

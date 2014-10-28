@@ -1,7 +1,7 @@
 
 # File: CeXmlRpc.py ; This file is part of Twister.
 
-# version: 3.010
+# version: 3.011
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -401,23 +401,8 @@ class CeXmlRpc(_cptools.XMLRPCController):
         Read a project file - returns a string.
         """
         user = cherrypy.session.get('username')
-        # Auto detect if ClearCase Test Config Path is active
-        logDebug('GUI read_project_file {} {}'.format(user, fpath))
-        ccConfig = self.project.get_clearcase_config(user, 'projects_path')
-        if ccConfig:
-            view = ccConfig['view']
-            actv = ccConfig['actv']
-            path = ccConfig['path'].rstrip('/')
-            if not path:
-                return '*ERROR* You did not set ClearCase Project Path!'
-            user_view_actv = '{}:{}:{}'.format(user, view, actv)
-            return self.project.clearFs.read_user_file(user_view_actv, path +'/'+ fpath)
-        else:
-            dpath = self.project.get_user_info(user, 'projects_path').rstrip('/')
-            if fpath.startswith(dpath):
-                return self.project.localFs.read_user_file(user, fpath)
-            else:
-                return self.project.localFs.read_user_file(user, dpath +'/'+ fpath)
+        logFull('GUI read_project_file {} {}'.format(user, fpath))
+        return self.project.read_project_file(user, fpath)
 
 
     @cherrypy.expose
@@ -426,19 +411,8 @@ class CeXmlRpc(_cptools.XMLRPCController):
         Write a project file - returns a True/ False.
         """
         user = cherrypy.session.get('username')
-        # Auto detect if ClearCase Test Config Path is active
-        ccConfig = self.project.get_clearcase_config(user, 'projects_path')
-        if ccConfig:
-            view = ccConfig['view']
-            actv = ccConfig['actv']
-            path = ccConfig['path'].rstrip('/')
-            if not path:
-                return '*ERROR* User `{}` did not set ClearCase Project Path!'.format(user)
-            user_view_actv = '{}:{}:{}'.format(user, view, actv)
-            return self.project.clearFs.write_user_file(user_view_actv, path +'/'+ fpath, content)
-        else:
-            dpath = self.project.get_user_info(user, 'projects_path').rstrip('/')
-            return self.project.localFs.write_user_file(user, dpath +'/'+ fpath, content)
+        logFull('GUI save_project_file {} {}'.format(user, fpath))
+        return self.project.save_project_file(user, fpath, content)
 
 
     @cherrypy.expose

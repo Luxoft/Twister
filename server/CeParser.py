@@ -512,7 +512,7 @@ class CeXmlParser(object):
         '''
         logDebug("CeParser: preparing to convert project file: `{}`, user `{}`.".format(filename, user))
 
-        data = self.project.xmlrpc.read_project_file(filename)
+        data = self.project.read_project_file(user, filename)
         if data.startswith('*ERROR*'):
             logWarning(data)
             return data
