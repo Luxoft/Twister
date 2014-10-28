@@ -1,6 +1,6 @@
 /*
 File: ConfigEditor.java ; This file is part of Twister.
-Version: 3.006
+Version: 3.007
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -904,27 +904,77 @@ public class ConfigEditor extends JPanel{
     }
     
     public void saveAs(){
-        final JTextField tf = new JTextField();
-        try{tf.setText(((DefaultMutableTreeNode)cfgtree.tree.getModel().
-                                                getRoot()).getFirstChild().toString());
-        }catch(Exception e){
-            e.printStackTrace();
-        }
-        AbstractAction action = new AbstractAction(){
-            public void actionPerformed(ActionEvent ev){
+        JPanel p = new JPanel();
+        p.setLayout(null);
+        p.setPreferredSize(new Dimension(250,50));
+        JLabel sut = new JLabel("Config name: ");
+        sut.setBounds(5,5,80,25);
+        final JTextField tsut = new JTextField();
+        tsut.setFocusable(true);
+        tsut.addAncestorListener(new AncestorListener() {
+            @Override
+            public void ancestorRemoved(AncestorEvent arg0) {
+            }
+            
+            @Override
+            public void ancestorMoved(AncestorEvent arg0) {
+            }
+            
+            @Override
+            public void ancestorAdded(AncestorEvent arg0) {
+                tsut.requestFocusInWindow();
+            }
+        });
+        tsut.setBounds(90,5,155,25);
+        p.add(tsut);
+        p.add(sut);
+        int resp = (Integer)CustomDialog.showDialog(p,JOptionPane.PLAIN_MESSAGE, 
+                    JOptionPane.OK_CANCEL_OPTION, ConfigEditor.this, "Save as:",null);
+        if(resp == JOptionPane.OK_OPTION&&!tsut.getText().equals("")){
+            try{
                 String initialname = remotelocation;
-                remotelocation = tf.getText();
+                String [] path = initialname.split("/");
+                StringBuilder sb = new StringBuilder();
+                for(int i=0;i<path.length-1;i++){
+                    sb.append(path[i]);
+                    sb.append("/");
+                }
+                sb.append(tsut.getText());
+                remotelocation = sb.toString();
                 writeXML();
                 saveBinding();
                 lastsave = true;
                 bindingsave = true;
                 displayname.setText(displayname.getText().replace(" (need save)", ""));
                 remotelocation = initialname;
+                cfgtree.refreshStructure();
             }
-        };
-        MySftpBrowser browser = new MySftpBrowser(RunnerRepository.host,RunnerRepository.user,RunnerRepository.password,RunnerRepository.CENTRALENGINEPORT,tf,this,true);
-        browser.setAction(action);
-        browser.setButtonText("Save");
+            catch(Exception e){
+                System.out.println("Could not create new config file: "+tsut.getText());
+                e.printStackTrace();
+            }
+        }
+//         final JTextField tf = new JTextField();
+//         try{tf.setText(((DefaultMutableTreeNode)cfgtree.tree.getModel().
+//                                                 getRoot()).getFirstChild().toString());
+//         }catch(Exception e){
+//             e.printStackTrace();
+//         }
+//         AbstractAction action = new AbstractAction(){
+//             public void actionPerformed(ActionEvent ev){
+//                 String initialname = remotelocation;
+//                 remotelocation = tf.getText();
+//                 writeXML();
+//                 saveBinding();
+//                 lastsave = true;
+//                 bindingsave = true;
+//                 displayname.setText(displayname.getText().replace(" (need save)", ""));
+//                 remotelocation = initialname;
+//             }
+//         };
+//         MySftpBrowser browser = new MySftpBrowser(RunnerRepository.host,RunnerRepository.user,RunnerRepository.password,RunnerRepository.CENTRALENGINEPORT,tf,this,true);
+//         browser.setAction(action);
+//         browser.setButtonText("Save");
     }
     
     public void save(){
@@ -1714,7 +1764,6 @@ public class ConfigEditor extends JPanel{
             transformer.transform(source, result);
             StringBuffer sb = ((StringWriter)outWriter).getBuffer();
             String content = sb.toString();
-            System.out.println("-----:"+content);
             content = DatatypeConverter.printBase64Binary(content.getBytes());
             String resp = RunnerRepository.getRPCClient().execute("save_config_file", new Object[]{remotelocation,content}).toString();
             if(resp.indexOf("*ERROR*")!=-1){

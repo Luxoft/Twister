@@ -1,6 +1,6 @@
 /*
 File: SutEditor.java ; This file is part of Twister.
-Version: 3.003
+Version: 3.004
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -549,32 +549,38 @@ public class SutEditor extends JPanel{
         for(Object o:children){
             try{
                 childid = o.toString();
-                HashMap subhash= (HashMap)client.execute("get_sut", new Object[]{childid});
-                System.out.println("get_sut:"+childid+" - "+subhash);
-                //HashMap subhash= (HashMap)o;
-                String subpath = subhash.get("path").toString();
-                String subname = subpath.split("/")[subpath.split("/").length-1];
-                HashMap meta = (HashMap)subhash.get("meta");
-                String id = subhash.get("id").toString();
-                Comp comp = new Comp(subname,id,meta.get("_id")+"");
-                DefaultMutableTreeNode component = new DefaultMutableTreeNode(comp,true);
-                DefaultMutableTreeNode nodeid = new DefaultMutableTreeNode("ID: "+id,false);
-                component.add(nodeid);
-                treenode.add(component);
-                if(meta.get("_id")!=null){
-                    String referenceid = meta.get("_id").toString();
-                    Node child = getTB(referenceid,null);
-                    if(child!=null){
-                        DefaultMutableTreeNode treechild = new DefaultMutableTreeNode(child);
-                        DefaultMutableTreeNode temp = new DefaultMutableTreeNode("ID: "+child.getID(),false);
-                        treechild.add(temp);
-                        DefaultMutableTreeNode temp2 = new DefaultMutableTreeNode(child.getPath(),false);
-                        treechild.add(temp2);
-                        ((DefaultTreeModel)tree.getModel()).insertNodeInto(treechild, component,component.getChildCount());
+                Object ob = client.execute("get_sut", new Object[]{childid});
+                if(ob.getClass()==HashMap.class){
+                    HashMap subhash= (HashMap)ob;
+                    System.out.println("get_sut:"+childid+" - "+subhash);
+                    //HashMap subhash= (HashMap)o;
+                    String subpath = subhash.get("path").toString();
+                    String subname = subpath.split("/")[subpath.split("/").length-1];
+                    HashMap meta = (HashMap)subhash.get("meta");
+                    String id = subhash.get("id").toString();
+                    Comp comp = new Comp(subname,id,meta.get("_id")+"");
+                    DefaultMutableTreeNode component = new DefaultMutableTreeNode(comp,true);
+                    DefaultMutableTreeNode nodeid = new DefaultMutableTreeNode("ID: "+id,false);
+                    component.add(nodeid);
+                    treenode.add(component);
+                    if(meta.get("_id")!=null){
+                        String referenceid = meta.get("_id").toString();
+                        Node child = getTB(referenceid,null);
+                        if(child!=null){
+                            DefaultMutableTreeNode treechild = new DefaultMutableTreeNode(child);
+                            DefaultMutableTreeNode temp = new DefaultMutableTreeNode("ID: "+child.getID(),false);
+                            treechild.add(temp);
+                            DefaultMutableTreeNode temp2 = new DefaultMutableTreeNode(child.getPath(),false);
+                            treechild.add(temp2);
+                            ((DefaultTreeModel)tree.getModel()).insertNodeInto(treechild, component,component.getChildCount());
+                        }
                     }
+                    Object [] subchildren = (Object[])subhash.get("children");
+                    buildChildren(subchildren,component);
+                } else {
+                    System.out.println("Server respons:"+ob.toString());
                 }
-                Object [] subchildren = (Object[])subhash.get("children");
-                buildChildren(subchildren,component);
+                
             } catch (Exception e){
                 e.printStackTrace();
             }

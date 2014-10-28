@@ -1,6 +1,6 @@
 /*
 File: SuitaDetails.java ; This file is part of Twister.
-Version: 3.003
+Version: 3.004
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -54,6 +54,8 @@ import java.io.BufferedReader;
 import java.awt.event.ItemListener;
 import java.awt.event.ItemEvent;
 import java.awt.event.KeyListener;
+import java.awt.event.FocusAdapter;
+import java.awt.event.FocusEvent;
 import javax.swing.JList;
 import javax.swing.event.ListSelectionListener;
 import javax.swing.event.ListSelectionEvent;
@@ -222,6 +224,12 @@ public class SuitaDetails extends JPanel {
         libraryoption.setModel(new javax.swing.DefaultComboBoxModel(new String[] {"flat", "deep"}));
         tlibraries = new JTextField();
         tlibraries.setEditable(false);
+        tlibraries.getCaret().setVisible(true);
+        tlibraries.addFocusListener(new FocusAdapter(){
+            public void focusGained(FocusEvent ev){
+                tlibraries.getCaret().setVisible(true);
+            }
+        });
         JLabel libraries = new JLabel("Libraries");
         
         globallib.addActionListener(new ActionListener(){
@@ -589,7 +597,6 @@ public class SuitaDetails extends JPanel {
         projectdefinitions.clear();
         border = BorderFactory.createTitledBorder("Global options");
         setBorder(border);
-        scroll = new JScrollPane();
         defsContainer = new JPanel();
         setLayout(new BorderLayout());
         defsContainer.setBackground(Color.WHITE);
@@ -601,7 +608,9 @@ public class SuitaDetails extends JPanel {
         projectDefsContainer.setBorder(BorderFactory.createEmptyBorder(10, 0, 10, 0));
         projectDefsContainer.setLayout(new BoxLayout(projectDefsContainer, BoxLayout.Y_AXIS));
         projectDefsContainer.add(global);
-        scroll.setViewportView(projectDefsContainer);
+        //scroll.setViewportView(projectDefsContainer);
+        scroll = new JScrollPane(projectDefsContainer,JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
+            JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
         add(scroll, BorderLayout.CENTER);
         JLabel l = new JLabel("test");            
         FontMetrics metrics = l.getFontMetrics(l.getFont());
@@ -1539,6 +1548,8 @@ class DefPanel extends JPanel{
 //Jlist extended class to support expanding and contracting
 //of elements as a tree for folders, files representation
 class LibrariesList extends JList{
+    private List<MyListElement> firstpreviousselected;
+    private List<MyListElement> secondpreviousselected;    
     
     public LibrariesList(){
         super();
@@ -1549,11 +1560,38 @@ class LibrariesList extends JList{
                     List selected = list.getSelectedValuesList();
                     if(selected.size()==1){
                         MyListElement element = (MyListElement)selected.get(0);
-                        element.doubleClicked(null,list,list.locationToIndex(evt.getPoint()));
+                        if(element.getChildrenSize()>0){
+                            element.doubleClicked(null,list,list.locationToIndex(evt.getPoint()));
+                            int size = getModel().getSize();
+                            ArrayList<Integer> selectedelements = new ArrayList();
+                            for(int i=0;i<size;i++){
+                                String el = getModel().getElementAt(i).toString();
+                                for(MyListElement selectedel:firstpreviousselected){
+                                    if(el.equals(selectedel.toString())){
+                                        selectedelements.add(new Integer(i));
+                                        break;
+                                    }
+                                }
+                            }
+                            int [] indices = new int[selectedelements.size()];
+                            for(int i=0;i<selectedelements.size();i++){
+                                indices[i] = selectedelements.get(i);
+                            }
+                            setSelectedIndices(indices);
+                        }
                     }
+                } else if (evt.getClickCount() == 1) {
+                    firstpreviousselected = secondpreviousselected;
+                    secondpreviousselected = list.getSelectedValuesList();
                 }
             }
         });
+    }
+    
+    public void setSelectedIndices(int [] indices){
+        super.setSelectedIndices(indices);
+        firstpreviousselected = secondpreviousselected;
+        secondpreviousselected = getSelectedValuesList();
     }
 }
 
@@ -1579,12 +1617,16 @@ class MyListElement{
         for(int i=list.size()-1;i>-1;i--){
             sb.append(list.get(i));
         }
-        return sb.toString();
+        return sb.toString().replace("//","/");
         
     }
     
     public MyListElement(String name){
         this.name = name;
+    }
+    
+    public int getChildrenSize(){
+        return children.size();
     }
     
     public String getName(){
@@ -1630,7 +1672,6 @@ class MyListElement{
                 expanded=!expanded;
             }
         } else {
-            
             if(expand){
                 if(!expanded){
                     for(MyListElement child:children){
@@ -1649,10 +1690,3 @@ class MyListElement{
         }
     }
 }
-
-
-
-
-
-
-

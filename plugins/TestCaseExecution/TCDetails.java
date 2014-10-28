@@ -1,6 +1,6 @@
 /*
 File: TCDetails.java ; This file is part of Twister.
-Version: 2.005
+Version: 2.006
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -81,10 +81,10 @@ public class TCDetails extends JPanel{
         });
     }
 
-    public void setLogs(){
+    private void setLogs(){
         RunnerRepository.window.mainpanel.getP2().tabbed.removeAll();
             try{
-                RunnerRepository.emptyTestRunnerRepository();
+                //RunnerRepository.emptyTestRunnerRepository();
                 File xml = new File(RunnerRepository.getTestXMLDirectory());    
                 int size = RunnerRepository.getLogs().size();
                 for(int i=5;i<size;i++){RunnerRepository.getLogs().remove(5);}
@@ -98,7 +98,7 @@ public class TCDetails extends JPanel{
                     }
                         
                 }
-                new XMLReader(xml).parseXML(g, true,RunnerRepository.getTestSuite(),false);
+                //new XMLReader(xml).parseXML(g, true,RunnerRepository.getTestSuite(),false);
                 RunnerRepository.window.mainpanel.getP2().updateTabs();
             }
             catch(Exception e){

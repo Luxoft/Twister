@@ -1,6 +1,6 @@
 /*
 File: RunnerRepository.java ; This file is part of Twister.
-Version: 3.005
+Version: 3.006
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -1863,7 +1863,8 @@ public class RunnerRepository {
                     window.mainpanel.p1.sc.g.setUser((new StringBuilder()).append(RunnerRepository.getUsersDirectory()).
                                                         append(RunnerRepository.getBar()).append(user).append(".xml").
                                                         toString());
-                    window.mainpanel.p1.sc.g.printXML( window.mainpanel.p1.sc.g.getUser(),false,false,false,false,false,"",false,null,RunnerRepository.window.mainpanel.p1.suitaDetails.getProjectDefs());
+                    window.mainpanel.p1.sc.g.printXML( window.mainpanel.p1.sc.g.getUser(),false,false,false,false,false,"",false,null,
+                                                        RunnerRepository.window.mainpanel.p1.suitaDetails.getProjectDefs(),RunnerRepository.window.mainpanel.p1.suitaDetails.getGlobalDownloadType());
                     RunnerRepository.window.mainpanel.p1.suitaDetails.setPreScript("");
                     RunnerRepository.window.mainpanel.p1.suitaDetails.setPostScript("");
                     RunnerRepository.window.mainpanel.p1.suitaDetails.setGlobalLibs(null);
