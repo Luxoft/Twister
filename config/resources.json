@@ -1,12 +1,14 @@
 {
     "meta": {},
     "id": "1",
+    "path": [],
     "children": {
         "tb1": {
             "meta": {
                 "epnames": "EP-1001;"
             },
             "id": "f119f3cf8f",
+            "path": ["tb1"],
             "children": {
                 "dev3": {
                     "meta": {
@@ -61,6 +63,7 @@
                 "epnames": "EP-1003;"
             },
             "id": "1c58657785",
+            "path": ["tb3"],
             "children": {
                 "dev3.1": {
                     "meta": {
@@ -90,6 +93,7 @@
                 "epnames": "EP-1002;"
             },
             "id": "2d0d54183d",
+            "path": ["tb2"],
             "children": {
                 "dev3": {
                     "meta": {

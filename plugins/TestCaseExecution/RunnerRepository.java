@@ -1,6 +1,6 @@
 /*
 File: RunnerRepository.java ; This file is part of Twister.
-Version: 3.002
+Version: 3.007
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -133,8 +133,8 @@ public class RunnerRepository {
     public static Container container;
     public static Applet applet;
     private static Document pluginsconfig;
-    private static String version = "3.026";
-    private static String builddate = "20.08.2014";
+    private static String version = "3.038";
+    private static String builddate = "29.10.2014";
     public static String logotxt,os,python;
     
     public static void setStarter(Starter starter){
@@ -893,14 +893,14 @@ public class RunnerRepository {
         Node fstNode = nodeLst.item(0);
         Element fstElmnt = (Element)fstNode;
         NodeList fstNm = fstElmnt.getChildNodes();
-        String temp;
-        try{temp = fstNm.item(0).getNodeValue().toString();}
+        String toreturn;
+        try{toreturn = fstNm.item(0).getNodeValue().toString();}
         catch(Exception e){
             System.out.println(tag+" empty");
             CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,RunnerRepository.window,
                                         "Warning", tag+" tag is empty in "+file);
-            temp = "";}
-        return temp;}
+            toreturn = "";}
+        return toreturn;}
         
     /*
      * parser for conf twister file
@@ -1023,6 +1023,12 @@ public class RunnerRepository {
      */
     public static ArrayList<Item> getTestSuite(){
         return suitetest;}
+        
+    /*
+     * test suite list from repository
+     */
+    public static void setTestSuite(ArrayList<Item> suitetest){
+        RunnerRepository.suitetest=suitetest;}
     
     /*
      * test suite list size from repository
@@ -1079,7 +1085,18 @@ public class RunnerRepository {
      * test suite path on server
      */
     public static String getPredefinedSuitesPath(){
-        return PREDEFINEDSUITES;}
+        try{
+            Object ob = RunnerRepository.getRPCClient().execute("get_predef_suites_path", new Object[]{});
+            if(ob.toString().indexOf("*ERROR*")!=-1){
+                CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,window,"ERROR", ob.toString());
+                return "";
+            }
+            return ob.toString();
+        } catch (Exception e){
+            e.printStackTrace();
+            return "";
+        }
+    }
 
     /*
      * empty suites list in RunnerRepository
@@ -1492,12 +1509,38 @@ public class RunnerRepository {
         }
     }
     
+    
+    /*
+     * get project file from CE
+     */
+    public static String readPredefinedProjectFile(String file){
+        System.out.println("Reading "+file+" from CE");
+        try{
+            String response = RunnerRepository.getRPCClient().execute("read_predefined_suite", new Object[]{file}).toString();
+            if(response.indexOf("*ERROR*")!=-1){
+                CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,window,"ERROR", response);
+                return null;
+            }
+           return response;
+        }catch (Exception e){
+            e.printStackTrace();
+            CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,window,"ERROR", "Could not get file: "+file+" from CE!");
+            return null;
+        }
+    }
+    
     /*
      * save project file from CE
      */
     public static boolean savePredefinedProjectFile(String file,String content){
+        System.out.println("Writing "+file+" with CE");
         try{
-            return uploadRemoteFile(getPredefinedSuitesPath(),null, content,file, false,null);
+            String response = RunnerRepository.getRPCClient().execute("save_predefined_suite", new Object[]{file,content}).toString();
+            if(response.indexOf("*ERROR*")!=-1){
+                CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,window,"ERROR", response);
+                return false;
+            }
+           return true;
         }catch (Exception e){
             e.printStackTrace();
             CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,window,"ERROR", "Could not save file: "+file+" with CE!");
@@ -1509,7 +1552,7 @@ public class RunnerRepository {
      * save project file from CE
      */
     public static String saveProjectFile(String file,String content){
-        System.out.println("Saving "+file+" with CE");
+        System.out.println("Saving project file "+file+" with CE");
         try{
             String response = RunnerRepository.getRPCClient().execute("save_project_file", new Object[]{file,content}).toString();
             if(response.indexOf("*ERROR*")!=-1){
@@ -1778,23 +1821,23 @@ public class RunnerRepository {
     public static void openProjectFile(){
         String users[] = getProjectsFiles();
         if(PermissionValidator.canCreateProject()){
-            String [] temp = new String[users.length+1];
+            String [] files = new String[users.length+1];
             for(int i=0;i<users.length;i++){
-                temp[i] = users[i];
+                files[i] = users[i];
             }
-            temp[temp.length - 1] = "New File";
-            users = temp;
+            files[files.length - 1] = "New File";
+            users = files;
         }
         for(int i=0;i<users.length;i++){
             if(users[i].equals("last_edited.xml")){
-                String [] temp = new String[users.length-1];
+                String [] files = new String[users.length-1];
                 for(int j = 0;j<i;j++){
-                    temp[j] = users[j];
+                    files[j] = users[j];
                 }
-                for(int k = i;k<temp.length;k++){
-                    temp[k] = users[k+1];
+                for(int k = i;k<files.length;k++){
+                    files[k] = users[k+1];
                 }
-                users = temp;
+                users = files;
                 break;
             }
         }
@@ -1820,7 +1863,8 @@ public class RunnerRepository {
                     window.mainpanel.p1.sc.g.setUser((new StringBuilder()).append(RunnerRepository.getUsersDirectory()).
                                                         append(RunnerRepository.getBar()).append(user).append(".xml").
                                                         toString());
-                    window.mainpanel.p1.sc.g.printXML( window.mainpanel.p1.sc.g.getUser(),false,false,false,false,false,"",false,null,RunnerRepository.window.mainpanel.p1.suitaDetails.getProjectDefs());
+                    window.mainpanel.p1.sc.g.printXML( window.mainpanel.p1.sc.g.getUser(),false,false,false,false,false,"",false,null,
+                                                        RunnerRepository.window.mainpanel.p1.suitaDetails.getProjectDefs(),RunnerRepository.window.mainpanel.p1.suitaDetails.getGlobalDownloadType());
                     RunnerRepository.window.mainpanel.p1.suitaDetails.setPreScript("");
                     RunnerRepository.window.mainpanel.p1.suitaDetails.setPostScript("");
                     RunnerRepository.window.mainpanel.p1.suitaDetails.setGlobalLibs(null);
@@ -1882,7 +1926,7 @@ public class RunnerRepository {
         try{XmlRpcClientConfigImpl configuration = new XmlRpcClientConfigImpl();
             configuration.setBasicPassword(password);
             configuration.setBasicUserName(user);
-            configuration.setServerURL(new URL("http://"+user+":"+password+"@"+RunnerRepository.host+
+            configuration.setServerURL(new URL("http://"+RunnerRepository.host+
                                         ":"+RunnerRepository.getCentralEnginePort()+"/"));
             client = new XmlRpcClient();
             client.setConfig(configuration);

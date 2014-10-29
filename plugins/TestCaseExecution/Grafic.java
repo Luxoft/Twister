@@ -1,6 +1,6 @@
 /*
 File: Grafic.java ; This file is part of Twister.
-Version: 2.0030
+Version: 3.0033
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -84,6 +84,7 @@ import javax.swing.DefaultComboBoxModel;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.GroupLayout;
 import javax.swing.LayoutStyle;
+import javax.swing.tree.DefaultTreeCellRenderer;
 
 public class Grafic extends JPanel{
     private static final long serialVersionUID = 1L;
@@ -151,7 +152,7 @@ public class Grafic extends JPanel{
     /*
      * handle up down press
      */
-    public void keyDownPressed(){
+	public void keyDownPressed(){
         ArrayList <Integer> temp = new ArrayList <Integer>();  
         int last = selectedcollection.size()-1;
         if(last<0)return;
@@ -173,13 +174,24 @@ public class Grafic extends JPanel{
                     try{for(int i=0;i<userDefNr;i++){
                         RunnerRepository.window.mainpanel.p1.suitaDetails.
                             getDefPanel(i).setDescription(next.getUserDef(i)[1],true);}}
-                    catch(Exception e){e.printStackTrace();}}
-                else{
-                    RunnerRepository.window.mainpanel.p1.suitaDetails.setGlobalDetails();
-                    RunnerRepository.window.mainpanel.p1.suitaDetails.clearDefs();
-                    RunnerRepository.window.mainpanel.p1.suitaDetails.setParent(null);
-                    RunnerRepository.window.mainpanel.p1.testconfigmngmnt.setParent(null);}}
+                    catch(Exception e){e.printStackTrace();}
+                } else{
+                    RunnerRepository.window.mainpanel.p1.testconfigmngmnt.setParent(next);
+                    RunnerRepository.window.mainpanel.p1.suitaDetails.setParent(next);
+                    if(next.getType()==2)RunnerRepository.window.mainpanel.p1.suitaDetails.setSuiteDetails(false);
+                    else RunnerRepository.window.mainpanel.p1.suitaDetails.setTCDetails();
+                    
+                    
+//                     RunnerRepository.window.mainpanel.p1.suitaDetails.setGlobalDetails();
+//                     RunnerRepository.window.mainpanel.p1.suitaDetails.clearDefs();
+//                     RunnerRepository.window.mainpanel.p1.suitaDetails.setParent(null);
+//                     RunnerRepository.window.mainpanel.p1.testconfigmngmnt.setParent(null);
+                }}
             else{
+                RunnerRepository.window.mainpanel.p1.suitaDetails.setGlobalDetails();
+                RunnerRepository.window.mainpanel.p1.suitaDetails.clearDefs();
+                RunnerRepository.window.mainpanel.p1.suitaDetails.setParent(null);
+                RunnerRepository.window.mainpanel.p1.testconfigmngmnt.setParent(null);
                 if(!clearedSelection){
                     deselectAll();
                     clearedSelection = true;
@@ -220,13 +232,25 @@ public class Grafic extends JPanel{
                             RunnerRepository.window.mainpanel.p1.suitaDetails.getDefPanel(i).
                                 setDescription(next.getUserDef(i)[1],true);}}
                     catch(Exception e){e.printStackTrace();}}
-                else{
-                    RunnerRepository.window.mainpanel.p1.suitaDetails.setGlobalDetails();
-                    RunnerRepository.window.mainpanel.p1.suitaDetails.clearDefs();
-                    RunnerRepository.window.mainpanel.p1.suitaDetails.setParent(null);
-                    RunnerRepository.window.mainpanel.p1.testconfigmngmnt.setParent(null);
-                }}
-            else{
+                    
+                else {
+                    
+                    RunnerRepository.window.mainpanel.p1.testconfigmngmnt.setParent(next);
+                    RunnerRepository.window.mainpanel.p1.suitaDetails.setParent(next);
+                    if(next.getType()==2)RunnerRepository.window.mainpanel.p1.suitaDetails.setSuiteDetails(false);
+                    else RunnerRepository.window.mainpanel.p1.suitaDetails.setTCDetails();
+                    
+                    
+//                     RunnerRepository.window.mainpanel.p1.suitaDetails.setGlobalDetails();
+//                     RunnerRepository.window.mainpanel.p1.suitaDetails.clearDefs();
+//                     RunnerRepository.window.mainpanel.p1.suitaDetails.setParent(null);
+//                     RunnerRepository.window.mainpanel.p1.testconfigmngmnt.setParent(null);
+                }
+            } else{
+                RunnerRepository.window.mainpanel.p1.suitaDetails.setGlobalDetails();
+                RunnerRepository.window.mainpanel.p1.suitaDetails.clearDefs();
+                RunnerRepository.window.mainpanel.p1.suitaDetails.setParent(null);
+                RunnerRepository.window.mainpanel.p1.testconfigmngmnt.setParent(null);
                 if(!clearedSelection){
                     deselectAll();
                     clearedSelection = true;
@@ -325,50 +349,7 @@ public class Grafic extends JPanel{
                 if(found)break;}}
         for(int i=0;i<unnecessary.size();i++){clone.remove(unnecessary.get(i));}}
                             
-//     /*
-//      * Dragged items method
-//      * handles dragged items
-//      * and puts them in a clone array
-//      */                      
-//     public void handleDraggedItems(){
-//         if(getItem(selected,false).getType()!=0){
-//             setCursor(DragSource.DefaultCopyDrop);
-//             if(!getItem(selected,false).isSelected()){
-//                 deselectAll();
-//                 int [] temporary = new int[selected.size()];
-//                 for(int m=0;m<temporary.length;m++){
-//                     temporary[m]=selected.get(m).intValue();}
-//                 selectedcollection.add(temporary);}
-//             ArrayList <Integer> temp = new ArrayList <Integer>();
-//             for(int i=selectedcollection.size()-1;i>=0;i--){
-//                 for(int j=0;j<selectedcollection.get(i).length;j++){
-//                     temp.add(new Integer(selectedcollection.get(i)[j]));}
-//                 Item theone2 = getItem(temp,false).clone();  
-//                 if(theone2.getType()==0){
-//                     getItem(temp,false).select(false);
-//                     selectedcollection.remove(i);
-//                     temp.clear();
-//                     continue;}
-//                 clone.add(theone2);
-//                 temp.clear();}                                
-//             removeSelected();
-//             dragging = true;}
-//         ArrayList<Item> unnecessary = new ArrayList<Item>();                        
-//         for(int i=0;i<clone.size();i++){
-//             Item one = clone.get(i);
-//             ArrayList<Integer>pos = (ArrayList<Integer>)one.getPos().clone();
-//             while(pos.size()>1){
-//                 pos.remove(pos.size()-1);
-//                 boolean found = false;
-//                 for(int j=0;j<clone.size();j++){
-//                     Item one2 = clone.get(j);
-//                     ArrayList<Integer>pos2 = (ArrayList<Integer>)one2.getPos().clone();
-//                     if(compareArrays(pos,pos2)){
-//                         unnecessary.add(clone.get(i));
-//                         found = true;
-//                         break;}}
-//                 if(found)break;}}
-//         for(int i=0;i<unnecessary.size();i++){clone.remove(unnecessary.get(i));}}
+
             
     /*
      * handle automatic scrolling
@@ -651,6 +632,7 @@ public class Grafic extends JPanel{
         y=10;
         foundfirstitem=true;
         for(int i=0;i<clone.size();i++){
+           if(clone.get(i).getType()==1)continue;
            ArrayList<Integer> selected2 = new ArrayList<Integer>();
            selected2.add(new Integer(i));
            clone.get(i).setPos(selected2);                               
@@ -673,6 +655,7 @@ public class Grafic extends JPanel{
         int position = upper.getPos().size();                                
         int temp1 = upper.getPos().get(position-1);                                    
         for(int i=0;i<clone.size();i++){
+           if(clone.get(i).getType()==1)continue;
            ArrayList<Integer> selected2 = (ArrayList<Integer>)upper.getPos().clone();
            selected2.set(0,new Integer(upper.getPos().get(0)+i+1));
            clone.get(i).setPos(selected2);
@@ -1768,7 +1751,8 @@ public class Grafic extends JPanel{
                          RunnerRepository.window.mainpanel.p1.suitaDetails.preStopOnFail(),
                          RunnerRepository.window.mainpanel.p1.suitaDetails.saveDB(),
                          RunnerRepository.window.mainpanel.p1.suitaDetails.getDelay(),
-                         true,array,RunnerRepository.window.mainpanel.p1.suitaDetails.getProjectDefs())){
+                         true,array,RunnerRepository.window.mainpanel.p1.suitaDetails.getProjectDefs(),
+                         RunnerRepository.window.mainpanel.p1.suitaDetails.getGlobalDownloadType())){
                 CustomDialog.showInfo(JOptionPane.PLAIN_MESSAGE, 
                                         RunnerRepository.window, "Success",
                                         "File successfully saved");
@@ -2198,7 +2182,9 @@ public class Grafic extends JPanel{
      * on item type
      */
     public void drawItem(Item item,Graphics g){
-        g.setFont(new Font("TimesRoman", Font.PLAIN, 12));
+        Font font = ((DefaultTreeCellRenderer)RunnerRepository.window.mainpanel.p1.ep.tree.getCellRenderer()).getFont();
+        font = font.deriveFont(12);
+        g.setFont(font);
         g.setColor(Color.BLACK);
         if(item.isSelected()){
             g.setColor(new Color(220,220,220));
@@ -2250,13 +2236,11 @@ public class Grafic extends JPanel{
             }
             StringBuilder sb = new StringBuilder();
             sb.append("- ");
-            //String [] path;
-//             for(String st:item.getConfigurations()){
             for(Configuration st:item.getConfigurations()){
-                //path = st.getFile().split("/");
-                //st.setFile(path[path.length-1]);
-                sb.append(st.getFile());
-                sb.append("; ");
+                if(st.isEnabled()){
+                    sb.append(st.getFile());
+                    sb.append("; ");
+                }
             }
             if(sb.length()>0) sb.deleteCharAt(sb.length()-2);
             g.drawString(sb.toString(),(int)(item.getRectangle().getX()+item.getRectangle().getWidth()),
@@ -2350,7 +2334,7 @@ public class Grafic extends JPanel{
      */
     public boolean printXML(String user, boolean skip,
                             boolean local, boolean stoponfail,boolean prestoponfail,
-                            boolean savedb, String delay,boolean lib, ArrayList<Item> array,String [][] projdefined){
+                            boolean savedb, String delay,boolean lib, ArrayList<Item> array,String [][] projdefined,String downloadlibraryoption){
         //skip = true
         try{if(array==null)array = RunnerRepository.getSuite();
             XMLBuilder xml = new XMLBuilder(array);
@@ -2358,7 +2342,7 @@ public class Grafic extends JPanel{
                           RunnerRepository.window.mainpanel.p1.suitaDetails.getPreScript(),
                           RunnerRepository.window.mainpanel.p1.suitaDetails.getPostScript(),
                           savedb,delay,RunnerRepository.window.mainpanel.p1.suitaDetails.getGlobalLibs(),
-                          projdefined)){
+                          projdefined,downloadlibraryoption)){
                 return false;
             }
             return xml.writeXMLFile(user,local,false,lib);}

@@ -177,7 +177,7 @@ def check_details(proxy, user, option=None):
                 s_id  = suite.split(':')[0]
                 suite = suite.split(':')[1]
                 print('    - (id {}) {}'.format(s_id, suite))
-                files = proxy.getSuiteFiles(ep, s_id)
+                files = proxy.get_suite_files(ep, s_id)
                 if not files:
                     print('      - empty')
                 else:

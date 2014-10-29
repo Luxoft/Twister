@@ -1,7 +1,7 @@
 
 # File: ClearCasePlugin.py ; This file is part of Twister.
 
-# version: 3.003
+# version: 3.004
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -501,22 +501,6 @@ class Plugin(BasePlugin):
             return False
 
         return resp
-
-
-    def onStart(self, clear_case_view=None):
-        """
-        Called on project start.
-        """
-
-        # No data provided ?
-        if not clear_case_view:
-            print('CC Plug-in onStart: ClearCase View empty `{}`! Your tests will NOT run!'.format(clear_case_view))
-            return False
-
-        print('CC Plug-in: Changing ClearCase View to `{}`.'.format(clear_case_view))
-
-        self.data['clear_case_view'] = clear_case_view
-        self.run( {'command': 'cleartool setview {}'.format(clear_case_view)} )
 
 
     def getPathTree(self, path):

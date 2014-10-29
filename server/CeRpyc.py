@@ -1,14 +1,14 @@
 
 # File: CeRpyc.py ; This file is part of Twister.
 
-# version: 3.015
+# version: 3.020
 
 # Copyright (C) 2012-2014 , Luxoft
 
 # Authors:
-#    Andreea Proca <aproca@luxoft.com>
 #    Andrei Costachi <acostachi@luxoft.com>
 #    Cristi Constantin <crconstantin@luxoft.com>
+#    Mihai Dobre <mihdobre@luxoft.com>
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -156,15 +156,17 @@ class CeRpycService(rpyc.Service):
 
 
     @classmethod
-    def _findConnection(self, usr=None, addr=[], hello='', epname=''):
+    def _findConnection(self, usr, hello, addr=[], epname=''):
         """
-        Helper function to find the first address for 1 user,
-        that matches the Address, the hello, or the Ep.
-        Possible combinations are: (Addr & Hello), (Hello & Ep).
-        The address will match the IP/ host; ex: ['127.0.0.1', 'localhost'].
+        Helper function to find the first address for 1 user, that matches the hello,
+        the Address, or the Ep.
         The hello should be: `client`, `ep`, or `lib`.
-        The EP must be the name of the EP registered by a client;
-        it returns the client, not the EP.
+        The address will match the IP/ host; ex: ['127.0.0.1', 'localhost'].
+        The EP must be the name of the EP registered by a client; returns the client, not the EP.
+        Examples :
+        // Find a client that has a specific EP; need to send commands to the client.
+        // Find a local client, the EP is not important.
+        // Find a specific EP, to send debug commands.
         """
         logFull('CeRpyc:_findConnection')
         if isinstance(self, CeRpycService):
@@ -174,43 +176,49 @@ class CeRpycService(rpyc.Service):
         if not user:
             return False
 
+        # logDebug('Find connection:: usr={}, addr={}, hello={}, epname={} in `{}` conns::\n{}'.format(
+        #         usr, addr, (hello or None), (epname or None), len(self.conns),
+        #         pformat(self.conns, width=140)))
+
         found = False
 
         # Cycle all active connections (clients, eps, libs, cli)
         for str_addr, data in self.conns.iteritems():
-            # Skip invalid connections, without log-in, or other users
-            if not (data.get('user') or data.get('checked') or user == data['user']):
+            # Skip invalid connections, without log-in, or without hello
+            if not data.get('user') or not data.get('checked') or not data.get('hello'):
                 continue
-            # Check (Addr & Hello)
-            if (addr and hello) and (str_addr.split(':')[0] in addr and data.get('hello')):
-                # If the hello has : it's looking for a specific thing
-                if ':' in hello and data['hello'] == hello:
+            if user != data['user']:
+                continue
+            # Searching for a specific hello
+            if not (':' in data['hello'] and hello == data['hello'].split(':')[0] or hello == data['hello']):
+                continue
+
+            # If address is required, check
+            if addr:
+                # Invalid address !
+                if str_addr.split(':')[0] not in addr:
+                    continue
+
+                # If we are looking for a specific EP inside a client
+                if epname and epname in data.get('eps'):
                     found = str_addr
                     break
-                # Or, try to match the beggining of the remote hello
-                elif data['hello'].split(':')[0] == hello:
+                # If not looking for a specific EP, it's ok
+                elif not epname:
                     found = str_addr
                     break
-                # Client ?
-                elif hello == 'client' and data['hello'] == 'client' and data.get('eps'):
+            # Address is not required
+            else:
+                # If we are looking for a specific EP inside a client
+                if epname and epname in data.get('eps'):
                     found = str_addr
                     break
-            # Check (Hello & Ep)
-            elif (hello and epname) and data.get('hello') and ':' in hello and \
-                (data['hello'].split(':')[0] == hello or data['hello'] == epname):
-                # If this connection has registered EPs
-                eps = data.get('eps')
-                if eps and epname in eps:
+                # If not looking for a specific EP, it's ok
+                elif not epname:
                     found = str_addr
                     break
-            # Check Hello
-            elif (not addr and hello) and data.get('hello') == hello:
-                found = str_addr
-                break
-            # All filters are null! Return the first conn for this user!
-            elif not addr and not hello and not epname:
-                found = str_addr
-                break
+
+        # logDebug('Found conn:: {}'.format(pformat(self.conns.get(found), width=140)))
 
         return found
 
@@ -593,7 +601,7 @@ class CeRpycService(rpyc.Service):
         user = self._check_login()
         if not user:
             return False
-        return self.project.get_global_variable(user, var_path, False)
+        return self.project.configs.get_global_variable(user, var_path, False)
 
 
     def exposed_set_global_variable(self, var_path, value):
@@ -604,7 +612,7 @@ class CeRpycService(rpyc.Service):
         user = self._check_login()
         if not user:
             return False
-        return self.project.set_global_variable(user, var_path, value)
+        return self.project.configs.set_global_variable(user, var_path, value)
 
 
     def exposed_get_config(self, cfg_path, var_path):
@@ -615,7 +623,7 @@ class CeRpycService(rpyc.Service):
         user = self._check_login()
         if not user:
             return False
-        return self.project.get_global_variable(user, var_path, cfg_path)
+        return self.project.configs.get_global_variable(user, var_path, cfg_path)
 
 
 # # #   Register / Start / Stop EPs   # # #
@@ -784,7 +792,7 @@ class CeRpycService(rpyc.Service):
         if not user:
             return False
 
-        addr = self._findConnection(user, hello='client', epname=epname)
+        addr = self._findConnection(usr=user, hello='client', epname=epname)
 
         if not addr:
             logError('Unknown Execution Process: `{}`! The project will not run.'.format(epname))
@@ -816,7 +824,7 @@ class CeRpycService(rpyc.Service):
         if not user:
             return False
 
-        addr = self._findConnection(user, hello='client', epname=epname)
+        addr = self._findConnection(usr=user, hello='client', epname=epname)
 
         if not addr:
             logError('Unknown Execution Process: `{}`! Cannot stop the EP.'.format(epname))
@@ -984,32 +992,32 @@ class CeRpycService(rpyc.Service):
         # Global lib path
         glob_lib_path = (TWISTER_PATH + '/lib/' + name).replace('//', '/')
 
-        def _download_file(fpath):
+        def _download_lib():
             """
             Just read a file.
             """
             import tarfile
             import cStringIO
 
-            if not os.path.exists(fpath):
-                err = '*ERROR* Invalid path `{}`!'.format(fpath)
+            if not os.path.exists(glob_lib_path):
+                err = '*ERROR* Invalid library `{}`!'.format(glob_lib_path)
                 return err
 
             # If this is a "deep" file, or folder
             if '/' in name:
-                root = fpath[:-len(name)]
+                root = glob_lib_path[:-len(name)]
                 fname = name
             else:
-                root, fname = os.path.split(fpath)
+                root, fname = os.path.split(glob_lib_path)
 
             # If the required library is a file and isn't inside a folder
-            if os.path.isfile(fpath) and ('/' not in name):
+            if os.path.isfile(glob_lib_path) and ('/' not in name):
                 try:
-                    with open(fpath, 'rb') as f:
+                    with open(glob_lib_path, 'rb') as f:
                         logDebug('User `{}` requested global lib file `{}`.'.format(user, fname))
                         return f.read()
                 except Exception as e:
-                    err = '*ERROR* Cannot read file `{}`! {}'.format(fpath, e)
+                    err = '*ERROR* Cannot read file `{}`! {}'.format(glob_lib_path, e)
                     return err
 
             else:
@@ -1028,45 +1036,55 @@ class CeRpycService(rpyc.Service):
         ccConfig = self.project.get_clearcase_config(user, 'libs_path')
         if ccConfig:
             view = ccConfig['view']
+            actv = ccConfig['actv']
             cc_lib = ccConfig['path'].rstrip('/') + '/'
             lib_path = cc_lib + name
-            sz = self.project.clearFs.file_size(user +':'+ view, lib_path)
+            # logDebug('Before downloading ClearCase lib `{}`.'.format(lib_path))
+            user_view_actv = '{}:{}:{}'.format(user, view, actv)
+            is_folder = self.project.clearFs.is_folder(user_view_actv, lib_path)
+            if str(is_folder).startswith('*ERROR*'):
+                return _download_lib()
+
             # If is folder, or "deep" file or folder, compress in memory and return the data
-            if sz == 4096 or '/' in name:
-                resp = self.project.clearFs.targz_user_folder(user +':'+ view, lib_path, cc_lib)
+            if is_folder == True or '/' in name:
+                logDebug('User `{}` requested ClearCase lib folder `{}`.'.format(user, name))
+                resp = self.project.clearFs.targz_user_folder(user_view_actv, lib_path, cc_lib)
                 # Read as ROOT
                 if resp.startswith('*ERROR*'):
-                    return _download_file(glob_lib_path)
-                logDebug('User `{}` requested ClearCase lib folder `{}`.'.format(user, name))
+                    return _download_lib()
                 return resp
             # File
             else:
-                resp = self.project.clearFs.read_user_file(user +':'+ view, lib_path)
+                logDebug('User `{}` requested ClearCase lib file `{}`.'.format(user, name))
+                resp = self.project.clearFs.read_user_file(user_view_actv, lib_path)
                 # Read as ROOT
                 if resp.startswith('*ERROR*'):
-                    return _download_file(glob_lib_path)
-                logDebug('User `{}` requested ClearCase lib file `{}`.'.format(user, name))
+                    return _download_lib()
                 return resp
 
         # User's home path
         else:
             user_lib = self.project.get_user_info(user, 'libs_path').rstrip('/') + '/'
             lib_path = user_lib + name
-            # If is root library file, read the file directly
-            if os.path.isfile(lib_path) and '/' not in name:
-                resp = self.project.localFs.read_user_file(user, lib_path)
-                # Try as ROOT
-                if resp.startswith('*ERROR*'):
-                    return _download_file(glob_lib_path)
-                logDebug('User `{}` requested local lib file `{}`.'.format(user, name))
-                return resp
+            # logDebug('Before downloading local lib `{}`.'.format(lib_path))
+            is_folder = self.project.localFs.is_folder(user, lib_path)
+            is_global_folder = os.path.isdir(glob_lib_path)
+
             # If is folder, or "deep" file or folder, compress in memory and return the data
-            else:
+            if is_folder == True or is_global_folder == True or '/' in name:
+                logDebug('User `{}` requested local lib folder `{}`.'.format(user, name))
                 resp = self.project.localFs.targz_user_folder(user, lib_path, user_lib)
                 # Try as ROOT
                 if resp.startswith('*ERROR*'):
-                    return _download_file(glob_lib_path)
-                logDebug('User `{}` requested local lib folder `{}`.'.format(user, name))
+                    return _download_lib()
+                return resp
+            # If is root library file, read the file directly
+            else:
+                logDebug('User `{}` requested local lib file `{}`.'.format(user, name))
+                resp = self.project.localFs.read_user_file(user, lib_path)
+                # Try as ROOT
+                if resp.startswith('*ERROR*'):
+                    return _download_lib()
                 return resp
 
 
@@ -1132,19 +1150,12 @@ class CeRpycService(rpyc.Service):
             # Auto detect if ClearCase Test Config Path is active
             ccConfig = self.project.get_clearcase_config(user, 'tests_path')
             if ccConfig and data.get('clearcase'):
+                logDebug('Execution process `{}:{}` requested ClearCase file `{}`.'.format(user, epname, filename))
+                # Set TC Revision variable
+                self.project.set_file_info(user, epname, file_id, 'twister_tc_revision', -1)
                 view = ccConfig['view']
                 # Read ClearCase TestCase file
                 text = self.project.read_file(user, filename, type='clearcase:' + view)
-                tags = re.findall('^[ ]*?[#]*?[ ]*?<(?P<tag>\w+)>([ -~\n]+?)</(?P=tag)>', text, re.MULTILINE)
-                # File description
-                descr = '<br>\n'.join(['<b>' + title + '</b> : ' + descr.replace('<', '&lt;') for title, descr in tags])
-                cctag = '<b>ClearCase Version</b> :'
-                if descr and (descr.find(cctag) != -1):
-                    pos = descr.find(cctag) + len(cctag)
-                    rev = descr[pos:].strip()
-                    # Set TC Revision variable
-                    self.project.set_file_info(user, epname, file_id, 'twister_tc_revision', rev)
-                logDebug('Execution process `{}:{}` requested ClearCase file `{}`.'.format(user, epname, filename))
                 return text
             # End of ClearCase hack !
 

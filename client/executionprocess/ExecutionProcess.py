@@ -1,6 +1,6 @@
 #!/usr/bin/env python2.7
 
-# version: 3.019
+# version: 3.029
 
 # File: ExecutionProcess.py ; This file is part of Twister.
 
@@ -552,6 +552,7 @@ class TwisterRunner(object):
         """
         libs_path = '{}/ce_libs'.format(EP_CACHE)
         reset_libs = False
+        dl_libs = proxy().get_user_variable('dl_libs')
 
         if not libs_list:
             # This is a list with unique names, sorted alphabetically
@@ -606,14 +607,20 @@ class TwisterRunner(object):
 
             lib_pth = libs_path + os.sep + lib_file
 
-            f = open(lib_pth, 'wb')
-            f.write(lib_data)
-            f.close() ; del f
+            try: os.makedirs(os.path.split(lib_pth)[0])
+            except Exception: pass
+
+            try:
+                with open(lib_pth, 'wb') as f:
+                    f.write(lib_data)
+            except Exception as e:
+                print('Cannot save Zip library `{}`: `{}`!'.format(lib_file, e))
+                continue
 
         for lib_file in all_libs:
             lib_data = proxy().download_library(lib_file)
             time.sleep(0.1) # Must take it slow
-            if not lib_data:
+            if not lib_data or lib_data.startswith('*ERROR*'):
                 print('Library `{}` does not exist!'.format(lib_file))
                 continue
 
@@ -625,24 +632,59 @@ class TwisterRunner(object):
             else:
                 lib_pth = libs_path + '/' + lib_file
 
+            try: os.makedirs(os.path.split(lib_pth)[0])
+            except Exception: pass
+
             try:
                 with open(lib_pth, 'wb') as f:
                     f.write(lib_data)
             except Exception as e:
-                print('Cannot save library file `{}`: `{}`!'.format(lib_file, e))
+                print('Cannot save library file `{}`: {}!'.format(lib_file, e))
                 continue
 
             # If the file doesn't have an ext, or it's a deep file, or folder,
             # it's a TGZ library and must be extracted
             if (not os.path.splitext(lib_file)[1]) or ('/' in lib_file):
-                # Rename the TGZ
+                # Rename the TGZ, so you can extract it
                 tgz = lib_pth + '.tgz'
                 os.rename(lib_pth, tgz)
+                os.chdir(libs_path)
                 with tarfile.open(tgz, 'r:gz') as binary:
-                    os.chdir(libs_path)
-                    binary.extractall()
+                    try:
+                        binary.extractall()
+                    except Exception as e:
+                        print('Cannot extract library `{}`: {}!'.format(lib_file, e))
+                        os.remove(tgz)
+                        continue
                     time.sleep(0.05)
                     os.remove(tgz)
+                os.system('chmod -R 777 ' + libs_path)
+
+            # Flatten file ?
+            if dl_libs == 'flat':
+                lib_name = os.path.split(lib_file)[-1]
+                os.chdir(libs_path)
+                shutil.move(lib_file, libs_path + '/' + lib_name)
+
+        # Flatten recursive ? Default yes !
+        if not dl_libs or dl_libs == 'flat':
+            os.chdir(libs_path)
+            llen = len(libs_path)
+            for dirName, subdirList, fileList in os.walk(libs_path):
+                for lib_name in fileList:
+                    lib_name = os.path.join(dirName, lib_name)
+                    try:
+                        shutil.copy2(lib_name, libs_path)
+                        print('Flatten `{}`.'.format(lib_name[llen+1:]))
+                        os.remove(lib_name)
+                    except Exception:
+                        pass # Nothing to report
+                if dirName > libs_path:
+                    try:
+                        shutil.rmtree(dirName)
+                        # print('Cleanup folder `{}`.'.format(dirName))
+                    except Exception as e:
+                        print('Cannot cleanup flattened folder `{}`: {}!'.format(dirName, e))
 
         if reset_libs:
             print('... all libraries downloaded.\n')
@@ -688,9 +730,10 @@ class TwisterRunner(object):
         suite_data  = None
         suite_name  = None # Suite name string. This varies for each file.
         abort_suite = False # Abort suite X, when setup file fails.
+        abort_iter  = False # Abort repeated file X, when Iteration has Stop on Fail.
 
         # Import all custom exceptions
-        from TscCommonLib import *
+        from TscCommonLib import ExceptionTestFail, ExceptionTestAbort, ExceptionTestTimeout, ExceptionTestSkip
 
 
         for id, node in suitesManager.iter_nodes(None, []):
@@ -748,6 +791,10 @@ class TwisterRunner(object):
             optional_test = node.get('Optional')
             # Configuration files?
             config_files = [c['name'] for c in node.get('_cfg_files', [])]
+            # If ANY config file has Iteration Stop on Fail, this will be True
+            iteration_sof = 'true' in [it['iter_sof'].lower() for it in node.get('_cfg_files', [])]
+            # Iteration number
+            iteration_nr = node.get('iterationNr', '')
             # Get args
             args = node.get('param')
             if args:
@@ -788,8 +835,8 @@ class TwisterRunner(object):
                     if teardown_file and (file_id in current_ids):
                         print('Running a tear-down file...\n')
                     else:
-                        print('EP Debug: Not executed file `{}` because of failed setup file!\n\n'.format(filename))
-                        proxy().set_file_status(self.epName, file_id, STATUS_NOT_EXEC, 0.0) # File status ABORTED
+                        print('Not executed file `{}` because of failed setup file!\n\n'.format(filename))
+                        proxy().set_file_status(self.epName, file_id, STATUS_NOT_EXEC, 0.0) # File status NOT EXEC
                         try:
                             proxy().set_file_variable(self.epName, file_id, '_reason', 'Not executed, because of failed setup file!')
                         except Exception:
@@ -798,6 +845,22 @@ class TwisterRunner(object):
                         print('<<< END filename: `{}:{}` >>>\n'.format(file_id, filename))
                         continue
                 del aborted_ids, current_ids
+
+            # If an iteration file failed and Stop on Fail is True
+            if abort_iter == filename and iteration_nr and iteration_sof:
+                print('Not executed file `{}` because of iteration stop on fail!\n'.format(filename))
+                print('Iteration `{}` will not run!!\n\n'.format(iteration_nr))
+                proxy().set_file_status(self.epName, file_id, STATUS_NOT_EXEC, 0.0) # File status NOT EXEC
+                try:
+                    proxy().set_file_variable(self.epName, file_id, '_reason', 'Not executed, because of failed iteration file!')
+                except Exception:
+                    trace = traceback.format_exc()[34:].strip()
+                    print('Exception on sending reason `{}`!'.format(trace))
+                print('<<< END filename: `{}:{}` >>>\n'.format(file_id, filename))
+                continue
+            else:
+                abort_iter = False
+
 
             try:
                 STATUS = proxy().get_ep_status(self.epName)
@@ -923,7 +986,7 @@ class TwisterRunner(object):
             str_to_execute = proxy().download_file(self.epName, file_id)
 
             # If CE sent False, it means the file is empty, does not exist, or it's not runnable.
-            if str_to_execute == '':
+            if str_to_execute == '' or str_to_execute.startswith('*ERROR*'):
                 print('EP Debug: File path `{}` does not exist!\n'.format(filename))
                 if setup_file:
                     abort_suite = suite_id
@@ -981,7 +1044,7 @@ class TwisterRunner(object):
             file_ext = os.path.splitext(filename)[1].lower()
 
             # If file type is TCL
-            if file_ext in ['.tcl']:
+            if file_ext in ['.tcl', '.exp']:
                 if not self.runners['tcl']:
                     self.runners['tcl'] = TCRunTcl()
                 current_runner = self.runners['tcl']
@@ -1067,6 +1130,7 @@ class TwisterRunner(object):
                 'FILE_NAME' : filename,
                 'PROPERTIES': props,
                 'CONFIG'    : config_files,
+                'ITERATION' : iteration_nr,
                 'PROXY'     : proxy(),
                 'breakpoint' : dbg_breakpoint
             }
@@ -1218,6 +1282,12 @@ class TwisterRunner(object):
                     proxy().echo('*ERROR* Setup file for `{}::{}` returned FAIL! All suite will be ABORTED!'\
                         ''.format(self.epName, suite_name))
 
+                if iteration_sof:
+                    # If the file has Iteration Stop on Fail, CANCEL all files from same iteration
+                    abort_iter = filename
+                    print('*ERROR* Iteration file `{}` did not PASS, for value `{}`!\n\n'\
+                        'All iteration files will be ABORTED!\n'.format(filename, iteration_nr))
+
             if reason:
                 if result == STATUS_FAIL:
                     print('Test failed because: `{}`.\n'.format(reason))
@@ -1243,6 +1313,12 @@ class TwisterRunner(object):
         # Print the final message
         diff_time = time.time() - glob_time
 
+        try:
+            shutil.rmtree(EP_CACHE)
+            os.makedirs(EP_CACHE)
+        except Exception as e:
+            print('Cannot clean cache! {}'.format(e))
+
         if PORTABLE:
             return self.stop(timer_f=diff_time)
         else:
@@ -1260,8 +1336,10 @@ def warmup():
     EP_LOG = '{}/.twister_cache/{}_LIVE.log'.format(TWISTER_PATH, EP_NAME)
 
     # Create the EP folder
-    try: os.makedirs(EP_CACHE)
-    except Exception: pass
+    try:
+        os.makedirs(EP_CACHE)
+    except Exception:
+        pass
 
     # If this scripts is running Portable from twister/client/exec ...
     path = TWISTER_PATH

@@ -1,6 +1,6 @@
 /*
 File: TCDetails.java ; This file is part of Twister.
-Version: 2.005
+Version: 2.006
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -81,7 +81,7 @@ public class TCDetails extends JPanel{
         });
     }
 
-    public void setLogs(){
+    private void setLogs(){
         RunnerRepository.window.mainpanel.getP2().tabbed.removeAll();
             try{
                 RunnerRepository.emptyTestRunnerRepository();

@@ -84,9 +84,12 @@ public class Main{
         RunnerRepository.host = "tsc-server";
         RunnerRepository.user = "tscguest";
         RunnerRepository.password = "tscguest";
+//         RunnerRepository.host = "11.126.32.14";
 //         RunnerRepository.host = "11.126.32.21";
 //         RunnerRepository.user = "user";
 //         RunnerRepository.password = "password";
+//         RunnerRepository.user = "bpopescu";
+//         RunnerRepository.password = "cnp_IOA1974";
 //         RunnerRepository.user = "guest";
 //         RunnerRepository.password = "guest";
         RunnerRepository.CENTRALENGINEPORT = "8000";

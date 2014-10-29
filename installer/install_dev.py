@@ -1,6 +1,6 @@
 #!/usr/bin/env python2.7
 
-# version: 2.004
+# version: 2.006
 
 # File: install_dev.py ; This file is part of Twister.
 
@@ -114,6 +114,13 @@ if TO_INSTALL == 'client':
 # Previous installations of Twister
 # --------------------------------------------------------------------------------------------------
 
+tmp_config = os.getcwd() + '/config/'
+
+# Remove old tmp config
+if os.path.isdir(tmp_config):
+    shutil.rmtree(tmp_config)
+
+
 if TO_INSTALL == 'server':
 
     print('Please type where you wish to install the servers.')
@@ -132,7 +139,8 @@ if TO_INSTALL == 'server':
         INSTALL_PATH = selected + os.sep
     else:
         INSTALL_PATH = '/opt/twister/'
-    del selected
+
+    cfg_path = INSTALL_PATH + 'config/'
 
     if os.path.exists(INSTALL_PATH):
         print('\nWARNING! Another version of Twister is installed at `%s`!' % INSTALL_PATH)
@@ -147,11 +155,9 @@ if TO_INSTALL == 'server':
             exit(0)
 
     # Backup CONFIG folder for server
-    try: os.remove(os.getcwd() + '/config')
-    except: pass
-    if os.path.exists(INSTALL_PATH + 'config'):
-        print('\nBack-up `config` folder (from `{}` to `{}`)...'.format(INSTALL_PATH+'config', os.getcwd()))
-        shutil.move(INSTALL_PATH + 'config', os.getcwd())
+    if os.path.exists(cfg_path):
+        print('\nBack-up config folder (from `{}` to `{}`)...'.format(cfg_path, tmp_config))
+        shutil.move(cfg_path, tmp_config)
 
     # Deleting previous versions of Twister
     try:
@@ -166,7 +172,9 @@ if TO_INSTALL == 'server':
 else:
 
     # Twister client path
-    INSTALL_PATH = userHome(user_name) + os.sep + 'twister/'
+    INSTALL_PATH = userHome(user_name) + '/twister/'
+
+    cfg_path = INSTALL_PATH + 'config/'
 
     if os.path.exists(INSTALL_PATH):
         print('WARNING! Another version of Twister is installed at `{}`!'.format(INSTALL_PATH))
@@ -177,9 +185,9 @@ else:
         if selected.strip().lower() in ['y', 'yes']:
 
             # Backup CONFIG folder for client
-            if os.path.exists(INSTALL_PATH + 'config'):
-                print('\nBack-up `config` folder (from `{}` to `{}`)...'.format(INSTALL_PATH+'config', os.getcwd()))
-                shutil.move(INSTALL_PATH + 'config', os.getcwd())
+            if os.path.exists(cfg_path):
+                print('\nBack-up config folder (from `{}` to `{}`)...'.format(cfg_path, tmp_config))
+                shutil.move(cfg_path, tmp_config)
 
             # Deleting previous versions of Twister
             try: dir_util.remove_tree(INSTALL_PATH)
@@ -251,7 +259,6 @@ else:
 
 #
 ROOT_FOLDER = os.sep.join( os.getcwd().split(os.sep)[:-1] )
-cwd_path = os.getcwd() + os.sep
 #
 
 # --------------------------------------------------------------------------------------------------
@@ -321,11 +328,18 @@ for fname in to_link:
 
 #
 
-# Restore Config folder, if any
-if os.path.exists(cwd_path + 'config'):
-    print('\nMoving `config` folder back (from `{}` to `{}`)...'.format(cwd_path+'config', INSTALL_PATH+'config'))
-    dir_util.copy_tree(cwd_path + 'config', INSTALL_PATH+'config')
-    dir_util.remove_tree(cwd_path + 'config')
+# Restore CONFIG folder, if any
+if os.path.exists(tmp_config):
+    print('\nMoving `config` folder back (from `{}` to `{}`)...'.format(tmp_config, cfg_path))
+    for xname in os.listdir(tmp_config):
+        src_name = tmp_config + xname
+        dst_name = cfg_path + xname
+        if os.path.isfile(dst_name):
+            os.remove(dst_name)
+        elif os.path.isdir(dst_name):
+            shutil.rmtree(dst_name)
+        print('Restoring config `{}`.'.format(dst_name))
+        shutil.move(src_name, cfg_path)
 
 #
 

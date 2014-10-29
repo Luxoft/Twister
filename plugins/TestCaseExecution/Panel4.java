@@ -1,6 +1,6 @@
 /*
 File: Panel4.java ; This file is part of Twister.
-Version: 2.014
+Version: 3.014
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -160,12 +160,12 @@ public class Panel4 extends JPanel{
             testconfig.cfgedit.getBinding("default");
             testconfig.cfgedit.interpretBinding();
         }
-//         if(testconfig.cfgedit.sutconfig.root.getChildCount()==0)testconfig.cfgedit.sutconfig.getFirstLevel();
-//         if(testconfig.cfgedit.root.getChildCount()==0){
-//             testconfig.cfgedit.parseDocument(null);
-//             testconfig.cfgedit.getBinding("default");
-//             testconfig.cfgedit.interpretBinding();
-//         }
+    //         if(testconfig.cfgedit.sutconfig.root.getChildCount()==0)testconfig.cfgedit.sutconfig.getFirstLevel();
+    //         if(testconfig.cfgedit.root.getChildCount()==0){
+    //             testconfig.cfgedit.parseDocument(null);
+    //             testconfig.cfgedit.getBinding("default");
+    //             testconfig.cfgedit.interpretBinding();
+    //         }
         main.repaint();
         main.revalidate();
     }

@@ -113,7 +113,16 @@ $JDK_PATH/jarsigner ../extlibs/Twister.jar Twister -storepass password
 # Export the keystore as X509
 $JDK_PATH/keytool  -export -alias Twister -rfc -file ../target/sig.x509 -storepass password
 
+# copy jar files into the binaries directory
+cd $CURRENT_PWD
+cp target/applet.jar ../../../binaries/applet/
+cp target/sig.x509 ../../../binaries/applet/
+cp extlibs/*.jar ../../../binaries/applet/
+
 # do some clean-up
+rm target/applet.jar
+rm target/sig.x509
+rm -rf ../../../plugins/UserManagement/target/
 rm -r $EXT_DIR/classes
-rm -r $TEST_EXEC_DIR/classes
-rm -r $USR_MGMT_DIR/classes
+rm $TEST_EXEC_DIR/classes/*.class
+rm $USR_MGMT_DIR/classes/*.class

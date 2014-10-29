@@ -1,6 +1,6 @@
 /*
 File: TestConfigManagement.java ; This file is part of Twister.
-Version: 3.002
+Version: 3.003
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -170,30 +170,8 @@ public class TestConfigManagement extends JPanel{
             jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGap(0, 0, Short.MAX_VALUE)
         );
-
-//         javax.swing.GroupLayout jPanel4Layout = new javax.swing.GroupLayout(jPanel4);
-//         jPanel4.setLayout(jPanel4Layout);
-//         jPanel4Layout.setHorizontalGroup(
-//             jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-//             .addGap(0, 347, Short.MAX_VALUE)
-//         );
-//         jPanel4Layout.setVerticalGroup(
-//             jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-//             .addGap(0, 0, Short.MAX_VALUE)
-//         );
         
         jScrollPane2.setViewportView(jTable1);
-
-//         javax.swing.GroupLayout jPanel6Layout = new javax.swing.GroupLayout(jPanel6);
-//         jPanel6.setLayout(jPanel6Layout);
-//         jPanel6Layout.setHorizontalGroup(
-//             jPanel6Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-//             .addComponent(jScrollPane2, javax.swing.GroupLayout.DEFAULT_SIZE, 593, Short.MAX_VALUE)
-//         );
-//         jPanel6Layout.setVerticalGroup(
-//             jPanel6Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-//             .addComponent(jScrollPane2, javax.swing.GroupLayout.DEFAULT_SIZE, 443, Short.MAX_VALUE)
-//         );
 
         javax.swing.GroupLayout jPanel6Layout = new javax.swing.GroupLayout(jPanel6);
         jPanel6.setLayout(jPanel6Layout);
@@ -218,35 +196,6 @@ public class TestConfigManagement extends JPanel{
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(jPanel2, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
-
-//         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(this);
-//         this.setLayout(layout);
-//         layout.setHorizontalGroup(
-//             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-//             .addGroup(layout.createSequentialGroup()
-//                 .addComponent(jPanel6, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-//                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-//                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-//                     .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-//                         .addComponent(jPanel4, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-//                         .addContainerGap())
-//                     .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-//                         .addComponent(jPanel2, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-//                         .addContainerGap())
-//                     .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-//                         .addComponent(jPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-//                         .addGap(81, 81, 81))))
-//         );
-//         layout.setVerticalGroup(
-//             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-//             .addGroup(layout.createSequentialGroup()
-//                 .addComponent(jPanel4, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-//                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-//                 .addComponent(jPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-//                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-//                 .addComponent(jPanel2, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-//             .addComponent(jPanel6, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-//         );
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(this);
         this.setLayout(layout);
@@ -437,14 +386,26 @@ public class TestConfigManagement extends JPanel{
     }
     
     public void setParent(Item parent){
-        if(parent!=null&&parent.getType()!=1)return;//only tc's allowed
+        if(parent!=null&&parent.getType()!=1){//only tc's allowed
+            if(RunnerRepository.window.mainpanel.p1.getOptionsTabs().getComponentZOrder(this)!=-1){
+				RunnerRepository.window.mainpanel.p1.getOptionsTabs().remove(this);
+			}
+            return;
+        }
         this.parent = parent;
         DefaultTableModel model =(DefaultTableModel)jTable1.getModel();
         model.setRowCount(0);
         if(parent!=null){
+            if(RunnerRepository.window.mainpanel.p1.getOptionsTabs().getComponentZOrder(this)==-1){
+				RunnerRepository.window.mainpanel.p1.getOptionsTabs().addTab("Test Configurations", this);
+			}
             for(Configuration conf:parent.getConfigurations()){
                 model.addRow(new Object[]{conf.getFile(),new Boolean(conf.isEnabled()),new Boolean(conf.isIeratorOD()),new Boolean(conf.isIteratorSOF())});
             }
+        } else {
+            if(RunnerRepository.window.mainpanel.p1.getOptionsTabs().getComponentZOrder(this)!=-1){
+				RunnerRepository.window.mainpanel.p1.getOptionsTabs().remove(this);
+			}
         }
     }
     

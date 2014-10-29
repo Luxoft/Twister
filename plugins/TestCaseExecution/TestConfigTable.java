@@ -1,6 +1,6 @@
 /*
 File: TestConfigTable.java ; This file is part of Twister.
-Version: 3.001
+Version: 3.002
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -81,6 +81,7 @@ public class TestConfigTable extends JTable{
                     tcm.configModified(filename, Boolean.parseBoolean(dtm.getValueAt(e.getLastRow(), 1).toString()), 
                                                  Boolean.parseBoolean(dtm.getValueAt(e.getLastRow(), 2).toString()),
                                                  Boolean.parseBoolean(dtm.getValueAt(e.getLastRow(), 3).toString()));
+                     RunnerRepository.window.mainpanel.p1.sc.g.repaint();
                 }
             }
         });
@@ -103,22 +104,6 @@ public class TestConfigTable extends JTable{
             }  
         }  
     }
-  
-//     public static void main (String[] args){
-//         SwingUtilities.invokeLater(new Runnable(){
-//             public void run(){
-                
-//                 TestConfigTable table = new TestConfigTable(); 
-//                 JScrollPane sp = new JScrollPane(table);
-//                 JFrame f = new JFrame();  
-//                 f.getContentPane().add(sp);  
-//                 f.pack();  
-//                 f.setLocationRelativeTo(null);  
-//                 f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);  
-//                 f.setVisible(true); 
-//             }  
-//         });  
-//     }  
 }  
 
 class CheckBoxHeader extends JCheckBox implements TableCellRenderer, MouseListener {  

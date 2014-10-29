@@ -1,7 +1,7 @@
 
 # File: helpers.py ; This file is part of Twister.
 
-# version: 3.004
+# version: 3.006
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -45,6 +45,17 @@ from tsclogging import logFull, logDebug, logWarning
 #
 
 class FsBorg(object):
+
+    _shared_state = {}
+    project = None
+    _services = {}
+    _srv_lock = allocate_lock()
+
+    def __init__(self):
+        self.__dict__ = self._shared_state
+
+
+class CcBorg(object):
 
     _shared_state = {}
     project = None
@@ -109,7 +120,7 @@ def getFileTags(fname):
     # This returns 2 groups : the tag name and the text inside it.
     tags = re.findall('^[ ]*?[#]*?[ ]*?<(?P<tag>\w+)>([ -~\n]+?)</(?P=tag)>', text, re.MULTILINE)
 
-    return '<br>\n'.join(['<b>' + title + '</b> : ' + descr.replace('<', '&lt;') for title, descr in tags])
+    return '<br>\n'.join(['<b>' + title + '</b> : ' + descr for title, descr in tags])
 
 
 def dirList(tests_path, path, newdict):

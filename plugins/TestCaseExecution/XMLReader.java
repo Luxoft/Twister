@@ -1,6 +1,6 @@
 /*
 File: XMLReader.java ; This file is part of Twister.
-Version: 2.023
+Version: 2.025
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -350,6 +350,7 @@ public class XMLReader{
             RunnerRepository.window.mainpanel.p1.suitaDetails.setPreStopOnFail(false);
             RunnerRepository.window.mainpanel.p1.suitaDetails.setPostScript("");
             RunnerRepository.window.mainpanel.p1.suitaDetails.setPreScript("");
+            RunnerRepository.window.mainpanel.p1.suitaDetails.setGlobalDownloadType(null);
         }
         if(test)preprop-=2;//in testsuites repeat tag is not present
         NodeList nodeLst = doc.getChildNodes().item(0).getChildNodes();
@@ -411,6 +412,15 @@ public class XMLReader{
                     }
                     continue;
                 }
+                else if(fstNode.getNodeName().equals("DownloadLibraries")){
+                    try{
+                        String librarydownloadtype = fstNode.getChildNodes().item(0).getNodeValue().toString();
+                        RunnerRepository.window.mainpanel.p1.suitaDetails.setGlobalDownloadType(librarydownloadtype);}
+                    catch(Exception e){
+                        RunnerRepository.window.mainpanel.p1.suitaDetails.setGlobalDownloadType(null);
+                    }
+                    continue;
+                }
                 else if(fstNode.getNodeName().equals("ScriptPost")){
                     String script = "";
                     try{script = fstNode.getChildNodes().item(0).getNodeValue().toString();}
@@ -424,7 +434,6 @@ public class XMLReader{
                         try{libraries = fstNode.getChildNodes().item(0).getNodeValue().toString().split(";");}
                         catch(Exception e){libraries = new String[]{};}
                         RunnerRepository.window.mainpanel.p1.suitaDetails.setGlobalLibs(libraries);
-                    
                     continue;
                 } else if(fstNode.getNodeName().equals("UserDefined")){
                     try{
@@ -468,16 +477,16 @@ public class XMLReader{
                                          2,-1,10, width+50,25,indexpos);
             else suitatemp=  new Item(name,
                                       2,-1,10, width+120,25,indexpos);
-            int k=preprop;
-                                      
+            int k=preprop;            
             fstNmElmntLst = fstElmnt.getElementsByTagName("libraries");
             if(fstNmElmntLst.getLength()>0){
                 fstNmElmnt = (Element)fstNmElmntLst.item(0);
                 fstNm = fstNmElmnt.getChildNodes();
-                suitatemp.setLibs(fstNm.item(0).getNodeValue().split(";"));
+                if(fstNm.getLength()>0){
+                    suitatemp.setLibs(fstNm.item(0).getNodeValue().split(";"));
+                }
                 k+=2;
             }
-            
             fstNmElmntLst = fstElmnt.getElementsByTagName("ID");
             if(fstNmElmntLst.getLength()>0){
                 fstNmElmnt = (Element)fstNmElmntLst.item(0);

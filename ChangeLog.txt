@@ -1,8 +1,9 @@
-13th August 
+22nd August 2014
 
-- code changes to fix dependecies issue #61
-- GIT plugin changes to fix issue #140
-
+- added support for recursive libraries
+- added support for Clearcase UCM operations
+- added support for test configurations order definition
+- updated UserGuide and PluginsGuide
 
 06th June
 

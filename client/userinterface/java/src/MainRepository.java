@@ -1,6 +1,6 @@
 /*
 File: MainRepository.java ; This file is part of Twister.
-Version: 3.001
+Version: 3.002
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -81,8 +81,8 @@ public class MainRepository {
     public static TwisterPluginInterface plugin;
     private static XmlRpcClient client;
     private static Hashtable<String,String> hash = new Hashtable<String,String>();
-    private static String version = "3.026";
-    private static String builddate = "20.08.2014";
+    private static String version = "3.038";
+    private static String builddate = "29.10.2014";
     public static int time = 10;//seconds
     public static boolean countdown = false;
     public static String logotxt;
@@ -396,7 +396,7 @@ public class MainRepository {
         try{XmlRpcClientConfigImpl configuration = new XmlRpcClientConfigImpl();
             configuration.setBasicPassword(password);
             configuration.setBasicUserName(user);
-            configuration.setServerURL(new URL("http://"+user+":"+password+"@"+MainRepository.host+
+            configuration.setServerURL(new URL("http://"+MainRepository.host+
                                         ":"+port+"/"));
             client = new XmlRpcClient();
             client.setConfig(configuration);

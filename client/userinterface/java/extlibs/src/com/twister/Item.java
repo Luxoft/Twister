@@ -1,6 +1,6 @@
 /*
 File: Item.java ; This file is part of Twister.
-Version: 2.011
+Version: 2.012
 Copyright (C) 2012 , Luxoft
 
 Authors: Andrei Costachi <acostachi@luxoft.com>
@@ -126,6 +126,7 @@ public class Item implements Cloneable{
         	clone.setPos((ArrayList <Integer>)getPos().clone());
         	clone.setDependencies((HashMap<Item,String>)dependencie.clone());
             clone.subitems = (ArrayList <Item>)subitems.clone();
+            clone.setRectangle((Rectangle)getRectangle().clone());
             for(int i=0;i<clone.getSubItemsNr();i++){clone.subitems.set(i, clone.getSubItem(i).clone());}
             return clone;}
         catch(CloneNotSupportedException e){

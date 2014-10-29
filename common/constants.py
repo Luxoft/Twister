@@ -1,5 +1,5 @@
 
-# version: 3.003
+# version: 3.004
 
 # Major list of constants.
 
@@ -85,6 +85,7 @@ PROJECTCONFIG_TAGS = (
 	{'name':'db_auto_save',		'tag':'dbautosave',			'default':False, 'type':'bool'},
 	{'name':'tc_delay',			'tag':'tcdelay',			'default':0, 'type':'number'},
 	{'name':'libraries',		'tag':'libraries',			'default':''},
+	{'name':'dl_libs',			'tag':'DownloadLibraries',	'default':''},
 	{'name':'script_pre',		'tag':'ScriptPre',			'default':''},
 	{'name':'script_post',		'tag':'ScriptPost',			'default':''},
 	{'name':'script_mandatory',	'tag':'PrePostMandatory',	'default':False, 'type':'bool'},

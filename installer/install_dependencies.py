@@ -1,6 +1,6 @@
 #!/usr/bin/env python2.7
 
-# version: 3.004
+# version: 3.005
 
 # File: install.py ; This file is part of Twister.
 
@@ -380,6 +380,7 @@ for i in range(len(dependencies)):
         print('\nLibrary `{}` is installed in `{}` and this script cannot remove it!\n'
               'You will have to manually uninstall this library !!'.format(import_name, lib.__file__))
         print('\nUninstall `{}` and run this script again !!'.format(import_name))
+        library_err.append(import_name)
         continue
 
     else:
@@ -401,8 +402,12 @@ for i in range(len(dependencies)):
 
 
 if library_err:
-    print('\nThe following libraries could not be installed: `%s`.\n'
+    print('\n############################################################')
+    print('\nThe following libraries could not be installed:\n`%s`\n'
           'Twister Framework will not run without them!' % ', '.join(library_err))
+    print('\nDependency installation FAILED!')
+    print('\n############################################################')
+    exit()
 
 
-print('\nDependency installation finished!\n')
+print('\nDependency installation COMPLETED!\n')
