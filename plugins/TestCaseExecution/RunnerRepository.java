@@ -1,6 +1,6 @@
 /*
 File: RunnerRepository.java ; This file is part of Twister.
-Version: 3.006
+Version: 3.007
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -133,8 +133,8 @@ public class RunnerRepository {
     public static Container container;
     public static Applet applet;
     private static Document pluginsconfig;
-    private static String version = "3.037";
-    private static String builddate = "17.10.2014";
+    private static String version = "3.038";
+    private static String builddate = "29.10.2014";
     public static String logotxt,os,python;
     
     public static void setStarter(Starter starter){
@@ -1926,7 +1926,7 @@ public class RunnerRepository {
         try{XmlRpcClientConfigImpl configuration = new XmlRpcClientConfigImpl();
             configuration.setBasicPassword(password);
             configuration.setBasicUserName(user);
-            configuration.setServerURL(new URL("http://"+user+":"+password+"@"+RunnerRepository.host+
+            configuration.setServerURL(new URL("http://"+RunnerRepository.host+
                                         ":"+RunnerRepository.getCentralEnginePort()+"/"));
             client = new XmlRpcClient();
             client.setConfig(configuration);
