@@ -1,7 +1,7 @@
 
 # File: CeParser.py ; This file is part of Twister.
 
-# version: 3.006
+# version: 3.007
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -84,7 +84,7 @@ class CeXmlParser(object):
 
     def _do_repeat(self, config_root, repeated_dict, ep):
         '''
-        Repet Test Case or Suites as often as the tag <Reapet>
+        Repeat Test Case or Suites as often as the tag <Repeat>
         says.
         '''
 
@@ -102,20 +102,24 @@ class CeXmlParser(object):
         for repeat in reversed(repeat_list):
             parent = repeat.getparent()
 
-            if int(repeat.text) > 1:
+            # get repeat times and delete Repeat tag because it MUST not
+            # be present in generated xml file
+            repeat_nb = int(repeat.text)
+            parent.remove(repeat)
+
+            #if int(repeat.text) > 1:
+            if repeat_nb > 1:
                 if parent.find('tcName') is not None:
                     elem_name = parent.find('tcName').text
                 else:
                     elem_name = parent.find('tsName').text
 
                 logDebug("CeParser: Will repeat element {}, {} times."\
-                    .format(elem_name, repeat.text))
+                    .format(elem_name, repeat_nb))
 
-                for i in range(int(repeat.text) - 1):
+                for i in range(repeat_nb - 1):
                     # create a copy to multiplicate the entries
-                    deep_copy = copy.deepcopy(repeat.getparent())
-                    # modify the repeat value of the current item
-                    deep_copy.find('Repeat').text = str(1)
+                    deep_copy = copy.deepcopy(parent)
 
                     # generate new unique id
                     new_id = uuid.uuid4()
@@ -136,7 +140,6 @@ class CeXmlParser(object):
                     else:
                         parent.addnext(deep_copy)
 
-                repeat.getparent().find('Repeat').text = str(1)
             else:
                 self._add_to_repeated(copy.deepcopy(parent.find('ID').text), copy.deepcopy(parent.find('ID').text), repeated_dict, ep)
 
@@ -562,16 +565,14 @@ class CeXmlParser(object):
             if nb_repeat > 1:
                 logDebug("CeParser: Will repeat suite `{}`, {} times.".format(suite_name, nb_repeat))
 
+            # before copying the suite for multiplication, remove the Repeat
+            # tag because it MUST NOT be present in generated xml file
+            suite.remove(repeat)
+
             for i in range(nb_repeat):
                 deep_copy = copy.deepcopy(suite)
                 config_ts = etree.tostring(deep_copy)
                 config_root = etree.fromstring(config_ts)
-
-                if nb_repeat > 1:
-                    try:
-                        config_root.find('Repeat').text = str(1)
-                    except:
-                        pass
 
                 # for every ep of a sut create entry
                 for sut in suts_list:

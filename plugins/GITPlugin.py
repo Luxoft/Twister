@@ -97,7 +97,7 @@ class Plugin(BasePlugin):
             to_exec = 'git clone -b {branch} {src} {dst}'.format(branch=branch, src=src, dst=dst)
             print('GIT Plugin: Exec `{}` .'.format(to_exec.strip()))
 
-            child.sendline(to_exec.strip())                
+            child.sendline(to_exec.strip())
             try:
                 i = child.expect(['.*password:','Are you sure.*','Permission denied'], 10)
                 if i == 0 and pwd:
@@ -109,10 +109,12 @@ class Plugin(BasePlugin):
 
                     try:
                         child.expect('.*password:')
-                        child.sendline(pwd)
                     except Exception as e:
                         return 'Error on calling GIT {cmd} (from `{src}` to `{dst}`): `{e}`!'.format(
                             cmd=command, src=src, dst=dst, e=e)
+                    time.sleep(1)
+                    child.sendline(pwd)
+                    
                 elif i == 2:
                     print 'Error on calling GIT {cmd} (from `{src}` to `{dst}`): `{e}`!'.format(
                             cmd=command, src=src, dst=dst, e='Permission denied!')
@@ -126,12 +128,22 @@ class Plugin(BasePlugin):
 
             try:
                 i = child.expect(['Resolving deltas.*done\.',
-                                  'fatal: The remote end hung up unexpectedly'], None)
+                                  'fatal: The remote end hung up unexpectedly',
+                                  'Permission denied',
+                                  'Could not read from remote repository'], None)
                 if i == 1:
                     # fatal: Remote branch branch_name not found in upstream origin
                     print 'Error on calling GIT clone: {} do not exist.'.format(branch)
                     return 'Error on calling GIT {cmd} (from `{src}` to `{dst}`)! Branch {br} do not exist!'.format(
                                 cmd=command, src=src, dst=dst,br=branch)
+                elif i == 2:
+                    # that password is incorrect
+                    print 'Error on calling GIT clone: Incorrect username or password for GIT repository.'
+                    return 'Error on calling GIT clone: Incorrect username or password for GIT repository.'
+                elif i == 3:
+                    # the path to the repository is incorrect
+                    print 'Error on calling GIT clone: Incorrect path for GIT repository.'
+                    return 'Error on calling GIT clone: Incorrect path for GIT repository.'
             except Exception as e:
                 return 'Error after calling GIT {cmd}: `{e}`!'.format(cmd=command, e=e)
             
@@ -147,7 +159,7 @@ class Plugin(BasePlugin):
                 return 'Error: path `{}` does not exist!'.format(dst)
             child.sendline('cd {}'.format(dst))
             try:
-                i = child.expect(['Permission denied','No such file or directory'])
+                i = child.expect(['Permission denied', 'No such file or directory', '{}'.format(dst)])
                 if i == 0:
                     return 'Error: cannot enter in directory: {}. Permission denied!'.format(dst)
                 elif i == 1:
@@ -158,7 +170,6 @@ class Plugin(BasePlugin):
 
             time.sleep(1)
 
-            child.expect('.*')
             to_exec = 'git checkout {}'.format(branch)
             print('GIT Plugin: Exec `{}` .'.format(to_exec.strip()))
 
@@ -192,21 +203,23 @@ class Plugin(BasePlugin):
             child.sendline('git pull -f')
             try:
                 child.expect('.*password:')
-                time.sleep(1)
-
-                child.sendline(pwd)
             except Exception as e:
                 print 'Error after calling GIT pull -f'
                 return 'Error after calling GIT {cmd}: `{e}`!'.format(cmd=command, e=e)
             
             time.sleep(1)
+            child.sendline(pwd)
+            time.sleep(1)
 
             try:
-                child.expect(['up-to-date', 'files changed'], 120)
-                child.sendline('\n\n')
+                i = child.expect(['up-to-date', 'files changed', 'Permission denied'], 120)
+                if i == 2:
+                    print 'Error on calling GIT pull: Incorrect password'
+                    return 'Error on calling GIT pull: Incorrect password'
             except Exception as e:
                 return 'Error after calling GIT {cmd}: `{e}`!'.format(cmd=command, e=e)
-
+            
+            child.sendline('\n\n')
             time.sleep(1)
             print('-'*40)
 
