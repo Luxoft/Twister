@@ -104,8 +104,11 @@ public class XMLReader{
                     fstNmElmnt = (Element)fstNmElmntLst.item(0);
                     fstNm = fstNmElmnt.getChildNodes();
                     if(fstNm.getLength()>0)dependencies.put(theone, fstNm.item(0).getNodeValue().toString());
+                } else if(!RunnerRepository.isMaster()){//this is not master
+                    if(!test){
+                        preprop -=2;
+                    }
                 }
-                
                 fstNmElmntLst = ((Element)node).getElementsByTagName("Repeat");
                 if(fstNmElmntLst.getLength()>0){
                     fstNmElmnt = (Element)fstNmElmntLst.item(0);
@@ -164,14 +167,12 @@ public class XMLReader{
                         k=preprop;
                     } 
                 } else {
-                    k=preprop;    
+                    if(RunnerRepository.isMaster())k=preprop;    
+                    else k=preprop-2;
                 }
                 //temporary solution for CE
-                
             }
             else{
-                
-                
                 secNmElmntLst = ((Element)node).getElementsByTagName("tcName");
                 if(secNmElmntLst.getLength()==0)return;
                 secNmElmnt = (Element)secNmElmntLst.item(0);
@@ -384,7 +385,6 @@ public class XMLReader{
                         delay = "";
                     }
                     RunnerRepository.window.mainpanel.p1.suitaDetails.setDelay(delay);
-                    
                     continue;
                 }
                 else if(fstNode.getNodeName().equals("dbautosave")){
@@ -412,14 +412,16 @@ public class XMLReader{
                     }
                     continue;
                 }
-                else if(fstNode.getNodeName().equals("DownloadLibraries")){
-                    try{
-                        String librarydownloadtype = fstNode.getChildNodes().item(0).getNodeValue().toString();
-                        RunnerRepository.window.mainpanel.p1.suitaDetails.setGlobalDownloadType(librarydownloadtype);}
-                    catch(Exception e){
-                        RunnerRepository.window.mainpanel.p1.suitaDetails.setGlobalDownloadType(null);
+                else if(RunnerRepository.isMaster()){
+                        if(fstNode.getNodeName().equals("DownloadLibraries")){
+                        try{
+                            String librarydownloadtype = fstNode.getChildNodes().item(0).getNodeValue().toString();
+                            RunnerRepository.window.mainpanel.p1.suitaDetails.setGlobalDownloadType(librarydownloadtype);}
+                        catch(Exception e){
+                            RunnerRepository.window.mainpanel.p1.suitaDetails.setGlobalDownloadType(null);
+                        }
+                        continue;
                     }
-                    continue;
                 }
                 else if(fstNode.getNodeName().equals("ScriptPost")){
                     String script = "";

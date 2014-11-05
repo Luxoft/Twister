@@ -193,10 +193,8 @@ public class ConfigEditor extends JPanel{
         tdescription.setMinimumSize(new Dimension(6, 16));
         tdescription.setWrapStyleWord(true);
         tdescription.setLineWrap(true);
-
         ttype.setModel(new DefaultComboBoxModel(new String[] {"iterator","decimal", "hex", "octet", "string"}));
         ttype.setMinimumSize(new Dimension(6, 20));
-
         GroupLayout layout = new GroupLayout(pdesc);
         pdesc.setLayout(layout);
         layout.setHorizontalGroup(
@@ -736,6 +734,7 @@ public class ConfigEditor extends JPanel{
     private String getPathForSut(String sutid){
         String sutpath = "";
         Object ob = null;
+		sutid = sutid.replace("//", "/");
         try{ob = sutconfig.client.execute("get_sut", new Object[]{sutid});
             if(ob instanceof HashMap){
                 HashMap subhash= (HashMap)ob;
@@ -904,6 +903,9 @@ public class ConfigEditor extends JPanel{
     }
     
     public void saveAs(){
+        
+        
+        
         JPanel p = new JPanel();
         p.setLayout(null);
         p.setPreferredSize(new Dimension(250,50));
@@ -931,6 +933,8 @@ public class ConfigEditor extends JPanel{
         int resp = (Integer)CustomDialog.showDialog(p,JOptionPane.PLAIN_MESSAGE, 
                     JOptionPane.OK_CANCEL_OPTION, ConfigEditor.this, "Save as:",null);
         if(resp == JOptionPane.OK_OPTION&&!tsut.getText().equals("")){
+            //String path = getPath()+tsut.getText();
+            //System.out.println("Creating new config file:"+path);
             try{
                 String initialname = remotelocation;
                 String [] path = initialname.split("/");
@@ -941,6 +945,14 @@ public class ConfigEditor extends JPanel{
                 }
                 sb.append(tsut.getText());
                 remotelocation = sb.toString();
+                //System.out.println("Save config as:"+remotelocation);
+                //String content = RunnerRepository.getRPCClient().execute("save_config_file", new Object[]{remotelocation,content}).toString();
+                //if(content.indexOf("*ERROR*")!=-1){
+                //    CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,ConfigEditor.this,"ERROR", content);
+                //}
+                //String initialname = remotelocation;
+                
+                
                 writeXML();
                 saveBinding();
                 lastsave = true;
@@ -948,12 +960,24 @@ public class ConfigEditor extends JPanel{
                 displayname.setText(displayname.getText().replace(" (need save)", ""));
                 remotelocation = initialname;
                 cfgtree.refreshStructure();
+                //if(confeditor.currentfile==null){ //if default conf opened reinitialize
+                //    confeditor.openDefault();
+                //}
             }
             catch(Exception e){
                 System.out.println("Could not create new config file: "+tsut.getText());
                 e.printStackTrace();
             }
         }
+        
+        
+        
+        
+        
+        
+        
+        
+        
 //         final JTextField tf = new JTextField();
 //         try{tf.setText(((DefaultMutableTreeNode)cfgtree.tree.getModel().
 //                                                 getRoot()).getFirstChild().toString());

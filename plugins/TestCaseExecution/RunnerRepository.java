@@ -136,6 +136,7 @@ public class RunnerRepository {
     private static String version = "3.038";
     private static String builddate = "29.10.2014";
     public static String logotxt,os,python;
+    private static boolean ismaster = true;
     
     public static void setStarter(Starter starter){
         RunnerRepository.starter = starter;
@@ -1863,8 +1864,14 @@ public class RunnerRepository {
                     window.mainpanel.p1.sc.g.setUser((new StringBuilder()).append(RunnerRepository.getUsersDirectory()).
                                                         append(RunnerRepository.getBar()).append(user).append(".xml").
                                                         toString());
-                    window.mainpanel.p1.sc.g.printXML( window.mainpanel.p1.sc.g.getUser(),false,false,false,false,false,"",false,null,
-                                                        RunnerRepository.window.mainpanel.p1.suitaDetails.getProjectDefs(),RunnerRepository.window.mainpanel.p1.suitaDetails.getGlobalDownloadType());
+                    if(ismaster){
+                        window.mainpanel.p1.sc.g.printXML( window.mainpanel.p1.sc.g.getUser(),false,false,false,false,false,"",false,null,
+                                                        RunnerRepository.window.mainpanel.p1.suitaDetails.getProjectDefs(),
+                                                        RunnerRepository.window.mainpanel.p1.suitaDetails.getGlobalDownloadType());
+                    } else {
+                        window.mainpanel.p1.sc.g.printXML( window.mainpanel.p1.sc.g.getUser(),false,false,false,false,false,"",false,null,
+                                                        RunnerRepository.window.mainpanel.p1.suitaDetails.getProjectDefs(),null);
+                    }
                     RunnerRepository.window.mainpanel.p1.suitaDetails.setPreScript("");
                     RunnerRepository.window.mainpanel.p1.suitaDetails.setPostScript("");
                     RunnerRepository.window.mainpanel.p1.suitaDetails.setGlobalLibs(null);
@@ -1952,6 +1959,13 @@ public class RunnerRepository {
             }
         }
         return null;
+    }
+    
+    /*
+     * branches switch
+     */
+    public static boolean isMaster(){
+        return ismaster;
     }
         
     /*

@@ -124,10 +124,6 @@ public class ConfigTree extends JPanel{
         });
         nfile.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
-                
-                
-                
-                
                 String content = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n<root>\n</root>\n";
                 content = DatatypeConverter.printBase64Binary(content.getBytes());
                 JPanel p = new JPanel();
@@ -174,58 +170,10 @@ public class ConfigTree extends JPanel{
                         e.printStackTrace();
                     }
                 }
-                
-                
-                
-                
-                
-                
-                
-                
-//                 final JTextField tf = new JTextField();
-//                 try{tf.setText(RunnerRepository.getTestConfigPath());
-//                 }catch(Exception e){
-//                     e.printStackTrace();
-//                 }
-//                 AbstractAction action = new AbstractAction(){
-//                     public void actionPerformed(ActionEvent ev){
-//                         try{System.out.println("Creating: "+tf.getText());                       
-//                             String content = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n<root>\n</root>\n";
-//                             content = DatatypeConverter.printBase64Binary(content.getBytes());
-//                             if(RunnerRepository.window.mainpanel.p4.getPlugins().isClearCaseEnabled()){
-//                                 RunnerRepository.getRPCClient().execute("write_file", new Object[]{tf.getText(),content,"w","clearcase:TestConfigPath"}).toString();
-//                             } else {
-//                                 RunnerRepository.getRPCClient().execute("write_file", new Object[]{tf.getText(),content,"w"}).toString();
-//                             }
-//                             refreshStructure();
-//                             Enumeration enumeration = root.depthFirstEnumeration();
-//                             while (enumeration.hasMoreElements()) {
-//                               DefaultMutableTreeNode node = (DefaultMutableTreeNode) enumeration.nextElement();
-//                               if((node.getParent()+"/"+node).toString().equals(tf.getText())){
-//                                   tree.setSelectionPath(new TreePath(((DefaultTreeModel)tree.getModel()).getPathToRoot(node)));
-//                               }
-//                             }
-//                         } catch(Exception e){
-//                             CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,ConfigTree.this,"ERROR", "Could not write file! Check log.");
-//                             System.out.println("Could not upload:"+tf.getText());
-//                             e.printStackTrace();
-//                         }
-//                     }
-//                 };
-//                 MySftpBrowser browser = new MySftpBrowser(RunnerRepository.host,RunnerRepository.user,RunnerRepository.password,RunnerRepository.CENTRALENGINEPORT,tf,ConfigTree.this,false);
-//                 browser.setAction(action);
-//                 if(RunnerRepository.window.mainpanel.p4.getPlugins().isClearCaseEnabled()){
-//                     browser.setTag("TestConfigPath");
-//                 }
-                
-                
-                
             }
         });
         ndir.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
-                
-                
                 JPanel p = new JPanel();
                 p.setLayout(null);
                 p.setPreferredSize(new Dimension(290,50));
@@ -271,34 +219,6 @@ public class ConfigTree extends JPanel{
                         e.printStackTrace();
                     }
                 }
-                
-                
-                
-                
-                
-                
-                
-//                 final JTextField tf = new JTextField();
-//                 try{
-//                     tf.setText(RunnerRepository.getTestConfigPath());
-//                 }catch(Exception e){
-//                     e.printStackTrace();
-//                 }
-//                 AbstractAction action = new AbstractAction(){
-//                     public void actionPerformed(ActionEvent ev){
-//                         try{RunnerRepository.createRemoteDir(tf.getText());
-//                             refreshStructure();
-//                         } catch(Exception e){
-//                             e.printStackTrace();
-//                         }
-//                     }
-//                 };
-//                 MySftpBrowser browser = new MySftpBrowser(RunnerRepository.host,RunnerRepository.user,RunnerRepository.password,RunnerRepository.CENTRALENGINEPORT,tf,ConfigTree.this,false);
-//                 browser.setAction(action);
-//                 if(RunnerRepository.window.mainpanel.p4.getPlugins().isClearCaseEnabled()){
-//                     browser.setTag("TestConfigPath");
-//                 }
-//                 browser.setFieldName("Directory name:");
             }
         });
         
@@ -314,7 +234,6 @@ public class ConfigTree extends JPanel{
         });
         setLayout(new BorderLayout());
         root = new DefaultMutableTreeNode("root", true);
-//         initializeSftp();
         tree = new JTree(root);
         tree.getSelectionModel().setSelectionMode(TreeSelectionModel.SINGLE_TREE_SELECTION);
         tree.addTreeSelectionListener(new TreeSelectionListener(){
@@ -325,12 +244,9 @@ public class ConfigTree extends JPanel{
                     remfile.setEnabled(true);
                     newNode = (DefaultMutableTreeNode)newPath.getLastPathComponent(); 
                     if(!newNode.getAllowsChildren()){
-                        //doubleClicked();
                         open.setEnabled(true);
-//                         remfile.setEnabled(true);
                     } else {
                         open.setEnabled(false);
-//                         remfile.setEnabled(false);
                     }
                 }
             }
@@ -356,14 +272,13 @@ public class ConfigTree extends JPanel{
         });
         add(new JScrollPane(tree),BorderLayout.CENTER);
         JPanel temp = new JPanel();
-        //temp.setLayout(new BorderLayout());
-        //temp.add(buttons, BorderLayout.WEST);
         temp.add(buttons);
         add(temp,BorderLayout.SOUTH);
         refreshStructure();
     }
     
-     //returns the path for folder/file creation according to selected tree element
+    
+    //returns the path for folder/file creation according to selected tree element
     private String getPath(){
         DefaultMutableTreeNode node = (DefaultMutableTreeNode)tree.getLastSelectedPathComponent();
         if(node!=null){
@@ -396,7 +311,6 @@ public class ConfigTree extends JPanel{
             return "";
         }
     }
-    
     
     public String [] getFiles(){
         ArrayList<String> a = new ArrayList<String>();

@@ -1,6 +1,6 @@
 /*
 File: ExplorerPanel.java ; This file is part of Twister.
-Version: 3.001
+Version: 3.002
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -180,34 +180,36 @@ public class ExplorerPanel extends JPanel{
         tree.setRootVisible(false);
         tree.expandRow(0);    
         add(new JScrollPane(tree),BorderLayout.CENTER);
-        JPanel findpanel = new JPanel();
-        add(findpanel,BorderLayout.SOUTH);
-        JLabel tagl = new JLabel("Tags");
-        tagfield = new JTextField();
-        tagfield.setPreferredSize(new Dimension(160,25));
-        JLabel filenamel = new JLabel("Filename");
-        filenamefield = new JTextField();
-        filenamefield.setPreferredSize(new Dimension(160,25));
-        final JButton filter = new JButton("Search");
-        filter.addActionListener(new ActionListener(){
-            public void actionPerformed(ActionEvent ev){
-                filterTC((int)filter.getLocationOnScreen().getX()-200,(int)filter.getLocationOnScreen().getY()-100);
-            }
-        });
-        filter.setFont(new Font("TimesRoman", Font.PLAIN, 10));
-        final JButton reset = new JButton("Clear");   
-        reset.addActionListener(new ActionListener(){
-            public void actionPerformed(ActionEvent ev){
-                refreshTree((int)reset.getLocationOnScreen().getX()-200,(int)reset.getLocationOnScreen().getY()-100);
-            }
-        });
-        reset.setFont(new Font("TimesRoman", Font.PLAIN, 10));
-        findpanel.add(filenamel);
-        findpanel.add(filenamefield);
-        findpanel.add(tagl);
-        findpanel.add(tagfield);
-        findpanel.add(filter);
-        findpanel.add(reset);
+        if(RunnerRepository.isMaster()){
+            JPanel findpanel = new JPanel();
+            add(findpanel,BorderLayout.SOUTH);
+            JLabel tagl = new JLabel("Tags");
+            tagfield = new JTextField();
+            tagfield.setPreferredSize(new Dimension(160,25));
+            JLabel filenamel = new JLabel("Filename");
+            filenamefield = new JTextField();
+            filenamefield.setPreferredSize(new Dimension(160,25));
+            final JButton filter = new JButton("Search");
+            filter.addActionListener(new ActionListener(){
+                public void actionPerformed(ActionEvent ev){
+                    filterTC((int)filter.getLocationOnScreen().getX()-200,(int)filter.getLocationOnScreen().getY()-100);
+                }
+            });
+            filter.setFont(new Font("TimesRoman", Font.PLAIN, 10));
+            final JButton reset = new JButton("Clear");   
+            reset.addActionListener(new ActionListener(){
+                public void actionPerformed(ActionEvent ev){
+                    refreshTree((int)reset.getLocationOnScreen().getX()-200,(int)reset.getLocationOnScreen().getY()-100);
+                }
+            });
+            reset.setFont(new Font("TimesRoman", Font.PLAIN, 10));
+            findpanel.add(filenamel);
+            findpanel.add(filenamefield);
+            findpanel.add(tagl);
+            findpanel.add(tagfield);
+            findpanel.add(filter);
+            findpanel.add(reset);
+        }
         RunnerRepository.introscreen.setStatus("Finished Explorer interface initialization");                
         RunnerRepository.introscreen.addPercent(0.035);
         RunnerRepository.introscreen.repaint();

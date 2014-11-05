@@ -141,11 +141,7 @@ public class Panel4 extends JPanel{
         main.setLayout(new BorderLayout());
         main.add(sut,BorderLayout.CENTER);
         if(tb.root.getChildCount()==0)tb.buildFirstLevelTB();
-//         if(sut.sut.getSutTree().filesroot.getChildAt(0).getChildCount()==0&&
-//             sut.sut.getSutTree().filesroot.getChildAt(1).getChildCount()==0)sut.sut.getSutTree().getSUT();
         sut.tbs.setTree(tb.getTree());
-//         sut.sut.getSutTree().sp2.setViewportView(sut.sut.getSutTree().filestree);
-//         sut.sut.getSUT();
         main.repaint();
         main.revalidate();
     }
@@ -160,12 +156,6 @@ public class Panel4 extends JPanel{
             testconfig.cfgedit.getBinding("default");
             testconfig.cfgedit.interpretBinding();
         }
-    //         if(testconfig.cfgedit.sutconfig.root.getChildCount()==0)testconfig.cfgedit.sutconfig.getFirstLevel();
-    //         if(testconfig.cfgedit.root.getChildCount()==0){
-    //             testconfig.cfgedit.parseDocument(null);
-    //             testconfig.cfgedit.getBinding("default");
-    //             testconfig.cfgedit.interpretBinding();
-    //         }
         main.repaint();
         main.revalidate();
     }

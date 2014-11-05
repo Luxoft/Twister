@@ -362,14 +362,24 @@ public class GraficTest extends JPanel{
      */
     public boolean writeXML(ArrayList<Item>last){
         try{XMLBuilder xml = new XMLBuilder(last);
-            xml.createXML(true,false,false,true,
-                          RunnerRepository.window.mainpanel.p1.suitaDetails.getPreScript(),
-                          RunnerRepository.window.mainpanel.p1.suitaDetails.getPostScript(),
-                          RunnerRepository.window.mainpanel.p1.suitaDetails.saveDB(),
-                          RunnerRepository.window.mainpanel.p1.suitaDetails.getDelay(),
-                          RunnerRepository.window.mainpanel.p1.suitaDetails.getGlobalLibs(),
-                          RunnerRepository.window.mainpanel.p1.suitaDetails.getProjectDefs(),RunnerRepository.window.mainpanel.p1.suitaDetails.getGlobalDownloadType()
-                          );
+            if(RunnerRepository.isMaster()){
+                xml.createXML(true,false,false,true,
+                              RunnerRepository.window.mainpanel.p1.suitaDetails.getPreScript(),
+                              RunnerRepository.window.mainpanel.p1.suitaDetails.getPostScript(),
+                              RunnerRepository.window.mainpanel.p1.suitaDetails.saveDB(),
+                              RunnerRepository.window.mainpanel.p1.suitaDetails.getDelay(),
+                              RunnerRepository.window.mainpanel.p1.suitaDetails.getGlobalLibs(),
+                              RunnerRepository.window.mainpanel.p1.suitaDetails.getProjectDefs(),
+                              RunnerRepository.window.mainpanel.p1.suitaDetails.getGlobalDownloadType());
+            } else {
+                xml.createXML(true,false,false,true,
+                              RunnerRepository.window.mainpanel.p1.suitaDetails.getPreScript(),
+                              RunnerRepository.window.mainpanel.p1.suitaDetails.getPostScript(),
+                              RunnerRepository.window.mainpanel.p1.suitaDetails.saveDB(),
+                              RunnerRepository.window.mainpanel.p1.suitaDetails.getDelay(),
+                              RunnerRepository.window.mainpanel.p1.suitaDetails.getGlobalLibs(),
+                              RunnerRepository.window.mainpanel.p1.suitaDetails.getProjectDefs(),null);
+            }
             String dir = RunnerRepository.getXMLRemoteDir();
             String [] path = dir.split("/");
             StringBuffer result2 = new StringBuffer();

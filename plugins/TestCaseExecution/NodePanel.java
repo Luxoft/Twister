@@ -320,7 +320,7 @@ public class NodePanel extends JPanel{
         if(parent!=null){
             int size = parent.getProperties().size();
             Object [] keys = parent.getProperties().keySet().toArray();
-            Arrays.sort(keys);
+            if(RunnerRepository.isMaster())Arrays.sort(keys);
             Object [] values = parent.getProperties().values().toArray();
             for(int i=0;i<size;i++){
                 final JButton update = new JButton("Update");

@@ -386,13 +386,25 @@ public class Panel1 extends JPanel{
                                                     JOptionPane.OK_CANCEL_OPTION, RunnerRepository.window,
                                                     "File Name", "Please enter suite file name");
             if(user!=null&&!user.equals("")){
-                if(sc.g.printXML(RunnerRepository.temp+RunnerRepository.getBar()+"Twister"+RunnerRepository.getBar()+"Users"+RunnerRepository.getBar()+user+".xml",
+                boolean cond;
+                if(RunnerRepository.isMaster()){
+                    cond = sc.g.printXML(RunnerRepository.temp+RunnerRepository.getBar()+"Twister"+RunnerRepository.getBar()+"Users"+RunnerRepository.getBar()+user+".xml",
                              false,false,
                              RunnerRepository.window.mainpanel.p1.suitaDetails.stopOnFail(),
                              RunnerRepository.window.mainpanel.p1.suitaDetails.preStopOnFail(),
                              RunnerRepository.window.mainpanel.p1.suitaDetails.saveDB(),
                              RunnerRepository.window.mainpanel.p1.suitaDetails.getDelay(),true,null,
-                             RunnerRepository.window.mainpanel.p1.suitaDetails.getProjectDefs(),RunnerRepository.window.mainpanel.p1.suitaDetails.getGlobalDownloadType())){
+                             RunnerRepository.window.mainpanel.p1.suitaDetails.getProjectDefs(),RunnerRepository.window.mainpanel.p1.suitaDetails.getGlobalDownloadType());
+                } else {
+                    cond = sc.g.printXML(RunnerRepository.temp+RunnerRepository.getBar()+"Twister"+RunnerRepository.getBar()+"Users"+RunnerRepository.getBar()+user+".xml",
+                             false,false,
+                             RunnerRepository.window.mainpanel.p1.suitaDetails.stopOnFail(),
+                             RunnerRepository.window.mainpanel.p1.suitaDetails.preStopOnFail(),
+                             RunnerRepository.window.mainpanel.p1.suitaDetails.saveDB(),
+                             RunnerRepository.window.mainpanel.p1.suitaDetails.getDelay(),true,null,
+                             RunnerRepository.window.mainpanel.p1.suitaDetails.getProjectDefs(),null);
+                }
+                if(cond){
                     CustomDialog.showInfo(JOptionPane.PLAIN_MESSAGE, 
                                             RunnerRepository.window, "Success",
                                             "File successfully saved");
@@ -446,12 +458,21 @@ public class Panel1 extends JPanel{
             user+=".xml";
                           
             XMLBuilder xml = new XMLBuilder(RunnerRepository.getSuite());
-            xml.createXML(true,suitaDetails.stopOnFail(),suitaDetails.preStopOnFail(),false,
+            if(RunnerRepository.isMaster()){
+                xml.createXML(true,suitaDetails.stopOnFail(),suitaDetails.preStopOnFail(),false,
                           RunnerRepository.window.mainpanel.p1.suitaDetails.getPreScript(),
                           RunnerRepository.window.mainpanel.p1.suitaDetails.getPostScript(),
                           suitaDetails.saveDB(),suitaDetails.getDelay(),RunnerRepository.window.mainpanel.p1.suitaDetails.getGlobalLibs(),
                           RunnerRepository.window.mainpanel.p1.suitaDetails.getProjectDefs(),RunnerRepository.window.mainpanel.p1.suitaDetails.getGlobalDownloadType()
                           );
+            } else {
+                xml.createXML(true,suitaDetails.stopOnFail(),suitaDetails.preStopOnFail(),false,
+                          RunnerRepository.window.mainpanel.p1.suitaDetails.getPreScript(),
+                          RunnerRepository.window.mainpanel.p1.suitaDetails.getPostScript(),
+                          suitaDetails.saveDB(),suitaDetails.getDelay(),RunnerRepository.window.mainpanel.p1.suitaDetails.getGlobalLibs(),
+                          RunnerRepository.window.mainpanel.p1.suitaDetails.getProjectDefs(),null);
+            }
+            
             xml.skip = false;//must set to true to save generate file as suite file
             if(xml.writeXMLFile(RunnerRepository.temp+RunnerRepository.getBar()+"Twister"+RunnerRepository.getBar()+"Users"+RunnerRepository.getBar()+user,
                              false, false, false)){
@@ -517,14 +538,27 @@ public class Panel1 extends JPanel{
                         }
                     }
                 }
-                if(sc.g.printXML(RunnerRepository.temp+RunnerRepository.getBar()+"Twister"+RunnerRepository.getBar()+"Users"+RunnerRepository.getBar()+user
+                
+                boolean cond;
+                if(RunnerRepository.isMaster()){
+                    cond = sc.g.printXML(RunnerRepository.temp+RunnerRepository.getBar()+"Twister"+RunnerRepository.getBar()+"Users"+RunnerRepository.getBar()+user
                              ,false,false,
                              RunnerRepository.window.mainpanel.p1.suitaDetails.stopOnFail(),
                              RunnerRepository.window.mainpanel.p1.suitaDetails.preStopOnFail(),
                              RunnerRepository.window.mainpanel.p1.suitaDetails.saveDB(),
                              RunnerRepository.window.mainpanel.p1.suitaDetails.getDelay(),false,null,
                              RunnerRepository.window.mainpanel.p1.suitaDetails.getProjectDefs(),
-                             RunnerRepository.window.mainpanel.p1.suitaDetails.getGlobalDownloadType())){
+                             RunnerRepository.window.mainpanel.p1.suitaDetails.getGlobalDownloadType());
+                } else {
+                    cond = sc.g.printXML(RunnerRepository.temp+RunnerRepository.getBar()+"Twister"+RunnerRepository.getBar()+"Users"+RunnerRepository.getBar()+user
+                             ,false,false,
+                             RunnerRepository.window.mainpanel.p1.suitaDetails.stopOnFail(),
+                             RunnerRepository.window.mainpanel.p1.suitaDetails.preStopOnFail(),
+                             RunnerRepository.window.mainpanel.p1.suitaDetails.saveDB(),
+                             RunnerRepository.window.mainpanel.p1.suitaDetails.getDelay(),false,null,
+                             RunnerRepository.window.mainpanel.p1.suitaDetails.getProjectDefs(),null);
+                }
+                if(cond){
                     CustomDialog.showInfo(JOptionPane.PLAIN_MESSAGE, 
                                             RunnerRepository.window, "Success",
                                             "File successfully saved");
@@ -542,13 +576,24 @@ public class Panel1 extends JPanel{
      */
     private void saveSuiteFile(){
         if(sc.g.getUser()!=null&&!sc.g.getUser().equals("")){
-            if(sc.g.printXML(sc.g.getUser(), false,false,
+            boolean cond;
+            if(RunnerRepository.isMaster()){
+                cond = sc.g.printXML(sc.g.getUser(), false,false,
                              RunnerRepository.window.mainpanel.p1.suitaDetails.stopOnFail(),
                              RunnerRepository.window.mainpanel.p1.suitaDetails.preStopOnFail(),
                              RunnerRepository.window.mainpanel.p1.suitaDetails.saveDB(),
                              RunnerRepository.window.mainpanel.p1.suitaDetails.getDelay(),
                              false,null,RunnerRepository.window.mainpanel.p1.suitaDetails.getProjectDefs(),
-                             RunnerRepository.window.mainpanel.p1.suitaDetails.getGlobalDownloadType()))
+                             RunnerRepository.window.mainpanel.p1.suitaDetails.getGlobalDownloadType());
+            } else {
+                cond = sc.g.printXML(sc.g.getUser(), false,false,
+                             RunnerRepository.window.mainpanel.p1.suitaDetails.stopOnFail(),
+                             RunnerRepository.window.mainpanel.p1.suitaDetails.preStopOnFail(),
+                             RunnerRepository.window.mainpanel.p1.suitaDetails.saveDB(),
+                             RunnerRepository.window.mainpanel.p1.suitaDetails.getDelay(),
+                             false,null,RunnerRepository.window.mainpanel.p1.suitaDetails.getProjectDefs(),null);
+            }
+            if(cond)
                 CustomDialog.showInfo(JOptionPane.PLAIN_MESSAGE, 
                                         RunnerRepository.window, "Success",
                                         "File successfully saved");
@@ -942,13 +987,24 @@ public class Panel1 extends JPanel{
                     st.deleteCharAt(st.length()-1);
                     String user = st.toString();
                     System.out.println("Saving last edited in:"+user);
-                    if(sc.g.printXML(user, false,false,
+                    boolean cond;
+                    if(RunnerRepository.isMaster()){
+                        cond = sc.g.printXML(user, false,false,
                                      suitaDetails.stopOnFail(),
                                      suitaDetails.preStopOnFail(),
                                      suitaDetails.saveDB(),
                                      suitaDetails.getDelay(),false,null,
                                      RunnerRepository.window.mainpanel.p1.suitaDetails.getProjectDefs(),
-                                     RunnerRepository.window.mainpanel.p1.suitaDetails.getGlobalDownloadType())){}
+                                     RunnerRepository.window.mainpanel.p1.suitaDetails.getGlobalDownloadType());
+                    } else {
+                        cond = sc.g.printXML(user, false,false,
+                                     suitaDetails.stopOnFail(),
+                                     suitaDetails.preStopOnFail(),
+                                     suitaDetails.saveDB(),
+                                     suitaDetails.getDelay(),false,null,
+                                     RunnerRepository.window.mainpanel.p1.suitaDetails.getProjectDefs(),null);
+                    }
+                    if(cond){}
                     else CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, 
                                                 RunnerRepository.window, "Warning", 
                                                 "Warning, temp file not saved");                    
@@ -1062,12 +1118,21 @@ public class Panel1 extends JPanel{
                     user+=".xml";
                                   
                     XMLBuilder xml = new XMLBuilder(clone);
-                    xml.createXML(true,suitaDetails.stopOnFail(),suitaDetails.preStopOnFail(),false,
+                    if(RunnerRepository.isMaster()){
+                        xml.createXML(true,suitaDetails.stopOnFail(),suitaDetails.preStopOnFail(),false,
                                   RunnerRepository.window.mainpanel.p1.suitaDetails.getPreScript(),
                                   RunnerRepository.window.mainpanel.p1.suitaDetails.getPostScript(),
                                   suitaDetails.saveDB(),suitaDetails.getDelay(),RunnerRepository.window.mainpanel.p1.suitaDetails.getGlobalLibs(),
                                   RunnerRepository.window.mainpanel.p1.suitaDetails.getProjectDefs(),RunnerRepository.window.mainpanel.p1.suitaDetails.getGlobalDownloadType()
                                   );
+                    } else {
+                        xml.createXML(true,suitaDetails.stopOnFail(),suitaDetails.preStopOnFail(),false,
+                                  RunnerRepository.window.mainpanel.p1.suitaDetails.getPreScript(),
+                                  RunnerRepository.window.mainpanel.p1.suitaDetails.getPostScript(),
+                                  suitaDetails.saveDB(),suitaDetails.getDelay(),RunnerRepository.window.mainpanel.p1.suitaDetails.getGlobalLibs(),
+                                  RunnerRepository.window.mainpanel.p1.suitaDetails.getProjectDefs(),null);
+                    }
+                    
                     xml.skip = false;//must set to true to save generate file as suite file
                     if(xml.writeXMLFile(RunnerRepository.temp+RunnerRepository.getBar()+"Twister"+RunnerRepository.getBar()+"Users"+RunnerRepository.getBar()+user,
                                      false, false, false)){
@@ -1381,8 +1446,16 @@ public class Panel1 extends JPanel{
                 chooser.setDialogTitle("Choose Location");         
                 chooser.setAcceptAllFileFilterUsed(false);    
                 if (chooser.showOpenDialog(Panel1.this) == JFileChooser.APPROVE_OPTION) {
-                    if(sc.g.printXML(chooser.getSelectedFile()+".xml", false,true,false,false,false,"",false,null,
-                       RunnerRepository.window.mainpanel.p1.suitaDetails.getProjectDefs(),RunnerRepository.window.mainpanel.p1.suitaDetails.getGlobalDownloadType())){
+                    boolean cond;
+                    if(RunnerRepository.isMaster()){
+                        cond = sc.g.printXML(chooser.getSelectedFile()+".xml", false,true,false,false,false,"",false,null,
+                                      RunnerRepository.window.mainpanel.p1.suitaDetails.getProjectDefs(),
+                                      RunnerRepository.window.mainpanel.p1.suitaDetails.getGlobalDownloadType());
+                    } else {
+                        cond = sc.g.printXML(chooser.getSelectedFile()+".xml", false,true,false,false,false,"",false,null,
+                                      RunnerRepository.window.mainpanel.p1.suitaDetails.getProjectDefs(),null);
+                    }
+                    if(cond){
                         CustomDialog.showInfo(JOptionPane.PLAIN_MESSAGE, Panel1.this,
                                                 "Success","File successfully saved ");}
                     else{
@@ -1441,8 +1514,13 @@ public class Panel1 extends JPanel{
             RunnerRepository.window.mainpanel.p1.sc.g.setUser(RunnerRepository.getUsersDirectory()+
                                                                 System.getProperty("file.separator")+
                                                                 user+".xml");
-            sc.g.printXML(sc.g.getUser(),false,false,false,false,false,"",false,null,null,
+            if(RunnerRepository.isMaster()){
+                sc.g.printXML(sc.g.getUser(),false,false,false,false,false,"",false,null,null,
                         RunnerRepository.window.mainpanel.p1.suitaDetails.getGlobalDownloadType());
+            } else {
+                sc.g.printXML(sc.g.getUser(),false,false,false,false,false,"",false,null,null,
+                        RunnerRepository.window.mainpanel.p1.suitaDetails.getGlobalDownloadType());
+            }
 //             (new XMLBuilder(RunnerRepository.getSuite())).writeXMLFile(RunnerRepository.getUsersDirectory()+
 //                                                                 System.getProperty("file.separator")+
 //                                                                 user+".xml",false,false,false);

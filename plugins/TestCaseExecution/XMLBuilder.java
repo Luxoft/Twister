@@ -129,9 +129,11 @@ public class XMLBuilder{
                 root.appendChild(userdef);}
         }
         root.appendChild(em2);
-         em2 = document.createElement("DownloadLibraries");
-         em2.appendChild(document.createTextNode(downloadlibraryoption));
-         root.appendChild(em2);
+        if(RunnerRepository.isMaster()){
+            em2 = document.createElement("DownloadLibraries");
+            em2.appendChild(document.createTextNode(downloadlibraryoption));
+            root.appendChild(em2);
+        }
         em2 = document.createElement("ScriptPre");
         em2.appendChild(document.createTextNode(prescript));
         root.appendChild(em2);
@@ -229,14 +231,13 @@ public class XMLBuilder{
             em2 = document.createElement("tsName");
             em2.appendChild(document.createTextNode(suite.get(i).getName()));
             rootElement.appendChild(em2);
-            
-            if(!skip){
-                em2 = document.createElement("Repeat");
-                em2.appendChild(document.createTextNode(suite.get(i).getRepeat()+""));
-                rootElement.appendChild(em2);
+            if(RunnerRepository.isMaster()){
+                if(!skip){
+                    em2 = document.createElement("Repeat");
+                    em2.appendChild(document.createTextNode(suite.get(i).getRepeat()+""));
+                    rootElement.appendChild(em2);
+                }
             }
-            
-            
             em2 = document.createElement("PanicDetect");
             em2.appendChild(document.createTextNode(suite.get(i).isPanicdetect()+""));
             rootElement.appendChild(em2);
@@ -280,7 +281,6 @@ public class XMLBuilder{
                         return false;
                     }
                     if(ep.equalsIgnoreCase("false"))return false;
-                    //dependenciestags.put(text, ep);
                     dependenciestags.put(text, suite.get(i).getPos().get(0).toString()+":"+ep);
                     idtext.setNodeValue(idtext.getNodeValue()+"#"+ep);//if testsuites.xml(skip) add ep to id
                     suite.get(i).setID(idtext.getNodeValue());
@@ -443,13 +443,13 @@ public class XMLBuilder{
                 }
             }
             tc.appendChild(em3);
-            
-            if(!skip){
-                em3 = document.createElement("Repeat");
-                em3.appendChild(document.createTextNode(item.getRepeat()+""));  
-                tc.appendChild(em3);
-            }
-            
+            if(RunnerRepository.isMaster()){
+                if(!skip){
+                    em3 = document.createElement("Repeat");
+                    em3.appendChild(document.createTextNode(item.getRepeat()+""));  
+                    tc.appendChild(em3);
+                }
+            }            
             em3 = document.createElement("ID");
             Text idtext = document.createTextNode(item.getID());
             em3.appendChild(idtext);
@@ -476,7 +476,6 @@ public class XMLBuilder{
             if(skip){//if testsuites.xml add ep to id and dependency to hash
                 idtext.setNodeValue(item.getID()+"#"+itemparent.getEpId()[0]);
                 item.setID(item.getID()+"#"+itemparent.getEpId()[0]);
-                //dependenciestags.put(text, itemparent.getEpId()[0]); 
                 dependenciestags.put(text, itemparent.getPos().get(0).toString()+":"+itemparent.getEpId()[0]); 
             }
             
@@ -569,12 +568,13 @@ public class XMLBuilder{
             Element em2 = document.createElement("tsName");
             em2.appendChild(document.createTextNode(item.getName()));
             rootElement2.appendChild(em2);
-            if(!skip){
-                em2 = document.createElement("Repeat");
-                em2.appendChild(document.createTextNode(item.getRepeat()+""));
-                rootElement2.appendChild(em2);
+            if(RunnerRepository.isMaster()){
+                if(!skip){
+                    em2 = document.createElement("Repeat");
+                    em2.appendChild(document.createTextNode(item.getRepeat()+""));
+                    rootElement2.appendChild(em2);
+                }
             }
-            
             em2 = document.createElement("ID");
             Text idtext = document.createTextNode(item.getID());
             em2.appendChild(idtext);
@@ -603,7 +603,6 @@ public class XMLBuilder{
                     EP = document.createElement("SutName");
                     EP.appendChild(document.createTextNode(item.getEpId()[1]));
                     rootElement2.appendChild(EP);
-                    //dependenciestags.put(text, item.getEpId()[0]); 
                     dependenciestags.put(text, item.getPos().get(0).toString()+":"+item.getEpId()[0]);
                     idtext.setNodeValue(idtext.getNodeValue()+"#"+item.getEpId()[0]);
                     item.setID(idtext.getNodeValue()+"#"+item.getEpId()[0]);

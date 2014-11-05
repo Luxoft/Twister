@@ -152,7 +152,7 @@ public class Grafic extends JPanel{
     /*
      * handle up down press
      */
-	public void keyDownPressed(){
+    public void keyDownPressed(){
         ArrayList <Integer> temp = new ArrayList <Integer>();  
         int last = selectedcollection.size()-1;
         if(last<0)return;
@@ -180,12 +180,6 @@ public class Grafic extends JPanel{
                     RunnerRepository.window.mainpanel.p1.suitaDetails.setParent(next);
                     if(next.getType()==2)RunnerRepository.window.mainpanel.p1.suitaDetails.setSuiteDetails(false);
                     else RunnerRepository.window.mainpanel.p1.suitaDetails.setTCDetails();
-                    
-                    
-//                     RunnerRepository.window.mainpanel.p1.suitaDetails.setGlobalDetails();
-//                     RunnerRepository.window.mainpanel.p1.suitaDetails.clearDefs();
-//                     RunnerRepository.window.mainpanel.p1.suitaDetails.setParent(null);
-//                     RunnerRepository.window.mainpanel.p1.testconfigmngmnt.setParent(null);
                 }}
             else{
                 RunnerRepository.window.mainpanel.p1.suitaDetails.setGlobalDetails();
@@ -239,12 +233,6 @@ public class Grafic extends JPanel{
                     RunnerRepository.window.mainpanel.p1.suitaDetails.setParent(next);
                     if(next.getType()==2)RunnerRepository.window.mainpanel.p1.suitaDetails.setSuiteDetails(false);
                     else RunnerRepository.window.mainpanel.p1.suitaDetails.setTCDetails();
-                    
-                    
-//                     RunnerRepository.window.mainpanel.p1.suitaDetails.setGlobalDetails();
-//                     RunnerRepository.window.mainpanel.p1.suitaDetails.clearDefs();
-//                     RunnerRepository.window.mainpanel.p1.suitaDetails.setParent(null);
-//                     RunnerRepository.window.mainpanel.p1.testconfigmngmnt.setParent(null);
                 }
             } else{
                 RunnerRepository.window.mainpanel.p1.suitaDetails.setGlobalDetails();
@@ -295,14 +283,7 @@ public class Grafic extends JPanel{
                 else{dragammount=0;
                     getClickedItem(xStart,yStart);
                     if(selected.size()>0){
-//                         if(!(selectedcollection.size()<2
-//                         &&
-//                         getItem(selected,false).isPrerequisite()
-//                         )){//must not be prerequisite
                             handleDraggedItems();}}}}}
-//                         }
-
-
 
     /*
      * Dragged items method
@@ -323,11 +304,6 @@ public class Grafic extends JPanel{
                 for(int j=0;j<selectedcollection.get(i).length;j++){
                     temp.add(new Integer(selectedcollection.get(i)[j]));}
                 Item theone2 = getItem(temp,false);  
-//                 if(theone2.getType()==0){
-//                     getItem(temp,false).select(false);
-//                     selectedcollection.remove(i);
-//                     temp.clear();
-//                     continue;}
                 clone.add(theone2);
                 temp.clear();}                                
             removeSelected();
@@ -348,7 +324,6 @@ public class Grafic extends JPanel{
                         break;}}
                 if(found)break;}}
         for(int i=0;i<unnecessary.size();i++){clone.remove(unnecessary.get(i));}}
-                            
 
             
     /*
@@ -499,7 +474,7 @@ public class Grafic extends JPanel{
                     if(temp.size()>1)temp.remove(temp.size()-1);
                     Item parent = getItem(temp,false);                                
                     if(parent.getType()==1){
-                        dropOnFirstLevel(upper);}  //if upper parent is tc=>ison level 0, will not have parent
+                        dropOnFirstLevel(upper);}  //if upper parent is tc=>is on level 0, will not have parent
                     else{ //parent is not tc=>is not on level 0, must insert to parent or after parent
                         if((parent.getSubItemsNr()-1==upper.getPos().get(upper.getPos().size()-1)) &&
                                 !upper.getSubItem(0).isVisible()){//if tc is last in suite                                    
@@ -568,9 +543,7 @@ public class Grafic extends JPanel{
             else if(getItem(selected,false).getType()==1){//inserted in tc
                 Item item = getItem(selected,false);
                 boolean up = isUpperHalf(item, mouseY);
-                if(up
-//                 &&!item.isPrerequisite()
-                ){//in upper half of tc, tc is not prerequisite
+                if(up){//in upper half of tc, tc is not prerequisite
                     Item upper = item; //tc the element in witch is made drop
                     int index = upper.getPos().get(upper.getPos().size()-1).intValue(); //last position value of tc
                     int position = upper.getPos().size()-1; //what nr is the element is the one from witch made drop
@@ -1629,7 +1602,7 @@ public class Grafic extends JPanel{
             public void actionPerformed(ActionEvent ev){
                 addConfigurations(true);}});
         item = new JMenuItem("Repeat");
-        p.add(item);
+        if(RunnerRepository.isMaster())p.add(item);
         item.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 reapeatItem(tc);
@@ -1677,7 +1650,7 @@ public class Grafic extends JPanel{
                 exportSuiteToPredefined(suita);
             }});
         item = new JMenuItem("Repeat");
-        p.add(item);
+        if(RunnerRepository.isMaster())p.add(item);
         item.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 reapeatItem(suita);
@@ -1745,14 +1718,26 @@ public class Grafic extends JPanel{
         if(user!=null&&!user.equals("")){
             ArrayList<Item>array = new ArrayList<Item>();
             array.add(suite);
-            if(printXML(RunnerRepository.temp+RunnerRepository.getBar()+"Twister"+RunnerRepository.getBar()+"Users"+RunnerRepository.getBar()+user+".xml",
+            boolean cond;
+            if(RunnerRepository.isMaster()){
+                cond = printXML(RunnerRepository.temp+RunnerRepository.getBar()+"Twister"+RunnerRepository.getBar()+"Users"+RunnerRepository.getBar()+user+".xml",
                          false,false,
                          RunnerRepository.window.mainpanel.p1.suitaDetails.stopOnFail(),
                          RunnerRepository.window.mainpanel.p1.suitaDetails.preStopOnFail(),
                          RunnerRepository.window.mainpanel.p1.suitaDetails.saveDB(),
                          RunnerRepository.window.mainpanel.p1.suitaDetails.getDelay(),
                          true,array,RunnerRepository.window.mainpanel.p1.suitaDetails.getProjectDefs(),
-                         RunnerRepository.window.mainpanel.p1.suitaDetails.getGlobalDownloadType())){
+                         RunnerRepository.window.mainpanel.p1.suitaDetails.getGlobalDownloadType());
+            } else {
+                cond = printXML(RunnerRepository.temp+RunnerRepository.getBar()+"Twister"+RunnerRepository.getBar()+"Users"+RunnerRepository.getBar()+user+".xml",
+                         false,false,
+                         RunnerRepository.window.mainpanel.p1.suitaDetails.stopOnFail(),
+                         RunnerRepository.window.mainpanel.p1.suitaDetails.preStopOnFail(),
+                         RunnerRepository.window.mainpanel.p1.suitaDetails.saveDB(),
+                         RunnerRepository.window.mainpanel.p1.suitaDetails.getDelay(),
+                         true,array,RunnerRepository.window.mainpanel.p1.suitaDetails.getProjectDefs(),null);
+            }
+            if(cond){
                 CustomDialog.showInfo(JOptionPane.PLAIN_MESSAGE, 
                                         RunnerRepository.window, "Success",
                                         "File successfully saved");
@@ -2289,7 +2274,8 @@ public class Grafic extends JPanel{
                             (int)r.getY(),(int)r.getY()+(int)r.getHeight()-5};
                 g.fillPolygon(x2,y2,4);}}
         if(item.getEpId()!=null && item.getEpId().length>0){
-            g.setFont(new Font("TimesRoman", Font.PLAIN, 11));
+            font = font.deriveFont(11);
+            g.setFont(font);
             StringBuilder EP = new StringBuilder();
             for(String s:item.getEpId()){
                 EP.append(s+";");
@@ -2338,11 +2324,22 @@ public class Grafic extends JPanel{
         //skip = true
         try{if(array==null)array = RunnerRepository.getSuite();
             XMLBuilder xml = new XMLBuilder(array);
-            if(!xml.createXML(skip,stoponfail,prestoponfail,false,
+            boolean cond;
+            if(RunnerRepository.isMaster()){
+                cond = xml.createXML(skip,stoponfail,prestoponfail,false,
                           RunnerRepository.window.mainpanel.p1.suitaDetails.getPreScript(),
                           RunnerRepository.window.mainpanel.p1.suitaDetails.getPostScript(),
                           savedb,delay,RunnerRepository.window.mainpanel.p1.suitaDetails.getGlobalLibs(),
-                          projdefined,downloadlibraryoption)){
+                          projdefined,downloadlibraryoption);
+            } else {
+                cond = xml.createXML(skip,stoponfail,prestoponfail,false,
+                          RunnerRepository.window.mainpanel.p1.suitaDetails.getPreScript(),
+                          RunnerRepository.window.mainpanel.p1.suitaDetails.getPostScript(),
+                          savedb,delay,
+                          RunnerRepository.window.mainpanel.p1.suitaDetails.getGlobalLibs(),
+                          projdefined,null);
+            }
+            if(!cond){
                 return false;
             }
             return xml.writeXMLFile(user,local,false,lib);}
@@ -2421,26 +2418,21 @@ public class Grafic extends JPanel{
                                                                     lp.getSelected()[i].getPath()[RunnerRepository.window.
                                                                     mainpanel.p1.lp.getSelected()[i].getPathCount()-1];
                         
-                        try{name = name.split(RunnerRepository.getPredefinedSuitesPath())[1];}
-                        catch(Exception e){
-                            System.out.println("Could not find projects path:"+RunnerRepository.getTestSuitePath()+" in filename:"+name);
-                            e.printStackTrace();}
-                            
-                            try{String content = new String(RunnerRepository.getRemoteFileContent(RunnerRepository.getPredefinedSuitesPath()+name,false,null));             
-                                String [] filename = name.split("/");
-                                File file = new File(RunnerRepository.temp+RunnerRepository.getBar()+"Twister"+
-                                                     RunnerRepository.getBar()+"Users"+RunnerRepository.getBar()+   
-                                                     filename[filename.length-1]);
-                                BufferedWriter writer = new BufferedWriter(new FileWriter(file));
-                                writer.write(content);
-                                writer.close();
-                                new XMLReader(file).parseXML(getGraphics(), false, list, false);
-                                for(Item itm :list){
-                                    clone.add(itm);
-                                }
-                            } catch (Exception e){
-                                e.printStackTrace();
+                        try{
+                            String path = RunnerRepository.getPredefinedSuitesPath();
+                            String content = RunnerRepository.readPredefinedProjectFile(name);
+                            File file = new File(RunnerRepository.temp+RunnerRepository.getBar()+"Twister"+
+                                                 RunnerRepository.getBar()+"Users"+RunnerRepository.getBar()+name.replace(path, ""));
+                            BufferedWriter writer = new BufferedWriter(new FileWriter(file));
+                            writer.write(content);
+                            writer.close();
+                            new XMLReader(file).parseXML(getGraphics(), false, list, false);
+                            for(Item itm :list){
+                                clone.add(itm);
                             }
+                        } catch (Exception e){
+                            e.printStackTrace();
+                        }
                     }
                 }
                 handleMouseDroped(y);
@@ -2448,10 +2440,6 @@ public class Grafic extends JPanel{
                 if(parent!=null)checkSameName(parent);
             }
         }else if(source.equals("clearcase")){
-            
-            
-            
-            
             deselectAll();
             requestFocus();
             int max = RunnerRepository.window.mainpanel.p1.cp.getSelected().length;

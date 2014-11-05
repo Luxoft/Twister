@@ -409,8 +409,12 @@ public class UnitTesting extends JFrame {
             parent.setEpId(selected);
             items.add(parent);
             XMLBuilder xml = new XMLBuilder(items);
-            xml.createXML(false,false,false,true,"","",false,"",null,RunnerRepository.window.mainpanel.p1.suitaDetails.getProjectDefs()
-                            ,RunnerRepository.window.mainpanel.p1.suitaDetails.getGlobalDownloadType());
+            if(RunnerRepository.isMaster()){
+                xml.createXML(false,false,false,true,"","",false,"",null,RunnerRepository.window.mainpanel.p1.suitaDetails.getProjectDefs()
+                                ,RunnerRepository.window.mainpanel.p1.suitaDetails.getGlobalDownloadType());
+            } else {
+                xml.createXML(false,false,false,true,"","",false,"",null,RunnerRepository.window.mainpanel.p1.suitaDetails.getProjectDefs(),null);
+            }
             String dir = RunnerRepository.getXMLRemoteDir();
             String [] path = dir.split("/");
             StringBuffer result2 = new StringBuffer();
@@ -428,12 +432,10 @@ public class UnitTesting extends JFrame {
                 public void run(){
                     try{
                         run.setText("Stop");
-//                         run.setEnabled(false);
                         String result = RunnerRepository.getRPCClient().execute("run_temporary",
                                                             new Object[]{RunnerRepository.getUser(),
                                                                         filelocation})+"";
-                        run.setText("Run");
-//                         run.setEnabled(true);                    
+                        run.setText("Run");                  
                         if(result.indexOf("ERROR")!=-1){
                             CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, 
                                                   UnitTesting.this, "Failed", 
