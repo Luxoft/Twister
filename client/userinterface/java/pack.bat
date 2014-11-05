@@ -9,7 +9,7 @@ SET EXTLIBS="extlibs/Twister.jar;extlibs/gson-2.2.1.jar;extlibs/ws-commons-util-
 javac.exe -deprecation -d classes -source 1.6 -target 1.6 -cp %EXTLIBS% src/*.java
 
 cd classes
-jar cfm ../target/applet.jar ../manifestaddition.txt Icons  *.class
+jar cfm ../target/applet.jar ../manifestaddition.txt Icons *.class
 
 cd ../target
 

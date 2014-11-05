@@ -63,7 +63,8 @@ mkdir classes
 mkdir target
 $JDK_PATH/javac  -deprecation -d classes -source 1.7 -target 1.7  -cp $EXTLIBS *.java
 cd classes
-$JDK_PATH/jar  cfm ../target/UserManagement.jar ../manifestaddition.txt *.class
+cp ../back.png back.png
+$JDK_PATH/jar  cfm ../target/UserManagement.jar ../manifestaddition.txt back.png *.class
 cp ../target/UserManagement.jar $CURRENT_PWD/extlibs
 
 cd $CURRENT_PWD
