@@ -1,6 +1,6 @@
 /*
 File: Grafic.java ; This file is part of Twister.
-Version: 3.0033
+Version: 3.0034
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -2799,7 +2799,13 @@ public class Grafic extends JPanel{
             } else if(item.getType()==1){//tc
                 temp.remove(temp.size()-1);
                 suiteitem = getItem(temp,test);
-                suiteitem = suiteitem.getSubItem(item.getPos().get(item.getPos().size()-1));
+                if(suiteitem!=null){
+                    if(suiteitem.getSubItemsNr()>item.getPos().get(item.getPos().size()-1)){
+                        suiteitem = suiteitem.getSubItem(item.getPos().get(item.getPos().size()-1));
+                    } else {
+                        suiteitem = null;
+                    }
+                }
             } else {//suite
                 suiteitem = getItem(temp,test);
             }
