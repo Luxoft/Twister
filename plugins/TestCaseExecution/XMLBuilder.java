@@ -247,10 +247,12 @@ public class XMLBuilder{
             Iterator iter = hash.keySet().iterator();
             while(iter.hasNext()){
                 Item elem = (Item)iter.next();
-                sb.append(elem.getID());
-                sb.append(":");
-                sb.append(hash.get(elem));
-                sb.append(";");
+                if(elem!=null){
+                    sb.append(elem.getID());
+                    sb.append(":");
+                    sb.append(hash.get(elem));
+                    sb.append(";");
+                }
             }
             Element dependency = document.createElement("Dependency");
             Text text = document.createTextNode(sb.toString());
