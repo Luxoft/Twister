@@ -1,6 +1,6 @@
 /*
 File: XMLReader.java ; This file is part of Twister.
-Version: 2.025
+Version: 2.026
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -395,12 +395,10 @@ public class XMLReader{
                     continue;
                 }
                 else if(fstNode.getNodeName().equals("ScriptPre")){
-                    try{
-                        String script = fstNode.getChildNodes().item(0).getNodeValue().toString();
-                        RunnerRepository.window.mainpanel.p1.suitaDetails.setPreScript(script);}
-                    catch(Exception e){
-                        RunnerRepository.window.mainpanel.p1.suitaDetails.setPreScript("");
-                    }
+                    String script = "";
+                    try{script = fstNode.getChildNodes().item(0).getNodeValue().toString();}
+                    catch(Exception e){script = "";}
+                    RunnerRepository.window.mainpanel.p1.suitaDetails.setPreScript(script);
                     continue;
                 }
                 else if(fstNode.getNodeName().equals("ClearCaseView")){
@@ -412,10 +410,9 @@ public class XMLReader{
                     }
                     continue;
                 }
-                else if(RunnerRepository.isMaster()){
-                        if(fstNode.getNodeName().equals("DownloadLibraries")){
-                        try{
-                            String librarydownloadtype = fstNode.getChildNodes().item(0).getNodeValue().toString();
+                else if(fstNode.getNodeName().equals("DownloadLibraries")){
+                    if(RunnerRepository.isMaster()){
+                        try{String librarydownloadtype = fstNode.getChildNodes().item(0).getNodeValue().toString();
                             RunnerRepository.window.mainpanel.p1.suitaDetails.setGlobalDownloadType(librarydownloadtype);}
                         catch(Exception e){
                             RunnerRepository.window.mainpanel.p1.suitaDetails.setGlobalDownloadType(null);
@@ -431,11 +428,10 @@ public class XMLReader{
                     continue;
                 }
                 else if(fstNode.getNodeName().equals("libraries")){
-                    
-                        String [] libraries = {};
-                        try{libraries = fstNode.getChildNodes().item(0).getNodeValue().toString().split(";");}
-                        catch(Exception e){libraries = new String[]{};}
-                        RunnerRepository.window.mainpanel.p1.suitaDetails.setGlobalLibs(libraries);
+                    String [] libraries = {};
+                    try{libraries = fstNode.getChildNodes().item(0).getNodeValue().toString().split(";");}
+                    catch(Exception e){libraries = new String[]{};}
+                    RunnerRepository.window.mainpanel.p1.suitaDetails.setGlobalLibs(libraries);
                     continue;
                 } else if(fstNode.getNodeName().equals("UserDefined")){
                     try{
