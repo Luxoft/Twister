@@ -1,6 +1,6 @@
 /*
 File: RunnerRepository.java ; This file is part of Twister.
-Version: 3.007
+Version: 3.008
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -948,7 +948,8 @@ public class RunnerRepository {
      * s - suite index in list
      */
     public static Item getSuita(int s){
-        return suite.get(s);}
+        if(suite.size()>s)return suite.get(s);
+        else return null;}
         
     /*
      * method to get suite list size
@@ -1074,7 +1075,8 @@ public class RunnerRepository {
      * i - suite index in test suite list
      */
     public static Item getTestSuita(int i){
-        return suitetest.get(i);}
+        if(suitetest.size()>i)return suitetest.get(i);
+        else return null;}
     
     /*
      * test suite path on server
