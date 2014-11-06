@@ -84,18 +84,20 @@ public class ConfigFiles extends JPanel{
         paths.setMaximumSize(new Dimension(930,1144));
         setLayout(null);
         ttcpath = new JTextField();
-//         JButton index = new JButton("Generate Tags");
-//         index.addActionListener(new ActionListener(){
-//             public void actionPerformed(ActionEvent ev){
-//                 RunnerRepository.window.mainpanel.p1.ep.generateIndex();
-//             }
-//         });
-//         index.setPreferredSize(new Dimension(120,20));
+        JButton index = new JButton("Generate Tags");
+        index.addActionListener(new ActionListener(){
+            public void actionPerformed(ActionEvent ev){
+                RunnerRepository.window.mainpanel.p1.ep.generateIndex();
+            }
+        });
+        index.setPreferredSize(new Dimension(120,20));
         JPanel p = addPanel("TestCase Source Path",
                 "Master directory with the test cases that can"+
                 " be run by the framework",
                 ttcpath,RunnerRepository.TESTSUITEPATH,10,true,null);
-//         p.add(index);
+        if(RunnerRepository.isMaster()){
+            p.add(index);
+        }
         tMasterXML = new JTextField();
         tUsers = new JTextField();
         
