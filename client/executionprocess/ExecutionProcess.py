@@ -670,6 +670,8 @@ class TwisterRunner(object):
         if not dl_libs or dl_libs == 'flat':
             os.chdir(libs_path)
             llen = len(libs_path)
+
+            # in the first run we want to flatten the files
             for dirName, subdirList, fileList in os.walk(libs_path):
                 for lib_name in fileList:
                     lib_name = os.path.join(dirName, lib_name)
@@ -679,6 +681,9 @@ class TwisterRunner(object):
                         os.remove(lib_name)
                     except Exception:
                         pass # Nothing to report
+
+            # on second run, we delete the directories
+            for dirName, subdirList, fileList in os.walk(libs_path):
                 if dirName > libs_path:
                     try:
                         shutil.rmtree(dirName)
