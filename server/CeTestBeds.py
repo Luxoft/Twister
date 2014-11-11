@@ -1,6 +1,6 @@
 # File: CeTestBeds.py ; This file is part of Twister.
 
-# version: 3.001
+# version: 3.002
 
 # Copyright (C) 2012-2014, Luxoft
 
@@ -282,9 +282,9 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
 
 
     def save_tb(self, props={}):
-        '''
+        """
         Function used to write the changes on HDD.
-        '''
+        """
         logFull('CeTestBeds:_save {}'.format(props))
         log = []
 
@@ -306,10 +306,10 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
 
     @cherrypy.expose
     def get_tb(self, query, props={}):
-        '''
+        """
         Get the current version of the tb modified and unsaved or
         the version from the disk.
-        '''
+        """
         logDebug('CeTestBeds:get_tb {} {}'.format(query, props))
         user_info = self.user_info(props)
 
@@ -337,10 +337,10 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
 
     @cherrypy.expose
     def delete_tb(self, res_query, props={}):
-        '''
+        """
         Permanently delete a resource.
-        '''
-        logDebug('CeTestBeds:delete_tb {} {}'.format(res_query, props))
+        """
+        logDebug('Delete TB `{}`, props {}.'.format(res_query, props))
 
         resources = self.resources
         user_info = self.user_info(props)
@@ -384,7 +384,7 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
                 child = result
             # modify to a component
             else:
-                base_path = "/".join(result['path'][1:])
+                base_path = '/'.join(result['path'][1:])
                 child = self.get_path(base_path, result)
             try:
                 child['meta'].pop(meta)
@@ -414,7 +414,7 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
                     logError('Cannot access reserved resource, path or ID `{}` !'.format(res_query))
                     return False
                 #get the direct parent of the resource
-                base_path = "/".join(reserved_node['path'][1:-1])
+                base_path = '/'.join(reserved_node['path'][1:-1])
                 extract_r = self.get_path(base_path, reserved_node)
                 try:
                     extract_r['children'].pop(reserved_node['path'][-1])
@@ -428,11 +428,10 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
 
     @cherrypy.expose
     def rename_tb(self, query, new_name, props={}):
-        '''
+        """
         Rename a resource.
-        '''
-
-        logDebug('CeTestBeds:rename_tb query = {} new_name = {} props = {}\n'.format(query, new_name, props))
+        """
+        logDebug('Rename TB `{}`, new name `{}`, props {}.'.format(query, new_name, props))
 
         user_info = self.user_info(props)
 
@@ -445,17 +444,17 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
         _isResourceReserved = self.is_resource_reserved(query, props)
         if _isResourceReserved and _isResourceReserved != user_info[0]:
             msg = 'User {}: The resource is reserved for {} !'.format(user_info[0], _isResourceReserved)
-            logError(msg)
+            logWarning(msg)
             return '*ERROR* ' + msg
 
         _isResourceLocked = self.is_resource_locked(query)
         if _isResourceLocked and _isResourceLocked != user_info[0]:
-            msg = 'User {}: Reserve resource: The resource is locked for {} !'.format(user_info[0], _isResourceLocked)
-            logError(msg)
+            msg = 'User {}: The resource is locked for {} !'.format(user_info[0], _isResourceLocked)
+            logWarning(msg)
             return '*ERROR* ' + msg
 
         if '/' in new_name or ':' in new_name:
-            logError('New resource name cannot contain `/` or `:`!')
+            logWarning('New resource name cannot contain `/` or `:`!')
             return False
 
         # If no resources...
@@ -468,45 +467,51 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
         result = self.get_reserved_resource(query, props)
 
         if not result:
-            logError('Cannot access reserved resource, path or ID `{}` !')
+            logWarning('Cannot access reserved TB `{}` !')
             return False
 
         if result['path'][-1] == new_name:
-            logDebug('No changes have been made to `{}`.'.format( new_name))
+            logWarning('Nothing to rename for TB `{}` !'.format(new_name))
             return True
 
         with self.ren_lock:
             # If must rename a Meta info
             if meta:
                 try:
-                    # modify meta to the parent
+                    # Modify meta to the parent
                     if len(result['path']) == 1:
                         child = result
-                    # modify to a component
+                    # Modify to a component
                     else:
-                        base_path = "/".join(result['path'][1:])
+                        base_path = '/'.join(result['path'][1:])
                         child = self.get_path(base_path, result)
 
                     child['meta'][new_name] = child['meta'].pop(meta)
                 except:
-                    msg = "This meta that you entered thoes not exist {}".format(meta)
-                    logDebug(msg)
-                    return "false"
+                    msg = 'Rename meta `{}` error, for TB `{}`!'.format(meta, result['path'][-1])
+                    logWarning(msg)
+                    return 'false'
                 return self.save_reserved_tb(query, props)
+
             # If must rename a normal node
             else:
-                # the parent is directly from the root and we want to rename its immediate children
+                # The parent is directly from the root and we want to rename its immediate children
                 if len(result['path']) == 2:
                     result['children'][new_name] = result['children'].pop(result['path'][-1])
-                # the component we want to rename is deep in the tree
+                # The component we want to rename is deep in the tree
                 elif len(result['path']) > 2:
-                    base_path = "/".join(result['path'][1:-1])
+                    base_path = '/'.join(result['path'][1:-1])
                     parent = self.get_path(base_path, result)
+                    if not isinstance(parent, dict):
+                        msg = msg = 'Rename error for TB `{}`, invalid parent on {}!'.format(result['path'][-1], result['id'])
+                        logWarning(msg)
+                        return 'false'
                     parent['children'][new_name] = parent['children'].pop(result['path'][-1])
                 else:
                     result['path'] = [new_name]
-                # we only have to change the current path and the path of the children
+                # Only have to change the current path and the path of the children
                 result['path'] = [result['path'][0]]
+                # Recursive update paths
                 self.change_path(result, result['path'])
 
         return True
@@ -514,11 +519,10 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
 
     @cherrypy.expose
     def create_component_tb(self, name, parent=None, props={}):
-        '''
+        """
         Create a component for an existing TB.
         Return new component's id.
-        '''
-
+        """
         user_info = self.user_info(props)
 
         props = self.valid_props(props)
@@ -550,7 +554,7 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
             #the resources is deep in the tree, we have to get its direct parent
             if len(parent_p['path']) >= 2:
                 full_path = parent_p['path']
-                base_path = "/".join(parent_p['path'][1:])
+                base_path = '/'.join(parent_p['path'][1:])
                 parent_p = self.get_path(base_path, parent_p)
                 parent_p['path'] = full_path
 
@@ -573,10 +577,10 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
 
     @cherrypy.expose
     def create_new_tb(self, name, parent=None, props={}):
-        '''
+        """
         Create new test bed.
         Return the id of the new created tb.
-        '''
+        """
 
         user_info = self.user_info(props)
         resources = self.resources
@@ -621,9 +625,9 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
 
     @cherrypy.expose
     def update_meta_tb(self, name, parent=None, props={}):
-        '''
+        """
         Modify a resource, using a name, a parent Path or ID and some properties.
-        '''
+        """
 
         logDebug('parent = {} -- props = {} -- name = {}'.format(parent, props, name))
         user_info = self.user_info(props)
@@ -635,10 +639,10 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
             logDebug(msg)
             return "*ERROR* " + msg
 
-        if parent == "/" or parent == "1":
+        if parent == '/' or parent == "1":
             #we can not reserve the root so we just take the TB we need
-            if name[0] != "/":
-                name = "/" + name
+            if name[0] != '/':
+                name = '/' + name
             verifyReserved = name
         else:
             #take the TB that has the component we need
@@ -682,7 +686,7 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
             #the resources is deep in the tree, we have to get its direct parent
             if len(parent_p['path']) >= 2:
                 full_path = parent_p['path']
-                base_path = "/".join(parent_p['path'][1:])
+                base_path = '/'.join(parent_p['path'][1:])
                 parent_p = self.get_path(base_path, parent_p)
                 parent_p['path'] = full_path
 
@@ -730,36 +734,36 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
 
     @cherrypy.expose
     def reserve_tb(self, res_query, props={}):
-        '''
+        """
         Reserve TB. Add to reservedResources.
-        '''
+        """
 
         return self.reserve_resource(res_query, props)
 
 
     @cherrypy.expose
     def lock_tb(self, res_query, props={}):
-        '''
+        """
         Lock TB. Add to lockedResources
-        '''
+        """
 
         return self.lock_resource(res_query, props)
 
 
     @cherrypy.expose
     def unlock_tb(self, res_query, props={}):
-        '''
+        """
         Unlock TB. Delete from lockedResources.
-        '''
+        """
 
         return self.unlock_resource(res_query, props)
 
 
     @cherrypy.expose
     def is_tb_locked(self, res_query):
-        '''
+        """
         Verify if TB is locked.
-        '''
+        """
 
         result = self.is_resource_locked(res_query)
         if not result:
@@ -769,9 +773,9 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
 
     @cherrypy.expose
     def is_tb_reserved(self, res_query, props={}):
-        '''
+        """
         Verify if TB is reserved.
-        '''
+        """
 
         result = self.is_resource_reserved(res_query, props)
         if not result:
@@ -781,18 +785,18 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
 
     @cherrypy.expose
     def list_reserved_tb(self):
-        '''
+        """
         Return all the reserved TBs.
-        '''
+        """
 
         return self.reservedResources
 
 
     @cherrypy.expose
     def list_locked_tb(self):
-        '''
+        """
         Return all the locked TBs.
-        '''
+        """
 
         return self.lockedResources
 
@@ -812,9 +816,9 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
         result = []
 
         def quick_find_path(dictionary, spath):
-            '''
+            """
             Find path.
-            '''
+            """
 
             for usr, locks in dictionary.iteritems():
                 for id_tb, data in locks.iteritems():
@@ -846,9 +850,9 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
 
     @cherrypy.expose
     def export_tb_xml(self, xml_file, props={}):
-        '''
+        """
         Export as XML file.
-        '''
+        """
         user_info = self.user_info(props)
 
         logDebug('User {}: exporting to XML file `{}`'.format(user_info[0], xml_file))
@@ -873,10 +877,10 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
 
     @cherrypy.expose
     def import_tb_xml(self, xml_file, props={}):
-        '''
+        """
         Import one XML file.
         WARNING! This erases everything!
-        '''
+        """
         user_info = self.user_info(props)
         self.resources = constant_dictionary
 
@@ -1018,10 +1022,10 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
 
     @cherrypy.expose
     def discard_release_reserved_tb(self, res_query, props={}):
-        '''
+        """
         Discard changes and release test bed.
         Delete entry from reservedResources.
-        '''
+        """
         return self.discard_release_reserved_resource(res_query, props)
 
 

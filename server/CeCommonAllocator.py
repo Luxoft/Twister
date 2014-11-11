@@ -1,6 +1,6 @@
 # File: CeCommonAllocator.py ; This file is part of Twister.
 
-# version: 3.001
+# version: 3.003
 
 # Copyright (C) 2012-2014, Luxoft
 
@@ -165,8 +165,7 @@ class CommonAllocator(object):
             parent_node['children'][node]['path'] = path + [node]
             self.change_path(parent_node['children'][node], parent_node['children'][node]['path'])
 
-        if not parent_node:
-            return True
+        return True
 
 
     def change_ids(self, parent_node):
@@ -187,7 +186,7 @@ class CommonAllocator(object):
         return True
 
 
-    def get_resource(self, query, resource = None):
+    def get_resource(self, query, resource=None):
         """
         Get the resource from resource by path or id.
         We can search for query in self.resources or in any other resource given as parameter.
@@ -218,10 +217,9 @@ class CommonAllocator(object):
 
 
     def valid_props(self, props):
-        '''
+        """
         Verify if we have recevied valid props.
-        '''
-
+        """
         logDebug('CeCommonAllocator: valid_props: props = {} '.format(props))
 
         if not props:
@@ -259,9 +257,9 @@ class CommonAllocator(object):
 
 
     def format_resource(self, result, query):
-        '''
+        """
         We have to return data in a certain form - a formated dictionary.
-        '''
+        """
 
         logDebug('CeCommonAllocator: format_resource query = {}'.format(query))
 
@@ -359,9 +357,9 @@ class CommonAllocator(object):
 
         if '/' in res_query or not reservedForUser:
             #if res_query contains components unsaved yet, search only for the TB
-            if "/" in res_query:
+            if '/' in res_query:
                 parts = [q for q in res_query.split('/') if q]
-                node_path = self.get_resource("/" + parts[0])
+                node_path = self.get_resource('/' + parts[0])
             else:
                 node_path = self.get_resource(res_query)
 
@@ -386,54 +384,55 @@ class CommonAllocator(object):
 
 
     def get_reserved_resource(self, res_query, props={}):
-        '''
+        """
         Returns the reserved resource.
-        '''
-
-        logDebug('CeCommonAllocator:get_reserved_resource: res_query = {}'.format(res_query))
+        """
+        logDebug('Get reserved resource `{}`...'.format(res_query))
 
         resources = self.resources
         # If no resources...
         if not resources:
-            msg = 'CeCommonAllocator:get_reserved_resource: There are no resources defined !'
+            msg = 'Get reserved resourcee: There are no resources defined !'
             logError(msg)
             return False
 
         user_info = self.user_info(props)
+        user = user_info[0]
 
-        if not self.reservedResources.get(user_info[0]):
-            msg = 'CeCommonAllocator: Resource `{}` is not reserved !'.format(res_query)
+        if not self.reservedResources.get(user):
+            msg = 'Get reserved resource: Resource `{}` is not reserved !'.format(res_query)
             logError(msg)
             return False
 
-        # get only the root parent in case the path query contains components unsaved yet
+        # Maybe query is an ID of a component unsaved yet
+        for p in self.reservedResources[user]:
+            unsaved_res = self.get_resource(res_query, self.reservedResources[user][p])
+            if unsaved_res:
+                self.reservedResources[user][p]['path'] = unsaved_res['path']
+                return self.reservedResources[user][p]
+
+        # Get only the root parent in case the path query contains components unsaved yet
         parts = [q for q in res_query.split('/') if q]
-        if "/" in res_query:
+        if '/' in res_query:
             parent_path = parts
-            node_path = self.get_resource("/" + parts[0])
-        # if query is an saved component
+            node_path = self.get_resource('/' + parts[0])
+        # If query is an saved component
         else:
             node_path = self.get_resource(res_query)
             if node_path and isinstance(node_path, dict):
                 parent_path = node_path['path']
 
-        #maybe query is an id of a component unsaved yet
         if not node_path:
-            for p in self.reservedResources[user_info[0]]:
-                node_path = self.get_resource(res_query, self.reservedResources[user_info[0]][p])
-                if node_path:
-                    self.reservedResources[user_info[0]][p]['path'] = node_path['path']
-                    return self.reservedResources[user_info[0]][p]
-            msg = 'CeCommonAllocator: Cannot find resource ID in reservedResources`{}` !'.format(res_query)
+            msg = 'Get reserved resource: Cannot find resource ID `{}` !'.format(res_query)
             logError(msg)
             return False
 
         if isinstance(node_path['path'], list) and len(node_path['path']) > 1:
             node_path = self.get_path(node_path['path'][0], resources)
 
-        self.reservedResources[user_info[0]][node_path['id']]['path'] = parent_path
+        self.reservedResources[user][node_path['id']]['path'] = parent_path
 
-        return self.reservedResources[user_info[0]][node_path['id']]
+        return self.reservedResources[user][node_path['id']]
 
 
     def lock_resource(self, res_query, props={}):
@@ -613,7 +612,6 @@ class CommonAllocator(object):
                 return False
 
         return True #RESOURCE_FREE
-
 
 
 # Eof()
