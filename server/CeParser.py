@@ -1,7 +1,7 @@
 
 # File: CeParser.py ; This file is part of Twister.
 
-# version: 3.007
+# version: 3.008
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -556,6 +556,7 @@ class CeXmlParser(object):
             suts_list = [q.replace('(', '.').replace(')', '') for q in all_suts.split(';') if q]
 
             # Multiply suite entry as often as the tag 'Repeat' says
+            repeat = None
             try:
                 repeat = suite.find('Repeat')
                 nb_repeat = int(repeat.text)
@@ -567,7 +568,8 @@ class CeXmlParser(object):
 
             # before copying the suite for multiplication, remove the Repeat
             # tag because it MUST NOT be present in generated xml file
-            suite.remove(repeat)
+            if repeat is not None:
+                suite.remove(repeat)
 
             for i in range(nb_repeat):
                 deep_copy = copy.deepcopy(suite)
