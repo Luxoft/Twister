@@ -45,12 +45,8 @@ if TWISTER_PATH not in sys.path:
     sys.path.append(TWISTER_PATH)
 
 from common.tsclogging import logFull, logDebug, logInfo, logWarning, logError
-from common.helpers    import *
+from common.helpers import *
 from server.CeCommonAllocator import CommonAllocator
-
-RESOURCE_FREE     = 1
-RESOURCE_BUSY     = 2
-RESOURCE_RESERVED = 3
 
 constant_dictionary = {'version': 0, 'name': '/', 'path' : [], 'meta': {}, 'children': {}}
 
@@ -224,30 +220,24 @@ def res_to_xml(parent_node, xml, skip_header = False):
 
 
 class TestBeds(_cptools.XMLRPCController, CommonAllocator):
-    '''
+    """
     Basic operations for TestBeds.
-    '''
+    """
 
     def __init__(self, project):
 
-        logInfo('Starting TestBeds Allocator...')
-        ti = time.time()
-
         self.project = project
-
         self.resources = constant_dictionary
-        self.reservedResources = dict()
-        self.lockedResources = dict()
+        self.reservedResources = {}
+        self.lockedResources = {}
         self.acc_lock = thread.allocate_lock() # Task change lock
         self.ren_lock = thread.allocate_lock() # Rename lock
         self.imp_lock = thread.allocate_lock() # Import lock
         self.save_lock = thread.allocate_lock() # Save lock
         self.load_lock = thread.allocate_lock() # Save lock
         self.res_file = '{}/config/resources.json'.format(TWISTER_PATH)
-        self._loadedUsers = dict()
+        self._loadedUsers = {}
         self.load_tb(verbose=True)
-
-        logInfo('TestBeds Allocator initialization took `{:.4f}` sec.'.format(time.time()-ti))
 
 
     def load_tb(self, verbose=False):
@@ -1034,3 +1024,5 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
         '''
         return self.discard_release_reserved_resource(res_query, props)
 
+
+# Eof()

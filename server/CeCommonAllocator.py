@@ -37,19 +37,14 @@ if TWISTER_PATH not in sys.path:
     sys.path.append(TWISTER_PATH)
 
 from common.tsclogging import logFull, logDebug, logInfo, logWarning, logError
-from common.helpers    import *
-
-
-RESOURCE_FREE     = 1
-RESOURCE_BUSY     = 2
-RESOURCE_RESERVED = 3
+from common.helpers import *
 
 #
 
 class CommonAllocator(object):
-    '''
+    """
     Common class for TestBeds and SUTs
-    '''
+    """
 
     def __init__(self):
 
@@ -65,10 +60,9 @@ class CommonAllocator(object):
 
 
     def user_info(self, props={}):
-        '''
-        This method returns info about user. The list
-        returned: [user_name, user_roles]
-        '''
+        """
+        This method returns info about user. The list returned: [user_name, user_roles]
+        """
         logFull('CeCommonAllocator:user_info')
         # Check the username from CherryPy connection
         try:
@@ -83,14 +77,15 @@ class CommonAllocator(object):
         default = {'user': user, 'roles': [], 'groups': []}
         if not user_roles:
             return default
+
         user_roles.update({'user': user})
         return [user_roles.get('user'), user_roles]
 
 
     def fix_path(self, res, path = [], modified = False):
-        '''
+        """
         Add path to resources that does not have this field.
-        '''
+        """
         if not res:
             return modified
 
@@ -114,13 +109,10 @@ class CommonAllocator(object):
 
 
     def get_id(self, node_id, resource):
-        '''
-        This method searches in resource for node_id and
-        returns its dictionary. Also, in the path key
-        we save the complete path from root to this node_id.
-        '''
-
-        logFull("CeCommonAllocator: get_id: Getting the id {}".format(node_id))
+        """
+        This method searches in resource for node_id and returns its dictionary.
+        Also, in the path key we save the complete path from root to this node_id.
+        """
         if not resource:
             return None
 
@@ -138,15 +130,12 @@ class CommonAllocator(object):
 
 
     def get_path(self, query, resource):
-        '''
-        This method searches in resource for a path (query) and
-        returns its dictionary. Also, in the path key
-        we save the absolute path (from root)
-        '''
-
-        logFull("CeCommonAllocator: get_path: Getting the path {}".format(query))
-
+        """
+        This method searches in resource for a path (query) and returns its dictionary.
+        Also, in the path key we save the absolute path (from root)
+        """
         parts = [q for q in query.split('/') if q]
+
         for part in parts:
             if not resource:
                 logFull('Did not find a result for this query: {}!'.format(query))
@@ -161,33 +150,49 @@ class CommonAllocator(object):
         return resource
 
 
-    def change_path(self, result, path):
-        '''
-        update the path of all kids if the result is renamed for example
-        '''
-
-        logFull("CeCommonAllocator: change_path  {} ".format(path))
-        if not result:
+    def change_path(self, parent_node, path):
+        """
+        Update the path of all children, if the parent_node is renamed for example.
+        """
+        # The node is valid ?
+        if not isinstance(parent_node, dict):
             return False
-        if not result.get('children'):
+        # This node has children ?
+        if not isinstance(parent_node.get('children'), dict):
             return True
 
-        for node in result.get('children'):
-            result['children'][node]['path'] = path + [node]
-            self.change_path(result['children'][node], result['children'][node]['path'])
+        for node in parent_node.get('children'):
+            parent_node['children'][node]['path'] = path + [node]
+            self.change_path(parent_node['children'][node], parent_node['children'][node]['path'])
 
-        if not result:
+        if not parent_node:
             return True
+
+
+    def change_ids(self, parent_node):
+        """
+        Update the IDs of all children.
+        """
+        # The node is valid ?
+        if not isinstance(parent_node, dict):
+            return False
+        # This node has children ?
+        if not isinstance(parent_node.get('children'), dict):
+            return False
+
+        for node in parent_node['children']:
+            parent_node['children'][node]['id'] = hexlify(os.urandom(5))
+            self.change_ids(parent_node['children'][node])
+
+        return True
 
 
     def get_resource(self, query, resource = None):
-        '''
+        """
         Get the resource from resource by path or id.
-        We can search for query in self.resoruces or
-        in any other resource given as parameter
-        '''
-
-        logFull("CeCommonAllocator: get_resource: Getting the resource {}".format(query))
+        We can search for query in self.resources or in any other resource given as parameter.
+        """
+        logFull("CeCommonAllocator: Getting the resource {}".format(query))
 
         if not resource:
             resource = self.resources
@@ -237,19 +242,19 @@ class CommonAllocator(object):
 
 
     def generate_index(self):
-        '''
-        Generate index when creating a new sut or test bed.
-        '''
-
+        """
+        Generate index when creating a new sut, or test bed.
+        """
         logDebug('CeCommonAllocator: generate_index')
-
         new_sut_id = False
+
         while not new_sut_id:
             new_sut_id = hexlify(os.urandom(5))
             # If by any chance, this ID already exists, generate another one!
             exists_id = self.get_id(new_sut_id, self.resources)
             if exists_id:
                 new_sut_id = False
+
         return new_sut_id
 
 
@@ -608,3 +613,7 @@ class CommonAllocator(object):
                 return False
 
         return True #RESOURCE_FREE
+
+
+
+# Eof()
