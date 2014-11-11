@@ -1,6 +1,6 @@
 #!/usr/bin/env python2.7
 
-# version: 3.029
+# version: 3.030
 
 # File: ExecutionProcess.py ; This file is part of Twister.
 
@@ -695,6 +695,30 @@ class TwisterRunner(object):
             print('... all libraries downloaded.\n')
 
 
+    def start_logs(self, file_id, filename):
+        """
+        Write start log messages for current test.
+        """
+        msg = '<<< START filename: `{}:{}` >>>\n'.format(file_id, filename)
+        print(msg)
+        proxy().log_message('logRunning', msg + '\n')
+        proxy().log_message('logDebug', msg + '\n')
+        proxy().log_message('logTest', msg + '\n')
+        return True
+
+
+    def end_logs(self, file_id, filename):
+        """
+        Write end log messages for current test.
+        """
+        msg = '<<< END filename: `{}:{}` >>>\n'.format(file_id, filename)
+        print(msg)
+        proxy().log_message('logRunning', msg + '\n')
+        proxy().log_message('logDebug', msg + '\n')
+        proxy().log_message('logTest', msg + '\n')
+        return True
+
+
     def tests(self):
         """
         Cycle in all files, run each file, in order.
@@ -822,8 +846,8 @@ class TwisterRunner(object):
             # Re-create the ce_libs file
             self.makeCeLibs(suite_id, suite_name, file_id, os.path.split(filename)[1])
 
-
-            print('<<< START filename: `{}:{}` >>>\n'.format(file_id, filename))
+            # Write START TEST in all logs
+            self.start_logs(file_id, filename)
 
             # Set Last seen alive flag on this EP
             proxy().set_ep_variable(self.epName, 'last_seen_alive', time.strftime('%Y-%m-%d %H:%M:%S'))
@@ -847,7 +871,7 @@ class TwisterRunner(object):
                         except Exception:
                             trace = traceback.format_exc()[34:].strip()
                             print('Exception on sending reason `{}`!'.format(trace))
-                        print('<<< END filename: `{}:{}` >>>\n'.format(file_id, filename))
+                        self.end_logs(file_id, filename)
                         continue
                 del aborted_ids, current_ids
 
@@ -861,7 +885,7 @@ class TwisterRunner(object):
                 except Exception:
                     trace = traceback.format_exc()[34:].strip()
                     print('Exception on sending reason `{}`!'.format(trace))
-                print('<<< END filename: `{}:{}` >>>\n'.format(file_id, filename))
+                self.end_logs(file_id, filename)
                 continue
             else:
                 abort_iter = False
@@ -983,7 +1007,7 @@ class TwisterRunner(object):
                     except Exception:
                         trace = traceback.format_exc()[34:].strip()
                         print('Exception on sending reason `{}`!'.format(trace))
-                    print('<<< END filename: `{}:{}` >>>\n'.format(file_id, filename))
+                    self.end_logs(file_id, filename)
                     continue
 
 
@@ -1006,7 +1030,7 @@ class TwisterRunner(object):
                 except Exception:
                     trace = traceback.format_exc()[34:].strip()
                     print('Exception on sending reason `{}`!'.format(trace))
-                print('<<< END filename: `{}:{}` >>>\n'.format(file_id, filename))
+                self.end_logs(file_id, filename)
                 continue
 
             elif not str_to_execute:
@@ -1022,7 +1046,7 @@ class TwisterRunner(object):
                 except Exception:
                     trace = traceback.format_exc()[34:].strip()
                     print('Exception on sending reason `{}`!'.format(trace))
-                print('<<< END filename: `{}:{}` >>>\n'.format(file_id, filename))
+                self.end_logs(file_id, filename)
                 continue
 
             # Don' Run NON-runnable files, but Download them!
@@ -1042,7 +1066,7 @@ class TwisterRunner(object):
                 except Exception:
                     trace = traceback.format_exc()[34:].strip()
                     print('Exception on sending reason `{}`!'.format(trace))
-                print('<<< END filename: `{}:{}` >>>\n'.format(file_id, filename))
+                self.end_logs(file_id, filename)
                 continue
 
 
@@ -1088,7 +1112,7 @@ class TwisterRunner(object):
                 except Exception:
                     trace = traceback.format_exc()[34:].strip()
                     print('Exception on sending reason `{}`!'.format(trace))
-                print('<<< END filename: `{}:{}` >>>\n'.format(file_id, filename))
+                self.end_logs(file_id, filename)
                 continue
 
 
@@ -1200,7 +1224,7 @@ class TwisterRunner(object):
                     print('*ERROR* Mandatory file `{}` CRASHED! Closing the EP!\n\n'.format(filename))
                     proxy().echo('*ERROR* Mandatory file `{}::{}::{}` CRASHED! Closing the EP!'\
                         ''.format(self.epName, suite_name, filename))
-                    print('<<< END filename: `{}:{}` >>>\n'.format(file_id, filename))
+                    self.end_logs(file_id, filename)
                     # Exit the cycle
                     break
 
@@ -1217,7 +1241,7 @@ class TwisterRunner(object):
                 timer_f = time.time() - timer_i
                 end_time = time.strftime('%Y-%m-%d %H:%M:%S')
                 print('Test statistics: Start time {} -- End time {} -- {:0.2f} sec.\n'.format(start_time, end_time, timer_f))
-                print('<<< END filename: `{}:{}` >>>\n'.format(file_id, filename))
+                self.end_logs(file_id, filename)
                 # Skip this cycle, go to next file
                 continue
 
@@ -1276,7 +1300,7 @@ class TwisterRunner(object):
                     print('*ERROR* Mandatory file `{}` did not PASS! Closing the EP!\n\n'.format(filename))
                     proxy().echo('*ERROR* Mandatory file `{}::{}::{}` did not PASS! Closing the EP!'\
                         ''.format(self.epName, suite_name, filename))
-                    print('<<< END filename: `{}:{}` >>>\n'.format(file_id, filename))
+                    self.end_logs(file_id, filename)
                     # Exit the cycle
                     break
 
@@ -1304,7 +1328,7 @@ class TwisterRunner(object):
                     print('Test was skipped because: `{}`.\n'.format(reason))
 
 
-            print('<<< END filename: `{}:{}` >>>\n'.format(file_id, filename))
+            self.end_logs(file_id, filename)
 
             #---------------------------------------------------------------------------------------
 
