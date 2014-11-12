@@ -1,5 +1,5 @@
 
-# version: 3.001
+# version: 3.002
 
 """
 <title>Test a cfg -> SUT bindings</title>
@@ -38,6 +38,13 @@ print '\n'
 # Also gets the default
 print get_bind_id('Component_1', 'c1.xml')
 print get_bind_name('Component_1', 'c1.xml')
+
+config_name =  CONFIG[0].strip()
+component_name = get_config(config_name).keys()[0]
+
+print 'set_bind: {}'.format(set_binding(config_name, component_name, SUT))
+
+print 'del_bind: {}'.format(del_binding(config_name, component_name))
 
 #
 

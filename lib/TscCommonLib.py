@@ -1,7 +1,6 @@
-
 # File: TscCommonLib.py ; This file is part of Twister.
 
-# version: 3.017
+# version: 3.018
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -339,6 +338,20 @@ class TscCommonLib(object):
         return self.ce_proxy.get_config(cfg_path, var_path)
 
 
+    def set_binding(self, config_name, component, sut):
+        """
+        Method to set a config->SUT binding
+        """
+        return self.ce_proxy.set_binding(config_name, component, sut)
+
+
+    def del_binding(self, config_name, component):
+        """
+        Method that deletes a binding from the list of config->SUT bindings
+        """
+        return self.ce_proxy.del_binding(config_name, component)
+
+
     def get_binding(self, cfg_root):
         """
         Function to get a config -> SUT binding.
@@ -587,6 +600,7 @@ class TscCommonLib(object):
     def get_sut(self, query, dtype=unicode):
         """
         Get SUT content.
+        query : id/path of sut
         """
         try:
             data = self.ce_proxy.get_sut(query)

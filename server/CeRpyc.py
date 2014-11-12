@@ -1,7 +1,7 @@
 
 # File: CeRpyc.py ; This file is part of Twister.
 
-# version: 3.020
+# version: 3.021
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -33,6 +33,7 @@ import thread
 import traceback
 import rpyc
 from pprint import pformat
+from lxml import etree
 
 TWISTER_PATH = os.getenv('TWISTER_PATH')
 if not TWISTER_PATH:
@@ -614,7 +615,6 @@ class CeRpycService(rpyc.Service):
             return False
         return self.project.configs.set_global_variable(user, var_path, value)
 
-
     def exposed_get_config(self, cfg_path, var_path):
         """
         Config files
@@ -624,6 +624,90 @@ class CeRpycService(rpyc.Service):
         if not user:
             return False
         return self.project.configs.get_global_variable(user, var_path, cfg_path)
+
+
+    def exposed_get_binding(self, cfg_name):
+        """
+        Read a binding between a CFG and a SUT.
+        The result is XML.
+        
+        """
+        user = self._check_login()
+        if not user:
+            return False
+        logDebug('User `{}` reads bindings for `{}`.'.format(user, cfg_name))
+        return self.project.parsers[user].get_binding(cfg_name)
+
+
+    def exposed_set_binding(self, cfg_name, component, sut):
+        """
+        Write a binding between a CFG and a SUT.
+        Return True/ False.
+        """
+        user = self._check_login()
+        if not user:
+            return False
+        
+        # <root><name>cfg1</name><bind config="cp1" sut="/s1.user"/></root>
+        
+        # check if the component exists
+        result = self.exposed_get_config(cfg_name, '')
+        if component not in result:
+            return False
+        
+        # check if the sut exists
+        result = self.project.sut.get_sut(sut, props={'__user': user})
+        if isinstance(result, str):
+            return False
+        
+        bindings_xml = self.exposed_get_binding(cfg_name)
+        bindings_xml = bindings_xml.replace('<name>{}</name>'.format(cfg_name), '')
+        bindings_tree = etree.fromstring(bindings_xml)
+        #search the binding between the component and the sut(search by component -> they are unique)
+        found = bindings_tree.xpath('/root/bind[@config="{}"]'.format(component))
+        if len(found) == 0:
+            # add the new binding to the xml
+            bindings_xml = bindings_xml[:-7] + '<bind config="{comp}" sut="{s}"/>'.format(comp=component, s=sut) + bindings_xml[-7:]
+        else:
+            found = found[0]
+            found.set('sut', sut)
+            bindings_xml = etree.tostring(bindings_tree)
+
+        fdata = self.project.parsers[user].set_binding(cfg_name, bindings_xml)
+        r = self.project.write_file(user, '~/twister/config/bindings.xml', fdata)
+        if isinstance(r, str):
+            logWarning('User `{}` could not update bindings for `{}`!'.format(user, cfg_name))
+        else:
+            logDebug('User `{}` writes bindings for `{}`.'.format(user, cfg_name))
+        return r
+
+
+    def exposed_del_binding(self, cfg_name, component):
+        """
+        Method that deletes a binding from the list of config->SUT bindings
+        """
+        user = self._check_login()
+        if not user:
+            return False
+        # check if the component exists
+        result = self.exposed_get_config(cfg_name, '')
+
+        if component not in result:
+            return False
+        
+        bindings_xml = self.exposed_get_binding(cfg_name)
+        bindings_xml = bindings_xml.replace('<name>{}</name>'.format(cfg_name), '')
+        bindings_xml = re.sub('<bind config="{}" sut=".*?"/>'.format(component), '', bindings_xml)
+        
+        fdata = self.project.parsers[user].set_binding(cfg_name, bindings_xml)
+        
+        r = self.project.write_file(user, '~/twister/config/bindings.xml', fdata)
+        if isinstance(r, str):
+            logWarning('User `{}` could not update bindings for `{}`!'.format(user, cfg_name))
+            return False
+        else:
+            logDebug('User `{}` writes bindings for `{}`.'.format(user, cfg_name))
+        return True
 
 
 # # #   Register / Start / Stop EPs   # # #
