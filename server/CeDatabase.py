@@ -1,7 +1,7 @@
 
 # File: CeDatabase.py ; This file is part of Twister.
 
-# version: 3.001
+# version: 3.002
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -163,6 +163,13 @@ class CeDbManager(object):
         db_select_cache_s = {} # Suite
         db_select_cache_p = {} # Project
 
+        def fix_log(tc_log):
+            tc_log = tc_log.replace('\n', '<br>\n')
+            tc_log = conn.escape_string(tc_log)
+            tc_log = tc_log.replace('<div', '&lt;div')
+            tc_log = tc_log.replace('</div', '&lt;/div')
+            return tc_log
+
         # Pre-calculated data
         all_data = []
 
@@ -231,20 +238,35 @@ class CeDbManager(object):
                 subst_data = {k: conn.escape_string(v) if isinstance(v, unicode) else v for \
                     k, v in subst_data.iteritems()}
 
+                # Log CLI for this EP - Suite - Test
                 try:
-                    tc_log = self.project.find_log(user, epname, file_id, file_info['file'])
-                    tc_log = tc_log.replace('\n', '<br>\n')
-                    tc_log = conn.escape_string(tc_log)
-                    tc_log = tc_log.replace('<div', '&lt;div')
-                    tc_log = tc_log.replace('</div', '&lt;/div')
-                    subst_data['twister_tc_log'] = tc_log
+                    tc_log = self.project.find_log(user, ltype='logCli', epname=epname,
+                       file_id=file_id, file_name=file_info['file'])
+                    subst_data['twister_tc_log'] = fix_log(tc_log)
                 except Exception:
                     subst_data['twister_tc_log'] = '*no log*'
 
                 # The rest of the logs
-                subst_data['twister_tc_log_running'] = '*no log*'
-                subst_data['twister_tc_log_debug'] = '*no log*'
-                subst_data['twister_tc_log_test'] = '*no log*'
+                try:
+                    tc_log = self.project.find_log(user, ltype='logRunning', epname=epname,
+                        file_id=file_id, file_name=file_info['file'])
+                    subst_data['twister_tc_log_running'] = fix_log(tc_log)
+                except Exception:
+                    subst_data['twister_tc_log_running'] = '*no log*'
+
+                try:
+                    tc_log = self.project.find_log(user, ltype='logDebug', epname=epname,
+                        file_id=file_id, file_name=file_info['file'])
+                    subst_data['twister_tc_log_debug'] = fix_log(tc_log)
+                except Exception:
+                    subst_data['twister_tc_log_debug'] = '*no log*'
+
+                try:
+                    tc_log = self.project.find_log(user, ltype='logTest', epname=epname,
+                        file_id=file_id, file_name=file_info['file'])
+                    subst_data['twister_tc_log_test'] = fix_log(tc_log)
+                except Exception:
+                    subst_data['twister_tc_log_test'] = '*no log*'
 
                 # Pre-calculated queries
                 all_queries = []

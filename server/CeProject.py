@@ -1,7 +1,7 @@
 
 # File: CeProject.py ; This file is part of Twister.
 
-# version: 3.058
+# version: 3.059
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -3051,26 +3051,33 @@ class Project(object):
         return binascii.b2a_base64(data)
 
 
-    def find_log(self, user, epname, file_id, file_name):
-        '''
+    def find_log(self, user, ltype, file_id, file_name, epname=None):
+        """
         Parses the log file of one EP and returns the log of one test file.
-        '''
-        logFull('CeProject:find_log user `{}`.'.format(user))
-        logFolder = self.get_user_info(user, 'logs_path')
-        logTypes  = self.get_user_info(user, 'log_types')
-        _, logCli = os.path.split( logTypes.get('logCli', 'CLI.log') )
-        # Logs Path + EP Name + CLI Name
-        logPath = logFolder + os.sep + epname +'_'+ logCli
+        """
+        log_folder = self.get_user_info(user, 'logs_path')
+        log_types  = self.get_user_info(user, 'log_types')
+
+        if ltype == 'logCli':
+            _, logCli = os.path.split(log_types.get(ltype, 'CLI.log'))
+            # Logs Path + EP Name + CLI Name
+            logPath = log_folder + os.sep + epname +'_'+ logCli
+        elif ltype in log_types:
+            logPath = log_types[ltype]
+        else:
+            logDebug('Find Log: Cannot find log type `{}` for user `{}`!'.format(ltype, user))
+            return '*no log*'
 
         data = self.localFs.read_user_file(user, logPath)
 
         if data.startswith('*ERROR*'):
-            logWarning(data)
+            logDebug(data)
             return '*no log*'
 
         fbegin = data.find('<<< START filename: `{}:{}'.format(file_id, file_name))
         if fbegin == -1:
             logDebug('Find Log: Cannot find `{}:{}` in log `{}`!'.format(file_id, file_name, logPath))
+            return '*no log*'
 
         fend = data.find('<<< END filename: `{}:{}'.format(file_id, file_name))
         fend += len('<<< END filename: `{}:{}` >>>'.format(file_id, file_name))
@@ -3086,7 +3093,6 @@ class Project(object):
         """
         logFull('CeProject:log_message user `{}`.'.format(user))
 
-        logType = str(logType)
         logTypes = self.get_user_info(user, 'log_types')
 
         if logType not in logTypes:
@@ -3094,7 +3100,7 @@ class Project(object):
             return False
 
         if logType == 'logSummary':
-            logWarning('Log Warning for `{}`! logSummary is reserved and cannot be written into!'.format(user))
+            logWarning('Log Warning for `{}`! Summary is reserved and cannot be written into!'.format(user))
             return False
 
         logPath = self.get_user_info(user, 'log_types')[logType]
