@@ -1,7 +1,7 @@
 
 # File: CeReports.py ; This file is part of Twister.
 
-# version: 3.001
+# version: 3.002
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -81,6 +81,19 @@ class ReportingServer(object):
         self.project = project
 
 
+    def connect_db(self, usr):
+        '''
+        Reconnect to the database.
+        '''
+        logFull('CeReports:connect_db')
+        conn = self.project.dbmgr.connect_db(usr)
+        if not conn:
+            raise Exception('Cannot connect to Database!')
+
+        self.conn[usr] = conn
+        self.curs[usr] = conn.cursor()
+
+
     def load_config(self, usr, force=False):
         '''
         Read DB Config File for 1 user.
@@ -116,25 +129,6 @@ class ReportingServer(object):
                    [{'link': 'Help', 'folder': '', 'type': 'link'}]
 
             self.connect_db(usr)
-
-
-    def connect_db(self, usr):
-        '''
-        Reconnect to the database.
-        '''
-        logFull('CeReports:connect_db')
-        db_config = self.db_parser[usr].db_config
-
-        # Decode database password
-        db_password = self.project.decrypt_text( usr, db_config.get('password') )
-        if not db_password:
-            logError('Report Server: Cannot decrypt the database password for user `{}`!'.format(usr))
-            db_password = '0'
-
-        self.conn[usr] = MySQLdb.connect(host=db_config.get('server'), db=db_config.get('database'),
-                                         user=db_config.get('user'), passwd=db_password)
-
-        self.curs[usr] = self.conn[usr].cursor()
 
 
     # Report link 1
@@ -251,8 +245,7 @@ class ReportingServer(object):
                     output = Template(filename=TWISTER_PATH + '/server/template/rep_error.htm')
                     return output.render(links=self.glob_links[usr], title=report, usr=usr,
                         msg='Cannot build query!<br><br>Field `<b>{}</b>` '\
-                            'is not defined in the fields section!'
-                            .format(opt.replace('@', '')))
+                            'is not defined in the fields section!'.format(opt.replace('@', '')))
 
                 this_option['type'] = u_field.get('type')
                 this_option['label'] = u_field.get('label')
@@ -265,9 +258,8 @@ class ReportingServer(object):
                     if not u_query:
                         output = Template(filename=TWISTER_PATH + '/server/template/rep_error.htm')
                         return output.render(links=self.glob_links[usr], title=report, usr=usr,
-                            msg='Cannot build query!<br><br>Field `<b>{}</b>`'\
-                                ' doesn\'t have a query!'
-                                .format(opt.replace('@', '')))
+                            msg='Cannot build query!<br><br>Field `<b>{}</b>` doesn\'t '\
+                            'have a query!'.format(opt.replace('@', '')))
 
                     # Execute User Query
                     try:
@@ -280,9 +272,8 @@ class ReportingServer(object):
 
                         output = Template(filename=TWISTER_PATH + '/server/template/rep_error.htm')
                         return output.render(links=self.glob_links[usr], title=report, usr=usr,
-                            msg='Error in query `{}`!<br><br><b>MySQL Error '\
-                                '{}</b>: {}!'
-                                .format(u_query, e.args[0], e.args[1]))
+                            msg='Error in query `{}`!<br><br><b>MySQL Error {}</b>: {}!'.format(
+                                u_query, e.args[0], e.args[1]))
 
                     try:
                         u_vals = self.curs[usr].fetchall()
@@ -310,8 +301,8 @@ class ReportingServer(object):
                 else:
                     output = Template(filename=TWISTER_PATH + '/server/template/rep_error.htm')
                     return output.render(title=report, links=self.glob_links[usr], usr=usr,
-                        msg='Field `<b>{}</b>` is of unknown type: <b>{}</b>!'
-                            .format(opt.replace('@', ''), this_option['type']))
+                        msg='Field `<b>{}</b>` is of unknown type: <b>{}</b>!'.format(
+                            opt.replace('@', ''), this_option['type']))
 
                 u_options[opt] = this_option
 
@@ -411,7 +402,8 @@ class ReportingServer(object):
             return json.dumps(output, indent=2)
 
         if not os.path.isdir(userHome(usr) + '/twister/config'):
-            output = {'aaData':[], 'error':'Error! Username `{}` doesn\'t have a Twister config folder!'.format(usr)}
+            output = {'aaData':[], 'error':'Error! Username `{}` doesn\'t have '\
+                'a Twister config folder!'.format(usr)}
             return json.dumps(output, indent=2)
 
         self.load_config(usr) # Re-load all Database XML
@@ -424,7 +416,7 @@ class ReportingServer(object):
         cherrypy.response.headers['Expires'] = 0
 
         if report not in self.glob_reports[usr]:
-            output = {'aaData':[], 'error':'Report `{0}` is not in the list of defined reports!'.format(report)}
+            output = {'aaData':[], 'error':'Report `{}` is not in the list of defined reports!'.format(report)}
             return json.dumps(output, indent=2)
 
         # All info about the report, from DB XML.

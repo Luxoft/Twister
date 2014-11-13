@@ -1,7 +1,7 @@
 
 # File: CeProject.py ; This file is part of Twister.
 
-# version: 3.057
+# version: 3.058
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -86,7 +86,6 @@ import smtplib
 import binascii
 import traceback
 import threading
-import MySQLdb
 import paramiko
 
 import cherrypy
@@ -134,6 +133,7 @@ from CeTestBeds import TestBeds
 from CeFs import LocalFS
 from CeClearCaseFs import ClearCaseFs
 from CeConfigs import CeConfigs
+from CeDatabase import CeDbManager
 
 usrs_and_pwds = {}
 usr_pwds_lock = allocate_lock()
@@ -238,6 +238,7 @@ class Project(object):
         self.clearFs = ClearCaseFs() # ClearCase FS pointer
         self.clearFs.project = self
         self.configs = CeConfigs(self)
+        self.dbmgr = CeDbManager(self)
 
         # Users, parsers, IDs...
         self.users = {}
@@ -253,7 +254,6 @@ class Project(object):
         self.int_lock = allocate_lock()  # Internal use lock
         self.log_lock = allocate_lock()  # Log access lock
         self.eml_lock = allocate_lock()  # E-mail lock
-        self.db_lock  = allocate_lock()  # Database lock
 
         # Read the production/ development option.
         cfg_path = '{}/config/server_init.ini'.format(TWISTER_PATH)
@@ -2940,314 +2940,10 @@ class Project(object):
         using the DB.XML for the current project.
         """
         logFull('CeProject:save_to_database user `{}`.'.format(user))
-
-        with self.db_lock:
-
-            r = self.authenticate(user)
-            if not r:
-                return False
-
-            # Get the path to DB.XML
-            db_file = self.get_user_info(user, 'db_config')
-            if not db_file:
-                logError('Database: Null DB.XML file for user `{}`! Nothing to do!'.format(user))
-                return False
-
-            # Database parser, fields, queries
-            # This is created every time the Save to Database is called
-            db_parser = DBParser(user, db_file)
-            db_config = db_parser.db_config
-            queries = db_parser.getInsertQueries() # List
-            fields  = db_parser.getInsertFields()  # Dictionary
-            default_subst = {k: '' for k, v in fields.iteritems()}
-            del db_parser
-
-            if not queries:
-                logDebug('Database: There are no queries defined for user `{}`! Nothing to do!'.format(user))
-                return False
-
-            system = platform.machine() +' '+ platform.system() +', '+ ' '.join(platform.linux_distribution())
-
-            # Timezone. Read from etc/timezone 1st, etc/sysconfig/clock 2nd, or from Time module
-            try:
-                timezone = open('/etc/timezone').read().strip()
-            except Exception:
-                try:
-                    timezone = subprocess.check_output('cat /etc/sysconfig/clock | grep ^ZONE=', shell=True)
-                    timezone = timezone.strip().replace('"', '').replace('ZONE=', '')
-                except Exception:
-                    timezone = time.strftime('%Z')
-
-            # Decode database password
-            db_password = self.decrypt_text(user, db_config.get('password'))
-            if not db_password:
-                logError('Database: Cannot decrypt the database password for user `{}`!'.format(user))
-                return False
-
-            try:
-                conn = MySQLdb.connect(host=db_config.get('server'), db=db_config.get('database'),
-                    user=db_config.get('user'), passwd=db_password)
-                curs = conn.cursor()
-            except MySQLdb.Error as e:
-                logError('MySQL Error for user `{}`: `{} - {}`!'.format(user, e.args[0], e.args[1]))
-                return False
-
-            conn.autocommit = False
-            conn.begin()
-
-            # UserScript cache
-            usr_script_cache_s = {} # Suite
-            usr_script_cache_p = {} # Project
-
-            # DbSelect cache
-            db_select_cache_s = {} # Suite
-            db_select_cache_p = {} # Project
-
-            for epname, ep_info in self.users[user]['eps'].iteritems():
-                # if the suites key is not found continue to the next
-                if ep_info.get('suites') is None:
-                    continue
-
-                SuitesManager = ep_info['suites']
-
-                for file_id in SuitesManager.get_files():
-
-                    # Substitute data
-                    subst_data = dict(default_subst)
-
-                    # Add EP info
-                    subst_data.update(ep_info)
-                    del subst_data['suites']
-
-                    # Add Suite info
-                    file_info = SuitesManager.find_id(file_id)
-                    suite_id = file_info['suite']
-                    suite_info = SuitesManager.find_id(suite_id)
-                    subst_data.update(suite_info)
-                    del subst_data['children']
-
-                    # Add file info
-                    subst_data.update(file_info)
-
-                    ce_host = socket.gethostname()
-                    try:
-                        ce_ip = socket.gethostbyname(ce_host)
-                    except Exception:
-                        ce_ip = ''
-
-                    # Insert/ fix DB variables
-                    subst_data['twister_user']    = user
-                    subst_data['twister_ce_type'] = self.server_init['ce_server_type'].lower()
-                    subst_data['twister_server_location'] = self.server_init.get('ce_server_location', '')
-
-                    subst_data['twister_rf_fname'] = '{}/config/resources.json'.format(TWISTER_PATH)
-                    subst_data['twister_pf_fname'] = self.users[user].get('proj_xml_name', '')
-
-                    subst_data['twister_ce_os']      = system
-                    subst_data['twister_ce_timezone'] = timezone
-                    subst_data['twister_ce_hostname'] = ce_host
-                    subst_data['twister_ce_ip']      = ce_ip
-                    subst_data['twister_ce_python_revision'] = '.'.join([str(v) for v in sys.version_info])
-                    subst_data['twister_ep_name']    = epname
-                    subst_data['twister_suite_name'] = suite_info['name']
-                    subst_data['twister_tc_reason']  = file_info.get('_reason', '')
-                    subst_data['twister_tc_iteration']  = file_info.get('iterationNr', '')
-                    subst_data['twister_tc_full_path'] = file_info['file']
-                    subst_data['twister_tc_name']  = os.path.split(subst_data['twister_tc_full_path'])[1]
-                    subst_data['twister_tc_title'] = ''
-                    subst_data['twister_tc_description'] = ''
-
-                    try:
-                        del subst_data['name']
-                    except Exception:
-                        pass
-                    try:
-                        del subst_data['status']
-                    except Exception:
-                        pass
-                    try:
-                        del subst_data['type']
-                    except Exception:
-                        pass
-                    try:
-                        del subst_data['pd']
-                    except Exception:
-                        pass
-
-                    # Escape all unicodes variables before SQL Statements!
-                    subst_data = {k: conn.escape_string(v) if isinstance(v, unicode) else v for k, v in subst_data.iteritems()}
-
-                    try:
-                        subst_data['twister_tc_log'] = self.find_log(user, epname, file_id, subst_data['twister_tc_full_path'])
-                        subst_data['twister_tc_log'] = conn.escape_string( subst_data['twister_tc_log'].replace('\n', '<br>\n') )
-                        subst_data['twister_tc_log'] = subst_data['twister_tc_log'].replace('<div', '&lt;div')
-                        subst_data['twister_tc_log'] = subst_data['twister_tc_log'].replace('</div', '&lt;/div')
-                    except Exception:
-                        subst_data['twister_tc_log'] = '*no log*'
-
-                    # Setup and Teardown files will not be saved to database!
-                    if subst_data.get('setup_file') or subst_data.get('teardown_file'):
-                        continue
-                    # Pre-Suite or Post-Suite files will not be saved to database
-                    if subst_data.get('Pre-Suite') or subst_data.get('Post-Suite'):
-                        continue
-
-                    # :: Debug ::
-                    # import pprint ; pprint.pprint(subst_data)
-
-                    # For every insert SQL statement, build correct data...
-                    for query in queries:
-
-                        # All variables of type `UserScript` must be replaced with the script result
-                        try:
-                            user_script_fields = re.findall('(\$.+?)[,\.\'"\s]', query)
-                        except Exception:
-                            user_script_fields = []
-
-                        for field in user_script_fields:
-                            field = field[1:]
-
-                            # Invalid field ?
-                            if field not in fields:
-                                continue
-
-                            # If the field is not `UserScript`, ignore it
-                            if fields.get(field, {}).get('type') != 'UserScript':
-                                continue
-
-                            # Field level: Suite or Project
-                            lvl = fields.get(field)['level']
-
-                            # Get Script Path, or null string
-                            u_script = subst_data.get(field, '')
-
-                            if not u_script:
-                                query = query.replace('$'+field, '')
-                                continue
-
-                            # Execute this script based on level
-                            if lvl == 'Project':
-                                if u_script not in usr_script_cache_p:
-                                    # Execute script and use result
-                                    r = execScript(u_script)
-                                    logDebug('Database: UserScript for `{}` was executed at LVL `{}`.'.format(user, lvl))
-                                    # Save result in cache
-                                    usr_script_cache_p[u_script] = r
-                                else:
-                                    # Get script result from cache
-                                    r = usr_script_cache_p[u_script]
-                            # Execute for every suite
-                            else:
-                                if suite_id not in usr_script_cache_s:
-                                    usr_script_cache_s[suite_id] = {}
-                                if u_script not in usr_script_cache_s[suite_id]:
-                                    # Execute script and use result
-                                    r = execScript(u_script)
-                                    logDebug('Database: UserScript for `{}` was executed at LVL `{}`.'.format(user, lvl))
-                                    # Save result in cache
-                                    usr_script_cache_s[suite_id][u_script] = r
-                                else:
-                                    # Get script result from cache
-                                    r = usr_script_cache_s[suite_id][u_script]
-
-                            # Replace UserScript with with real Script results
-                            if not r:
-                                r = ''
-                            query = query.replace('$'+field, r)
-
-                        # All variables of type `DbSelect` must be replaced with the SQL result
-                        try:
-                            auto_insert_fields = re.findall('(@.+?@)', query)
-                        except Exception:
-                            auto_insert_fields = []
-
-                        for field in auto_insert_fields:
-                            # Delete the @ character
-                            field = field[1:-1]
-
-                            # Invalid field ?
-                            if field not in fields:
-                                continue
-
-                            # Get Auto Query, or null string
-                            u_query = fields.get(field, {}).get('query', '')
-
-                            # Field level: Suite, Project, or Testcase
-                            lvl = fields.get(field)['level']
-
-                            if not u_query:
-                                logError('User `{}`, file `{}`: Cannot build query! Field `{}` is not defined in the fields section!'\
-                                    ''.format(user, subst_data['file'], field))
-                                conn.rollback()
-                                return False
-
-                            # Execute User Query based on level
-                            if lvl == 'Project':
-                                if u_query not in db_select_cache_p:
-                                    # Execute User Query
-                                    curs.execute(u_query)
-                                    q_value = curs.fetchone()[0]
-                                    logDebug('Database: DbSelect for `{}` was executed at LVL `{}`.'.format(user, lvl))
-                                    # Save result in cache
-                                    db_select_cache_p[u_query] = q_value
-                                else:
-                                    # Get script result from cache
-                                    q_value = db_select_cache_p[u_query]
-                            # Execute for every suite
-                            elif lvl == 'Suite':
-                                if suite_id not in db_select_cache_s:
-                                    db_select_cache_s[suite_id] = {}
-                                if u_query not in db_select_cache_s[suite_id]:
-                                    # Execute User Query
-                                    curs.execute(u_query)
-                                    q_value = curs.fetchone()[0]
-                                    logDebug('Database: DbSelect for `{}` was executed at LVL `{}`.'.format(user, lvl))
-                                    # Save result in cache
-                                    db_select_cache_s[suite_id][u_query] = q_value
-                                else:
-                                    # Get script result from cache
-                                    q_value = db_select_cache_s[suite_id][u_query]
-                            else:
-                                # Execute User Query
-                                curs.execute(u_query)
-                                q_value = curs.fetchone()[0]
-                                logDebug('Database: DbSelect for `{}` was executed at LVL `TestCase`.'.format(user))
-
-                            # Replace @variables@ with real Database values
-                            query = query.replace('@'+field+'@', str(q_value))
-
-                        # String Template
-                        tmpl = Template(query)
-
-                        # Build complete query
-                        try:
-                            query = tmpl.substitute(subst_data)
-                        except Exception as e:
-                            logError('User `{}`, file `{}`: Cannot build query! Error on `{}`!'\
-                                ''.format(user, subst_data['file'], e))
-                            conn.rollback()
-                            return False
-
-                        # :: For DEBUG ::
-                        #open(TWISTER_PATH + '/config/Query.debug', 'a').write('File Query:: `{0}` ::\n{1}\n\n\n'.format(subst_data['file'], query))
-
-                        # Execute MySQL Query!
-                        try:
-                            curs.execute(query)
-                            logDebug('Executed query ``{}`` OK.'.format(query.strip()))
-                        except MySQLdb.Error as e:
-                            err = 'Error in query ``{}`` for user `{}`!\n\tMySQL Error {}: {}!'.format(query, user, e.args[0], e.args[1])
-                            logError(err)
-                            conn.rollback()
-                            return False
-
-            #
-            conn.commit()
-            curs.close()
-            conn.close()
-            #
-
-            return True
+        r = self.authenticate(user)
+        if not r:
+            return False
+        return self.dbmgr.save_to_database(user)
 
 
     def _build_plugin(self, user, plugin, extra_data={}):
