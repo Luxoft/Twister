@@ -1,7 +1,7 @@
 
 # File: TestCaseRunnerClasses.py ; This file is part of Twister.
 
-# version: 3.007
+# version: 3.008
 
 # Copyright (C) 2012-2014, Luxoft
 
@@ -36,6 +36,7 @@ import glob
 from shutil import copyfile
 
 import subprocess # For running Perl/ Jython
+from subprocess import PIPE
 from collections import OrderedDict # For dumping TCL
 from ConfigParser import SafeConfigParser # For parsing Jython config
 
@@ -375,8 +376,9 @@ END_OF_PYTHON_CODE
         env.update({'TWISTER_PATH': TWISTER_PATH})
 
         print('~ Perl ~ Compiling Inline::Python ~\n')
-        proc = subprocess.Popen('perl '+ fpath, env=env, shell=True, bufsize=1)
-        proc.communicate()
+        proc = subprocess.Popen('perl '+ fpath, env=env, shell=True,
+            bufsize=1, stdout=PIPE, stderr=PIPE)
+        (stdout, stderr) = proc.communicate()
         time.sleep(0.5)
 
         try:
@@ -385,7 +387,10 @@ END_OF_PYTHON_CODE
             pass
 
         # The _RESULT must be injected from within the perl script
-        print('\n~ Perl returned code `{}` ~'.format(proc.returncode))
+        if stderr:
+            print('~ Perl crashed with error code `{}`! ~\n\n{}'.format(proc.returncode, stderr.strip()))
+        else:
+            print('\n~ Perl returned code `{}` ~'.format(proc.returncode))
         return proc.returncode
         #
 
