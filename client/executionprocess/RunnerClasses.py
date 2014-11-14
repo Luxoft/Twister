@@ -376,9 +376,8 @@ END_OF_PYTHON_CODE
         env.update({'TWISTER_PATH': TWISTER_PATH})
 
         print('~ Perl ~ Compiling Inline::Python ~\n')
-        proc = subprocess.Popen('perl '+ fpath, env=env, shell=True,
-            bufsize=1, stdout=PIPE, stderr=PIPE)
-        (stdout, stderr) = proc.communicate()
+        proc = subprocess.Popen('perl '+ fpath, env=env, shell=True, bufsize=1, stderr=PIPE)
+        (_, stderr) = proc.communicate()
         time.sleep(0.5)
 
         try:
