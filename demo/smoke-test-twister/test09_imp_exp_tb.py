@@ -4,6 +4,9 @@
 # <title>Test Import/ Export XML</title>
 # <description>This suite checks the most basic functionality of Twister.<br>
 # This test tries to export the TB as XML, then import it again to see if the data is the same.</description>
+# <tags>testbed, SUT, import, export</tags>
+# <test>import & export</test>
+# <smoke>yes</smoke>
 #
 
 import os
@@ -21,8 +24,8 @@ def cleanup(file):
 def check(ra, _xml_file):
 
     try:
-        res = ra.getResource('/')
-        sut = ra.getSut('/')
+        res = ra.get_resource('/')
+        sut = ra.get_sut('/')
         try: del res['version']
         except: pass
         try: del res['name']
@@ -54,7 +57,7 @@ def check(ra, _xml_file):
 
     print('Comparing the old resource, with the new resource...')
     # New resources must be the same as the old resources!
-    new_res = ra.getResource('/')
+    new_res = ra.get_resource('/')
     try: del new_res['version']
     except: pass
     try: del res['meta']
@@ -68,13 +71,13 @@ def check(ra, _xml_file):
 
     print('{} children [vs] {} children.'.format( len(res['children']), len(new_res['children']) ))
 
-    logMsg('logDebug', '\n- Old resource :\n')
-    logMsg('logDebug', repr(res))
-    logMsg('logDebug', '\n----------\n')
+    log_msg('logDebug', '\n- Old resource :\n')
+    log_msg('logDebug', repr(res))
+    log_msg('logDebug', '\n----------\n')
 
-    logMsg('logDebug', '\n- New resource :\n')
-    logMsg('logDebug', repr(new_res))
-    logMsg('logDebug', '\n----------\n')
+    log_msg('logDebug', '\n- New resource :\n')
+    log_msg('logDebug', repr(new_res))
+    log_msg('logDebug', '\n----------\n')
 
     if res != new_res:
         print('Check failed! The resources are different after import/ export!')
@@ -87,7 +90,7 @@ def check(ra, _xml_file):
 
 def test(PROXY, USER):
 
-    logMsg('logRunning', 'Starting import...\n')
+    log_msg('logRunning', 'Starting import...\n')
 
     ip, port = PROXY.cherryAddr()
     _proxy = 'http://{}:EP@{}:{}/ra/'.format(USER, ip, port)
@@ -105,7 +108,7 @@ def test(PROXY, USER):
 
     py_res = 'tb_' + hexlify(os.urandom(4))
     print('Create TB `{}`...'.format(py_res))
-    res_id = setResource(py_res, '/', {'meta1': 1, 'meta2': 2, 'meta3': ''})
+    res_id = set_resource(py_res, '/', {'meta1': 1, 'meta2': 2, 'meta3': ''})
     print('Ok.\n')
 
     # -----
@@ -115,7 +118,7 @@ def test(PROXY, USER):
     if not r:
         return 'Fail'
 
-    print('Delete TB :', deleteResource(res_id))
+    print('Delete TB :', delete_resource(res_id))
 
     # -----
     # Check after the delete of the element
@@ -124,7 +127,7 @@ def test(PROXY, USER):
     if not r:
         return 'Fail'
 
-    logMsg('logRunning', 'Finished import/ export.\n')
+    log_msg('logRunning', 'Finished import/ export.\n')
 
     cleanup(_xml_file)
     return 'Pass'

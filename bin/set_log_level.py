@@ -2,7 +2,7 @@
 
 # File: set_log_level.py ; This file is part of Twister.
 
-# version: 3.001
+# version: 3.003
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -24,30 +24,35 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""
+Set the CE log level
+"""
 
 import sys
 import rpyc
 
 try:
-    c = rpyc.connect('127.0.0.1', 8010)
+    CONN = rpyc.connect('127.0.0.1', 8010)
 except Exception as e:
     print('\nCannot connect to CE! Exception: `{}`!\n'.format(e))
     exit(1)
 
+LEVELS = ['FULL', 'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL']
+
 try:
-    level = int(sys.argv[1])
+    LEVEL = sys.argv[1]
 except:
-    level = c.root.getLogLevel()
-    print('\nThe log level is `{}`.\n'.format(level))
+    LEVEL = CONN.root.getLogLevel()
+    print('\nThe log level is `{}`.\n'.format(LEVEL))
     exit(1)
 
-if level <= 0 or level > 5:
-    print('\nInvalid log level `{}` ! Must give an integer between 1-5 !\n'.format(level))
+if LEVEL not in LEVELS:
+    print('\nInvalid log level `{}` ! Must give a value from {} !\n'.format(LEVEL, LEVELS))
     exit(1)
 
-c.root.setLogLevel( level )
+CONN.root.set_log_level( LEVEL )
 
-if level == 1:
-    print('\nLog level set to `{}`.\nWARNING! This should only be used for development and debugging!\n'.format(level))
+if LEVEL in ['FULL', 'DEBUG']:
+    print('\nLog level set to `{}`.\nWARNING! This should only be used for development and debugging!\n'.format(LEVEL))
 else:
-    print('\nLog level set to `{}`.\n'.format(level))
+    print('\nLog level set to `{}`.\n'.format(LEVEL))

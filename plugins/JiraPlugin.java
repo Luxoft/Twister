@@ -1,6 +1,6 @@
 /*
 File: JiraPlugin.java ; This file is part of Twister.
-Version: 2.003
+Version: 2.005
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -36,6 +36,7 @@ import java.util.Properties;
 import javax.swing.JFrame;
 
 import javax.swing.JOptionPane;
+import javax.xml.bind.DatatypeConverter;
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Result;
 import javax.xml.transform.Transformer;
@@ -43,11 +44,7 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
-import com.jcraft.jsch.Channel;
-import com.jcraft.jsch.ChannelSftp;
-import com.jcraft.jsch.JSch;
-import com.jcraft.jsch.Session;
-import com.jcraft.jsch.SftpException;
+import com.twister.CustomDialog;
 import com.twister.Item;
 import com.twister.plugin.baseplugin.BasePlugin;
 import com.twister.plugin.twisterinterface.TwisterPluginInterface;
@@ -98,8 +95,6 @@ public class JiraPlugin extends BasePlugin implements TwisterPluginInterface {
 	private List issues;
 	private HashMap comments = new HashMap();
 	
-	private ChannelSftp c;
-	
 	private String jiraserver;
 	
 	JiraPanel p;	
@@ -117,7 +112,6 @@ public class JiraPlugin extends BasePlugin implements TwisterPluginInterface {
 		this.variables = variables;
 
 		initializeRPC();
-		initializeSFTP();
 		
 		p = new JiraPanel(this);
 		
@@ -187,9 +181,6 @@ public class JiraPlugin extends BasePlugin implements TwisterPluginInterface {
 	@Override
 	public void terminate() {
 		super.terminate();
-		c.disconnect();
-		c.exit();
-		c = null;
 		p = null;
 		client = null;
 		projects = null;
@@ -259,7 +250,7 @@ public class JiraPlugin extends BasePlugin implements TwisterPluginInterface {
 			params.put("server", p.tfJiraServer.getText());			
 			params.put("user", p.tfUsername.getText());
 			params.put("passwd", new String(p.tfPassword.getPassword()));	
-			Object ob =  client.execute("runPlugin", new Object[]{variables.get("user"),
+			Object ob =  client.execute("run_plugin", new Object[]{variables.get("user"),
 					 getName(),params});
 			Object[] result=null;
 			try{result = (Object[])ob;}
@@ -313,7 +304,7 @@ public class JiraPlugin extends BasePlugin implements TwisterPluginInterface {
 			params.put("server", p.tfJiraServer.getText());
 			params.put("user", p.tfUsername.getText());
 
-			Object[] result = (Object[]) client.execute("runPlugin", new Object[]{variables.get("user"),
+			Object[] result = (Object[]) client.execute("run_plugin", new Object[]{variables.get("user"),
 					 getName(),params});
 			if (result!=null){									
 				issueTypes = result;
@@ -341,7 +332,7 @@ public class JiraPlugin extends BasePlugin implements TwisterPluginInterface {
 			params.put("server", p.tfJiraServer.getText());
 			params.put("user", p.tfUsername.getText());
 			
-			Object[] result = (Object[]) client.execute("runPlugin", new Object[]{variables.get("user"),
+			Object[] result = (Object[]) client.execute("run_plugin", new Object[]{variables.get("user"),
 					 getName(),params});
 			if (result != null){
 				priorities = result;
@@ -370,7 +361,7 @@ public class JiraPlugin extends BasePlugin implements TwisterPluginInterface {
 			params.put("server", p.tfJiraServer.getText());
 			params.put("user", p.tfUsername.getText());
 			
-			Object[] result = (Object[]) client.execute("runPlugin", new Object[]{variables.get("user"),
+			Object[] result = (Object[]) client.execute("run_plugin", new Object[]{variables.get("user"),
 					 getName(),params});
 			if (result!=null){		
 				statuses = result;
@@ -403,7 +394,7 @@ public class JiraPlugin extends BasePlugin implements TwisterPluginInterface {
 			params.put("user", p.tfUsername.getText());
 			params.put("project", projKey);			
 			
-			Object[] result = (Object[]) client.execute("runPlugin", new Object[]{variables.get("user"),
+			Object[] result = (Object[]) client.execute("run_plugin", new Object[]{variables.get("user"),
 					 getName(),params});
 			if (!result.equals("empty")){
 				versions = result;
@@ -437,7 +428,7 @@ public class JiraPlugin extends BasePlugin implements TwisterPluginInterface {
 			params.put("user", p.tfUsername.getText());
 			params.put("project", projKey);	
 			
-			Object[] result = (Object[]) client.execute("runPlugin", new Object[]{variables.get("user"),
+			Object[] result = (Object[]) client.execute("run_plugin", new Object[]{variables.get("user"),
 					 getName(),params});
 			if (!result.equals("empty")){
 				components  = result;
@@ -506,7 +497,7 @@ public class JiraPlugin extends BasePlugin implements TwisterPluginInterface {
 		params.put("query", query);
 		try {
 			System.out.println("\n\t - attempting to get issues by query "+hashToString(params));			
-			Object[] rawIssues = (Object[]) client.execute("runPlugin", new Object[]{variables.get("user"),
+			Object[] rawIssues = (Object[]) client.execute("run_plugin", new Object[]{variables.get("user"),
 					 getName(),params});
 			if (rawIssues != null){
 			    issues = new LinkedList(Arrays.asList(rawIssues));
@@ -537,7 +528,7 @@ public class JiraPlugin extends BasePlugin implements TwisterPluginInterface {
 			params.put("server", p.tfJiraServer.getText());		
 			params.put("user", p.tfUsername.getText());
 			params.put("key", issueKey);			
-			Object[] result = (Object[]) client.execute("runPlugin", new Object[]{variables.get("user"),
+			Object[] result = (Object[]) client.execute("run_plugin", new Object[]{variables.get("user"),
 					 getName(),params});
 			if (result != null){	
 				if (result[0] instanceof String){
@@ -568,7 +559,7 @@ public class JiraPlugin extends BasePlugin implements TwisterPluginInterface {
 			params.put("user", p.tfUsername.getText());
 			params.put("issue", removeNullFields(issue));
 //			System.out.println(params);
-			Object[] result = (Object[]) client.execute("runPlugin", new Object[]{variables.get("user"),
+			Object[] result = (Object[]) client.execute("run_plugin", new Object[]{variables.get("user"),
 					 getName(),params});
 			if (result != null){
 				// add the newly created issue to the list of issues
@@ -608,7 +599,7 @@ public class JiraPlugin extends BasePlugin implements TwisterPluginInterface {
 			params.put("user", p.tfUsername.getText());
 			params.put("issue", removeNullFields(issue));
 			
-			Object[] result = (Object[]) client.execute("runPlugin", new Object[]{variables.get("user"),
+			Object[] result = (Object[]) client.execute("run_plugin", new Object[]{variables.get("user"),
 					 getName(),params});
 			if (result != null){
 				updateIssue((HashMap) result[0]);
@@ -631,35 +622,63 @@ public class JiraPlugin extends BasePlugin implements TwisterPluginInterface {
 		File file = new File((String) h.get("path"));
 		String remotePath = variables.get("remoteuserhome")+"/twister/.twister_cache//jira"; 
 		try {
-			FileInputStream in = new FileInputStream(file);						
-			c.cd(remotePath);
-			c.put(in, file.getName());
-			in.close();
+			FileInputStream input = new FileInputStream(file);
+			
+			//c.cd(remotePath);
+			//c.put(in, file.getName());
+			
+			String content = "";
+			
+			if(input!=null){
+                StringBuilder builder = new StringBuilder();
+                int ch;
+                while((ch = input.read()) != -1){
+                    builder.append((char)ch);
+                }
+                input.close();
+                content = builder.toString();
+                content = DatatypeConverter.printBase64Binary(content.getBytes());
+            }
+			
+			
+			String resp = client.execute("write_file", new Object[]{remotePath+"/"+file.getName(),content,"w"}).toString();
+            if(resp.indexOf("*ERROR*")!=-1){
+                CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,p,"ERROR", resp);
+            }
+			
+			
+			
+			
+			input.close();
 			h.put("path", remotePath);
 			return h;
-		} catch (Exception e){						
-			if (e instanceof FileNotFoundException){
-				System.out.println("Local file not found");
-			}
-			if (e instanceof SftpException){
-				SftpException e1 = (SftpException) e;
-				if (e1.id==ChannelSftp.SSH_FX_NO_SUCH_FILE){
-					// probably the remote dir does not exist -> we'll try to create it
-					try {
-						FileInputStream in = new FileInputStream(file);
-						c.mkdir(remotePath);
-						c.cd(remotePath);
-						c.put(in,file.getName());
-						in.close();
-						h.put("path", remotePath);
-						return h;
-					} catch (Exception e2) {
-						// TODO Auto-generated catch block
-						System.out.println("Some error occurred.");
-						e2.printStackTrace();
-					}
-				}
-			}
+		} catch (Exception e){		
+			// TODO Auto-generated catch block
+			System.out.println("Some error occurred.");
+			e.printStackTrace();
+			
+//			if (e instanceof FileNotFoundException){
+//				System.out.println("Local file not found");
+//			}
+//			if (e instanceof SftpException){
+//				SftpException e1 = (SftpException) e;
+//				if (e1.id==ChannelSftp.SSH_FX_NO_SUCH_FILE){
+//					// probably the remote dir does not exist -> we'll try to create it
+//					try {
+//						FileInputStream in = new FileInputStream(file);
+//						c.mkdir(remotePath);
+//						c.cd(remotePath);
+//						c.put(in,file.getName());
+//						in.close();
+//						h.put("path", remotePath);
+//						return h;
+//					} catch (Exception e2) {
+//						// TODO Auto-generated catch block
+//						System.out.println("Some error occurred.");
+//						e2.printStackTrace();
+//					}
+//				}
+//			}
 		}
 		return null;
 	}
@@ -680,7 +699,7 @@ public class JiraPlugin extends BasePlugin implements TwisterPluginInterface {
 		try {
 			System.out.println("\n\t - attempting to update attachments of issue "+issueKey);
 			
-			boolean result = (boolean) client.execute("runPlugin", new Object[]{variables.get("user"),
+			boolean result = (boolean) client.execute("run_plugin", new Object[]{variables.get("user"),
 					getName(),params});
 			if (result){
 				System.out.println("Attach successful to issue "+issueKey);
@@ -709,7 +728,7 @@ public class JiraPlugin extends BasePlugin implements TwisterPluginInterface {
 				params.put("command", "editcomment");
 				params.put("id", (String) comment.get("id"));				
 								
-				Object[] result = (Object[]) client.execute("runPlugin", new Object[]{variables.get("user"),
+				Object[] result = (Object[]) client.execute("run_plugin", new Object[]{variables.get("user"),
 						 getName(),params});
 				if (result != null){
 					System.out.println("Comment edited.");
@@ -725,7 +744,7 @@ public class JiraPlugin extends BasePlugin implements TwisterPluginInterface {
 				params.put("command", "comment");
 				params.put("key", issueKey);				
 								
-				Object[] result = (Object[]) client.execute("runPlugin", new Object[]{variables.get("user"),
+				Object[] result = (Object[]) client.execute("run_plugin", new Object[]{variables.get("user"),
 						 getName(),params});
 				if (result != null){
 					System.out.println("Comment creation successful.");
@@ -757,7 +776,7 @@ public class JiraPlugin extends BasePlugin implements TwisterPluginInterface {
 			params.put("user", p.tfUsername.getText());
 			params.put("key", issueKey);
 			
-			Object[] result = (Object[]) client.execute("runPlugin", new Object[]{variables.get("user"),
+			Object[] result = (Object[]) client.execute("run_plugin", new Object[]{variables.get("user"),
 					 getName(),params});
 			if (result!=null){									
 				actions = result;

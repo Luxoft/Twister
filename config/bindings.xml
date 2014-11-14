@@ -1,6 +1,19 @@
 <root>
-	<bind>cfg1=sut1</bind>
-	<bind>cfg2=sut2</bind>
-	<bind>cfg3=sut3</bind>
-	<bind />
+<binding>
+	<name>default_binding</name>
+	<bind config="x1" sut="b76af18228"/>
+	<bind config="x2" sut="e61c8971e2"/>
+</binding>
+
+<binding>
+	<name>f1</name>
+	<bind config="x1" sut="c0f8842d74"/>
+	<bind config="x1/x1" sut="498a1706ef"/>
+	<bind config="x2" sut="e61c8971e2"/>
+</binding>
+
+<binding>
+	<name>f2</name>
+	<bind config="C3" sut="8eb1d41085"/>
+</binding>
 </root>

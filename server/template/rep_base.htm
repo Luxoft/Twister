@@ -23,7 +23,7 @@
 	<%
 	was_folder = False
 	%>
-	<ul class="nav nav-pills nav-stacked" style="margin-left:-10px">
+	<ul id="lateral" class="nav nav-pills nav-stacked" style="margin-left:-10px">
 	% for tpl in links:
 	<%
 	link   = tpl['link']
@@ -32,41 +32,47 @@
 	%>
 
 		% if ltype == 'link' and folder and folder != was_folder:
-		<!-- Start of folder `${folder}` // before ${was_folder} -->
+			% if was_folder:
+			</ul> <!-- End of folder `${was_folder}` // new `${folder}` -->
+			<%
+			was_folder = False
+			%>
+			% endif
+		<!-- Start of folder `${folder}` // before `${was_folder}` -->
 		<%
 		was_folder = folder
 		%>
-		<li class="collaps"><a><i class="icon-folder-open"></i> ${folder}</a></li>
+		<li class="collaps" data-collapsed="false"><a><i class="icon-folder-open"></i> ${folder}</a></li>
 			<ul class="nav nav-pills nav-stacked" style="margin-bottom:0">
 		% endif
 		% if was_folder and folder != was_folder:
-			</ul> <!-- End of folder `${was_folder}` -->
+			</ul> <!-- End of folder `${was_folder}` // old `${folder}` -->
 		<%
 		was_folder = False
 		%>
 		% endif
 
 		% if link == 'Home' and link == title:
-		<li class="active"><a href="/report/home/${usr}"><i class="icon-home"></i> ${link}</a></li>\
+		<li class="active"><button class="btn btn-info" onClick="window.location='/report/home/${usr}'"><i class="icon-home"></i> ${link}</button></li>\
 		% elif link == 'Help' and link == title:
-		<li class="active"><a href="/report/help/${usr}"><i class="icon-flag"></i> ${link}</a></li>\
+		<li class="active"><button class="btn btn-info" onClick="window.location='/report/help/${usr}'"><i class="icon-flag"></i> ${link}</button></li>\
 		% elif link == 'Home':
-		<li><a href="/report/home/${usr}"><i class="icon-home"></i> ${link}</a></li>
+		<li><button class="btn btn-link" onClick="window.location='/report/home/${usr}'"><i class="icon-home"></i> ${link}</button></li>
 		% elif link == 'Help':
-		<li><a href="/report/help/${usr}"><i class="icon-flag"></i> ${link}</a></li>
+		<li><button class="btn btn-link" onClick="window.location='/report/help/${usr}'"><i class="icon-flag"></i> ${link}</button></li>
 		% elif ltype == 'redir':
-		<li><a href="/report/rep/${link}/${usr}"><i class="icon-share-alt"></i> ${link}</a></li>
+		<li><button class="btn btn-link" onClick="window.location='/report/rep/${link}/${usr}'"><i class="icon-share-alt"></i> ${link}</button></li>
 		% elif link == title:
 			% if was_folder:
-			<li class="active" style="margin-left:12px"><a href="/report/rep/${link}/${usr}"><i class="icon-asterisk"></i> ${link}</a></li>
+			<li class="active" style="margin-left:12px"><button class="btn btn-info" onClick="window.location='/report/rep/${link}/${usr}'"><i class="icon-asterisk"></i> ${link}</button></li>
 			% else:
-			<li class="active"><a href="/report/rep/${link}/${usr}"><i class="icon-asterisk"></i> ${link}</a></li>
+			<li class="active"><button class="btn btn-info" onClick="window.location='/report/rep/${link}/${usr}'"><i class="icon-asterisk"></i> ${link}</button></li>
 			% endif
 		% elif ltype == 'link':
 			% if was_folder:
-			<li style="margin-left:12px"><a href="/report/rep/${link}/${usr}"><i class="icon-arrow-right"></i> ${link}</a></li>
+			<li style="margin-left:12px"><button class="btn btn-link" onClick="window.location='/report/rep/${link}/${usr}'"><i class="icon-arrow-right"></i> ${link}</button></li>
 			% else:
-			<li><a href="/report/rep/${link}/${usr}"><i class="icon-arrow-right"></i> ${link}</a></li>
+			<li><button class="btn btn-link" onClick="window.location='/report/rep/${link}/${usr}'"><i class="icon-arrow-right"></i> ${link}</button></li>
 			% endif
 		% else:
 		<p>This should not be here!</p>
@@ -193,11 +199,61 @@
 <script type="text/javascript" src="/static/js/jquery.min.js"></script>
 <script type="text/javascript" src="/static/js/bootstrap.min.js"></script>
 <script type="text/javascript">
+
+function storeCollaps() {
+	var txt,co, collaps = {};
+	$("#lateral .collaps").each(
+		function(i, el) {
+			txt = $(el).text();
+			co = $(el).data('collapsed');
+			collaps[i+":"+txt] = co;
+	});
+	setTimeout(function() {
+		localStorage.setItem('collapsed', JSON.stringify(collaps));
+		console.log("Collaps state saved.");
+		console.log(collaps);
+	}, 50);
+};
+
+function reStoreCollaps() {
+	var collaps = JSON.parse(localStorage.getItem('collapsed'));
+	if (collaps==null) return;
+	var fn, cv, keys = Object.keys(collaps);
+	$("#lateral .collaps").each(
+		function(i, el) {
+			var $el = $(this);
+			fn = $el.text();  // Collapsed folder text
+			vc = collaps[keys[i]]; // Collapse value
+			if (keys[i] != i+":"+fn) {
+				console.log("Key " +keys[i]+ " doesnt match !");
+				return;
+			};
+			console.log(fn + " collapsed = " + vc);
+			$el.data("collapsed", vc);
+			$el.next().find('li').each(function(i) {
+				if (vc == true)
+					$(this).hide();
+				else
+					$(this).show();
+			});
+		});
+	return collaps;
+};
+
 $(".collaps").click(function() {
-	$(this).next().find('li').each(function(i) {
+	var $el = $(this);
+	var cv = $el.data("collapsed"); // Collapse initial value
+	$el.data("collapsed", !JSON.parse(cv)); // Inverse value
+	storeCollaps(); // Save changes
+
+	$el.next().find("li").each(function(i) {
 		// console.log( "Hiding: " + $(this).text() );
 		$(this).fadeToggle();
 	});
+});
+
+$(document).ready(function() {
+	reStoreCollaps();
 });
 </script>
 

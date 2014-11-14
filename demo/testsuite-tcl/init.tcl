@@ -20,9 +20,10 @@ puts "Exec process:: $EP"
 puts "Suite name :: $SUITE_NAME"
 puts "Remote file:: $FILE_NAME"
 puts "Config files:: $CONFIG"
+puts "Iteration nr:: $ITERATION"
 
 # Load Expect and some demo library
-package require Expect
+#package require Expect
 #package require DemoLib
 
 # Set a few global variables

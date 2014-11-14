@@ -1,0 +1,24 @@
+
+#
+# <title>expect file</title>
+# <description>testing the expect package -> runs a ls command in bash</description>
+#
+
+# load the Expect package into Tcl
+package require Expect
+
+spawn bash
+
+exp_send "ls -l\n"
+
+set accum {}
+expect {
+    -regexp {..*} {
+        set accum "${accum}$expect_out(0,string)" 
+        exp_continue
+    }
+}
+
+puts $accum
+puts "\nTCL test done.\n"
+return "PASS"

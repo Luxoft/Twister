@@ -1,6 +1,6 @@
 /*
 File: MainPanel.java ; This file is part of Twister.
-Version: 2.008
+Version: 2.009
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -72,25 +72,10 @@ public class MainPanel extends JTabbedPane{
         p1 = new Panel1("", applet,(int)screenSize.getWidth());
         p2 = new Panel2(applet);    
         p4 = new Panel4(); 
-        //p5 = new ClearCase(RunnerRepository.host,RunnerRepository.user,RunnerRepository.password);
-//         p5 = new Panel5(1500,612);
         setBounds(0, 5, (int)screenSize.getWidth()-50, 672);
         addTab("Project", new ImageIcon(), p1);
-        //addTab("Monitoring", p2);
         addTab("Reports", null);
         addTab("Configuration", p4); 
-        //addTab("ClearCase", p5);
-//         add("Network", new JScrollPane(p5));
-//         new Thread(){
-//             public void run(){
-//                 SwingUtilities.invokeLater(new Runnable(){
-//                     public void run(){
-//                         try{while(p1.sc.g.getGraphics() == null){ 
-//                                 try{Thread.sleep(100);}
-//                                 catch(Exception e){
-//                                     System.out.println("Thread interrupted at getting Graphics");}}
-//                                 if(p1.suitaDetails.isEnabled())askForFile();}
-//                          catch(NullPointerException e){e.printStackTrace();}}});}}.start();
         
         /*
          * if it is applet
@@ -111,42 +96,13 @@ public class MainPanel extends JTabbedPane{
         RunnerRepository.introscreen.addPercent(0.035);
         RunnerRepository.introscreen.repaint();
     }
- 
-    /*
-     * ask user for suite file
-     */
-//     public void askForFile(){       
-//         File usersdirectory = new File(RunnerRepository.getUsersDirectory());
-//         String users[] = new String[usersdirectory.list().length + 1];
-//         System.arraycopy(usersdirectory.list(), 0, users, 0,
-//                             usersdirectory.list().length);
-//         users[users.length - 1] = "New File";
-//         JComboBox combo = new JComboBox(users);
-//         int resp = (Integer)CustomDialog.showDialog(combo,
-//                                                     JOptionPane.INFORMATION_MESSAGE,
-//                                                     JOptionPane.OK_CANCEL_OPTION,p1,
-//                                                     "Project File",null);
-//         if(resp==JOptionPane.OK_OPTION){
-//             String user = combo.getSelectedItem().toString();
-//             if(user.equals("New File")){
-//                 user = CustomDialog.showInputDialog(JOptionPane.QUESTION_MESSAGE,
-//                                                     JOptionPane.OK_CANCEL_OPTION, p1,
-//                                                     "File Name", "Please enter file name").
-//                                                     toUpperCase();
-//                 if(!user.equals("NULL")){
-//                     (new XMLBuilder(RunnerRepository.getSuite())).writeXMLFile((new StringBuilder()).
-//                                         append(RunnerRepository.getUsersDirectory()).append(RunnerRepository.
-//                                         getBar()).append(user).append(".XML").toString(),false,false);
-//                     p1.sc.g.setUser((new StringBuilder()).append(RunnerRepository.getUsersDirectory()).
-//                                         append(RunnerRepository.getBar()).append(user).append(".XML").
-//                                         toString());
-//                     p1.sc.g.printXML(p1.sc.g.getUser(),false,false,false);}}
-//             else{
-//                 p1.sc.g.setUser((new StringBuilder()).append(RunnerRepository.getUsersDirectory()).
-//                                         append(RunnerRepository.getBar()).append(user).toString());
-//                 p1.sc.g.parseXML(new File((new StringBuilder()).append(RunnerRepository.getUsersDirectory()).
-//                                         append(RunnerRepository.getBar()).append(user).toString()));}}}
         
     public void saveUserXML(){
         if(!p1.sc.g.getUser().equals("")){
-            p1.sc.g.printXML(p1.sc.g.getUser(), false,false,false,false,false,"",false,null);}}}
+            if(RunnerRepository.isMaster()){
+                p1.sc.g.printXML(p1.sc.g.getUser(), false,false,false,false,false,"",false,null,
+                            RunnerRepository.window.mainpanel.p1.suitaDetails.getProjectDefs(),RunnerRepository.window.mainpanel.p1.suitaDetails.getGlobalDownloadType());
+            } else {
+                p1.sc.g.printXML(p1.sc.g.getUser(), false,false,false,false,false,"",false,null,
+                            RunnerRepository.window.mainpanel.p1.suitaDetails.getProjectDefs(),null);
+            }}}}

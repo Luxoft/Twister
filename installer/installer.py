@@ -1,6 +1,6 @@
 #!/usr/bin/env python2.7
 
-# version: 2.001
+# version: 2.002
 
 # File: installer.py ; This file is part of Twister.
 
@@ -26,6 +26,11 @@
 # limitations under the License.
 
 import os, sys
+import platform
+
+if platform.system().lower() != 'linux':
+    print('Error! This installer works only in Linux!')
+    exit(1)
 
 # Install option.
 TO_INSTALL = ''

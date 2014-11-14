@@ -2,16 +2,15 @@
 
 # File: start_server ; This file is part of Twister.
 
-# version: 2.002
+# version: 3.001
 
 # Copyright (C) 2012-2013 , Luxoft
 
 # Authors:
-#    Adrian Toader <adtoader@luxoft.com>
 #    Andrei Costachi <acostachi@luxoft.com>
-#    Andrei Toma <atoma@luxoft.com>
 #    Cristi Constantin <crconstantin@luxoft.com>
 #    Daniel Cioata <dcioata@luxoft.com>
+#    Mihai Tudoran <mtudoran@luxoft.com>
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -29,7 +28,7 @@ PYTHON_PATH=/usr/bin/python
 SERVER_PORT=8000
 
 pid=$(ps ax | grep python | grep CentralEngine.py | awk '{print $1}')
-log=$(pgrep -f /server/LogService.py)
+usv=$(pgrep -f /server/UserService.py)
 
 if [ -n "$TWISTER_PATH" ]
 then
@@ -42,12 +41,12 @@ then
         sleep 0.1
         kill -9 $pid
     fi
-    if [ -z "$log" ]
+    if [ -z "$usv" ]
     then
-        echo Logs are not running.
+        echo User services are not running.
     else
-        echo Killing Logs, PID $log ...
-        kill -9 $log
+        echo Killing user services, PIDs $usv ...
+        kill -9 $usv
     fi
     echo TWISTER_PATH is set to: "$TWISTER_PATH".
     nohup $PYTHON_PATH -u $TWISTER_PATH/server/CentralEngine.py $SERVER_PORT > $TWISTER_PATH/server_log.log &

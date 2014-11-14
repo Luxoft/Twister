@@ -1,6 +1,6 @@
 /*
 File: TestMySftp.java ; This file is part of Twister.
-Version: 2.002
+Version: 2.003
 Copyright (C) 2012 , Luxoft
 
 Authors: Andrei Costachi <acostachi@luxoft.com>
@@ -26,9 +26,10 @@ public class TestMySftp {
 	public static void main(String [] args){
 		JFrame f = new JFrame();
 		JTextField field = new JTextField();
+		field.setText("/home/tscguest//twister/config/email.xml");
 		f.add(field);
 		f.setVisible(true);
-		MySftpBrowser sftpbrows = new MySftpBrowser("tsc-server", "tscguest", "tscguest", field, f,true);
+		MySftpBrowser sftpbrows = new MySftpBrowser("tsc-server", "tscguest", "tscguest","8000", field, f,false);
 		f.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 	}
 }

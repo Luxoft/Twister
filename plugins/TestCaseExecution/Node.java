@@ -1,6 +1,6 @@
 /*
 File: Node.java ; This file is part of Twister.
-Version: 2.002
+Version: 2.006
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -22,16 +22,22 @@ import java.util.HashMap;
 import java.util.Iterator;
 
 public class Node{
+    private String reserved;
     private String id,name;
     private Path path;
+    private String stringpath;
     private HashMap<String,Node> children = new HashMap<String,Node>();
     private HashMap<String,String> properties = new HashMap<String,String>();
     private Node parent;
     private String eps;
-    private byte type;//0 -tb;1module
+    private byte type;//0 -tb;1 module
+    private boolean lastsaved = true;//tracks changes
+    private String locked = "";
     
 
     public Node(String id, String path, String name, Node parent,String eps, byte type){
+        this.stringpath = path;
+        this.reserved = "";
         this.eps = eps;
         this.parent = parent;
         this.id = id;
@@ -42,6 +48,18 @@ public class Node{
     
     public byte getType(){
         return type;
+    }
+    
+    public String getPathAsString(){
+        return stringpath;
+    }
+    
+    public String getReserved(){
+        return reserved;
+    }
+    
+    public void setReserved(String reserved){
+        this.reserved = reserved;
     }
     
     public String getEPs(){
@@ -79,6 +97,7 @@ public class Node{
     public String getName(){
         return name;
     }
+    
     public Node getParent(){
         return parent;
     }
@@ -124,7 +143,29 @@ public class Node{
     }
     
     public String toString(){
-        return this.name;
+        if(!reserved.equals("")){
+            return this.name + " - Reserved by: "+this.reserved;
+        } else if(!locked.equals("")){
+            return this.name + " - Locked by: "+this.locked;
+        } else {
+            return this.name;
+        }
+    }
+    
+    public boolean getLastSaved(){
+        return lastsaved;
+    }
+    
+    public void setLastSaved(boolean lastsaved){
+        this.lastsaved=lastsaved;
+    }
+    
+    public String getLock(){
+        return this.locked;
+    }
+    
+    public void setLock(String locked){
+        this.locked = locked;
     }
     
     public Node clone(){
@@ -139,6 +180,7 @@ public class Node{
         HashMap<String,String>propclone = new HashMap<String,String>(properties);
         clone.setProperties(propclone);
         clone.setChildren(childrenclone);
+        clone.setReserved(this.reserved);
         return clone;
     }
 }

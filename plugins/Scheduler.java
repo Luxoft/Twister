@@ -1,6 +1,6 @@
 /*
 File: Scheduler.java ; This file is part of Twister.
-Version: 2.001
+Version: 2.005
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -17,6 +17,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+import java.applet.Applet;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Cursor;
@@ -33,12 +34,10 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -70,12 +69,6 @@ import javax.swing.border.BevelBorder;
 import javax.swing.plaf.basic.BasicComboBoxUI;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableColumn;
-
-import com.jcraft.jsch.Channel;
-import com.jcraft.jsch.ChannelSftp;
-import com.jcraft.jsch.ChannelSftp.LsEntry;
-import com.jcraft.jsch.JSch;
-import com.jcraft.jsch.Session;
 import com.toedter.calendar.JDateChooser;
 import com.toedter.calendar.JTextFieldDateEditor;
 import com.twister.CustomDialog;
@@ -97,8 +90,7 @@ import javax.xml.transform.stream.StreamResult;
 public class Scheduler extends BasePlugin implements TwisterPluginInterface {
 	private static final long serialVersionUID = 1L;  
 	private JPanel p;
-	public XmlRpcClient client;
-	private ChannelSftp c;
+	public XmlRpcClient client, ceclient;
 	private JLabel left,right,add,remove,modify,tick;
 	private Calendar calendar ;
 	private Icon left0,left1,right0,right1,add0,add1,
@@ -115,12 +107,12 @@ public class Scheduler extends BasePlugin implements TwisterPluginInterface {
 	 */
 	public static void main(String [] args){
 		try{XmlRpcClientConfigImpl configuration = new XmlRpcClientConfigImpl();
-	    	configuration.setServerURL(new URL("http://11.126.32.14:88/"));
+	    	configuration.setServerURL(new URL("http://tsc-server:88/"));
 	    	XmlRpcClient client = new XmlRpcClient();
 	    	client.setConfig(configuration);
 	    	Scheduler sch = new Scheduler();
 	    	sch.setRPC(client);
-	    	sch.init(null, null, null, null);
+	    	sch.init(null, null, null, null,null);
 			JFrame f = new JFrame();
 			f.add(sch.getContent());
 			f.setVisible(true);
@@ -144,11 +136,12 @@ public class Scheduler extends BasePlugin implements TwisterPluginInterface {
 	 */
 	@Override
 	public void init(ArrayList<Item> suite, ArrayList<Item> suitetest,
-			final Hashtable<String, String> variables,final Document pluginsConfig) {
-		super.init(suite, suitetest, variables,pluginsConfig);
+			final Hashtable<String, String> variables,final Document pluginsConfig,Applet container) {
+		super.init(suite, suitetest, variables,pluginsConfig,container);
 		System.out.println("Initializing "+getName()+" ...");
 		calendar = Calendar.getInstance();
-		initializeSFTP();
+		//initializeSFTP();
+		initializeCERPC();
 		initializeRPC();
 		p = new JPanel(){
 			private static final long serialVersionUID = 1L;
@@ -159,7 +152,7 @@ public class Scheduler extends BasePlugin implements TwisterPluginInterface {
 		};
 		initMainPanel();
 		updateSchedules();
-        createXMLStructure();
+        //createXMLStructure();
         System.out.println(getName()+" initialized");
 	}
 	
@@ -170,23 +163,18 @@ public class Scheduler extends BasePlugin implements TwisterPluginInterface {
 		jScrollPane1.setBorder(null);
 		jTable1 = new JTable();
 		jTable1.getTableHeader().setReorderingAllowed(false);
-		
 		panel1.setLayout(null);
-		
         panel1.setMaximumSize(new Dimension(800, 600));
         panel1.setMinimumSize(new Dimension(800, 600));
         panel1.setPreferredSize(new Dimension(800, 600));
-        
-        
         mycalendar = new MyCalendar(calendar,jTable1);
 		mycalendar.setBounds(65, 85, 667, 300);
 		try {
-			InputStream in = getClass().getResourceAsStream("background.png");
+			InputStream in = getClass().getResourceAsStream("schedulerbackground.png");
 			Image im = ImageIO.read(in);
 			ImageIcon icon = new ImageIcon(im);
 	        JLabel background = new JLabel(icon);
 	        background.setBounds(0, 0, 800, 600);
-	        
 	        in = getClass().getResourceAsStream("modify0.png");
 			im = ImageIO.read(in);
 			modify0 = new ImageIcon(im);			
@@ -207,7 +195,6 @@ public class Scheduler extends BasePlugin implements TwisterPluginInterface {
 				}
 			});
 			modify.setBounds(337, 393, 123, 32);
-			
 			in = getClass().getResourceAsStream("remove0.png");
 			im = ImageIO.read(in);
 			remove0 = new ImageIcon(im);
@@ -228,7 +215,6 @@ public class Scheduler extends BasePlugin implements TwisterPluginInterface {
 				}
 			});
 			remove.setBounds(540, 393, 127, 26);
-			
 			in = getClass().getResourceAsStream("add0.png");
 			im = ImageIO.read(in);
 			add0 = new ImageIcon(im);			
@@ -251,7 +237,6 @@ public class Scheduler extends BasePlugin implements TwisterPluginInterface {
 				}
 			});
 			add.setBounds(150, 393, 81, 26);
-			
 			in = getClass().getResourceAsStream("btn0.png");
 			im = ImageIO.read(in);
 			right0 = new ImageIcon(im);			
@@ -279,7 +264,6 @@ public class Scheduler extends BasePlugin implements TwisterPluginInterface {
 				}
 			});
 			right.setBounds(480, 30, 28, 28);
-			
 			in = getClass().getResourceAsStream("lbtn0.png");
 			im = ImageIO.read(in);
 			left0 = new ImageIcon(im);
@@ -400,31 +384,85 @@ public class Scheduler extends BasePlugin implements TwisterPluginInterface {
 		});
 		
 		
-		try{c.cd(variables.get("remoteusersdir"));
-		}
-        catch(Exception e){
-            System.out.println("Could not get to "+
-            					variables.get("remoteusersdir")+
-            					"on sftp");}
-        int size ;
-        try{size= c.ls(variables.get("remoteusersdir")).size();
-        	}
-        catch(Exception e){
-            System.out.println("No suites xml");
-            size=0;}
+		Object ob = null;
+        try{ob = ceclient.execute("file_size", new Object[]{variables.get("remoteusersdir")});
+        } catch (Exception e) {
+        	System.out.println("Could not get to "+
+					variables.get("remoteusersdir")+
+					" on sftp");
+        	e.printStackTrace();
+        }
+		
+		
+		
+//		try{c.cd(variables.get("remoteusersdir"));}
+//        catch(Exception e){
+//            System.out.println("Could not get to "+
+//            					variables.get("remoteusersdir")+
+//            					" on sftp");
+//            e.printStackTrace();
+//        }
+        
+        
+//        int size ;
+//        try{size= c.ls(variables.get("remoteusersdir")).size();}
+//        catch(Exception e){
+//            System.out.println("No suites xml");
+//            size=0;
+//            e.printStackTrace();}
+//        ArrayList<String> files = new ArrayList<String>();
+//        String name=null;
+//        for(int i=0;i<size;i++){
+//            try{name = ((LsEntry)c.ls(variables.get("remoteusersdir")).get(i)).getFilename();
+//                if(name.split("\\.").length==0)continue; 
+//                if(name.toLowerCase().indexOf(".xml")==-1)continue;
+//                if(name.equals("last_edited.xml"))continue;
+//                files.add(name.toString());
+//            }
+//            catch(Exception e){
+//                e.printStackTrace();}
+//        }  
+        
+        
+        
+        
+        //String users[] = new String[files.size()];
+        
+        
+        
+        String users[] = null;
         ArrayList<String> files = new ArrayList<String>();
-        String name=null;
-        for(int i=0;i<size;i++){
-            try{name = ((LsEntry)c.ls(variables.get("remoteusersdir")).get(i)).getFilename();
-                if(name.split("\\.").length==0)continue; 
-                if(name.toLowerCase().indexOf(".xml")==-1)continue;
-                if(name.equals("last_edited.xml"))continue;
-                files.add(name.toString());
+        try{ob = ceclient.execute("list_files", new Object[]{variables.get("remoteusersdir")});
+            if(ob.toString().indexOf("*ERROR*")!=-1){
+                CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,p,"ERROR", ob.toString());
+                users = new String[]{};
             }
-            catch(Exception e){
-                e.printStackTrace();}
-        }   
-        String users[] = new String[files.size()];
+            HashMap struct = (HashMap)ob;
+            Object [] children = (Object [])struct.get("children");
+            if(children!=null&&children.length>0){
+                for(Object subchild:children){
+                    if(((HashMap)subchild).get("folder")==null){
+                        files.add(((HashMap)subchild).get("data").toString());
+                    }
+                }
+                users = new String[files.size()];
+                files.toArray(users);
+            }
+        } catch (Exception e) {
+            if(ob!=null && ob.toString().indexOf("*ERROR*")!=-1){
+            	CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,p,"ERROR", ob.toString());
+            	System.out.println("Server response: "+ob.toString());
+            }
+            e.printStackTrace();
+            users = new String[]{};
+        }
+        
+        
+        
+        //String users[] = getRemoteFolderContent(REMOTEUSERSDIRECTORY);
+        
+        
+        
         for(int i=0;i<files.size();i++){
             users[i] = files.get(i);
         }
@@ -445,6 +483,7 @@ public class Scheduler extends BasePlugin implements TwisterPluginInterface {
 		final JLabel date = new JLabel();
 		date.setBounds(76, 179, 100, 20);
 		final JDateChooser tdate = new JDateChooser();
+		tdate.setDateFormatString("yyyy-MM-dd");
 		((JTextFieldDateEditor)tdate.getDateEditor()).addPropertyChangeListener(new PropertyChangeListener() {
 			@Override
 			public void propertyChange(PropertyChangeEvent arg0) {
@@ -675,37 +714,83 @@ public class Scheduler extends BasePlugin implements TwisterPluginInterface {
 	 * into the field
 	 */
 	public void openProjectFile(JTextField field){
-		try{c.cd(variables.get("remoteusersdir"));}
-        catch(Exception e){
-            System.out.println("Could not get to "+variables.get("remoteusersdir")+"on sftp");}
-        int size ;
-        try{size= c.ls(variables.get("remoteusersdir")).size();}
-        catch(Exception e){
-            System.out.println("No suites xml");
-            size=0;}
+		
+		
+		Object ob = null;
+        try{ob = ceclient.execute("file_size", new Object[]{variables.get("remoteusersdir")});
+        } catch (Exception e) {
+        	System.out.println("Could not get to "+
+					variables.get("remoteusersdir")+
+					" on sftp");
+        	e.printStackTrace();
+        }
+        String users[] = null;
         ArrayList<String> files = new ArrayList<String>();
-        String name=null;
-        for(int i=0;i<size;i++){
-            try{name = ((LsEntry)c.ls(variables.get("remoteusersdir")).get(i)).getFilename();
-                if(name.split("\\.").length==0)continue; 
-                if(name.toLowerCase().indexOf(".xml")==-1)continue;
-                if(name.equals("last_edited.xml"))continue;
-                files.add(name.toString());
+        try{ob = ceclient.execute("list_files", new Object[]{variables.get("remoteusersdir")});
+            if(ob.toString().indexOf("*ERROR*")!=-1){
+                CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,p,"ERROR", ob.toString());
+                users = new String[]{};
             }
-            catch(Exception e){
-                e.printStackTrace();}
-        }   
-        String users[] = new String[files.size()];
+            HashMap struct = (HashMap)ob;
+            Object [] children = (Object [])struct.get("children");
+            if(children!=null&&children.length>0){
+                for(Object subchild:children){
+                    if(((HashMap)subchild).get("folder")==null){
+                        files.add(((HashMap)subchild).get("data").toString());
+                    }
+                }
+                users = new String[files.size()];
+                files.toArray(users);
+            }
+        } catch (Exception e) {
+            if(ob.toString().indexOf("*ERROR*")!=-1)CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,p,"ERROR", ob.toString());
+            System.out.println("Server response: "+ob.toString());
+            e.printStackTrace();
+            users = new String[]{};
+        }
         for(int i=0;i<files.size();i++){
             users[i] = files.get(i);
         }
+		
+		
+		
+		
+//		try{c.cd(variables.get("remoteusersdir"));}
+//        catch(Exception e){
+//            System.out.println("Could not get to "+variables.get("remoteusersdir")+"on sftp");}
+//        int size ;
+//        try{size= c.ls(variables.get("remoteusersdir")).size();}
+//        catch(Exception e){
+//            System.out.println("No suites xml");
+//            size=0;}
+//        ArrayList<String> files = new ArrayList<String>();
+//        String name=null;
+//        for(int i=0;i<size;i++){
+//            try{name = ((LsEntry)c.ls(variables.get("remoteusersdir")).get(i)).getFilename();
+//                if(name.split("\\.").length==0)continue; 
+//                if(name.toLowerCase().indexOf(".xml")==-1)continue;
+//                if(name.equals("last_edited.xml"))continue;
+//                files.add(name.toString());
+//            }
+//            catch(Exception e){
+//                e.printStackTrace();}
+//        }   
+//        String users[] = new String[files.size()];
+//        for(int i=0;i<files.size();i++){
+//            users[i] = files.get(i);
+//        }
+        
+        
+        
+        
+        
+        
         JComboBox <String>combo = new JComboBox<String>(users);
         
         int resp = (Integer)CustomDialog.showDialog(combo,
                             JOptionPane.INFORMATION_MESSAGE,
                             JOptionPane.OK_CANCEL_OPTION,Scheduler.this,
                             "Project File",null);
-        
         if(resp==JOptionPane.OK_OPTION){
             String user = combo.getSelectedItem().toString();
             field.setText(variables.get("remoteusersdir")+"/"+user);
@@ -750,7 +835,7 @@ public class Scheduler extends BasePlugin implements TwisterPluginInterface {
 		super.terminate();
 		p=null;
 		client=null;
-		c=null;
+		ceclient=null;
 		left=null;
 		right=null;
 		add=null;
@@ -825,27 +910,6 @@ public class Scheduler extends BasePlugin implements TwisterPluginInterface {
 		}
 	}
 	
-	public void initializeSFTP(){
-		try{
-			JSch jsch = new JSch();
-            String user = variables.get("user");
-			Session session = jsch.getSession(user, variables.get("host"), 22);
-			session.setPassword(variables.get("password"));
-			Properties config = new Properties();
-            config.put("StrictHostKeyChecking", "no");
-            session.setConfig(config);
-            session.connect();
-            Channel channel = session.openChannel("sftp");
-            channel.connect();
-            c = (ChannelSftp)channel;
-            System.out.println("SFTP successfully initialized");
-		}
-		catch(Exception e){
-			System.out.println("SFTP could not be initialized");
-			e.printStackTrace();
-		}
-	}
-	
 	private void drawDate(Graphics g){
 		StringBuilder sb = new StringBuilder();
 		sb.append(new SimpleDateFormat("MMM").format(calendar.getTime()).toLowerCase());
@@ -862,6 +926,8 @@ public class Scheduler extends BasePlugin implements TwisterPluginInterface {
 		try{
 			XmlRpcClientConfigImpl configuration = new XmlRpcClientConfigImpl();
 	        configuration.setServerURL(new URL("http://"+variables.get("host")+":88/"));
+	        configuration.setBasicPassword(variables.get("password"));
+	        configuration.setBasicUserName(variables.get("user"));
 	        client = new XmlRpcClient();
 	        client.setConfig(configuration);
 	        System.out.println("Client initialized: "+client);}
@@ -869,30 +935,17 @@ public class Scheduler extends BasePlugin implements TwisterPluginInterface {
                         variables.get("host")+" :88/");}
 	}
 	
-	/*
-     * method to copy plugins configuration file
-     * to server 
-     */
-    public boolean uploadPluginsFile(){
-        try{
-            DOMSource source = new DOMSource(pluginsConfig);
-            File file = new File(variables.get("pluginslocalgeneralconf"));
-            Result result = new StreamResult(file);
-            TransformerFactory transformerFactory = TransformerFactory.newInstance();
-            Transformer transformer = transformerFactory.newTransformer();
-            transformer.setOutputProperty(OutputKeys.INDENT, "yes");
-            transformer.setOutputProperty("{http:xml.apache.org/xslt}indent-amount","4");
-            transformer.transform(source, result);
-            c.cd(variables.get("remoteuserhome")+"/twister/config/");
-            FileInputStream in = new FileInputStream(file);
-            c.put(in, file.getName());
-            in.close();
-            System.out.println("Saved "+file.getName()+" to: "+
-					variables.get("remoteuserhome")+"/twister/config/");
-            return true;}
-        catch(Exception e){
-            e.printStackTrace();
-            return false;
-        }
-    }
+	public void initializeCERPC(){
+		try{XmlRpcClientConfigImpl configuration = new XmlRpcClientConfigImpl();
+        configuration.setServerURL(new URL("http://"+variables.get("host")+
+                                    ":"+variables.get("centralengineport")));
+        configuration.setBasicPassword(variables.get("password"));
+        configuration.setBasicUserName(variables.get("user"));
+        ceclient = new XmlRpcClient();
+        ceclient.setConfig(configuration);
+        System.out.println("Client initialized: "+ceclient);}
+    catch(Exception e){System.out.println("Could not conect to "+
+                        variables.get("host")+" :"+variables.get("centralengineport")+
+                        "for RPC client initialization");}
+	}
 }

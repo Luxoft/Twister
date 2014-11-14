@@ -24,10 +24,14 @@ import java.awt.BorderLayout;
 import javax.swing.SwingUtilities;
 import java.awt.Dimension;
 import javax.swing.BorderFactory;
+import javax.swing.JButton;
+import java.awt.event.ActionListener;
+import java.awt.event.ActionEvent;
 
 public class TestConfigurations extends JPanel{
     public ConfigTree tree;
     public ConfigEditor cfgedit;
+    public JButton save, saveas, close;
     
 
     public TestConfigurations(){
@@ -37,16 +41,27 @@ public class TestConfigurations extends JPanel{
         tree = new ConfigTree();
         final JSplitPane sp = new JSplitPane();
         sp.setLeftComponent(tree);
-        sp.setRightComponent(cfgedit);
+        sp.setRightComponent(cfgedit.sutpanel);
         sp.setOrientation(JSplitPane.HORIZONTAL_SPLIT);
         sp.setResizeWeight(0.5);
         SwingUtilities.invokeLater(new Runnable() {
-                public void run() {
-                    sp.setDividerLocation(0.5);
-                }
-            });
-        add(sp,BorderLayout.CENTER);
+            public void run() {
+                sp.setResizeWeight(0.5);
+            }
+        });
         tree.setConfigEditor(cfgedit);
         cfgedit.setConfigTree(tree);
+        final JSplitPane sp2 = new JSplitPane();
+        sp2.setLeftComponent(sp);
+        sp2.setRightComponent(cfgedit);
+        sp2.setOrientation(JSplitPane.VERTICAL_SPLIT);
+        SwingUtilities.invokeLater(new Runnable() {
+            public void run() {
+                sp2.setResizeWeight(0.5);
+            }
+        });
+        add(sp2,BorderLayout.CENTER);
     }
+    
+    
 }

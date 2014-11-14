@@ -1,17 +1,16 @@
 #!/usr/bin/env python2.7
 
-# version: 2.004
+# version: 3.005
 
 # File: install.py ; This file is part of Twister.
 
-# Copyright (C) 2012-2013 , Luxoft
+# Copyright (C) 2012-2014, Luxoft
 
 # Authors:
-#    Adrian Toader <adtoader@luxoft.com>
 #    Andrei Costachi <acostachi@luxoft.com>
-#    Andrei Toma <atoma@luxoft.com>
 #    Cristi Constantin <crconstantin@luxoft.com>
 #    Daniel Cioata <dcioata@luxoft.com>
+#    Mihai Tudoran <mtudoran@luxoft.com>
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -88,9 +87,9 @@ dependencies = [
     'LXML-Python',
     'MySQL-python',
     'Scapy-real',
-    'Paramiko',
+    'ecdsa',
+    'paramiko',
     'PyCrypto',
-    'six',
     'plumbum',
     'rpyc',
     'pExpect'
@@ -103,9 +102,9 @@ library_names = [
     'lxml',
     'MySQLdb',
     'scapy',
+    'ecdsa',
     'paramiko',
     'Crypto',
-    'six',
     'plumbum',
     'rpyc',
     'pexpect'
@@ -113,21 +112,59 @@ library_names = [
 
 # Versions
 library_versions = [
-    '0.9',
-    '3.2',
-    '2.0',
-    '1.2',
-    '2.1',
-    '1.1',
-    '2.6',
-    '1.4',
-    '1.3',
-    '3.3',
-    '2.2'
+    '0.9', # Mako
+    '3.2', # CherryPy
+    '3.3', # Lxml
+    '1.2', # MySql
+    '2.2', # Scapy
+    '0.1', # Ecdsa
+    '1.1', # Paramiko
+    '2.6', # PyCrypto
+    '1.4', # Plumbum
+    '3.3', # Rpyc
+    '3.3'  # pExpect
 ]
+
+setuptools_version = '3.4'
+
+
+def install_setuptools():
+
+    tgz_setuptools = glob.glob(pkg_path + 'setuptools-*.tar.gz')
+
+    if not tgz_setuptools:
+        print('\n~~~ Cannot find `setuptools-*gz`! You MUST install it manually! ~~~\n')
+        return False
+
+    fopen = tarfile.open(tgz_setuptools[0])
+    print('Extracting `{}`...\nThis might take some time...\n'.format(tgz_setuptools[0]))
+    tgz_library_root = fopen.getnames()[0].split(os.sep)[0]
+    fopen.extractall()
+    fopen.close()
+
+    # Install library
+    tcr_proc = subprocess.Popen([PYTHON_EXE, '-u', (cwd_path+os.sep+tgz_library_root+'/setup.py'), 'install', '-f'],
+        cwd=cwd_path + os.sep + tgz_library_root)
+    tcr_proc.wait()
+
+    # Remove library folder
+    try:
+        dir_util.remove_tree(cwd_path +os.sep+ tgz_library_root)
+    except:
+        pass
+
+    if tcr_proc.returncode:
+        print('\n~~~ `Setuptools` cannot be installed! It MUST be installed manually! ~~~\n')
+        return False
+    else:
+        print('\n~~~ Successfully installed `Setuptools` ~~~\n')
+        return True
 
 
 def install_w_internet(lib_name):
+    """
+    Install online.
+    """
 
     global library_err
 
@@ -176,6 +213,9 @@ def install_w_internet(lib_name):
 
 
 def install_offline(lib_name):
+    """
+    Install offline, using the tar.gz files.
+    """
 
     global library_err
 
@@ -196,44 +236,46 @@ def install_offline(lib_name):
             return True
         except:
             print('Error while installing `Python-MySQL`!')
+            return False
 
     elif INTERNET and lib_name == 'LXML-Python':
         print('\n~~~ Installing `{}` from System repositories ~~~\n'.format(lib_name))
 
+        # Requires libxml2 and libxslt
         if platform.dist()[0] in ['fedora', 'centos']:
             tcr_proc = subprocess.Popen(['yum', '-y', 'install', 'libxslt-devel', 'libxml2-devel'])
         else:
-            tcr_proc = subprocess.Popen(['apt-get', 'install', 'python-lxml', '-y', '--force-yes'])
+            tcr_proc = subprocess.Popen(['apt-get', 'install', 'libxslt-dev', 'python-lxml', '-y', '--force-yes'])
 
         try:
             tcr_proc.wait()
-            print('\n~~~ Successfully installed `{}` ~~~\n'.format(lib_name))
-            return True
         except:
             print('Error while installing `Python LXML`!')
+            return False
 
+        # Continue with the TAR.GZ file, included in `packages` folder !
 
-    print('\n~~~ Installing `{}` from tar files ~~~'.format(lib_name))
+    print('\n~~~ Installing `{}` from tar files ~~~\n'.format(lib_name))
 
-    if not p_library:
+    if not tgz_library:
         print('\n~~~ Cannot find `%s`! You MUST install it manually! ~~~\n' % (lib_name+'*.tar.gz'))
         library_err.append(lib_name)
         return
 
-    fopen = tarfile.open(p_library[0])
-    print('Extracting `{}`...\nThis might take some time...\n'.format(p_library[0]))
-    p_library_root = fopen.getnames()[0].split(os.sep)[0]
+    fopen = tarfile.open(tgz_library[0])
+    print('Extracting `{}`...\nThis might take some time...\n'.format(tgz_library[0]))
+    tgz_library_root = fopen.getnames()[0].split(os.sep)[0]
     fopen.extractall()
     fopen.close() ; del fopen
 
     # Install library
-    tcr_proc = subprocess.Popen([PYTHON_EXE, '-u', (cwd_path+os.sep+p_library_root+'/setup.py'), 'install', '-f'],
-        cwd=cwd_path + os.sep + p_library_root)
+    tcr_proc = subprocess.Popen([PYTHON_EXE, '-u', (cwd_path+os.sep+tgz_library_root+'/setup.py'), 'install', '-f'],
+        cwd=cwd_path + os.sep + tgz_library_root)
     tcr_proc.wait()
 
     # Remove library folder
     try:
-        dir_util.remove_tree(cwd_path + os.sep + p_library_root)
+        dir_util.remove_tree(cwd_path + os.sep + tgz_library_root)
     except:
         pass
 
@@ -277,22 +319,16 @@ except:
 try:
     import setuptools
     import pkg_resources
-    print('Python setuptools is installed. Ok.')
+    print('Python setuptools is installed. Ok.\n')
 except:
-    if INTERNET:
-        # Try to install python distribute (the new version of setuptools)
-        tcr_proc = subprocess.Popen([PYTHON_EXE, '-u', (pkg_path+'distribute_setup.py')], cwd=cwd_path)
-        tcr_proc.wait()
-        del tcr_proc
+    print('Python setuptools is not installed...\n')
+    install_setuptools()
 
-        # Remove the downloaded file
-        distribute_file = glob.glob('distribute*.tar.gz')
-        if distribute_file:
-            try: os.remove(distribute_file[0])
-            except: print('Installer cannot delete `distribute*.tar.gz`! You must delete it yourself!')
-        del distribute_file
-
-print('')
+if setuptools.__version__ >= setuptools_version:
+    print('Python setuptools version is Ok.\n')
+else:
+    print('Python setuptools version `{}` is too low...\n'.format(setuptools.__version__))
+    install_setuptools()
 
 # --------------------------------------------------------------------------------------------------
 # Testing installed packages
@@ -336,26 +372,42 @@ for i in range(len(dependencies)):
         ver = None
 
     if not ver:
-        print('Python library `%s` is not installed...' % import_name)
+        print('Python library `{}` is not installed...'.format(import_name))
 
-    if ver < lib_version:
-        print('Testing dependency: Library `%s` has version `%s` and it must be `%s` or newer! Will install...' %
-            (import_name, ver, lib_version))
-    else:
-        print('Testing dependency: Imported `%s` version `%s` is OK. No need to re-install.' % (import_name, ver))
+    elif ver < lib_version:
+        print('Testing dependency: Library `{}` has version `{}` '
+              'and it must be `{}`, or newer !!'.format(import_name, ver, lib_version))
+        print('\nLibrary `{}` is installed in `{}` and this script cannot remove it!\n'
+              'You will have to manually uninstall this library !!'.format(import_name, lib.__file__))
+        print('\nUninstall `{}` and run this script again !!'.format(import_name))
+        library_err.append(import_name)
         continue
 
-    p_library = glob.glob(pkg_path + lib_name + '*gz')
+    else:
+        print('Testing dependency: Imported `{}` version `{}` is OK. '
+            'No need to re-install.'.format(import_name, ver))
+        continue
 
-    if INTERNET and not p_library:
+    tgz_library = glob.glob(pkg_path + lib_name + '*gz')
+
+    # If the missing library has a tar.gz file, install offline
+    if tgz_library:
+        install_offline(lib_name)
+    # If internet connection is available, install online
+    elif INTERNET:
         install_w_internet(lib_name)
     else:
-        install_offline(lib_name)
+        print('Library `{}` cannot be installed! tar.gz file cannot '
+              'be found and internet is not available!'.format(lib_name))
+
 
 if library_err:
-    print('\nThe following libraries could not be installed: `%s`.\n'
+    print('\n############################################################')
+    print('\nThe following libraries could not be installed:\n`%s`\n'
           'Twister Framework will not run without them!' % ', '.join(library_err))
+    print('\nDependency installation FAILED!')
+    print('\n############################################################')
+    exit()
 
-#
 
-print('\nDependency installation done!\n')
+print('\nDependency installation COMPLETED!\n')

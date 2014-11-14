@@ -3,7 +3,6 @@
 JDK_PATH=/usr/lib/jvm/jdk1.7.0/bin
 EXTLIBS=../../client/userinterface/java/extlibs/Twister.jar:\
 ../../client/userinterface/java/extlibs/jcalendar-1.4.jar:\
-../../client/userinterface/java/extlibs/jsch-0.1.44.jar:\
 ../../client/userinterface/java/extlibs/gson-2.2.1.jar:\
 ../../client/userinterface/java/extlibs/ws-commons-util-1.0.2.jar:\
 ../../client/userinterface/java/extlibs/commons-vfs-1.0.jar:\

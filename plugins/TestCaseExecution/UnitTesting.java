@@ -1,6 +1,6 @@
 /*
 File: UnitTesting.java ; This file is part of Twister.
-Version: 2.003
+Version: 3.002
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -115,7 +115,7 @@ public class UnitTesting extends JFrame {
 //                         ex.printStackTrace();
 //                     }
                     
-                    RunnerRepository.removeRemoteFile(todelete);
+                    RunnerRepository.removeRemoteFile(todelete,null);
                 }
             }
         });
@@ -133,7 +133,7 @@ public class UnitTesting extends JFrame {
         JTextArea tdesc = new JTextArea();
         try{
             String res = RunnerRepository.getRPCClient().execute(
-                "getTestDescription", new Object[] { remotefile }).toString();
+                "get_test_description", new Object[] { remotefile }).toString();
             System.out.println("RES:"+res);
             String[] cont = res.split("-;-");
             if (cont[1].length() > 1) {
@@ -226,11 +226,11 @@ public class UnitTesting extends JFrame {
         
 
         StringBuilder b = new StringBuilder();
-        for(String s:RunnerRepository.getRemoteFileContent(RunnerRepository.REMOTEEPIDDIR).split("\n")){
-            if(s.indexOf("[")!=-1){
-                b.append(s.substring(s.indexOf("[")+1, s.indexOf("]"))+";");
-            }
-        }
+        //for(String s:RunnerRepository.getRemoteFileContent(RunnerRepository.REMOTEEPIDDIR).split("\n")){
+        //    if(s.indexOf("[")!=-1){
+        //        b.append(s.substring(s.indexOf("[")+1, s.indexOf("]"))+";");
+        //    }
+        //}
         String [] vecresult = b.toString().split(";");
 
 
@@ -375,7 +375,7 @@ public class UnitTesting extends JFrame {
     
     public void run(String remotefile,String localfile){
         if(run.getText().equals("Stop")){
-            try{String status = (String)RunnerRepository.getRPCClient().execute("setExecStatusAll",
+            try{String status = (String)RunnerRepository.getRPCClient().execute("set_exec_status_all",
                                                                           new Object[]{RunnerRepository.getUser(),0,"kill"});
                 if(status.equals("stopped"))run.setText("Run");
             } catch (Exception e){
@@ -409,7 +409,12 @@ public class UnitTesting extends JFrame {
             parent.setEpId(selected);
             items.add(parent);
             XMLBuilder xml = new XMLBuilder(items);
-            xml.createXML(false,false,false,true,"","",false,"",null);
+            if(RunnerRepository.isMaster()){
+                xml.createXML(false,false,false,true,"","",false,"",null,RunnerRepository.window.mainpanel.p1.suitaDetails.getProjectDefs()
+                                ,RunnerRepository.window.mainpanel.p1.suitaDetails.getGlobalDownloadType());
+            } else {
+                xml.createXML(false,false,false,true,"","",false,"",null,RunnerRepository.window.mainpanel.p1.suitaDetails.getProjectDefs(),null);
+            }
             String dir = RunnerRepository.getXMLRemoteDir();
             String [] path = dir.split("/");
             StringBuffer result2 = new StringBuffer();
@@ -427,12 +432,10 @@ public class UnitTesting extends JFrame {
                 public void run(){
                     try{
                         run.setText("Stop");
-//                         run.setEnabled(false);
-                        String result = RunnerRepository.getRPCClient().execute("runTemporary",
+                        String result = RunnerRepository.getRPCClient().execute("run_temporary",
                                                             new Object[]{RunnerRepository.getUser(),
                                                                         filelocation})+"";
-                        run.setText("Run");
-//                         run.setEnabled(true);                    
+                        run.setText("Run");                  
                         if(result.indexOf("ERROR")!=-1){
                             CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, 
                                                   UnitTesting.this, "Failed", 
@@ -463,13 +466,13 @@ public class UnitTesting extends JFrame {
                         String result;
                         long resp;
                         for(int i=0;i<selected.length;i++){
-                            result = RunnerRepository.getRPCClient().execute("getLogFile",
+                            result = RunnerRepository.getRPCClient().execute("get_log_file",
                                                                         new Object[]{RunnerRepository.getUser(),
                                                                                      "0","0",selected[i]+"_CLI.log"})+"";
                             resp = Long.parseLong(result);
                             if(logslength[i]!=resp){
                                 logslength[i] = resp;
-                                logs[i] = RunnerRepository.getRPCClient().execute("getLogFile",
+                                logs[i] = RunnerRepository.getRPCClient().execute("get_log_file",
                                                                   new Object[]{RunnerRepository.getUser(),
                                                                   "1","0",selected[i]+"_CLI.log"})+"";
                                 update = true;

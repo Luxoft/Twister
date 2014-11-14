@@ -1,6 +1,6 @@
 /*
 File: Grafic.java ; This file is part of Twister.
-Version: 2.0016
+Version: 3.0034
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -74,6 +74,7 @@ import com.twister.Item;
 import javax.swing.JList;
 import javax.swing.JScrollPane;
 import com.twister.CustomDialog;
+import com.twister.Configuration;
 import java.util.HashMap;
 import java.util.Set;
 import java.util.Iterator;
@@ -81,6 +82,9 @@ import java.io.BufferedWriter;
 import java.io.FileWriter;
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.tree.DefaultMutableTreeNode;
+import javax.swing.GroupLayout;
+import javax.swing.LayoutStyle;
+import javax.swing.tree.DefaultTreeCellRenderer;
 
 public class Grafic extends JPanel{
     private static final long serialVersionUID = 1L;
@@ -162,6 +166,7 @@ public class Grafic extends JPanel{
                 if(next.getType()==2&&next.getPos().size()==1){
                     int userDefNr = next.getUserDefNr();
                     RunnerRepository.window.mainpanel.p1.suitaDetails.setParent(next);
+                    RunnerRepository.window.mainpanel.p1.testconfigmngmnt.setParent(next);
                     if(userDefNr!=RunnerRepository.window.mainpanel.p1.suitaDetails.getDefsNr()){
                         System.out.println("Warning, suite "+next.getName()+
                             " has "+userDefNr+" fields while in database xml are defined "+
@@ -169,12 +174,18 @@ public class Grafic extends JPanel{
                     try{for(int i=0;i<userDefNr;i++){
                         RunnerRepository.window.mainpanel.p1.suitaDetails.
                             getDefPanel(i).setDescription(next.getUserDef(i)[1],true);}}
-                    catch(Exception e){e.printStackTrace();}}
-                else{
-                    RunnerRepository.window.mainpanel.p1.suitaDetails.setGlobalDetails();
-                    RunnerRepository.window.mainpanel.p1.suitaDetails.clearDefs();
-                    RunnerRepository.window.mainpanel.p1.suitaDetails.setParent(null);}}
+                    catch(Exception e){e.printStackTrace();}
+                } else{
+                    RunnerRepository.window.mainpanel.p1.testconfigmngmnt.setParent(next);
+                    RunnerRepository.window.mainpanel.p1.suitaDetails.setParent(next);
+                    if(next.getType()==2)RunnerRepository.window.mainpanel.p1.suitaDetails.setSuiteDetails(false);
+                    else RunnerRepository.window.mainpanel.p1.suitaDetails.setTCDetails();
+                }}
             else{
+                RunnerRepository.window.mainpanel.p1.suitaDetails.setGlobalDetails();
+                RunnerRepository.window.mainpanel.p1.suitaDetails.clearDefs();
+                RunnerRepository.window.mainpanel.p1.suitaDetails.setParent(null);
+                RunnerRepository.window.mainpanel.p1.testconfigmngmnt.setParent(null);
                 if(!clearedSelection){
                     deselectAll();
                     clearedSelection = true;
@@ -206,6 +217,7 @@ public class Grafic extends JPanel{
                 if(next.getType()==2&&next.getPos().size()==1){
                     int userDefNr = next.getUserDefNr();
                     RunnerRepository.window.mainpanel.p1.suitaDetails.setParent(next);
+                    RunnerRepository.window.mainpanel.p1.testconfigmngmnt.setParent(next);
                     if(userDefNr!=RunnerRepository.window.mainpanel.p1.suitaDetails.getDefsNr()){
                         System.out.println("Warning, suite "+next.getName()+" has "+
                         userDefNr+" fields while in bd.xml are defined "+
@@ -214,11 +226,19 @@ public class Grafic extends JPanel{
                             RunnerRepository.window.mainpanel.p1.suitaDetails.getDefPanel(i).
                                 setDescription(next.getUserDef(i)[1],true);}}
                     catch(Exception e){e.printStackTrace();}}
-                else{
-                    RunnerRepository.window.mainpanel.p1.suitaDetails.setGlobalDetails();
-                    RunnerRepository.window.mainpanel.p1.suitaDetails.clearDefs();
-                    RunnerRepository.window.mainpanel.p1.suitaDetails.setParent(null);}}
-            else{
+                    
+                else {
+                    
+                    RunnerRepository.window.mainpanel.p1.testconfigmngmnt.setParent(next);
+                    RunnerRepository.window.mainpanel.p1.suitaDetails.setParent(next);
+                    if(next.getType()==2)RunnerRepository.window.mainpanel.p1.suitaDetails.setSuiteDetails(false);
+                    else RunnerRepository.window.mainpanel.p1.suitaDetails.setTCDetails();
+                }
+            } else{
+                RunnerRepository.window.mainpanel.p1.suitaDetails.setGlobalDetails();
+                RunnerRepository.window.mainpanel.p1.suitaDetails.clearDefs();
+                RunnerRepository.window.mainpanel.p1.suitaDetails.setParent(null);
+                RunnerRepository.window.mainpanel.p1.testconfigmngmnt.setParent(null);
                 if(!clearedSelection){
                     deselectAll();
                     clearedSelection = true;
@@ -244,6 +264,7 @@ public class Grafic extends JPanel{
         RunnerRepository.window.mainpanel.p1.suitaDetails.setGlobalDetails();
         RunnerRepository.window.mainpanel.p1.suitaDetails.clearDefs();
         RunnerRepository.window.mainpanel.p1.suitaDetails.setParent(null);
+        RunnerRepository.window.mainpanel.p1.testconfigmngmnt.setParent(null);
         dragammount=0;
         if(dragging){handleMouseDroped(ev.getY());}
         else handleClick(ev);}
@@ -262,13 +283,8 @@ public class Grafic extends JPanel{
                 else{dragammount=0;
                     getClickedItem(xStart,yStart);
                     if(selected.size()>0){
-//                         if(!(selectedcollection.size()<2
-//                         &&
-//                         getItem(selected,false).isPrerequisite()
-//                         )){//must not be prerequisite
                             handleDraggedItems();}}}}}
-//                         }
-                            
+
     /*
      * Dragged items method
      * handles dragged items
@@ -287,19 +303,12 @@ public class Grafic extends JPanel{
             for(int i=selectedcollection.size()-1;i>=0;i--){
                 for(int j=0;j<selectedcollection.get(i).length;j++){
                     temp.add(new Integer(selectedcollection.get(i)[j]));}
-                Item theone2 = getItem(temp,false).clone();  
-                if(theone2.getType()==0
-//                 ||theone2.isPrerequisite()
-                ){
-                    getItem(temp,false).select(false);
-                    selectedcollection.remove(i);
-                    temp.clear();
-                    continue;}
+                Item theone2 = getItem(temp,false);  
                 clone.add(theone2);
                 temp.clear();}                                
             removeSelected();
             dragging = true;}
-        ArrayList<Item> unnecessary = new ArrayList<Item>();                        
+        ArrayList<Item> unnecessary = new ArrayList<Item>();//remove from clone children of parents already selected                  
         for(int i=0;i<clone.size();i++){
             Item one = clone.get(i);
             ArrayList<Integer>pos = (ArrayList<Integer>)one.getPos().clone();
@@ -315,6 +324,7 @@ public class Grafic extends JPanel{
                         break;}}
                 if(found)break;}}
         for(int i=0;i<unnecessary.size();i++){clone.remove(unnecessary.get(i));}}
+
             
     /*
      * handle automatic scrolling
@@ -464,7 +474,7 @@ public class Grafic extends JPanel{
                     if(temp.size()>1)temp.remove(temp.size()-1);
                     Item parent = getItem(temp,false);                                
                     if(parent.getType()==1){
-                        dropOnFirstLevel(upper);}  //if upper parent is tc=>ison level 0, will not have parent
+                        dropOnFirstLevel(upper);}  //if upper parent is tc=>is on level 0, will not have parent
                     else{ //parent is not tc=>is not on level 0, must insert to parent or after parent
                         if((parent.getSubItemsNr()-1==upper.getPos().get(upper.getPos().size()-1)) &&
                                 !upper.getSubItem(0).isVisible()){//if tc is last in suite                                    
@@ -481,10 +491,6 @@ public class Grafic extends JPanel{
                 else if(upper.getType()==2){//inserted under suite
                     int Y = mouseY;
                     if((upper.getSubItemsNr()>0&&upper.getSubItem(0).isVisible())){//suite is expander||has no children,must insert into it
-//                         if(upper.getSubItem(0).isPrerequisite()){//first element is prerequisiste, must insert after him
-//                             int index = upper.getSubItem(0).getPos().get(upper.getPos().size()-1).intValue();
-//                             int position = upper.getSubItem(0).getPos().size()-1;
-//                             dropNextInLine(upper.getSubItem(0), upper, index, position);}
                         dropFirstInSuita(upper);}//Should be inserted in suita
                     else if(Y<upper.getRectangle().y+upper.getRectangle().getHeight()+5||//closer to upper half 
                     (Y>upper.getRectangle().y+upper.getRectangle().getHeight()+5&&upper.getPos().size()>1 //farther from 5px half but suite is not last in parent
@@ -520,7 +526,6 @@ public class Grafic extends JPanel{
                     if(parent.getType()==1){dropOnFirstLevel(upper);}  //parent on level 0 because it is tc=>will not have paremt
                     else{ // parent is not tc=>not on level 0, must ad to parent or after parent
                         if(Grafic.getTcParent(prop,false).getSubItemsNr()-1==prop.getPos().get(prop.getPos().size()-1) &&
-//                         getTcParent(prop,false)
                             parent.getSubItemsNr()-1==upper.getPos().get(upper.getPos().size()-1)){//if prop is last in tc and tc is last in suite
                             if(Y<upper.getRectangle().y+upper.getRectangle().getHeight()+5){
                                 dropNextInLine(upper, parent, index, position);}//Should be inserted in upper parent
@@ -534,19 +539,11 @@ public class Grafic extends JPanel{
             else{dropFirstElement();}}//upper is null
         else{//inserted in element
             if(getItem(selected,false).getType()==2){//inserted in suita
-//                 if(getItem(selected,false).getSubItemsNr()>0&&
-//                     getItem(selected,false).getSubItem(0).isPrerequisite()){//first element is prerequisite should insert after
-//                     int index = getItem(selected,false).getSubItem(0).getPos().
-//                                     get(getItem(selected,false).getPos().size()-1).intValue();
-//                     int position = getItem(selected,false).getSubItem(0).getPos().size()-1;
-//                     dropNextInLine(getItem(selected,false).getSubItem(0), getItem(selected,false), index, position);}
                 dropFirstInSuita(getItem(selected,false));}//first element is not prerequisite, can insert on first level
             else if(getItem(selected,false).getType()==1){//inserted in tc
                 Item item = getItem(selected,false);
                 boolean up = isUpperHalf(item, mouseY);
-                if(up
-//                 &&!item.isPrerequisite()
-                ){//in upper half of tc, tc is not prerequisite
+                if(up){//in upper half of tc, tc is not prerequisite
                     Item upper = item; //tc the element in witch is made drop
                     int index = upper.getPos().get(upper.getPos().size()-1).intValue(); //last position value of tc
                     int position = upper.getPos().size()-1; //what nr is the element is the one from witch made drop
@@ -579,8 +576,7 @@ public class Grafic extends JPanel{
                 if(temp.size()>1)temp.remove(temp.size()-1);
                 Item parent = getItem(temp,false);
                 if(parent.getType()==1)dropOnFirstLevel(upper);//parent is tc=>on level 0
-                else dropNextInLine(upper, parent, index, position);}}
-            
+                else dropNextInLine(upper, parent, index, position);}}            
         for(Item item:RunnerRepository.getSuite()){
             if(item.getType()==2){
                 sortTearSetup(item);
@@ -609,6 +605,7 @@ public class Grafic extends JPanel{
         y=10;
         foundfirstitem=true;
         for(int i=0;i<clone.size();i++){
+           if(clone.get(i).getType()==1)continue;
            ArrayList<Integer> selected2 = new ArrayList<Integer>();
            selected2.add(new Integer(i));
            clone.get(i).setPos(selected2);                               
@@ -631,6 +628,7 @@ public class Grafic extends JPanel{
         int position = upper.getPos().size();                                
         int temp1 = upper.getPos().get(position-1);                                    
         for(int i=0;i<clone.size();i++){
+           if(clone.get(i).getType()==1)continue;
            ArrayList<Integer> selected2 = (ArrayList<Integer>)upper.getPos().clone();
            selected2.set(0,new Integer(upper.getPos().get(0)+i+1));
            clone.get(i).setPos(selected2);
@@ -1093,34 +1091,19 @@ public class Grafic extends JPanel{
     }
         
         
-//     /*
-//      * returns last visible element after 
-//      * element at pos
-//      */    
-//     public Item lastVisible(ArrayList <Integer> pos){//last visible elem under pos
-//         Item item = getItem(pos,false);
-//         if(item.getType()==2&&item.getSubItemsNr()>0&&item.getSubItem(0).isVisible()){
-//             pos.add(new Integer(item.getSubItemsNr()-1));
-//             return lastVisible(pos);}        
-//         return item;}
-        
-        
      
       
     /*
      * prints this item and his 
      * subitems indices on screen
      */
-    public void printPos(Item item){
+    public static void printPos(Item item){
         if(item.getType()==0||item.getType()==1||item.getType()==2){
             System.out.print(item.getName()+" - ");
             for(int i=0;i<item.getPos().size();i++){
                 System.out.print(item.getPos().get(i));}
             System.out.println();}
-        if(item.getType()==1){
-            for(int i=0;i<item.getSubItemsNr();i++){
-                printPos(item.getSubItem(i));}}
-        if(item.getType()==2){
+        if(item.getType()==1||item.getType()==2){
             for(int i=0;i<item.getSubItemsNr();i++){
                 printPos(item.getSubItem(i));}}}
                 
@@ -1144,6 +1127,7 @@ public class Grafic extends JPanel{
                         int userDefNr = temp.getUserDefNr();
                         boolean root = false;
                         RunnerRepository.window.mainpanel.p1.suitaDetails.setParent(temp);
+                        RunnerRepository.window.mainpanel.p1.testconfigmngmnt.setParent(temp);
                         if(temp.getPos().size()==1){
                             root = true;
                             if(userDefNr!=RunnerRepository.window.mainpanel.p1.suitaDetails.getDefsNr()){
@@ -1165,11 +1149,23 @@ public class Grafic extends JPanel{
                     if(getItem(selected,false).getType()==1){
                         Item temp = getItem(selected,false);
                         RunnerRepository.window.mainpanel.p1.suitaDetails.setParent(temp);
+                        RunnerRepository.window.mainpanel.p1.testconfigmngmnt.setParent(temp);
                         RunnerRepository.window.mainpanel.p1.suitaDetails.setTCDetails();
                     }
                     if(getItem(selected,false).getCheckRectangle().intersects(
                                   new Rectangle(ev.getX()-1,ev.getY()-1,2,2))){
-                        getItem(selected,false).setCheck(!getItem(selected,false).getCheck());}
+                        Item select = getItem(selected,false);
+                        select.setCheck(!select.getCheck(),true);
+                        
+                        if(select.getCheck()&&select.getType()==1){//if element is tc and selected, select all upper suites
+                            Item suita = getFirstSuitaParent(select, false);
+                            while(suita!=null){
+                                suita.setCheck(true, false);
+                                suita = getFirstSuitaParent(suita, false);
+                            }
+                        }
+//                         getItem(selected,false).setCheck(!getItem(selected,false).getCheck());
+                    }
                     else if(getItem(selected,false).getSubItemsNr()>0&&ev.getClickCount()==2 &&
                             getItem(selected,false).getType()!=1){
                         if(getItem(selected,false).getType()==2 &&
@@ -1266,11 +1262,13 @@ public class Grafic extends JPanel{
                     if(temp.getType()==0) propertyPopUp(ev,getItem(selected,false));
                     else if(temp.getType()==1){
                         RunnerRepository.window.mainpanel.p1.suitaDetails.setParent(temp);
+                        RunnerRepository.window.mainpanel.p1.testconfigmngmnt.setParent(temp);
                         RunnerRepository.window.mainpanel.p1.suitaDetails.setTCDetails();
                         tcPopUp(ev,getItem(selected,false));}
                     else{                        
                         boolean root = false;
                         RunnerRepository.window.mainpanel.p1.suitaDetails.setParent(temp);
+                        RunnerRepository.window.mainpanel.p1.testconfigmngmnt.setParent(temp);
                         if(temp.getPos().size()==1){//if it is a root suite
                             root = true;
                             int userDefNr = temp.getUserDefNr();   
@@ -1296,6 +1294,7 @@ public class Grafic extends JPanel{
                         if(getItem(selected,false).getType()==0) propertyPopUp(ev,getItem(selected,false));
                         else if(getItem(selected,false).getType()==1){
                             Item temp = getItem(selected,false);
+                            RunnerRepository.window.mainpanel.p1.testconfigmngmnt.setParent(temp);
                             RunnerRepository.window.mainpanel.p1.suitaDetails.setParent(temp);
                             RunnerRepository.window.mainpanel.p1.suitaDetails.setTCDetails();
                             tcPopUp(ev,getItem(selected,false));
@@ -1304,6 +1303,7 @@ public class Grafic extends JPanel{
                             Item temp = getItem(selected,false);
                             boolean root = false;
                             RunnerRepository.window.mainpanel.p1.suitaDetails.setParent(temp);
+                            RunnerRepository.window.mainpanel.p1.testconfigmngmnt.setParent(temp);
                             if(temp.getPos().size()==1){//if it is a root suite
                                 root = true;
                                 int userDefNr = temp.getUserDefNr();                            
@@ -1361,25 +1361,6 @@ public class Grafic extends JPanel{
                 else{
                     (new AddSuiteFrame(Grafic.this, null,0)).setLocation((int)ev.getLocationOnScreen().getX()-50,
                                                                     (int)ev.getLocationOnScreen().getY()-50);}}});//add suite
-/*         item = new JMenuItem("Open XML");
-         p.add(item);
-         item.addActionListener(new ActionListener(){
-             public void actionPerformed(ActionEvent ev){
-                 JFileChooser chooser = new JFileChooser(); 
-                 chooser.setFileFilter(new XMLFilter());
-                 chooser.setCurrentDirectory(new java.io.File("."));
-                 chooser.setDialogTitle("Select XML File"); 
-                 if (chooser.showOpenDialog(RunnerRepository.window) == JFileChooser.APPROVE_OPTION) {                    
-                     RunnerRepository.emptyRunnerRepository();
-                     setUser(RunnerRepository.getUsersDirectory()+RunnerRepository.getBar()+chooser.getSelectedFile().getName());
-                     parseXML(chooser.getSelectedFile());
-                     if(RunnerRepository.getSuiteNr() > 0)updateLocations(RunnerRepository.getSuita(0));
-                     repaint();}}});// de deschis local un xml                
-         item = new JMenuItem("Save suite XML");
-         p.add(item);        
-         item.addActionListener(new ActionListener(){
-             public void actionPerformed(ActionEvent ev){
-                 if(!user.equals(""))printXML(user,false);}});*/
         p.show(this,ev.getX(),ev.getY());}
         
     /*
@@ -1398,17 +1379,6 @@ public class Grafic extends JPanel{
             item.addActionListener(new ActionListener(){
                 public void actionPerformed(ActionEvent ev){
                     removeSelected();
-//                     int index = prop.getPos().get(prop.getPos().size()-1);
-//                     if(getTcParent(prop,false).getSubItemsNr()-1>index){
-//                         for(int i=index+1;i<getTcParent(prop,false).getSubItemsNr();i++){
-//                             Item temporaryprop = getTcParent(prop,false).getSubItem(i);
-//                             temporaryprop.updatePos(prop.getPos().size()-1,
-//                                                     temporaryprop.getPos().get(prop.getPos().size()-1)-1);}}
-//                     getTcParent(prop,false).getSubItems().remove(prop);
-//                     selectedcollection.clear();
-//                     updateLocations(getTcParent(prop,false));
-//                     repaint();
-                
                 }});
             p.show(this,ev.getX(),ev.getY());}}
     
@@ -1484,11 +1454,11 @@ public class Grafic extends JPanel{
                     public void actionPerformed(ActionEvent ev){
                         switchCheck();}});}
             if(type==1){
-                menuitem = new JMenuItem("Set Configurations");
+                menuitem = new JMenuItem("Add Configurations");
                 p.add(menuitem);
                 menuitem.addActionListener(new ActionListener(){
                     public void actionPerformed(ActionEvent ev){
-                        setConfigurations(false);}});
+                        addConfigurations(false);}});
                 menuitem = new JMenuItem("Switch Runnable");
                 p.add(menuitem);
                 menuitem.addActionListener(new ActionListener(){
@@ -1501,7 +1471,7 @@ public class Grafic extends JPanel{
                         switchOptional();}});}}
         p.show(this,ev.getX(),ev.getY());}
         
-    private void setConfigurations(boolean solo){
+    private void addConfigurations(boolean unitary){
         JPanel p = new JPanel();
         p.setLayout(null);
         p.setPreferredSize(new Dimension(515,200));
@@ -1514,7 +1484,7 @@ public class Grafic extends JPanel{
         p.add(scep);
         String [] vecresult = RunnerRepository.window.mainpanel.p4.getTestConfig().tree.getFiles();
         tep.setModel(new DefaultComboBoxModel(vecresult));
-        if(solo){
+        if(unitary){
             Item item=null;
             int nr = selectedcollection.size();
             ArrayList<Integer>temp = new ArrayList<Integer>();
@@ -1525,21 +1495,24 @@ public class Grafic extends JPanel{
                 item = getItem(temp,false);
             }
             ArrayList<String> array = new ArrayList<String>(Arrays.asList(vecresult));
-            String [] strings = item.getConfigurations();
-            int [] sel = new int[strings.length];
-            for(int i=0;i<strings.length;i++){
-                sel[i]=array.indexOf(strings[i]);
+            ArrayList<String> torem = new ArrayList<String>();
+            for(int i=0;i<vecresult.length;i++){
+                for(Configuration conf:item.getConfigurations()){
+                    if(conf.getFile().equals(vecresult[i])){
+                        torem.add(vecresult[i]);
+                        break;
+                    }
+                }
             }
-            tep.setSelectedIndices(sel);
-            
+            for(String s:torem){
+                array.remove(s);
+            }
+            Object [] resultingarray = array.toArray();
+            tep.setModel(new DefaultComboBoxModel(resultingarray));
         }
         int resp = (Integer)CustomDialog.showDialog(p,JOptionPane.PLAIN_MESSAGE, 
                             JOptionPane.OK_CANCEL_OPTION, Grafic.this, "Test Configurations Files",null);
         if(resp == JOptionPane.OK_OPTION){
-            String configs[] = new String[tep.getSelectedValues().length];
-            for(int i=0;i<configs.length;i++){
-                configs[i] = tep.getSelectedValues()[i].toString();
-            }
             Item item=null;
             int nr = selectedcollection.size();
             ArrayList<Integer>temp = new ArrayList<Integer>();
@@ -1548,7 +1521,19 @@ public class Grafic extends JPanel{
                 int [] indices = selectedcollection.get(i);
                 for(int j=0;j<indices.length;j++)temp.add(new Integer(indices[j]));
                 item = getItem(temp,false);
-                item.setConfigurations(configs);}
+                for(Object selection:tep.getSelectedValues()){
+                    boolean goon = true;
+                    for(Configuration config:item.getConfigurations()){//check for existing file in configuration
+                        if(config.getFile().equals(selection.toString())){
+                            goon = false;
+                            break;
+                        }
+                    }               
+                    if(goon)item.getConfigurations().add(new Configuration(selection.toString()));
+                }
+            }
+            TestConfigManagement tcm = RunnerRepository.window.mainpanel.p1.testconfigmngmnt;
+            tcm.setParent(tcm.getConfigParent());
         }
         repaint();
     }
@@ -1592,7 +1577,7 @@ public class Grafic extends JPanel{
             int [] indices = selectedcollection.get(i);
             for(int j=0;j<indices.length;j++)temp.add(new Integer(indices[j]));
             item = getItem(temp,false);
-            item.setCheck(!item.getCheck());}
+            item.setCheck(!item.getCheck(),true);}
         repaint();}
             
     /*
@@ -1611,79 +1596,22 @@ public class Grafic extends JPanel{
         item.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 setParam(tc);}});
-//         item = new JMenuItem("Rename");
-//         p.add(item);
-//         item.addActionListener(new ActionListener(){
-//             public void actionPerformed(ActionEvent ev){
-//                 String name = CustomDialog.showInputDialog(JOptionPane.QUESTION_MESSAGE,
-//                                                             JOptionPane.OK_CANCEL_OPTION, 
-//                                                             Grafic.this, "TC Name", 
-//                                                             "Please enter the TC name");
-//                 if(name!=null){
-//                     FontMetrics metrics = getGraphics().getFontMetrics(
-//                                 new Font("TimesRoman", Font.BOLD, 13));
-//                     int width = metrics.stringWidth(name);
-//                     tc.setName(name);
-//                     tc.getRectangle().setSize(width+50,(int)tc.getRectangle().getHeight());
-//                     updateLocations(tc);
-//                     repaint();}}});
-        item = new JMenuItem("Set Configurations");
+        item = new JMenuItem("Add Configurations");
         p.add(item);
         item.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
-                setConfigurations(true);}});
-        item = new JMenuItem("Expand");
-        p.add(item);
+                addConfigurations(true);}});
+        item = new JMenuItem("Repeat");
+        if(RunnerRepository.isMaster())p.add(item);
         item.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
-                tc.setVisible(true);
-                updateLocations(tc);
-                repaint();}});
-        item = new JMenuItem("Contract");
-        p.add(item);
-        item.addActionListener(new ActionListener(){
-            public void actionPerformed(ActionEvent ev){
-                tc.setVisible(false);
-                updateLocations(tc);
-                repaint();}});
-//         item = new JMenuItem("Switch Runnable");
-//         p.add(item);
-//         item.addActionListener(new ActionListener(){
-//             public void actionPerformed(ActionEvent ev){
-//                 tc.switchRunnable();
-//                 repaint();}});
-//         if(tc.isOptional()){
-//             item = new JMenuItem("Unset optional");
-//             p.add(item);
-//             item.addActionListener(new ActionListener(){
-//                 public void actionPerformed(ActionEvent ev){
-//                     setOptional(tc);}});}
-//         else if(!tc.isPrerequisite()){
-//             item = new JMenuItem("Set optional");
-//             p.add(item);
-//             item.addActionListener(new ActionListener(){
-//                 public void actionPerformed(ActionEvent ev){
-//                     setOptional(tc);}});}
-//         if(!tc.isPrerequisite()){
-//             item = new JMenuItem("Set pre-requisites");
-//             p.add(item);
-//             item.addActionListener(new ActionListener(){
-//                 public void actionPerformed(ActionEvent ev){
-//                     setPreRequisites(tc);}});}
-//         if(tc.isPrerequisite()){
-//             item = new JMenuItem("Unset pre-requisites");
-//             p.add(item);
-//             item.addActionListener(new ActionListener(){
-//                 public void actionPerformed(ActionEvent ev){
-//                     tc.setPrerequisite(false);
-//                     repaint();}});}
+                reapeatItem(tc);
+            }});
         item = new JMenuItem("Remove");
         p.add(item);
         item.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 removeSelected();
-//                 removeTC(tc);
-//                 selectedcollection.clear();
             }});
         p.show(this,ev.getX(),ev.getY());}
        
@@ -1712,6 +1640,7 @@ public class Grafic extends JPanel{
                 int nr = suita.getSubItemsNr();
                 for(int i=0;i<nr;i++){
                     suita.getSubItem(i).setVisible(false);}
+                suita.setVisible(false);
                 updateLocations(suita);
                 repaint();}});
         item = new JMenuItem("Export");
@@ -1719,6 +1648,12 @@ public class Grafic extends JPanel{
         item.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 exportSuiteToPredefined(suita);
+            }});
+        item = new JMenuItem("Repeat");
+        if(RunnerRepository.isMaster())p.add(item);
+        item.addActionListener(new ActionListener(){
+            public void actionPerformed(ActionEvent ev){
+                reapeatItem(suita);
             }});
         item = new JMenuItem("Remove");
         p.add(item);
@@ -1751,21 +1686,58 @@ public class Grafic extends JPanel{
                     selectedcollection.clear();}}});     
         p.show(this,ev.getX(),ev.getY());}
         
+    //repeat item window
+    public void reapeatItem(Item item){
+        String respons = CustomDialog.showInputDialog(JOptionPane.INFORMATION_MESSAGE, 
+                                                            JOptionPane.OK_CANCEL_OPTION, 
+                                                            Grafic.this, "", "Number of times:");
+        int times;
+        try{times = Integer.parseInt(respons);}//exit if respons is not integer
+        catch(Exception e){
+            return;
+        }
+        if(times==0)times=1;//cannot set 0 as repeat
+        item.setRepeat(times);
+        
+        FontMetrics metrics = getGraphics().getFontMetrics(new Font("TimesRoman", Font.BOLD, 14));
+        int width = metrics.stringWidth(times+"X "+item.getName())+40;
+        item.getRectangle().setSize(width,(int)item.getRectangle().getHeight());
+        if(item.isVisible())updateLocations(item);
+        repaint();
+        
+        
+    }
+        
     /*
      * export this suite in predefined suites
      */
     public void exportSuiteToPredefined(Item suite){
         String user = CustomDialog.showInputDialog(JOptionPane.QUESTION_MESSAGE,
                                                 JOptionPane.OK_CANCEL_OPTION, RunnerRepository.window,
-                                                "File Name", "Please enter suite file name");
+                                                "File Name","Please enter suite file name");
         if(user!=null&&!user.equals("")){
             ArrayList<Item>array = new ArrayList<Item>();
             array.add(suite);
-            if(printXML(user+".xml", false,false,
+            boolean cond;
+            if(RunnerRepository.isMaster()){
+                cond = printXML(RunnerRepository.temp+RunnerRepository.getBar()+"Twister"+RunnerRepository.getBar()+"Users"+RunnerRepository.getBar()+user+".xml",
+                         false,false,
                          RunnerRepository.window.mainpanel.p1.suitaDetails.stopOnFail(),
                          RunnerRepository.window.mainpanel.p1.suitaDetails.preStopOnFail(),
                          RunnerRepository.window.mainpanel.p1.suitaDetails.saveDB(),
-                         RunnerRepository.window.mainpanel.p1.suitaDetails.getDelay(),true,array)){
+                         RunnerRepository.window.mainpanel.p1.suitaDetails.getDelay(),
+                         true,array,RunnerRepository.window.mainpanel.p1.suitaDetails.getProjectDefs(),
+                         RunnerRepository.window.mainpanel.p1.suitaDetails.getGlobalDownloadType());
+            } else {
+                cond = printXML(RunnerRepository.temp+RunnerRepository.getBar()+"Twister"+RunnerRepository.getBar()+"Users"+RunnerRepository.getBar()+user+".xml",
+                         false,false,
+                         RunnerRepository.window.mainpanel.p1.suitaDetails.stopOnFail(),
+                         RunnerRepository.window.mainpanel.p1.suitaDetails.preStopOnFail(),
+                         RunnerRepository.window.mainpanel.p1.suitaDetails.saveDB(),
+                         RunnerRepository.window.mainpanel.p1.suitaDetails.getDelay(),
+                         true,array,RunnerRepository.window.mainpanel.p1.suitaDetails.getProjectDefs(),null);
+            }
+            if(cond){
                 CustomDialog.showInfo(JOptionPane.PLAIN_MESSAGE, 
                                         RunnerRepository.window, "Success",
                                         "File successfully saved");
@@ -1789,18 +1761,9 @@ public class Grafic extends JPanel{
         updateLocations(i);
         deselectAll();
         selectItem(tc.getPos());
+        RunnerRepository.window.mainpanel.p1.testconfigmngmnt.setParent(tc);
         RunnerRepository.window.mainpanel.p1.suitaDetails.setParent(tc);
         RunnerRepository.window.mainpanel.p1.suitaDetails.setTCDetails();
-//         Item theone2 = tc.clone(); 
-//         theone2.setPrerequisite(true);
-//         theone2.setTeardown(false);
-//         clone.add(theone2);
-//         removeSelected();
-//         dropFirstInSuita(getFirstSuitaParent(theone2,false));
-//         selectItem(theone2.getPos());
-//         RunnerRepository.window.mainpanel.p1.suitaDetails.setParent(theone2);
-//         RunnerRepository.window.mainpanel.p1.suitaDetails.setTCDetails();
-//         updateLocations(RunnerRepository.getSuita(0));
         repaint();}
         
     public void unsetPrerequisite(Item tc){
@@ -1821,19 +1784,12 @@ public class Grafic extends JPanel{
         Item i = getFirstSuitaParent(tc, false);
         tc.setTeardown(true);
         tc.setPrerequisite(false);
-//         Item theone2 = tc.clone();       
-//         clone.add(theone2);
-//         removeSelected();
-//         dropLastInSuita(getFirstSuitaParent(theone2,false));
-//         selectItem(theone2.getPos());
-//         RunnerRepository.window.mainpanel.p1.suitaDetails.setParent(theone2);
-//         RunnerRepository.window.mainpanel.p1.suitaDetails.setTCDetails();
-//         updateLocations(RunnerRepository.getSuita(0));
         sortTearSetup(i);
         updateLocations(i);
         deselectAll();
         selectItem(tc.getPos());
         RunnerRepository.window.mainpanel.p1.suitaDetails.setParent(tc);
+        RunnerRepository.window.mainpanel.p1.testconfigmngmnt.setParent(tc);
         RunnerRepository.window.mainpanel.p1.suitaDetails.setTCDetails();
         repaint();}
         
@@ -1884,6 +1840,7 @@ public class Grafic extends JPanel{
                 property.setSubItemVisible(false);
                 tc.addSubItem(property);
                 RunnerRepository.window.mainpanel.p1.suitaDetails.setParent(tc);
+                RunnerRepository.window.mainpanel.p1.testconfigmngmnt.setParent(tc);
                 RunnerRepository.window.mainpanel.p1.suitaDetails.setTCDetails();
             }
             else found = false;}}
@@ -1905,16 +1862,14 @@ public class Grafic extends JPanel{
         if(resp == JOptionPane.OK_OPTION){
             ArrayList <Integer> indexpos3 = (ArrayList <Integer>)tc.getPos().clone();
             indexpos3.add(new Integer(tc.getSubItemsNr()));
-//             FontMetrics metrics = getGraphics().getFontMetrics(new Font("TimesRoman", 0, 11));
-//             int width = metrics.stringWidth(name.getText()+":  "+value.getText()) + 38;
             Item property = new Item(name.getText(),0,-1,-1,0,20,indexpos3);
             property.setValue(value.getText());
             if(!tc.getSubItem(0).isVisible())property.setSubItemVisible(false);
             tc.addSubItem(property);
             updateLocations(tc);
             RunnerRepository.window.mainpanel.p1.suitaDetails.setParent(tc);
+            RunnerRepository.window.mainpanel.p1.testconfigmngmnt.setParent(tc);
             RunnerRepository.window.mainpanel.p1.suitaDetails.setTCDetails();
-//             repaint();
         }}
     
     /*
@@ -1942,10 +1897,13 @@ public class Grafic extends JPanel{
             
     public void setCanRequestFocus(boolean canrequestfocus){
         this.canrequestfocus = canrequestfocus;}
+        
            
     /*
      * remove selected items from
      * RunnerRepository suites array
+     * update indexes for next elements after removed
+     * update position in graph
      */
     public void removeSelected(){      
         if(selectedcollection.size()>0){
@@ -1998,6 +1956,7 @@ public class Grafic extends JPanel{
             RunnerRepository.window.mainpanel.p1.suitaDetails.setGlobalDetails();
             RunnerRepository.window.mainpanel.p1.suitaDetails.clearDefs();
             RunnerRepository.window.mainpanel.p1.suitaDetails.setParent(null);
+            RunnerRepository.window.mainpanel.p1.testconfigmngmnt.setParent(null);
             repaint();}}
         
     /*
@@ -2208,7 +2167,9 @@ public class Grafic extends JPanel{
      * on item type
      */
     public void drawItem(Item item,Graphics g){
-        g.setFont(new Font("TimesRoman", Font.PLAIN, 12));
+        Font font = ((DefaultTreeCellRenderer)RunnerRepository.window.mainpanel.p1.ep.tree.getCellRenderer()).getFont();
+        font = font.deriveFont(12);
+        g.setFont(font);
         g.setColor(Color.BLACK);
         if(item.isSelected()){
             g.setColor(new Color(220,220,220));
@@ -2218,30 +2179,53 @@ public class Grafic extends JPanel{
             g.drawRect((int)item.getRectangle().getX(),(int)item.getRectangle().getY(),
                         (int)item.getRectangle().getWidth(),(int)item.getRectangle().getHeight());}
         if(item.getType()==2){
-            g.drawString(item.getName(),(int)item.getRectangle().getX()+45,
+            //draw repeat
+            if(item.getRepeat()>1){
+                g.drawString(item.getRepeat()+"X "+item.getName(),(int)item.getRectangle().getX()+45,
                         (int)item.getRectangle().getY()+18);
+            } else {
+                g.drawString(item.getName(),(int)item.getRectangle().getX()+45,
+                        (int)item.getRectangle().getY()+18);
+            }
             g.drawImage(RunnerRepository.getSuitaIcon(),(int)item.getRectangle().getX()+25,
-                        (int)item.getRectangle().getY()+1,null);}
+                        (int)item.getRectangle().getY()+1,null);
+            //draw dependency icon if necesary
+            if(item.getDependencies().size()>0){
+                g.drawImage(RunnerRepository.getDependencyIcon(),(int)item.getRectangle().getX()+28,
+                        (int)item.getRectangle().getY()+4,null);
+            }
+        }
         else if(item.getType()==1){
             if(item.isPrerequisite()||item.isTeardown())g.setColor(Color.RED);
             else if(!item.isRunnable())g.setColor(Color.GRAY);
-            g.drawString(item.getName(),(int)item.getRectangle().getX()+50,
+            //draw repeat
+            if(item.getRepeat()>1){
+                g.drawString(item.getRepeat()+"X "+item.getName(),(int)item.getRectangle().getX()+50,
                         (int)item.getRectangle().getY()+15);
+            } else {
+                g.drawString(item.getName(),(int)item.getRectangle().getX()+50,
+                        (int)item.getRectangle().getY()+15);
+            }
+            
             g.setColor(Color.BLACK);
             g.drawImage(RunnerRepository.getTCIcon(),(int)item.getRectangle().getX()+25,
-                        (int)item.getRectangle().getY()+1,null);
+                        (int)item.getRectangle().getY()+2,null);
             if(item.isOptional()){
                 g.drawImage(RunnerRepository.optional,(int)item.getRectangle().getX()+43,
                         (int)item.getRectangle().getY()+1,null);
             }
+            //draw dependency icon if necesary
+            if(item.getDependencies().size()>0){
+                g.drawImage(RunnerRepository.getDependencyIcon(),(int)item.getRectangle().getX()+28,
+                        (int)item.getRectangle().getY()+2,null);
+            }
             StringBuilder sb = new StringBuilder();
             sb.append("- ");
-            String [] path;
-            for(String st:item.getConfigurations()){
-                path = st.split("/");
-                st = path[path.length-1];
-                sb.append(st);
-                sb.append("; ");
+            for(Configuration st:item.getConfigurations()){
+                if(st.isEnabled()){
+                    sb.append(st.getFile());
+                    sb.append("; ");
+                }
             }
             if(sb.length()>0) sb.deleteCharAt(sb.length()-2);
             g.drawString(sb.toString(),(int)(item.getRectangle().getX()+item.getRectangle().getWidth()),
@@ -2290,7 +2274,8 @@ public class Grafic extends JPanel{
                             (int)r.getY(),(int)r.getY()+(int)r.getHeight()-5};
                 g.fillPolygon(x2,y2,4);}}
         if(item.getEpId()!=null && item.getEpId().length>0){
-            g.setFont(new Font("TimesRoman", Font.PLAIN, 11));
+            font = font.deriveFont(11);
+            g.setFont(font);
             StringBuilder EP = new StringBuilder();
             for(String s:item.getEpId()){
                 EP.append(s+";");
@@ -2312,6 +2297,7 @@ public class Grafic extends JPanel{
         RunnerRepository.window.mainpanel.p1.suitaDetails.setGlobalDetails();
         RunnerRepository.window.mainpanel.p1.suitaDetails.clearDefs();
         RunnerRepository.window.mainpanel.p1.suitaDetails.setParent(null);
+        RunnerRepository.window.mainpanel.p1.testconfigmngmnt.setParent(null);
         this.user = user;}
     
     /*
@@ -2334,15 +2320,28 @@ public class Grafic extends JPanel{
      */
     public boolean printXML(String user, boolean skip,
                             boolean local, boolean stoponfail,boolean prestoponfail,
-                            boolean savedb, String delay,boolean lib, ArrayList<Item> array){
+                            boolean savedb, String delay,boolean lib, ArrayList<Item> array,String [][] projdefined,String downloadlibraryoption){
         //skip = true
         try{if(array==null)array = RunnerRepository.getSuite();
             XMLBuilder xml = new XMLBuilder(array);
-            
-            xml.createXML(skip,stoponfail,prestoponfail,false,
+            boolean cond;
+            if(RunnerRepository.isMaster()){
+                cond = xml.createXML(skip,stoponfail,prestoponfail,false,
                           RunnerRepository.window.mainpanel.p1.suitaDetails.getPreScript(),
                           RunnerRepository.window.mainpanel.p1.suitaDetails.getPostScript(),
-                          savedb,delay,RunnerRepository.window.mainpanel.p1.suitaDetails.getGlobalLibs());
+                          savedb,delay,RunnerRepository.window.mainpanel.p1.suitaDetails.getGlobalLibs(),
+                          projdefined,downloadlibraryoption);
+            } else {
+                cond = xml.createXML(skip,stoponfail,prestoponfail,false,
+                          RunnerRepository.window.mainpanel.p1.suitaDetails.getPreScript(),
+                          RunnerRepository.window.mainpanel.p1.suitaDetails.getPostScript(),
+                          savedb,delay,
+                          RunnerRepository.window.mainpanel.p1.suitaDetails.getGlobalLibs(),
+                          projdefined,null);
+            }
+            if(!cond){
+                return false;
+            }
             return xml.writeXMLFile(user,local,false,lib);}
         catch(Exception e){
             e.printStackTrace();
@@ -2419,54 +2418,28 @@ public class Grafic extends JPanel{
                                                                     lp.getSelected()[i].getPath()[RunnerRepository.window.
                                                                     mainpanel.p1.lp.getSelected()[i].getPathCount()-1];
                         
-                        try{name = name.split(RunnerRepository.getPredefinedSuitesPath())[1];}
-                        catch(Exception e){
-                            System.out.println("Could not find projects path:"+RunnerRepository.getTestSuitePath()+" in filename:"+name);
-                            e.printStackTrace();}
-                            
-                            try{String content = RunnerRepository.getRemoteFileContent(RunnerRepository.getPredefinedSuitesPath()+name);             
-                                String [] filename = name.split("/");
-                                File file = new File(RunnerRepository.temp+RunnerRepository.getBar()+"Twister"+
-                                                     RunnerRepository.getBar()+"Users"+RunnerRepository.getBar()+   
-                                                     filename[filename.length-1]);
-                                BufferedWriter writer = new BufferedWriter(new FileWriter(file));
-                                writer.write(content);
-                                writer.close();
-                                new XMLReader(file).parseXML(getGraphics(), false, list, false);
-                                for(Item itm :list){
-                                    clone.add(itm);
-                                }
-                            } catch (Exception e){
-                                e.printStackTrace();
+                        try{
+                            String path = RunnerRepository.getPredefinedSuitesPath();
+                            String content = RunnerRepository.readPredefinedProjectFile(name);
+                            File file = new File(RunnerRepository.temp+RunnerRepository.getBar()+"Twister"+
+                                                 RunnerRepository.getBar()+"Users"+RunnerRepository.getBar()+name.replace(path, ""));
+                            BufferedWriter writer = new BufferedWriter(new FileWriter(file));
+                            writer.write(content);
+                            writer.close();
+                            new XMLReader(file).parseXML(getGraphics(), false, list, false);
+                            for(Item itm :list){
+                                clone.add(itm);
                             }
-                            
-                            
-                            
-//                         FontMetrics metrics = getGraphics().getFontMetrics(new Font("TimesRoman", Font.PLAIN, 13));
-//                         Item newItem = new Item(name,1, -1, -1, metrics.stringWidth(name)+48, 20, null);
-//                         ArrayList<Integer> pos = new ArrayList <Integer>();
-//                         pos.add(new Integer(0));
-//                         ArrayList<Integer> pos2 = (ArrayList <Integer>)pos.clone();
-//                         pos2.add(new Integer(0));
-//                         Item property = new Item("Running",0,-1,-1,(metrics.stringWidth("Running:  true"))+28,20,pos2);
-//                         property.setValue("true");
-//                         property.setSubItemVisible(false);
-//                         newItem.addSubItem(property);
-//                         newItem.setVisible(false);
-//                         clone.add(newItem);
+                        } catch (Exception e){
+                            e.printStackTrace();
+                        }
                     }
-//                     else{
-//                         subtreeTC((TreeNode)RunnerRepository.window.mainpanel.p1.lp.getSelected()[i].getLastPathComponent(),null,0);}
                 }
                 handleMouseDroped(y);
                 Item parent = getFirstSuitaParent(list.get(0), false);
                 if(parent!=null)checkSameName(parent);
             }
         }else if(source.equals("clearcase")){
-            
-            
-            
-            
             deselectAll();
             requestFocus();
             int max = RunnerRepository.window.mainpanel.p1.cp.getSelected().length;
@@ -2481,11 +2454,6 @@ public class Grafic extends JPanel{
                                                                     getPathCount()-2]+"/"+RunnerRepository.window.mainpanel.p1.
                                                                     cp.getSelected()[i].getPath()[RunnerRepository.window.
                                                                     mainpanel.p1.cp.getSelected()[i].getPathCount()-1];
-                        
-//                         try{name = name.split(RunnerRepository.window.mainpanel.getP5().root)[1];}
-//                         catch(Exception e){
-//                             System.out.println("Could not find projects path:"+RunnerRepository.window.mainpanel.getP5().root+" in filename:"+name);
-//                             e.printStackTrace();}
                         FontMetrics metrics = getGraphics().getFontMetrics(new Font("TimesRoman", Font.PLAIN, 13));
                         Item newItem = new Item(name,1, -1, -1, metrics.stringWidth(name)+48, 20, null);
                         newItem.setClearcase(true);
@@ -2503,11 +2471,6 @@ public class Grafic extends JPanel{
                         subtreeTC((TreeNode)RunnerRepository.window.mainpanel.p1.cp.getSelected()[i].getLastPathComponent(),null,0,"clearcase");}}
                 handleMouseDroped(y);
             }
-            
-            
-            
-            
-            
         }
     }
     
@@ -2539,6 +2502,7 @@ public class Grafic extends JPanel{
                     }
                     j.setName(name);
                     RunnerRepository.window.mainpanel.p1.suitaDetails.setParent(j);
+                    RunnerRepository.window.mainpanel.p1.testconfigmngmnt.setParent(j);
                     RunnerRepository.window.mainpanel.p1.suitaDetails.setSuiteDetails(false);
                     repaint();
                 }
@@ -2779,6 +2743,75 @@ public class Grafic extends JPanel{
         else if(item.getType()==2){
             for(int i=0;i<item.getSubItemsNr();i++){
                 showOptionals(item.getSubItem(i));}}}
+                
+    /*
+     * gets the first upper suite parent
+     */    
+    public static Item getFirstSuitaParent(Item item, boolean test){
+        ArrayList <Integer> temp = (ArrayList <Integer>)item.getPos().clone();
+        if(temp.size()==1)return null;
+        if(item.getType()!=0){
+            temp.remove(temp.size()-1);
+            return getItem(temp,test);}
+        else{
+            temp.remove(temp.size()-1);
+            temp.remove(temp.size()-1);
+            return getItem(temp,test);}}
+            
+            
+    public static Item getTcParent(Item item, boolean test){
+        ArrayList <Integer> temp = (ArrayList <Integer>)item.getPos().clone();
+        if(item.getType()==0){
+            temp.remove(temp.size()-1);
+            return getItem(temp,test);}
+        return null;}
+        
+    /*
+     * gets the first suite parent
+     * at the head of the Hierarchy
+     */
+    public static Item getParent(Item item, boolean test){
+        if(item.getPos().size()>1){
+            ArrayList <Integer> temp = new ArrayList <Integer>();
+            temp.add(item.getPos().get(0));
+            return getItem(temp,test);}
+        else return null;}
+        
+    /*
+     * check if item is available in suites array(maybe it was deleted)
+     */
+    public static boolean chekItemInArray(Item item, boolean test){
+        ArrayList <Integer> temp = (ArrayList <Integer>)item.getPos().clone();
+        Item suiteitem;
+        if(temp.size()==1){
+            if(test){
+                suiteitem =  RunnerRepository.getTestSuite().get(temp.get(0));
+            } else {
+                suiteitem = RunnerRepository.getSuita(temp.get(0));
+            }
+        } else {
+            if(item.getType()==0){//property
+                temp.remove(temp.size()-1);
+                temp.remove(temp.size()-1);
+                suiteitem = getItem(temp,test);
+                suiteitem = suiteitem.getSubItem(item.getPos().get(item.getPos().size()-2));
+                suiteitem = suiteitem.getSubItem(item.getPos().get(item.getPos().size()-1));
+            } else if(item.getType()==1){//tc
+                temp.remove(temp.size()-1);
+                suiteitem = getItem(temp,test);
+                if(suiteitem!=null){
+                    if(suiteitem.getSubItemsNr()>item.getPos().get(item.getPos().size()-1)){
+                        suiteitem = suiteitem.getSubItem(item.getPos().get(item.getPos().size()-1));
+                    } else {
+                        suiteitem = null;
+                    }
+                }
+            } else {//suite
+                suiteitem = getItem(temp,test);
+            }
+        }
+        return suiteitem==item;
+    }
         
     class AddSuiteFrame extends JFrame{
         private static final long serialVersionUID = 1L;
@@ -2787,7 +2820,12 @@ public class Grafic extends JPanel{
         JList <String>epidfield;
         JComponent mainwindow;
         
-        public void okAction(Item suita,int pos){            
+        public void okAction(Item suita,int pos){     
+            if(namefield.getText().equals("")){//don't allow empty names
+                CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, Grafic.this,
+                                        "Error", "SUT name must not be empty!");
+                    return;
+            }
             FontMetrics metrics = getGraphics().getFontMetrics(new Font("TimesRoman", Font.BOLD, 14));                
             int width = metrics.stringWidth(namefield.getText());
             if(suita!=null){  
@@ -2828,105 +2866,69 @@ public class Grafic extends JPanel{
             Grafic.this.repaint();}
         
         public AddSuiteFrame(final JComponent mainwindow,final Item suita,final int pos){
+            JLabel name = new JLabel();
+            JLabel EPId = new JLabel();
+            namefield = new JTextField();
+            JScrollPane jScrollPane1 = new JScrollPane();
+            String [] vecresult =  RunnerRepository.window.mainpanel.p4.getSut().sut.getSutTree().getSutsName();
+            if(vecresult!=null){
+                int size = vecresult.length;
+                for(int i=0;i<size;i++){
+                    vecresult[i] = vecresult[i].replace(".user", "(user)");
+                    vecresult[i] = vecresult[i].replace(".system", "(system)");
+                }
+            }
+            epidfield = new JList<String>(vecresult);
+            try{epidfield.setSelectedIndex(0);}
+            catch(Exception e){e.printStackTrace();}
+            ok = new JButton();    
+            name.setText("Suite Name:");    
+            EPId.setText("SUT Name:");    
+            jScrollPane1.setViewportView(epidfield);    
+            ok.setText("OK");  
+            JPanel main  = new JPanel();
+            GroupLayout layout = new GroupLayout(main);
+            main.setLayout(layout);
+            layout.setHorizontalGroup(
+                layout.createParallelGroup(GroupLayout.Alignment.LEADING)
+                .addGroup(layout.createSequentialGroup()
+                    .addContainerGap()
+                    .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
+                        .addGroup(layout.createSequentialGroup()
+                            .addComponent(name)
+                            .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+                            .addComponent(namefield))
+                        .addGroup(layout.createSequentialGroup()
+                            .addComponent(EPId)
+                            .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
+                            .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 375, Short.MAX_VALUE))
+                        .addGroup(GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
+                            .addGap(0, 0, Short.MAX_VALUE)
+                            .addComponent(ok, GroupLayout.PREFERRED_SIZE, 80, GroupLayout.PREFERRED_SIZE)))
+                    .addContainerGap())
+            );
+            layout.setVerticalGroup(
+                layout.createParallelGroup(GroupLayout.Alignment.LEADING)
+                .addGroup(layout.createSequentialGroup()
+                    .addContainerGap()
+                    .addGroup(layout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+                        .addComponent(name)
+                        .addComponent(namefield, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
+                    .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+                    .addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
+                        .addComponent(EPId)
+                        .addComponent(jScrollPane1, GroupLayout.DEFAULT_SIZE, 260, Short.MAX_VALUE))
+                    .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+                    .addComponent(ok)
+                    .addContainerGap())
+            );
+            add(main);
             addWindowFocusListener(new WindowFocusListener(){
                 public void windowLostFocus(WindowEvent ev){
                     toFront();}
                     public void windowGainedFocus(WindowEvent ev){}});
             setAlwaysOnTop(true);
-            setLayout(null);
-            setResizable(false);
-            setBounds(400,300,200,170);   
-            JLabel name = new JLabel("Suite Name:");
-            name.setBounds(5,5,80,20);
-            name.setFont(new Font("TimesRoman", Font.PLAIN, 14));
-            JLabel EPId = new JLabel("SUT name:");
-            EPId.setBounds(5,30,80,20);
-            EPId.setFont(new Font("TimesRoman", Font.PLAIN, 14));
-            namefield = new JTextField(30);
-            namefield.setBounds(90,2,100,25);        
-            
-            
-            
-//             File f = new File(RunnerRepository.temp+System.getProperty("file.separator")+
-//                                 "Twister"+System.getProperty("file.separator")+"Epname.txt");
-//             String line = null;                             
-//             InputStream in = null;
-//             try{String dir = RunnerRepository.getRemoteEpIdDir();
-//                 String [] path = dir.split("/");
-//                 StringBuffer result = new StringBuffer();
-//                 if (path.length > 0) {
-//                     for (int i=0; i<path.length-1; i++){
-//                         result.append(path[i]);
-//                         result.append("/");}}
-//                 RunnerRepository.c.cd(result.toString());
-//                 in = RunnerRepository.c.get(path[path.length-1]);}
-//             catch(Exception e){e.printStackTrace();};
-//             InputStreamReader inputStreamReader = new InputStreamReader(in);
-//             BufferedReader bufferedReader = new BufferedReader(inputStreamReader);  
-//             StringBuffer b=new StringBuffer("");
-//             try{while ((line=bufferedReader.readLine())!= null){b.append(line+";");}
-//                 bufferedReader.close();
-//                 inputStreamReader.close();
-//                 in.close();}
-//             catch(Exception e){e.printStackTrace();}        
-//             String  [] vecresult = b.toString().split(";");
-//             epidfield = new JList<String>(vecresult);
-
-
-            StringBuilder b = new StringBuilder();
-//             Node parentnode = RunnerRepository.window.mainpanel.p4.getTB().getParentNode();
-//             try{parentnode.getChildren();}
-//             catch(Exception e){
-//                 e.printStackTrace();
-//                 System.out.println("There is no SUT present, please check Test Beds section");}
-//             HashMap children =  parentnode.getChildren();
-//             if(children!=null&&children.size()!=0){
-//                 Set keys = children.keySet();
-//                 Iterator iter = keys.iterator();
-//                 while(iter.hasNext()){
-//                     String n = iter.next().toString();
-//                     String tempname = parentnode.getChild(n).getName();
-//                     b.append(tempname);
-//                     b.append(";");
-//                 }
-//             }
-//             
-//             String result = b.toString();
-//             String [] vecresult = result.split(";");
-//             epidfield = new JList<String>(vecresult);
-            
-            
-            DefaultMutableTreeNode root = RunnerRepository.window.mainpanel.p4.getSut().sut.root;
-            int sutsnr = root.getChildCount();
-            String [] vecresult = {};
-            if(sutsnr==0){
-                System.out.println("There is no SUT present, please check Test Beds section");
-            } else {
-                for(int i=0;i<sutsnr;i++){
-                    b.append(root.getChildAt(i).toString());
-                    b.append(";");
-                }
-                vecresult = b.toString().split(";");
-                
-            }
-            
-            epidfield = new JList<String>(vecresult);
-			try{epidfield.setSelectedIndex(0);}
-            catch(Exception e){e.printStackTrace();}
-            
-            
-            
-            
-            add(name);
-            add(namefield);
-            add(EPId);
-            JScrollPane sc = new JScrollPane(epidfield);
-            sc.setBounds(90,30,100,90);
-            add(sc);   
             Grafic.this.setCanRequestFocus(false);
-            setVisible(true);
-            ok = new JButton("OK");
-            ok.setBounds(130,120,60,20);
             ok.addActionListener(new ActionListener(){
                 public void actionPerformed(ActionEvent ev){
                     okAction(suita,pos);}});
@@ -2941,45 +2943,14 @@ public class Grafic extends JPanel{
             InputMap keyMap = new ComponentInputMap(ok);
             keyMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), "action");            
             ActionMap actionMap = new ActionMapUIResource();
-            actionMap.put("action", actionListener);            
+            actionMap.put("action", actionListener);
             SwingUtilities.replaceUIActionMap(ok, actionMap);
             SwingUtilities.replaceUIInputMap(ok, JComponent.WHEN_IN_FOCUSED_WINDOW, keyMap);            
-            add(ok);
+            setBounds(400,300,300,400);
+            setVisible(true);
             namefield.requestFocus();
-        }}
-            
-    /*
-     * gets the first upper suite parent
-     */    
-    public static Item getFirstSuitaParent(Item item, boolean test){
-        ArrayList <Integer> temp = (ArrayList <Integer>)item.getPos().clone();
-        if(temp.size()==1)return null;
-        if(item.getType()==1||item.getType()==2){
-            temp.remove(temp.size()-1);
-            return getItem(temp,test);}
-        else{
-            temp.remove(temp.size()-1);
-            temp.remove(temp.size()-1);
-            return getItem(temp,test);}}
-            
-            
-    public static Item getTcParent(Item item, boolean test){
-        ArrayList <Integer> temp = (ArrayList <Integer>)item.getPos().clone();
-        if(item.getType()==0){
-            temp.remove(temp.size()-1);
-            return getItem(temp,test);}
-        return null;}
-        
-    /*
-     * gets the first suite parent
-     * at the head of the Hierarchy
-     */
-    public static Item getParent(Item item, boolean test){
-        if(item.getPos().size()>1){
-            ArrayList <Integer> temp = new ArrayList <Integer>();
-            temp.add(item.getPos().get(0));
-            return getItem(temp,test);}
-        else return null;}
+        }
+    }
 }
             
 class CompareItems implements Comparator{   

@@ -1,6 +1,6 @@
 /*
 File: MainRepository.java ; This file is part of Twister.
-Version: 2.024
+Version: 3.002
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -30,10 +30,6 @@ import java.net.URL;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import org.w3c.dom.Document;
-import com.jcraft.jsch.JSch;
-import com.jcraft.jsch.Session;
-import com.jcraft.jsch.Channel;
-import com.jcraft.jsch.ChannelSftp;
 import java.util.Properties;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
@@ -59,26 +55,40 @@ import java.awt.event.AWTEventListener;
 import java.awt.Toolkit;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
+import com.google.gson.JsonParser;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonArray;
+import java.io.FileWriter;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import java.io.FileInputStream;
+import java.io.InputStreamReader;
+import java.io.BufferedReader;
+import java.io.Writer;
+import java.io.OutputStreamWriter;
+import org.apache.xmlrpc.client.XmlRpcHttpTransportException;
 
 public class MainRepository {
     public static Image background,logo;
-    private static String host,user,password,ceport;
+    private static String host,user,password;
+    public static String ceport;
     public static Container container;
     public static String bar = System.getProperty("file.separator");//System specific file.separator
     public static String temp;
-    private static ChannelSftp connection;
     private static PluginManager pluginmanager;
     public static Applet applet;
     public static TwisterPluginInterface plugin;
     private static XmlRpcClient client;
     private static Hashtable<String,String> hash = new Hashtable<String,String>();
-    private static String version = "2.047";
-    private static String builddate = "12.12.2013";
+    private static String version = "3.040";
+    private static String builddate = "06.11.2014";
     public static int time = 10;//seconds
     public static boolean countdown = false;
     public static String logotxt;
     public static LogOutThread lot = new LogOutThread(MainRepository.time);
     private static WelcomePanel wp;
+    private static JsonObject inifile;
     
     public static void initialize(Applet applet, String host,Container container){
         MainRepository.applet = applet;
@@ -91,6 +101,7 @@ public class MainRepository {
         catch(Exception e){container.validate();}
         container.repaint();
         MainRepository.countdown = false;
+        checkConfig();
         WelcomeScreen ws = new WelcomeScreen();
         container.setLayout(new GridBagLayout());
         container.add(ws, new GridBagConstraints());
@@ -98,6 +109,105 @@ public class MainRepository {
         container.repaint();
         ws.requestFocus();
     }
+    
+    private static void checkConfig(){
+        try{String bar = System.getProperty("file.separator");
+            File twisterini = new File(System.getProperty("user.home")+bar+".twister"+bar+"twister.conf");
+            if(!twisterini.exists()||twisterini.length()==0){// if it does not exist or is empty, create one from scratch 
+                if(twisterini.exists())twisterini.delete();
+                if(new File(System.getProperty("user.home")+bar+".twister"+bar+"twister.conf").createNewFile()){
+                    generateJSon(System.getProperty("user.home")+bar+".twister"+bar+"twister.conf");}
+                else System.out.println("Could not create twister.conf");}
+            parseIni(twisterini);//parse configuration file
+        }
+        catch(Exception e){
+            System.out.println("There was a problem in reading/writing twister.conf from local pc");
+            e.printStackTrace();
+            MainRepository.ceport = "8000";
+        }
+    }
+    
+    /*
+     * generate local config 
+     * file from scratch
+     */
+    private static void generateJSon(String TWISTERINI){
+        JsonObject root = new JsonObject();
+        JsonObject array =new JsonObject();
+        array.addProperty("Embedded", "embedded");
+        array.addProperty("DEFAULT", "Embedded");
+        JsonObject array2 =new JsonObject();
+        array2.addProperty("NimbusLookAndFeel", "javax.swing.plaf.nimbus.NimbusLookAndFeel");
+        array2.addProperty("MetalLookAndFeel", "javax.swing.plaf.metal.MetalLookAndFeel");
+        array2.addProperty("MotifLookAndFeel", "com.sun.java.swing.plaf.motif.MotifLookAndFeel");
+        array2.addProperty("WindowsLookAndFeel", "com.sun.java.swing.plaf.windows.WindowsLookAndFeel");
+        array2.addProperty("JGoodiesWindowsLookAndFeel", "com.jgoodies.looks.windows.WindowsLookAndFeel");
+        array2.addProperty("Plastic3DLookAndFeel", "com.jgoodies.looks.plastic.Plastic3DLookAndFeel");
+        array2.addProperty("PlasticXPLookAndFeel", "com.jgoodies.looks.plastic.PlasticXPLookAndFeel");
+        array2.addProperty("DEFAULT", "MetalLookAndFeel");
+        root.add("plugins", new JsonArray());
+        root.add("editors", array);
+        root.add("looks", array2);
+        root.add("layout", new JsonObject());
+        root.addProperty("CEport", "8000");
+        try{FileWriter writer = new FileWriter(TWISTERINI);
+            Gson gson = new GsonBuilder().setPrettyPrinting().create(); 
+            writer.write(gson.toJson(root));
+            writer.close();}
+        catch(Exception e){
+            System.out.println("Could not write default JSon to twister.conf");
+            e.printStackTrace();}
+        System.out.println("twister.conf successfully created");}
+        
+    /*
+     * parser for conf twister file
+     */
+    public static void parseIni(File ini){
+        try{FileInputStream in  = new FileInputStream(ini);
+            InputStreamReader inputStreamReader = new InputStreamReader(in);
+            BufferedReader bufferedReader = new BufferedReader(inputStreamReader);  
+            StringBuffer b=new StringBuffer("");
+            String line;
+            try{while ((line=bufferedReader.readLine())!= null){b.append(line);}
+                bufferedReader.close();
+                inputStreamReader.close();
+                in.close();}
+            catch(Exception e){e.printStackTrace();}
+            JsonElement jelement = new JsonParser().parse(b.toString());
+            inifile = jelement.getAsJsonObject();
+            try{MainRepository.ceport = inifile.get("CEport").getAsString();}
+            catch(Exception e){
+                e.printStackTrace();
+                inifile.addProperty("CEport", "8000");
+                MainRepository.ceport = "8000";
+                writeJSon();
+            }
+            if(MainRepository.ceport==null&&MainRepository.ceport.equals("")){
+                inifile.addProperty("CEport", "8000");
+                MainRepository.ceport = "8000";
+                writeJSon();
+            }
+        }
+        catch(Exception e){
+            System.out.print("Could not parse ini file: ");
+            try{System.out.println(ini.getCanonicalPath());}
+            catch(Exception ex){ex.printStackTrace();}
+            e.printStackTrace();}}
+            
+     /*
+     * write local conf 
+     * with saved json
+     */
+    public static void writeJSon(){        
+        try{Writer writer = new OutputStreamWriter(new FileOutputStream(System.getProperty("user.home")+bar+".twister"+bar+"twister.conf"));
+            Gson gson = new GsonBuilder().setPrettyPrinting().create(); 
+            gson.toJson(inifile, writer);
+            writer.close();}
+        catch(Exception e){
+            System.out.println("Could not write to local config file");
+            e.printStackTrace();}}
+        
+        
     
     public static void continueLogin(){
         wp = new WelcomePanel();
@@ -116,16 +226,24 @@ public class MainRepository {
         if(plugin!=null){
             try{plugin.resizePlugin(width,height);}
             catch(Exception e){e.printStackTrace();}
-        } else {
-            System.out.println("plugin is null");
         }
     }
     
     public static boolean isCE(){
         try{client.execute("echo", new Object[]{"test if CE is running"});
             return true;
+        }
+        catch(XmlRpcHttpTransportException e){//check user password credentials
+            if(e.getStatusCode()==401){
+                CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,applet,
+                                    "Warning", "Wrong User/Password!");
+            }
+            return false;
         } catch(Exception e){
             e.printStackTrace();
+            CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,applet,
+                                    "Warning", "CE is not running, please start CE in "+
+                                                "order for Twister Framework to run properly");
             return false;
         }
     }
@@ -169,12 +287,12 @@ public class MainRepository {
         File twisterhome = new File(System.getProperty("user.home")+bar+".twister");
     }
     
-    public static void login(String user, String password){
+    public static void login(String user, String password, String ceport){
         MainRepository.lot.setTime(0);
         MainRepository.time=0;
         MainRepository.user = user;
         MainRepository.password = password;
-        ceport = getCEPort(user,password);
+        MainRepository.ceport = ceport;
         if(ceport==null||ceport.equals("")){
             try{MainRepository.wp.login.setEnabled(true);}
             catch(Exception e){e.printStackTrace();}
@@ -183,61 +301,6 @@ public class MainRepository {
             return;
         }
         initializeRPC(user,password,ceport);
-    }
-    
-    private static String getCEPort(String user, String password){
-        try{DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-            DocumentBuilder db = dbf.newDocumentBuilder();
-            JSch jsch = new JSch();
-            Session session = jsch.getSession(user, host, 22);
-            session.setPassword(password);
-            Properties config = new Properties();
-            config.put("StrictHostKeyChecking", "no");
-            session.setConfig(config);
-            session.setTimeout(10000);
-            try{session.connect();}
-            catch(Exception e){
-                e.printStackTrace();
-                CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,applet,
-                                    "Warning", "Could not connect to server");
-                return null;
-            }
-            Channel channel = session.openChannel("sftp");
-            channel.connect();
-            connection = (ChannelSftp)channel;
-            Document doc = null;;
-            try{ 
-                doc = db.parse(connection.get(connection.getHome()+"/twister/config/fwmconfig.xml"));
-            } catch(Exception e){
-                CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,container,
-                                            "Error", "Could not get "+connection.getHome()+"/twister/config/fwmconfig.xml.\n "+
-                                             "! Client has not been installed, please install latest Client package.");
-                return "";
-            }
-            doc.getDocumentElement().normalize();
-            String tag = "CentralEnginePort";
-            NodeList nodeLst = doc.getElementsByTagName(tag);
-            if(nodeLst.getLength()==0){
-                System.out.println("tag "+tag+" not found in "+doc.getDocumentURI());
-                CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,container,
-                                            "Warning", tag+" tag not found in framework config");
-                return "";
-            }
-            Node fstNode = nodeLst.item(0);
-            Element fstElmnt = (Element)fstNode;
-            NodeList fstNm = fstElmnt.getChildNodes();
-            String temp;
-            try{temp = fstNm.item(0).getNodeValue().toString();}
-            catch(Exception e){
-                System.out.println(tag+" empty");
-                CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,MainRepository.container,
-                                            "Warning", tag+" tag is empty in framework config");
-                temp = "";}
-            return temp;
-        } catch(Exception e){
-            e.printStackTrace();
-        }
-        return "";
     }
     
     public static void loadReports(){
@@ -260,7 +323,7 @@ public class MainRepository {
             if(pluginname.equals("ControlPanel")){
                 new Thread(){
                     public void run(){
-                        try{HashMap hm = (HashMap)client.execute("usersAndGroupsManager", new Object[]{"list users"});
+                        try{HashMap hm = (HashMap)client.execute("users_and_groups_mngr", new Object[]{"list users"});
                             hm = (HashMap)hm.get(user);
                             if(hm==null){
                                 CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,container,
@@ -326,24 +389,6 @@ public class MainRepository {
         }
     }
     
-    public static File getRemoteFile(final String remotefile){
-        try{
-            InputStream in = connection.get("/opt/twister/appletcomps/"+remotefile);
-            File file = new File(temp+bar+"components/"+remotefile);
-            OutputStream out=new FileOutputStream(file);
-            byte buf[]=new byte[100];
-            int len;
-            while((len=in.read(buf))>0)
-                out.write(buf,0,len);
-            out.close();
-            in.close();
-            return file;
-        } catch (Exception e){
-            e.printStackTrace();
-            return null;
-        }
-    }
-    
     /*
      * XmlRpc main connection used by Twister framework
      */
@@ -351,7 +396,7 @@ public class MainRepository {
         try{XmlRpcClientConfigImpl configuration = new XmlRpcClientConfigImpl();
             configuration.setBasicPassword(password);
             configuration.setBasicUserName(user);
-            configuration.setServerURL(new URL("http://"+user+":"+password+"@"+MainRepository.host+
+            configuration.setServerURL(new URL("http://"+MainRepository.host+
                                         ":"+port+"/"));
             client = new XmlRpcClient();
             client.setConfig(configuration);
@@ -361,12 +406,10 @@ public class MainRepository {
                 MainRepository.lot.setTime(10);
                 try{MainRepository.wp.login.setEnabled(true);}
                 catch(Exception e){e.printStackTrace();}
-                CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,applet,
-                                    "Warning", "CE is not running, please start CE in "+
-                                                "order for Twister Framework to run properly");
                 return;
             }
-            
+            inifile.addProperty("CEport", "8000");
+            writeJSon();
             loadPlugin("ControlPanel");
         }
         catch(Exception e){

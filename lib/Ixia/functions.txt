@@ -1133,7 +1133,7 @@ logOn
 
 logOff
 
-logMsg
+log_msg
 
 errorMsg
 

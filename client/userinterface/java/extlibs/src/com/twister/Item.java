@@ -1,6 +1,6 @@
 /*
 File: Item.java ; This file is part of Twister.
-Version: 2.006
+Version: 2.012
 Copyright (C) 2012 , Luxoft
 
 Authors: Andrei Costachi <acostachi@luxoft.com>
@@ -20,6 +20,8 @@ package com.twister;
 
 import java.awt.Rectangle;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.UUID;
 
 public class Item implements Cloneable{
     private int type;//2-suite,1-tc,0-prop 
@@ -31,20 +33,41 @@ public class Item implements Cloneable{
     private ArrayList <Item> subitems = new ArrayList<Item>();
     private ArrayList <Integer> indexpos;//the index of this item in suite tree
     private boolean check = true;
-    private String [] EpID;
+    private String [] EpID = {};
     private boolean runnable = true;
-    private ArrayList<String[]> userDefined = new ArrayList<String[]>();
+    private ArrayList<String[]> userDefined = new ArrayList<String[]>();//name value pair
     private boolean prerequisite = false;
     private boolean teardown = false;
     private boolean optional = false;
     private String [] servers,libs;
-    private String [] configurations = {}; 
+    private ArrayList<Configuration> configurations = new ArrayList<Configuration>();
     private boolean panicdetect = false;
     private int ceindex;
     private boolean clearcase = false;
+    private HashMap <Item, String> dependencie;
+    private String ID;
+    private int repeat = 1;
     
     
-    public int getCEindex() {
+    
+    
+    public int getRepeat() {
+		return repeat;
+	}
+
+	public void setRepeat(int repeat) {
+		this.repeat = repeat;
+	}
+
+	public String getID() {
+		return ID;
+	}
+
+	public void setID(String iD) {
+		ID = iD;
+	}
+
+	public int getCEindex() {
 		return ceindex;
 	}
 
@@ -64,22 +87,25 @@ public class Item implements Cloneable{
         this.indexpos = indexpos;
         this.type = type;
         this.name = name;
-        rectangle.setLocation(x,y);
-        rectangle.setSize(width,height);
+        this.rectangle.setLocation(x,y);
+        this.rectangle.setSize(width,height);
         if(type!=0){
-            checkrectangle.setLocation(x+3,y+3);
-            checkrectangle.setSize(height-6,height-6);}}
+            this.checkrectangle.setLocation(x+3,y+3);
+            this.checkrectangle.setSize(height-6,height-6);}
+        this.ID = UUID.randomUUID().toString();
+        this.dependencie = new  HashMap();
+    }
             
     public void setPrerequisite(boolean prerequisite){
         this.prerequisite = prerequisite;
         if(prerequisite){
-            setCheck(true);
+            setCheck(true,true);
             setRunnable(true);}}
     
     public void setTeardown(boolean teardown){
         this.teardown = teardown;
         if(teardown){
-            setCheck(true);
+            setCheck(true,true);
             setRunnable(true);}}
     
     public boolean isTeardown(){
@@ -97,7 +123,10 @@ public class Item implements Cloneable{
     @SuppressWarnings("unchecked")
 	public Item clone(){
         try{Item clone = (Item)super.clone();
+        	clone.setPos((ArrayList <Integer>)getPos().clone());
+        	clone.setDependencies((HashMap<Item,String>)dependencie.clone());
             clone.subitems = (ArrayList <Item>)subitems.clone();
+            clone.setRectangle((Rectangle)getRectangle().clone());
             for(int i=0;i<clone.getSubItemsNr();i++){clone.subitems.set(i, clone.getSubItem(i).clone());}
             return clone;}
         catch(CloneNotSupportedException e){
@@ -184,12 +213,12 @@ public class Item implements Cloneable{
         for(Item item:subitems){
             if(item.getType()==2)item.setEpId(EpID);}}
     
-    public void setCheck(boolean check){
+    public void setCheck(boolean check, boolean propagate){
         this.check = check;
-        if(type==2){
+        if(type==2&&propagate){
             int nr = subitems.size();
             for(int i=0;i<nr;i++){
-                subitems.get(i).setCheck(check);}}
+                subitems.get(i).setCheck(check,propagate);}}
         else{
             if(getSubItemsNr()>0) subitems.get(0).setValue(check+"");}}
         
@@ -228,9 +257,9 @@ public class Item implements Cloneable{
     public void setPos(ArrayList<Integer> indexpos){
         this.indexpos=indexpos;
         for(int i=0;i<getSubItemsNr();i++){
-			ArrayList<Integer> clona = (ArrayList<Integer>)indexpos.clone();
-            clona.add(new Integer(i));
-            getSubItem(i).setPos(clona);}}
+			ArrayList<Integer> clone = (ArrayList<Integer>)indexpos.clone();
+			clone.add(new Integer(i));
+            getSubItem(i).setPos(clone);}}
             
     public boolean contains(Item item,Item test){
         if(test==null){
@@ -264,11 +293,11 @@ public class Item implements Cloneable{
         temp[1] = userDef;
         userDefined.set(index, temp);}
     
-    public String[] getConfigurations() {
+    public ArrayList<Configuration> getConfigurations() {
 		return configurations;
 	}
 
-	public void setConfigurations(String[] configurations) {
+	public void setConfigurations(ArrayList<Configuration>configurations) {
 		this.configurations = configurations;
 	}
 
@@ -297,5 +326,13 @@ public class Item implements Cloneable{
 
 	public void setPanicdetect(boolean panicdetect) {
 		this.panicdetect = panicdetect;
+	}
+
+	public HashMap<Item, String> getDependencies() {
+		return dependencie;
+	}
+
+	public void setDependencies(HashMap<Item, String> dependencie) {
+		this.dependencie = dependencie;
 	}
 }

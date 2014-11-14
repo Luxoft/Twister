@@ -72,9 +72,6 @@ public class WelcomeScreen extends JPanel{
         g.drawImage(MainRepository.background, 260, 20, null);
         g.drawImage(MainRepository.logo, 15, 20, null);
         g.setFont(new Font("TimesRoman", Font.BOLD, 14));
-//         g.drawString("Twister Framework", 490, 130);
-//         g.drawString("V.: "+MainRepository.getVersion(), 530, 165);
-//         g.drawString("Build date: "+MainRepository.getBuildDate(), 483, 180);
         g.drawString("Press any Key to Logon", 275, 350);
         requestFocus();
     }

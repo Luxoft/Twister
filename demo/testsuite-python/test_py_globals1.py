@@ -13,14 +13,14 @@ The global variable `global1` will be updated several times to see if it's worki
 """
 
 # Print all root level parameters
-print 'Root level params:', getGlobal('/').keys()
+print 'Root level params:', get_global('/').keys()
 
 # Print some parameters
-print 'All params for Level_1:\n', pformat(getGlobal('Level_1'), indent=4, width=100), '\n'
-print 'All params for Level_1/Level_2:\n', pformat(getGlobal('Level_1/Level_2'), indent=4, width=100), '\n'
+print 'All params for Level_1:\n', pformat(get_global('Level_1'), indent=4, width=100), '\n'
+print 'All params for Level_1/Level_2:\n', pformat(get_global('Level_1/Level_2'), indent=4, width=100), '\n'
 
 # Print Level-1 / global1 param
-global1 = getGlobal('Level_1/global1')
+global1 = get_global('Level_1/global1')
 print 'First level global #1:', global1, '\n'
 
 # Run this 10 times
@@ -34,10 +34,10 @@ for i in range(10):
 	# Set the value of Level-1 / global1, with the random string
 	# This will make the test to show all kinds of values,
 	# Everytime it is run
-	setGlobal('Level_1/global1', new_value)
+	set_global('Level_1/global1', new_value)
 
 	# Value is changed in this test and tests that follow
-	print 'Check value changed::', getGlobal('Level_1/global1')
+	print 'Check value changed::', get_global('Level_1/global1')
 
 #
 

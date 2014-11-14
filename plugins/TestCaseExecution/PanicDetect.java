@@ -1,6 +1,6 @@
 /*
 File: PanicDetect.java ; This file is part of Twister.
-Version: 2.003
+Version: 3.001
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -25,24 +25,17 @@ import javax.swing.JButton;
 import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.event.KeyEvent;
-import java.awt.event.KeyAdapter;
 import java.awt.Container;
-import java.util.HashMap;
 import javax.swing.JLabel;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.google.gson.JsonArray;
 import java.util.Iterator;
 import java.util.Map;
 import javax.swing.JOptionPane;
 import com.twister.CustomDialog;
 import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
-import javax.swing.event.DocumentListener;
-import javax.swing.event.DocumentEvent;
-import javax.swing.BorderFactory;
 import java.awt.Color;
 
 public class PanicDetect extends JPanel{
@@ -73,7 +66,7 @@ public class PanicDetect extends JPanel{
     
     private void listRegex(){
         try{
-            String result = RunnerRepository.getRPCClient().execute("panicDetectConfig",
+            String result = RunnerRepository.getRPCClient().execute("panic_detect_config",
                                                                   new Object[]{RunnerRepository.getUser(),
                                                                                "list"}).toString();
             JsonElement jelement = new JsonParser().parse(result);
@@ -98,7 +91,7 @@ public class PanicDetect extends JPanel{
     
     private void addRegex(){
         try{
-            String result = RunnerRepository.getRPCClient().execute("panicDetectConfig",
+            String result = RunnerRepository.getRPCClient().execute("panic_detect_config",
                                                               new Object[]{RunnerRepository.getUser(),
                                                                            "add","expression=new_regex&enabled=false"}).toString();
             if(result.indexOf("error")==-1){
@@ -176,7 +169,7 @@ public class PanicDetect extends JPanel{
                 public void focusLost(FocusEvent ev){
                     if(regex.getText().equals("")){
                         try{
-                            String result = RunnerRepository.getRPCClient().execute("panicDetectConfig",
+                            String result = RunnerRepository.getRPCClient().execute("panic_detect_config",
                                                                       new Object[]{RunnerRepository.getUser(),
                                                                                    "list"}).toString();
                             JsonElement jelement = new JsonParser().parse(result);
@@ -195,7 +188,7 @@ public class PanicDetect extends JPanel{
                         CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,PanicDetect.this,
                                                       "Warning", "Regex must not be empty");
                         try{
-                            String result = RunnerRepository.getRPCClient().execute("panicDetectConfig",
+                            String result = RunnerRepository.getRPCClient().execute("panic_detect_config",
                                                                       new Object[]{RunnerRepository.getUser(),
                                                                                    "list"}).toString();
                             JsonElement jelement = new JsonParser().parse(result);
@@ -227,7 +220,7 @@ public class PanicDetect extends JPanel{
                 String com = "expression="+regex.getText()+
                              "&enabled="+enabled.isSelected()+
                              "&id="+id;
-                String result = RunnerRepository.getRPCClient().execute("panicDetectConfig",
+                String result = RunnerRepository.getRPCClient().execute("panic_detect_config",
                                                                     new Object[]{RunnerRepository.getUser(),
                                                                            "update",com}).toString();
             } catch (Exception e){
@@ -238,7 +231,7 @@ public class PanicDetect extends JPanel{
         public void removeRegex(){
             try{
                 if(regex.getText().equals(""))return;
-                String result = RunnerRepository.getRPCClient().execute("panicDetectConfig",
+                String result = RunnerRepository.getRPCClient().execute("panic_detect_config",
                                                                    new Object[]{RunnerRepository.getUser(),
                                                                    "remove",id}).toString();
                 if(result.equals("true")){

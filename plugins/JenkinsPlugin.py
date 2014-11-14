@@ -1,5 +1,5 @@
 
-# version: 2.001
+# version: 2.002
 
 import os
 import subprocess
@@ -21,7 +21,7 @@ TWISTER_PATH = os.getenv('TWISTER_PATH')
 # and the build number will be saved in the database.
 #
 # How to execute the plugin from a script:
-# ce.runPlugin('user', 'Jenkins', {"command":True, "build":"B019"})
+# ce.run_plugin('user', 'Jenkins', {"command":True, "build":"B019"})
 #
 
 class Plugin(BasePlugin):
@@ -55,7 +55,7 @@ class Plugin(BasePlugin):
 
         subprocess.Popen([ 'chmod', '644', ('{}/plugins/build_number.tmp~'.format(TWISTER_PATH)) ])
 
-        status = self.data['ce'].project.getUserInfo(self.user, 'status')
+        status = self.data['ce'].project.get_user_info(self.user, 'status')
 
         # If the status for this user is 'Running' or 'Paused', don't do anything
         if status in [1, 2]:
@@ -68,7 +68,7 @@ class Plugin(BasePlugin):
             return 'Jenkins Plugin: Execute `{}` returned exception - {}'.format(script, str(e))
 
         # Start Central Engine !
-        self.data['ce'].setExecStatusAll(self.user, 2, ',' + tests)
+        self.data['ce'].set_exec_status_all(self.user, 2, ',' + tests)
 
         return True
 

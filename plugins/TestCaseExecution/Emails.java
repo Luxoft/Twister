@@ -1,6 +1,6 @@
 /*
 File: Emails.java ; This file is part of Twister.
-Version: 2.009
+Version: 3.001
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -221,7 +221,7 @@ public class Emails extends JPanel{
                             nodeLst = doc.getElementsByTagName("SMTPPwd");
                             String p = new String(tpass.getPassword());
                             if(!initialpass.equals(p)){
-                                try{p = RunnerRepository.getRPCClient().execute("encryptText", new Object[]{p}).toString();
+                                try{p = RunnerRepository.getRPCClient().execute("encrypt_text", new Object[]{p}).toString();
                                     tpass.setText(p);
                                     initialpass = p;
                                 } catch(Exception e){
@@ -260,7 +260,7 @@ public class Emails extends JPanel{
                         transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "4");                        
                         transformer.transform(source, result);  
                         FileInputStream input = new FileInputStream(theone);
-                        saved = RunnerRepository.uploadRemoteFile(RunnerRepository.REMOTEEMAILCONFIGPATH,input,theone.getName());
+                        saved = RunnerRepository.uploadRemoteFile(RunnerRepository.REMOTEEMAILCONFIGPATH,input,null,theone.getName(),false,null);
                     }
                     catch(Exception e){
                         e.printStackTrace();
@@ -287,7 +287,7 @@ public class Emails extends JPanel{
     
     private void testEmail(){
         try{
-            String result = RunnerRepository.getRPCClient().execute("sendMail",
+            String result = RunnerRepository.getRPCClient().execute("send_mail",
                             new Object[]{RunnerRepository.user,"true"}).toString();
             if(!result.equals("true")){
                 CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,Emails.this,

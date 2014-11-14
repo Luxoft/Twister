@@ -1,5 +1,5 @@
 
-# version: 2.002
+# version: 2.005
 
 # File: installer.py ; This file is part of Twister.
 
@@ -36,6 +36,7 @@ Twister Client will be installed in the home of your user, in the folder `twiste
 '''
 
 import os, sys
+import binascii
 import shutil
 import subprocess
 from string import Template
@@ -70,6 +71,7 @@ except:
 
 # Twister client path
 INSTALL_PATH = userHome(user_name) + os.sep + 'twister/'
+cfg_path = INSTALL_PATH + 'config/'
 tmp_config   = ''
 
 print('Hello `{}` !\n'.format(user_name))
@@ -83,30 +85,32 @@ if os.path.exists(INSTALL_PATH):
     if selected.strip().lower() in ['y', 'yes']:
 
         # Backup CONFIG folder for client
-        if os.path.exists(INSTALL_PATH + 'config'):
+        if os.path.isdir(cfg_path):
             if os.getuid() != 0: # Normal user
-                tmp_config = userHome(user_name) + '/.twister'
-                try: os.mkdir(tmp_config)
-                except:
-                    print('Error! Cannot create .twister dir `{}`! The installation cannot continue!\n'.format(tmp_config))
-                    exit(1)
+                tmp_config = userHome(user_name) + '/.twister/'
             else: # ROOT user
-                tmp_config = '/tmp/twister_server_config'
-            print('\nBack-up `config` folder (from `{}` to `{}`)...'.format(INSTALL_PATH+'config', tmp_config))
+                tmp_config = '/tmp/twister_client_config/'
+            # Remove old tmp config
+            if os.path.isdir(tmp_config):
+                shutil.rmtree(tmp_config)
+
+            print('\nBack-up config folder (from `{}` to `{}`)...'.format(cfg_path, tmp_config))
             try:
-                shutil.move(INSTALL_PATH+'config', tmp_config)
+                shutil.move(cfg_path, tmp_config)
             except Exception as e:
                 print('\nInsuficient rights to move the config folder `{}`!\n'
-                      'The installation cannot continue if you don\'t have permissions to move that folder!\n'.format(INSTALL_PATH+'config'))
+                      'The installation cannot continue if you don\'t have permissions to move that folder!\n'.format(cfg_path))
                 exit(1)
-        else:
-            tmp_config = ''
 
         # Deleting previous versions of Twister
         try: dir_util.remove_tree(INSTALL_PATH)
-        except: print('Error! Cannot delete Twister dir `{}` !'.format(INSTALL_PATH))
+        except:
+            print('Error! Cannot delete Twister dir `{}` !'.format(INSTALL_PATH))
         try: os.mkdir(INSTALL_PATH)
-        except: print('Error! Cannot create Twister dir `{}` !'.format(INSTALL_PATH))
+        except:
+            print('Error! Cannot create Twister dir `{}` !'.format(INSTALL_PATH))
+            print('You probably don\'t have enough privileges to read and write in `{}` !\n'.format(INSTALL_PATH))
+            exit(1)
 
     else:
         print('\nPlease backup your data, then restart the installer.')
@@ -173,15 +177,24 @@ for fname in to_copy:
 
 # Restore CONFIG folder, if any
 if os.path.exists(tmp_config):
-    print('\nMoving `config` folder back (from `{}` to `{}`)...'.format(tmp_config, INSTALL_PATH+'config'))
-    dir_util.copy_tree(tmp_config, INSTALL_PATH+'config')
-    dir_util.remove_tree(tmp_config)
+    print('\nMoving `config` folder back (from `{}` to `{}`)...'.format(tmp_config, cfg_path))
+    for xname in os.listdir(tmp_config):
+        src_name = tmp_config + xname
+        dst_name = cfg_path + xname
+        if os.path.isfile(dst_name):
+            os.remove(dst_name)
+        elif os.path.isdir(dst_name):
+            shutil.rmtree(dst_name)
+        print('Restoring config `{}`.'.format(dst_name))
+        shutil.move(src_name, cfg_path)
 
 
 # Create cache and logs folders
 try: os.mkdir(INSTALL_PATH +os.sep+ '.twister_cache')
 except: pass
-try: os.mkdir(INSTALL_PATH +os.sep+ 'logs')
+try: os.mkdir(INSTALL_PATH + '/logs')
+except: pass
+try: os.mkdir(INSTALL_PATH + '/config/sut')
 except: pass
 # Delete Server config files...
 try: os.remove(INSTALL_PATH +os.sep+ 'config/resources.json')
@@ -225,6 +238,17 @@ os.system('find %s -name "start_packet_sniffer.py" -exec chmod +x {} \;' % INSTA
 fwm = Template( open(INSTALL_PATH + 'config/fwmconfig.xml', 'r').read() )
 open(INSTALL_PATH + 'config/fwmconfig.xml', 'w').write( fwm.substitute(HOME=userHome(user_name)) )
 del fwm
+
+
+# Check user's encr key
+user_key = '{}config/twister.key'.format(INSTALL_PATH)
+if os.path.isfile(user_key) and open(user_key).read():
+    print('User key ok.')
+else:
+    print('Generating new user key...')
+    with open(user_key, 'w') as f:
+        f.write(binascii.hexlify(os.urandom(16)))
+    print('User key saved in "config/twister.key". Don\'t change this file!')
 
 
 print('\nTwister installation done!\n')

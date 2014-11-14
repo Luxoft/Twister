@@ -1,5 +1,5 @@
 
-# version: 2.013
+# version: 3.004
 
 # Major list of constants.
 
@@ -46,11 +46,13 @@ ROLES = [
 	'CHANGE_SUT',		# Can change the global SUT ? (server + applet)
 	'CHANGE_SERVICES',	# Can start/ stop services ? (server + applet)
 	'CHANGE_USERS',		# Can create, change and delete users ? (server + applet)
+	'LOCK_TESTBED',		# Can lock testbed
+	'LOCK_SUT',			# Can lock sut
 ]
 
 # Status translations :
 
-execStatus = {'stopped':STATUS_STOP, 'paused':STATUS_PAUSED, 'running':STATUS_RUNNING, 'resume':STATUS_RESUME,
+EXEC_STATUS = {'stopped':STATUS_STOP, 'paused':STATUS_PAUSED, 'running':STATUS_RUNNING, 'resume':STATUS_RESUME,
 	'invalid':STATUS_INVALID}
 
 testStatus = {'pending':STATUS_PENDING, 'working':STATUS_WORKING, 'pass':STATUS_PASS, 'fail':STATUS_FAIL,
@@ -70,6 +72,10 @@ FWMCONFIG_TAGS = (
 	{'name':'tcfg_path',	'tag':'TestConfigPath',		'default':''},
 	{'name':'archive_logs_path', 'tag':'ArchiveLogsPath', 'default': False},
 	{'name':'archive_logs_path_active', 'tag':'ArchiveLogsPathActive', 'default': ''},
+	{'name':'sut_path',		'tag':'SutPath', 'default': ''},
+	{'name':'sys_sut_path',	'tag':'SysSutPath', 'default': ''},
+	{'name':'projects_path',		'tag':'UsersPath',			'default':''},
+	{'name':'predefined_path',	'tag':'PredefinedSuitesPath',	'default':''},
 )
 
 # Project Config XML Tags :
@@ -79,6 +85,7 @@ PROJECTCONFIG_TAGS = (
 	{'name':'db_auto_save',		'tag':'dbautosave',			'default':False, 'type':'bool'},
 	{'name':'tc_delay',			'tag':'tcdelay',			'default':0, 'type':'number'},
 	{'name':'libraries',		'tag':'libraries',			'default':''},
+	{'name':'dl_libs',			'tag':'DownloadLibraries',	'default':''},
 	{'name':'script_pre',		'tag':'ScriptPre',			'default':''},
 	{'name':'script_post',		'tag':'ScriptPost',			'default':''},
 	{'name':'script_mandatory',	'tag':'PrePostMandatory',	'default':False, 'type':'bool'},
@@ -98,7 +105,8 @@ SUITES_TAGS = (
 
 TESTS_TAGS = (
 	{'name':'file',			'tag':'tcName',				'default':''},
-	{'name':'config_files',	'tag':'ConfigFiles',		'default':''},
-	{'name':'dependancy',	'tag':'Dependancy',			'default':''},
+	{'name':'_dep_id',		'tag':'ID',					'default':''},
+	{'name':'_cfg_files',	'tag':'ConfigFiles/Config',	'default':''},
+	{'name':'_depend',		'tag':'Dependency',			'default':''},
 	{'name':'clearcase',	'tag':'ClearCase',			'default':''},
 )

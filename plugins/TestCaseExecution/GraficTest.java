@@ -1,6 +1,6 @@
 /*
 File: GraficTest.java ; This file is part of Twister.
-Version: 2.007
+Version: 3.004
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -46,6 +46,7 @@ import javax.swing.JLabel;
 import javax.swing.JTextField;
 import javax.swing.JOptionPane;
 import com.twister.CustomDialog;
+import java.util.HashMap;
 
 public class GraficTest extends JPanel{
     private static final long serialVersionUID = 1L;
@@ -99,7 +100,7 @@ public class GraficTest extends JPanel{
      */
     public void printPos(Item item){
         if(item.getType()==0||item.getType()==1||item.getType()==2){
-            System.out.print(item.getName()+" - ");
+            System.out.print(item.getName()+" - "+item.getLocation()[0]+" - "+item.getLocation()[1]+" - ");
             for(int i=0;i<item.getPos().size();i++){
                 System.out.print(item.getPos().get(i));}
             System.out.println();}
@@ -220,6 +221,27 @@ public class GraficTest extends JPanel{
         p.show(this,ev.getX(),ev.getY());
     }
     
+    private void selectTearSetup(Item parent){
+        if(parent.getType()!=2)return;
+        boolean hasselected = false;
+        for(Item child:parent.getSubItems()){
+            if(child.isSelected()){
+                hasselected = true;
+                break;
+            }
+        }
+        if(hasselected){
+            for(Item child:parent.getSubItems()){
+                if(child.isTeardown()||child.isPrerequisite()){
+                    child.select(true);
+                }
+            }
+        }
+        for(Item child:parent.getSubItems()){
+            selectTearSetup(child);
+        }
+    }
+    
 
     public void runSeparately(){
         String userrespons = CustomDialog.showInputDialog(JOptionPane.INFORMATION_MESSAGE, 
@@ -233,13 +255,16 @@ public class GraficTest extends JPanel{
         ArrayList<Item> items = cloneItems();//clone all testcases
         ArrayList<Item> fordelete = new ArrayList<Item>();//array to hold the ones to delete
         
+        //select Tear,Setup files in suites that have selected tc
         for(Item item:items){
-            if(!item.isSelected()&&
-            !hasSubItemSelected(item)
-            &&!isParentSelected(items, item)){
+            selectTearSetup(item);
+        }
+        
+        
+        for(Item item:items){
+            if(!item.isSelected() && !hasSubItemSelected(item) && !isParentSelected(items, item)){
                 fordelete.add(item);
-            }
-            else{
+            } else {
                 for(Item child:item.getSubItems()){
                     removeSelected(items,fordelete,item,child);
                 }
@@ -260,14 +285,26 @@ public class GraficTest extends JPanel{
                 items.remove(fordelete.get(i));
             }
         }
-        for(Item it:items){//separate TB from ep 
-            it.setEpId(new String[]{it.getEpId()[0].split(" : ")[1]});
-        }
+        
         ArrayList<Item>last = new ArrayList<Item>();//array to store items repeatedly
         for(int i=0;i<times;i++){                   //the number of times the user specified
             for(Item it:items){
-                last.add(it);
+                Item clone = it;
+                if(i!=0)clone = it.clone();
+                last.add(clone);
             }
+        }
+        for(int i=0;i<last.size();i++){
+            last.get(i).updatePos(0,new Integer(i));
+        }
+        HashMap<Item,String[]>hm = new<Item,String[]>HashMap();
+        for(Item it:last){//separate TB from ep 
+            hm.put(it,it.getEpId());
+            try{it.setEpId(new String[]{it.getEpId()[0].split(" : ")[1]});}
+            catch(Exception e){
+                e.printStackTrace();
+            }
+            
         }
         if(!writeXML(last)){
             CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, 
@@ -277,12 +314,40 @@ public class GraficTest extends JPanel{
 //                                   GraficTest.this, "Succes", 
 //                                   "File succesfuly saved");
         }
-//         else {
-//             CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, 
-//                                   GraficTest.this, "Failed", 
-//                                   "File could not be saved");
-//         }
+        else {
+//             CustomDialog.showInfo(JOptionPane.INFORMATION_MESSAGE, 
+//                                   GraficTest.this, "Succes", 
+//                                   "File succesfuly saved");
+            for(Item i:last){
+                unselectAddTBItems(i,hm);
+            }
+            RunnerRepository.setTestSuite(last);
+            foundfirstitem=true;
+            y=5;
+            updateLocations(last.get(0));
+            RunnerRepository.window.mainpanel.p2.play.doClick();
+        }
     }
+    
+    private void unselectAddTBItems(Item item,HashMap<Item,String[]>hm ){
+        item.select(false);
+        //item.setEpId(hm.get(item));
+        if(hm.get(item)!=null){
+            setTbs(item,hm.get(item));
+        }
+        for(Item i:item.getSubItems()){
+            unselectAddTBItems(i,hm);
+        }
+    }
+    
+    private void setTbs(Item item,String [] tbs){
+        if(item.getType()!=2)return;
+        item.setEpId(tbs);
+        for(Item i:item.getSubItems()){
+            setTbs(i,tbs);
+        }
+    }
+    
     
     public void printName(Item item){
         System.out.println(item.getName());
@@ -297,12 +362,24 @@ public class GraficTest extends JPanel{
      */
     public boolean writeXML(ArrayList<Item>last){
         try{XMLBuilder xml = new XMLBuilder(last);
-            xml.createXML(true,false,false,true,
-                          RunnerRepository.window.mainpanel.p1.suitaDetails.getPreScript(),
-                          RunnerRepository.window.mainpanel.p1.suitaDetails.getPostScript(),
-                          RunnerRepository.window.mainpanel.p1.suitaDetails.saveDB(),
-                          RunnerRepository.window.mainpanel.p1.suitaDetails.getDelay(),
-                          RunnerRepository.window.mainpanel.p1.suitaDetails.getGlobalLibs());
+            if(RunnerRepository.isMaster()){
+                xml.createXML(true,false,false,true,
+                              RunnerRepository.window.mainpanel.p1.suitaDetails.getPreScript(),
+                              RunnerRepository.window.mainpanel.p1.suitaDetails.getPostScript(),
+                              RunnerRepository.window.mainpanel.p1.suitaDetails.saveDB(),
+                              RunnerRepository.window.mainpanel.p1.suitaDetails.getDelay(),
+                              RunnerRepository.window.mainpanel.p1.suitaDetails.getGlobalLibs(),
+                              RunnerRepository.window.mainpanel.p1.suitaDetails.getProjectDefs(),
+                              RunnerRepository.window.mainpanel.p1.suitaDetails.getGlobalDownloadType());
+            } else {
+                xml.createXML(true,false,false,true,
+                              RunnerRepository.window.mainpanel.p1.suitaDetails.getPreScript(),
+                              RunnerRepository.window.mainpanel.p1.suitaDetails.getPostScript(),
+                              RunnerRepository.window.mainpanel.p1.suitaDetails.saveDB(),
+                              RunnerRepository.window.mainpanel.p1.suitaDetails.getDelay(),
+                              RunnerRepository.window.mainpanel.p1.suitaDetails.getGlobalLibs(),
+                              RunnerRepository.window.mainpanel.p1.suitaDetails.getProjectDefs(),null);
+            }
             String dir = RunnerRepository.getXMLRemoteDir();
             String [] path = dir.split("/");
             StringBuffer result2 = new StringBuffer();
@@ -310,25 +387,25 @@ public class GraficTest extends JPanel{
                 for (int i=0; i<path.length-1; i++){
                     result2.append(path[i]);
                     result2.append("/");}}
-            final String filelocation = result2.toString()+"testsuites_temp.xml";
-            if(!xml.writeXMLFile("testsuites_temp.xml", false,true,false)) return false;
-            new Thread(){
-                public void run(){
-                    try{
-                        String result = RunnerRepository.getRPCClient().execute("runTemporary",
-                                                            new Object[]{RunnerRepository.getUser(),
-                                                                            filelocation})+"";
-                        if(result.indexOf("ERROR")!=-1){
-                            CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, 
-                                                  GraficTest.this, "Failed", 
-                                                  result);
-                        }
-                    }
-                    catch(Exception e){
-                        e.printStackTrace();
-                    }
-                }
-            }.start();
+            //final String filelocation = result2.toString()+"testsuites_temp.xml";
+            if(!xml.writeXMLFile("testsuites.xml", false,true,false)) return false;
+//             new Thread(){
+//                 public void run(){
+//                     try{
+//                         String result = RunnerRepository.getRPCClient().execute("run_temporary",
+//                                                             new Object[]{RunnerRepository.getUser(),
+//                                                                             filelocation})+"";
+//                         if(result.indexOf("ERROR")!=-1){
+//                             CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, 
+//                                                   GraficTest.this, "Failed", 
+//                                                   result);
+//                         }
+//                     }
+//                     catch(Exception e){
+//                         e.printStackTrace();
+//                     }
+//                 }
+//             }.start();
             return true;
         }
         catch(Exception e){
@@ -358,8 +435,15 @@ public class GraficTest extends JPanel{
      * selected tree
      */
     public void removeSelected(ArrayList<Item>items, ArrayList<Item>fordelete, Item parent, Item child){
-        if(!child.isSelected()&&!hasSubItemSelected(child)&&child.getType()!=0
-        &&!isParentSelected(items,child)){
+//         if(child.isSelected()){
+//             Item upperparent = RunnerRepository.window.mainpanel.p1.sc.g.getFirstSuitaParent(child, true);
+//             for(Item subitem:upperparent.getSubItems()){
+//                 if(subitem.isTeardown()||subitem.isPrerequisite()){
+//                     subitem.select(true);
+//                 }
+//             }
+//         }
+        if(!child.isSelected() && !hasSubItemSelected(child)&&child.getType()!=0 && !isParentSelected(items,child)){
             fordelete.add(child);
             return;
         }
@@ -449,11 +533,12 @@ public class GraficTest extends JPanel{
             int index = selected2.get(0);
             selected2.remove(0);
             for(int i=index;i<RunnerRepository.getTestSuiteNr();i++){   
-                RunnerRepository.window.mainpanel.getP2().sc.g.iterateThrough(RunnerRepository.getTestSuita(i),selected2);
+                iterateThrough(RunnerRepository.getTestSuita(i),selected2);
                 selected2 = null;}}
         else if(selected2.size()==1){
             for(int i=selected2.get(0);i<RunnerRepository.getTestSuiteNr();i++){
-                RunnerRepository.window.mainpanel.getP2().sc.g.iterateThrough(RunnerRepository.getTestSuita(i),null);}}
+                iterateThrough(RunnerRepository.getTestSuita(i),null);
+            }}
         y=10;
         foundfirstitem=false;
         updateScroll();}
@@ -506,7 +591,8 @@ public class GraficTest extends JPanel{
             if(item.isVisible()){
                 if(!foundfirstitem)y=item.getLocation()[1];
                 foundfirstitem = true;
-                positionItem(item);}
+                positionItem(item);
+            }
             for(int i=0;i<subitemsnr;i++){    
                 iterateThrough(item.getSubItem(i),null);}}
         else if(theone.size()>1){

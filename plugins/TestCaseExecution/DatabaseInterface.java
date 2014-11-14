@@ -1,6 +1,6 @@
 /*
 File: DatabaseInterface.java ; This file is part of Twister.
-Version: 2.007
+Version: 3.001
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -43,6 +43,7 @@ import java.io.FileWriter;
 import java.io.File;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
+import org.w3c.dom.Text;
 import org.w3c.dom.Node;
 import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.NodeList;
@@ -90,13 +91,12 @@ public class DatabaseInterface extends JPanel {
     private JComboBox sctype;
     private JPanel sql;
     private JLabel stype;
-    private JTextField tid1;
-    private JTextField tlabel;
-    private JTextField tserver;
-    private JTextField tdatabase;
+    private JTextField tid1,tlabel,tserver,tdatabase;
     private JPasswordField tpassword;
     private JTextField tuser;
     private String initialpass;
+    private Node server,ndatabase,user,password;
+    private Document doc;
     
     public DatabaseInterface() {
         initComponents();
@@ -131,8 +131,8 @@ public class DatabaseInterface extends JPanel {
             theone = new File(RunnerRepository.temp+RunnerRepository.getBar()+"Twister"+RunnerRepository.
                                     getBar()+"config"+RunnerRepository.getBar()+
                                     new File(RunnerRepository.REMOTEDATABASECONFIGFILE).getName());
-            String content = RunnerRepository.getRemoteFileContent(RunnerRepository.REMOTEDATABASECONFIGPATH+
-                                                             RunnerRepository.REMOTEDATABASECONFIGFILE);
+            String content = new String(RunnerRepository.getRemoteFileContent(RunnerRepository.REMOTEDATABASECONFIGPATH+
+                                                             RunnerRepository.REMOTEDATABASECONFIGFILE,false,null));
             BufferedWriter writer = new BufferedWriter(new FileWriter(theone));
             writer.write(content);
             writer.close();
@@ -143,7 +143,7 @@ public class DatabaseInterface extends JPanel {
         if(theone!=null){
             try{DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
                 DocumentBuilder db = dbf.newDocumentBuilder();                                        
-                Document doc = db.parse(theone);                
+                doc = db.parse(theone);                
                 doc.getDocumentElement().normalize();
                 NodeList nodeLst = ((Element)doc.getFirstChild()).getElementsByTagName("db_config");
                 if(nodeLst!=null&&nodeLst.getLength()==1){
@@ -151,33 +151,48 @@ public class DatabaseInterface extends JPanel {
                     
                     NodeList content = el.getElementsByTagName("server");
                     if(content!=null&&content.getLength()==1){
-                        try{tserver.setText(content.item(0).getFirstChild().getNodeValue());}
-                        catch(Exception e){tserver.setText("");}
+                        try{server = content.item(0).getFirstChild();
+                            tserver.setText(server.getNodeValue());}
+                        catch(Exception e){
+                            server = doc.createElement("");
+                            content.item(0).appendChild(server);
+                            tserver.setText("");}
                     } else {
                         System.out.println("server section is wrong configured in database file");
                     }
                     
                     content = el.getElementsByTagName("database");
                     if(content!=null&&content.getLength()==1){
-                        try{tdatabase.setText(content.item(0).getFirstChild().getNodeValue());}
-                        catch(Exception e){tdatabase.setText("");}
+                        try{ndatabase = content.item(0).getFirstChild();
+                            tdatabase.setText(ndatabase.getNodeValue());}
+                        catch(Exception e){
+                            ndatabase = doc.createElement("");
+                            content.item(0).appendChild(ndatabase);
+                            tdatabase.setText("");}
                     } else {
                         System.out.println("database section is wrong configured in database file");
                     }
                     
                     content = el.getElementsByTagName("user");
                     if(content!=null&&content.getLength()==1){
-                        try{tuser.setText(content.item(0).getFirstChild().getNodeValue());}
-                        catch(Exception e){tuser.setText("");}
+                        try{user = content.item(0).getFirstChild();
+                            tuser.setText(user.getNodeValue());}
+                        catch(Exception e){
+                            user = doc.createElement("");
+                            content.item(0).appendChild(user);
+                            tuser.setText("");}
                     } else {
                         System.out.println("user section is wrong configured in database file");
                     }
                     
                     content = el.getElementsByTagName("password");
                     if(content!=null&&content.getLength()==1){
-                        try{tpassword.setText(content.item(0).getFirstChild().getNodeValue());
-                        }
-                        catch(Exception e){tpassword.setText("");}
+                        try{password = content.item(0).getFirstChild();
+                            tpassword.setText(password.getNodeValue());}
+                        catch(Exception e){
+                            password = doc.createElement("");
+                            content.item(0).appendChild(password);
+                            tpassword.setText("");}
                     } else {
                         System.out.println("password section is wrong configured in database file");
                     }
@@ -597,100 +612,62 @@ public class DatabaseInterface extends JPanel {
     
     //generate db file
     private void generateFile(){
-        try{DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
-            DocumentBuilder documentBuilder = documentBuilderFactory.newDocumentBuilder();
-            Document document = documentBuilder.newDocument();
-            TransformerFactory transformerFactory = TransformerFactory.newInstance();
-            Transformer transformer = transformerFactory.newTransformer();
-            transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
-            transformer.setOutputProperty(OutputKeys.INDENT, "yes");
-            transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "4");
-            DOMSource source = new DOMSource(document);
-            Element root = document.createElement("root");
-            document.appendChild(root);
-            Element em = document.createElement("db_config");
-            Element subem = document.createElement("server");
-            subem.appendChild(document.createTextNode(tserver.getText()));
-            em.appendChild(subem);
-            subem = document.createElement("database");
-            subem.appendChild(document.createTextNode(tdatabase.getText()));
-            em.appendChild(subem);
-            subem = document.createElement("user");
-            subem.appendChild(document.createTextNode(tuser.getText()));
-            em.appendChild(subem);
-            subem = document.createElement("password");
+        try{
+//             DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
+//             DocumentBuilder documentBuilder = documentBuilderFactory.newDocumentBuilder();
+//             Document document = documentBuilder.newDocument();
+//             TransformerFactory transformerFactory = TransformerFactory.newInstance();
+//             Transformer transformer = transformerFactory.newTransformer();
+//             transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
+//             transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+//             transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "4");
+//             DOMSource source = new DOMSource(document);
+//             Element root = document.createElement("root");
+//             document.appendChild(root);
+//             Element em = document.createElement("db_config");
+//             Element subem = document.createElement("server");
+//             subem.appendChild(document.createTextNode(tserver.getText()));
+//             em.appendChild(subem);
+            
+            
+            server.setNodeValue(tserver.getText());
+            
+            
+//             subem = document.createElement("database");
+//             subem.appendChild(document.createTextNode(tdatabase.getText()));
+//             em.appendChild(subem);
+            ndatabase.setNodeValue(tdatabase.getText());
+            
+//             subem = document.createElement("user");
+//             subem.appendChild(document.createTextNode(tuser.getText()));
+//             em.appendChild(subem);
+
+            user.setNodeValue(tuser.getText());
+//             subem = document.createElement("password");
             
             String p = new String(tpassword.getPassword());
             if(!initialpass.equals(p)){
-                try{p = RunnerRepository.getRPCClient().execute("encryptText", new Object[]{p}).toString();
+                try{p = RunnerRepository.getRPCClient().execute("encrypt_text", new Object[]{p}).toString();
                     tpassword.setText(p);
                     initialpass = p;
                 } catch(Exception e){
                     e.printStackTrace();
                 }
             }
-            
-            subem.appendChild(document.createTextNode(p));
-            
-            
-            em.appendChild(subem);
-            root.appendChild(em);
-            em = document.createElement("insert_section");
-            root.appendChild(em);
-            
-            for(Component c:mainfieldpanel.getComponents()){
-                if(c.getClass()==FieldPanel.class){
-                    subem = document.createElement("field");
-                    subem.setAttribute("ID", ((FieldPanel)c).tid.getText());
-                    subem.setAttribute("FieldName", ((FieldPanel)c).tfieldname.getText());
-                    subem.setAttribute("FromTable", ((FieldPanel)c).tfromtable.getText());
-                    subem.setAttribute("Label", ((FieldPanel)c).tlabel.getText());
-                    subem.setAttribute("Mandatory", ((FieldPanel)c).mandatory.isSelected()+"");
-                    subem.setAttribute("SQLQuery", ((FieldPanel)c).tquery.getText());
-                    subem.setAttribute("Type", ((FieldPanel)c).fctype.getSelectedItem().toString());
-                    subem.setAttribute("GUIDefined", ((FieldPanel)c).guidef.isSelected()+"");
-                    em.appendChild(subem);
-                }
-            }
-            
-            for(Component c:maininsertpanel.getComponents()){
-                if(c.getClass()==InsertPanel.class){
-                    subem = document.createElement("sql_statement");
-                    subem.appendChild(document.createTextNode(((InsertPanel)c).tsqlstatement.getText()));
-                    em.appendChild(subem);
-                }
-            }
-            em = document.createElement("reports_section");
-            for(Component c:mainreportspanel.getComponents()){
-                if(c.getClass()==ReportFieldPanel.class){
-                    subem = document.createElement("field");
-                    subem.setAttribute("ID", ((ReportFieldPanel)c).tid3.getText());
-                    subem.setAttribute("Label", ((ReportFieldPanel)c).tlabel1.getText());
-                    subem.setAttribute("SQLQuery", ((ReportFieldPanel)c).tquery1.getText());
-                    subem.setAttribute("Type", ((ReportFieldPanel)c).fctype5.getSelectedItem().toString());
-                    em.appendChild(subem);
-                }else if(c.getClass()==ReportReport.class){
-                    subem = document.createElement("report");
-                    subem.setAttribute("ID", ((ReportReport)c).tid4.getText());
-                    subem.setAttribute("SQLQuery", ((ReportReport)c).tquery3.getText());
-                    subem.setAttribute("SQLTotal", ((ReportReport)c).tquery4.getText());
-                    subem.setAttribute("Type", ((ReportReport)c).fctype3.getSelectedItem().toString());
-                    em.appendChild(subem);
-                }else if(c.getClass()==ReportRedirect.class){
-                    subem = document.createElement("redirect");
-                    subem.setAttribute("ID", ((ReportRedirect)c).tquery5.getText());
-                    subem.setAttribute("Path", ((ReportRedirect)c).tquery6.getText());
-                    em.appendChild(subem);
-                }
-            }
-            root.appendChild(em);
+            password.setNodeValue(p);
             File file = new File(RunnerRepository.temp+RunnerRepository.getBar()+"Twister"+RunnerRepository.
                                   getBar()+"config"+RunnerRepository.getBar()+
                                   new File(RunnerRepository.REMOTEDATABASECONFIGFILE).getName());
             StreamResult result = new StreamResult(file);
+            DOMSource source = new DOMSource(doc);
+            TransformerFactory transformerFactory = TransformerFactory.newInstance();
+            Transformer transformer = transformerFactory.newTransformer();
+            transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
+            transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+            transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "4");
             transformer.transform(source, result);
             FileInputStream in = new FileInputStream(file);
-            RunnerRepository.uploadRemoteFile(RunnerRepository.REMOTEDATABASECONFIGPATH, in, file.getName());
+            RunnerRepository.uploadRemoteFile(RunnerRepository.REMOTEDATABASECONFIGPATH, in,null, file.getName(),false,null);
             CustomDialog.showInfo(JOptionPane.PLAIN_MESSAGE,RunnerRepository.window,
                                    "Success",
                                    "File successfully generated");

@@ -2,7 +2,7 @@
 File: SVNPlugin.java ; This file is part of Twister.
 
 Copyright (C) 2012 , Luxoft
-Version: 2.002
+Version: 2.004
 Authors: Andrei Costachi <acostachi@luxoft.com>
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -32,6 +32,7 @@ import java.io.InputStreamReader;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Properties;
 import java.util.Vector;
@@ -48,12 +49,7 @@ import javax.swing.JScrollPane;
 import javax.swing.JTextField;
 import javax.swing.JTree;
 
-import com.jcraft.jsch.Channel;
-import com.jcraft.jsch.ChannelSftp;
-import com.jcraft.jsch.ChannelSftp.LsEntry;
-import com.jcraft.jsch.JSch;
-import com.jcraft.jsch.Session;
-import com.jcraft.jsch.SftpException;
+import com.twister.CustomDialog;
 import com.twister.Item;
 import com.twister.MySftpBrowser;
 import com.twister.plugin.baseplugin.BasePlugin;
@@ -85,7 +81,6 @@ public class SVNPlugin extends BasePlugin implements TwisterPluginInterface {
 	private JTree tree;
 	private JButton browse;
 	private XmlRpcClient client;
-	private ChannelSftp c;
 	private Node npassword,nserver,nsnapshot,ndefaultOp,nusername;
 	
 
@@ -119,10 +114,10 @@ public class SVNPlugin extends BasePlugin implements TwisterPluginInterface {
         nsnapshot = getPropValue("snapshot");
         ndefaultOp = getPropValue("default_operation");
         nusername = getPropValue("username");
-        	tparola.setText(npassword.getNodeValue());
-        	tserver.setText(nserver.getNodeValue());
-        	tsnapshot.setText(nsnapshot.getNodeValue());
-        	tusername.setText(nusername.getNodeValue());
+        tparola.setText(npassword.getNodeValue());
+        tserver.setText(nserver.getNodeValue());
+        tsnapshot.setText(nsnapshot.getNodeValue());
+        tusername.setText(nusername.getNodeValue());
         
         String operation = ndefaultOp.getNodeValue();       
         if(!operation.equals("update")) check.setSelected(true);
@@ -218,21 +213,48 @@ public class SVNPlugin extends BasePlugin implements TwisterPluginInterface {
         p.add(browse);        
         
         root = new DefaultMutableTreeNode("root", true);
-        if(c!=null){
-        	try{c.cd(tsnapshot.getText());}
-        	catch(Exception e){e.printStackTrace();
-        		try {
-					c.cd(variables.get("remoteuserhome")+
-							"/twister/config/");
-				} catch (SftpException e1) {
-					e1.printStackTrace();
-				}
-        	}
-        	getList(root, c, true);
+        
+//        if(c!=null){
+//        	try{c.cd(tsnapshot.getText());}
+//        	catch(Exception e){e.printStackTrace();
+//        		try {
+//					c.cd(variables.get("remoteuserhome")+
+//							"/twister/config/");
+//				} catch (SftpException e1) {
+//					e1.printStackTrace();
+//				}
+//        	}
+//        	getList(root, c, true);
+//        }
+//        else{
+//        	System.out.println("SFTP connection not initialized");
+//        }
+        
+        
+        String dir = tsnapshot.getText();
+        Object ob = null;
+        try{ob = client.execute("file_size", new Object[]{dir});
+            if(ob.toString().indexOf("*ERROR*")!=-1){
+            	dir = variables.get("remoteuserhome")+"/twister/config/";
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            if(ob!=null)System.out.println("Server response: "+ob.toString());
         }
-        else{
-        	System.out.println("SFTP connection not initialized");
+        
+        try{ob = client.execute("list_files", new Object[]{dir,true});
+            if(ob.toString().indexOf("*ERROR*")!=-1){
+                CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,p,"ERROR", ob.toString());
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            if(ob!=null)System.out.println("Server response: "+ob.toString());
         }
+		HashMap hash = (HashMap)ob;
+		getList(root, hash,dir);
+        
+        
+        
         tree = new JTree(root);
 		tree.expandRow(1);
 		tree.setDragEnabled(true);
@@ -277,7 +299,6 @@ public class SVNPlugin extends BasePlugin implements TwisterPluginInterface {
 	    tsnapshot = null;
 	    tusername = null;
 		root = null;
-		c = null;
 		child2 = null;
 		tree = null;
 		p = null;
@@ -327,10 +348,24 @@ public class SVNPlugin extends BasePlugin implements TwisterPluginInterface {
 //		}
 //	}
 	
+//	public void initializeRPC(){
+//		try{XmlRpcClientConfigImpl configuration = new XmlRpcClientConfigImpl();
+//        configuration.setServerURL(new URL("http://"+variables.get("host")+
+//                                    ":"+variables.get("centralengineport")));
+//        client = new XmlRpcClient();
+//        client.setConfig(configuration);
+//        System.out.println("Client initialized: "+client);}
+//    catch(Exception e){System.out.println("Could not conect to "+
+//                        variables.get("host")+" :"+variables.get("centralengineport")+
+//                        "for RPC client initialization");}
+//	}
+	
 	public void initializeRPC(){
 		try{XmlRpcClientConfigImpl configuration = new XmlRpcClientConfigImpl();
         configuration.setServerURL(new URL("http://"+variables.get("host")+
                                     ":"+variables.get("centralengineport")));
+        configuration.setBasicPassword(variables.get("password"));
+        configuration.setBasicUserName(variables.get("user"));
         client = new XmlRpcClient();
         client.setConfig(configuration);
         System.out.println("Client initialized: "+client);}
@@ -346,7 +381,7 @@ public class SVNPlugin extends BasePlugin implements TwisterPluginInterface {
 	public void selectSnapshot(){
 		try{
         	final String initial = tsnapshot.getText();
-        	final MySftpBrowser browser = new MySftpBrowser(variables.get("host"), variables.get("user"), variables.get("password"), tsnapshot, p,false);
+        	final MySftpBrowser browser = new MySftpBrowser(variables.get("host"), variables.get("user"), variables.get("password"),variables.get("centralengineport"), tsnapshot, p,false);
         	//final MySftpBrowser browser = new MySftpBrowser(c, tsnapshot, p);
         	new Thread(){
         		public void run(){
@@ -424,10 +459,31 @@ public class SVNPlugin extends BasePlugin implements TwisterPluginInterface {
 		}.start();
 	}
 	
+//	public void refreshStructure(String home) {
+//		try {c.cd(home);
+//			root.remove(0);
+//			getList(root,c,true);
+//		} catch (Exception e) {
+//			e.printStackTrace();
+//		}
+//		((DefaultTreeModel) tree.getModel()).reload();
+//		tree.expandRow(0);
+//	}
+	
 	public void refreshStructure(String home) {
-		try {c.cd(home);
+		try {
 			root.remove(0);
-			getList(root,c,true);
+			Object ob = null;
+	        try{ob = client.execute("list_files", new Object[]{home,true});
+	            if(ob.toString().indexOf("*ERROR*")!=-1){
+	                CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,p,"ERROR", ob.toString());
+	            }
+	        } catch (Exception e) {
+	            System.out.println("Server response: "+ob.toString());
+	            e.printStackTrace();
+	        }
+			HashMap hash = (HashMap)ob;
+            getList(root, hash,home);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -438,70 +494,95 @@ public class SVNPlugin extends BasePlugin implements TwisterPluginInterface {
 	/*
 	 * construct the list for folders representation in jtree
 	 */
-	public void getList(DefaultMutableTreeNode node,
-						ChannelSftp c, boolean addfirst) {
-		try {
-			DefaultMutableTreeNode child = new DefaultMutableTreeNode(c.pwd());
-			Vector<LsEntry> vector1 = c.ls(".");
-			Vector<String> vector = new Vector<String>();
-			Vector<String> folders = new Vector<String>();
-			Vector<String> files = new Vector<String>();
-			int lssize = vector1.size();
-			if(addfirst){
-				node.add(child);
-				addfirst=false;
-			}
-			else{
-				if (lssize > 2) {
-					node.add(child);
-				}
-			}			
-			String current;
-			for (int i = 0; i < lssize; i++) {
-				if (vector1.get(i).getFilename().split("\\.").length == 0) {
-					continue;
-				}
-				try {
-				    current = c.pwd();
-					c.cd(vector1.get(i).getFilename());
-					c.cd(current);
-					folders.add(vector1.get(i).getFilename());
-				} catch (SftpException e) {
-					if (e.id == 4) {
-						files.add(vector1.get(i).getFilename());
-					}
-					else{
-					       e.printStackTrace();
-					   }
-				}
-			}
-			Collections.sort(folders);
-			Collections.sort(files);
-			for (int i = 0; i < folders.size(); i++) {
-				vector.add(folders.get(i));
-			}
-			for (int i = 0; i < files.size(); i++) {
-				vector.add(files.get(i));
-			}
-			for (int i = 0; i < vector.size(); i++) {
-				try {
-				    current = c.pwd();
-					c.cd(vector.get(i));
-					getList(child, c,false);
-					c.cd(current);
-				} catch (SftpException e) {
-					if (e.id == 4) {
-						child2 = new DefaultMutableTreeNode(vector.get(i));
-						child.add(child2);
-					} else {
-						e.printStackTrace();
-					}
-				}
-			}
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-	}
+//	public void getList(DefaultMutableTreeNode node,
+//						ChannelSftp c, boolean addfirst) {
+//		try {
+//			DefaultMutableTreeNode child = new DefaultMutableTreeNode(c.pwd());
+//			Vector<LsEntry> vector1 = c.ls(".");
+//			Vector<String> vector = new Vector<String>();
+//			Vector<String> folders = new Vector<String>();
+//			Vector<String> files = new Vector<String>();
+//			int lssize = vector1.size();
+//			if(addfirst){
+//				node.add(child);
+//				addfirst=false;
+//			}
+//			else{
+//				if (lssize > 2) {
+//					node.add(child);
+//				}
+//			}			
+//			String current;
+//			for (int i = 0; i < lssize; i++) {
+//				if (vector1.get(i).getFilename().split("\\.").length == 0) {
+//					continue;
+//				}
+//				try {
+//				    current = c.pwd();
+//					c.cd(vector1.get(i).getFilename());
+//					c.cd(current);
+//					folders.add(vector1.get(i).getFilename());
+//				} catch (SftpException e) {
+//					if (e.id == 4) {
+//						files.add(vector1.get(i).getFilename());
+//					}
+//					else{
+//					       e.printStackTrace();
+//					   }
+//				}
+//			}
+//			Collections.sort(folders);
+//			Collections.sort(files);
+//			for (int i = 0; i < folders.size(); i++) {
+//				vector.add(folders.get(i));
+//			}
+//			for (int i = 0; i < files.size(); i++) {
+//				vector.add(files.get(i));
+//			}
+//			for (int i = 0; i < vector.size(); i++) {
+//				try {
+//				    current = c.pwd();
+//					c.cd(vector.get(i));
+//					getList(child, c,false);
+//					c.cd(current);
+//				} catch (SftpException e) {
+//					if (e.id == 4) {
+//						child2 = new DefaultMutableTreeNode(vector.get(i));
+//						child.add(child2);
+//					} else {
+//						e.printStackTrace();
+//					}
+//				}
+//			}
+//		} catch (Exception e) {
+//			e.printStackTrace();
+//		}
+//	}
+	
+	
+	/*
+     * construct the list for folders representation in jtree
+     */
+    public void getList(DefaultMutableTreeNode node, HashMap hash, String curentdir) {
+        try {
+            DefaultMutableTreeNode child = new DefaultMutableTreeNode(curentdir);
+            node.add(child);
+            Object [] children = (Object [])hash.get("children");
+            if(children!=null&&children.length>0){
+                for(Object subchild:children){
+                    String name = ((HashMap)subchild).get("data").toString();
+                    if(((HashMap)subchild).get("folder")!=null){//folder
+                        getList(child, (HashMap)subchild ,curentdir+"/"+name);
+                    } else {//file
+                        child2 = new DefaultMutableTreeNode(name);
+                        child.add(child2);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 	
 	/*
 	 * snapshot method triggered by
@@ -511,11 +592,23 @@ public class SVNPlugin extends BasePlugin implements TwisterPluginInterface {
 		try {
 			boolean exists = true;
 			String folder = tsnapshot.getText();
-			try{c.cd(folder);}
-			catch(Exception e){
-				e.printStackTrace();
+			
+//			try{c.cd(folder);}
+//			catch(Exception e){
+//				e.printStackTrace();
+//				exists = false;
+//			}
+			
+			Object ob = null;
+			try{ob = client.execute("file_size", new Object[]{folder});
+				if(ob.toString().indexOf("*ERROR*")!=-1){
+					exists = false;
+				}
+			} catch (Exception e) {
 				exists = false;
 			}
+			
+			
 			if(exists){
 				int response = JOptionPane.showConfirmDialog(this, "Warning, "+folder+
 															 " allready exist, continue?","Warning",
@@ -527,7 +620,7 @@ public class SVNPlugin extends BasePlugin implements TwisterPluginInterface {
 			}
 			
 			String param="command=snapshot";
-			String result = client.execute("runPlugin", new Object[]{variables.get("user"),
+			String result = client.execute("run_plugin", new Object[]{variables.get("user"),
 																	 getName(),param})+"";
 			if(result.equals("true")){
 				frame.setVisible(false);
@@ -558,7 +651,7 @@ public class SVNPlugin extends BasePlugin implements TwisterPluginInterface {
 				param = "command=update&overwrite=false";}
 			else{
 				param = "command=update&overwrite=true";}
-			String result = client.execute("runPlugin", new Object[]{variables.get("user"),
+			String result = client.execute("run_plugin", new Object[]{variables.get("user"),
 																	 getName(),param})+"";
 			if(result.equals("true")){
 				frame.setVisible(false);

@@ -1,6 +1,6 @@
 /*
 File: DBConfig.java ; This file is part of Twister.
-Version: 2.004
+Version: 2.007
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -89,7 +89,7 @@ public class DBConfig extends JPanel{
                 boolean saved = true;
                 try{File f = new File(tfile.getText());
                     FileInputStream stream = new FileInputStream(f);
-                    RunnerRepository.uploadRemoteFile(RunnerRepository.REMOTEDATABASECONFIGPATH, stream, f.getName());
+                    RunnerRepository.uploadRemoteFile(RunnerRepository.REMOTEDATABASECONFIGPATH, stream,null, f.getName(),false,null);
                     
                     Files.copy(f.toPath(), new File(RunnerRepository.getConfigDirectory()+
                     RunnerRepository.getBar()+f.getName()).toPath(), REPLACE_EXISTING);
@@ -177,7 +177,7 @@ public class DBConfig extends JPanel{
                             transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "4");                        
                             transformer.transform(source, result);
                             FileInputStream input = new FileInputStream(theone);
-                            RunnerRepository.uploadRemoteFile(RunnerRepository.REMOTEDATABASECONFIGPATH, input, theone.getName());
+                            RunnerRepository.uploadRemoteFile(RunnerRepository.REMOTEDATABASECONFIGPATH, input,null, theone.getName(),false,null);
                         }
                         catch(Exception e){
                             saved = false;
@@ -209,7 +209,7 @@ public class DBConfig extends JPanel{
             theone = new File(RunnerRepository.temp+RunnerRepository.getBar()+"Twister"+RunnerRepository.
                             getBar()+"config"+RunnerRepository.getBar()+
                             new File(RunnerRepository.REMOTEDATABASECONFIGFILE).getName());
-            String content = RunnerRepository.getRemoteFileContent(RunnerRepository.REMOTEDATABASECONFIGPATH+RunnerRepository.REMOTEDATABASECONFIGFILE);
+            String content = new String(RunnerRepository.getRemoteFileContent(RunnerRepository.REMOTEDATABASECONFIGPATH+RunnerRepository.REMOTEDATABASECONFIGFILE,false,null));
             BufferedWriter writer = new BufferedWriter(new FileWriter(theone));
             writer.write(content);
             writer.close();

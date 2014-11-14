@@ -28,36 +28,47 @@
 	%>
 
 		% if ltype == 'link' and folder and folder != was_folder:
-		<!-- Start of folder `${folder}` // before ${was_folder} -->
+			% if was_folder:
+			</ul> <!-- End of folder `${was_folder}` // new `${folder}` -->
+			<%
+			was_folder = False
+			%>
+			% endif
+		<!-- Start of folder `${folder}` // before `${was_folder}` -->
 		<%
 		was_folder = folder
 		%>
-		<li><a><i class="icon-folder-open"></i> ${folder}</a></li>
+		<li class="collaps"><a><i class="icon-folder-open"></i> ${folder}</a></li>
+			<ul class="nav nav-pills nav-stacked" style="margin-bottom:0">
 		% endif
 		% if was_folder and folder != was_folder:
-		<!-- End of folder `${was_folder}` -->
+			</ul> <!-- End of folder `${was_folder}` // old `${folder}` -->
 		<%
 		was_folder = False
 		%>
 		% endif
 
 		% if link == 'Home' and link == title:
-		<li class="active"><a href="/report/home/${usr}"><i class="icon-home"></i> ${link}</a></li>
+		<li class="active"><button class="btn btn-info" onClick="window.location='/report/home/${usr}'"><i class="icon-home"></i> ${link}</button></li>\
 		% elif link == 'Help' and link == title:
-		<li class="active"><a href="/report/help/${usr}"><i class="icon-flag"></i> ${link}</a></li>
+		<li class="active"><button class="btn btn-info" onClick="window.location='/report/help/${usr}'"><i class="icon-flag"></i> ${link}</button></li>\
 		% elif link == 'Home':
-		<li><a href="/report/home/${usr}"><i class="icon-home"></i> ${link}</a></li>
+		<li><button class="btn btn-link" onClick="window.location='/report/home/${usr}'"><i class="icon-home"></i> ${link}</button></li>
 		% elif link == 'Help':
-		<li><a href="/report/help/${usr}"><i class="icon-flag"></i> ${link}</a></li>
+		<li><button class="btn btn-link" onClick="window.location='/report/help/${usr}'"><i class="icon-flag"></i> ${link}</button></li>
 		% elif ltype == 'redir':
-		<li><a href="/report/rep/${link}/${usr}"><i class="icon-share-alt"></i> ${link}</a></li>
+		<li><button class="btn btn-link" onClick="window.location='/report/rep/${link}/${usr}'"><i class="icon-share-alt"></i> ${link}</button></li>
 		% elif link == title:
-		<li class="active"><a href="/report/rep/${link}/${usr}"><i class="icon-asterisk"></i> ${link}</a></li>
+			% if was_folder:
+			<li class="active" style="margin-left:12px"><button class="btn btn-info" onClick="window.location='/report/rep/${link}/${usr}'"><i class="icon-asterisk"></i> ${link}</button></li>
+			% else:
+			<li class="active"><button class="btn btn-info" onClick="window.location='/report/rep/${link}/${usr}'"><i class="icon-asterisk"></i> ${link}</button></li>
+			% endif
 		% elif ltype == 'link':
 			% if was_folder:
-			<li style="margin-left:12px"><a href="/report/rep/${link}/${usr}"><i class="icon-arrow-right"></i> ${link}</a></li>
+			<li style="margin-left:12px"><button class="btn btn-link" onClick="window.location='/report/rep/${link}/${usr}'"><i class="icon-arrow-right"></i> ${link}</button></li>
 			% else:
-			<li><a href="/report/rep/${link}/${usr}"><i class="icon-arrow-right"></i> ${link}</a></li>
+			<li><button class="btn btn-link" onClick="window.location='/report/rep/${link}/${usr}'"><i class="icon-arrow-right"></i> ${link}</button></li>
 			% endif
 		% else:
 		<p>This should not be here!</p>

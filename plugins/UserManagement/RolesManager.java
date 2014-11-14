@@ -1,6 +1,6 @@
 /*
 File: RolesManager.java ; This file is part of Twister.
-Version: 2.002
+Version: 3.001
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -21,19 +21,16 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
 import javax.swing.DefaultListModel;
-import javax.swing.GroupLayout;
 import javax.swing.JFrame;
 import javax.swing.JList;
 import javax.swing.JPanel;
-import javax.swing.event.ListSelectionEvent;
-import javax.swing.event.ListSelectionListener;
 
 import org.apache.xmlrpc.XmlRpcException;
 import org.apache.xmlrpc.client.XmlRpcClient;
 
 
 public class RolesManager extends JFrame {
-	
+	private static final long serialVersionUID = 1L;
 	private javax.swing.JButton cancel;
     private javax.swing.JLabel groupname;
     private javax.swing.JTextField groupnamefield;
@@ -50,11 +47,10 @@ public class RolesManager extends JFrame {
 		this.client = client;
 		this.roles = roles;
 		this.um = um;
-		System.out.println("roles:"+roles);
 		setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 		initComponents();
 		setVisible(true);
-		setBounds(x,y,320,240);
+		setBounds(x,y,320,640);
 		setAlwaysOnTop(true);
 		groupnamefield.setText(name);
 		populateRoleList();
@@ -155,8 +151,7 @@ public class RolesManager extends JFrame {
                 }
                 if(sb.length()>0)sb.setLength(sb.length()-1);
                 try {
-					String st = client.execute("usersAndGroupsManager", new Object[]{"set group",groupnamefield.getText(),sb.toString()}).toString();
-					System.out.println(st);
+					String st = client.execute("users_and_groups_mngr", new Object[]{"set group",groupnamefield.getText(),sb.toString()}).toString();
 					if(st.equals("true")){
 						um.populateGroups();
 						um.populateUsersTable();
@@ -171,7 +166,7 @@ public class RolesManager extends JFrame {
 	
 	public void populateRoleList(){
 		try {
-			Object[] st = (Object [])client.execute("usersAndGroupsManager", new Object[]{"list roles"});
+			Object[] st = (Object [])client.execute("users_and_groups_mngr", new Object[]{"list roles"});
 			
 			DefaultListModel listModel = new DefaultListModel();
 			for(Object o:st){
@@ -181,9 +176,6 @@ public class RolesManager extends JFrame {
 			
 			
 			String groups[] = roles.split(",");
-			for(String str:groups){
-				System.out.println("-"+str+"-");
-			}
 			int[]selection = new int[groups.length];
 			int size = roleslist.getModel().getSize();
 			int index = 0;

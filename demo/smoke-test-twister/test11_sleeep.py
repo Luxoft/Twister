@@ -4,6 +4,9 @@
 # <title>Test long sleep</title>
 # <description>This suite checks the most basic functionality of Twister.<br>
 # </description>
+# <tags>test, delay, sleep</tags>
+# <test>sleep</test>
+# <smoke>yes</smoke>
 #
 
 import time
@@ -12,7 +15,7 @@ import time
 
 def test():
 
-    logMsg('logRunning', '\nStarting long sleep...\n')
+    log_msg('logRunning', '\nStarting long sleep...\n')
 
     mins = 1
     times = 30
@@ -22,7 +25,7 @@ def test():
         st = mins * 60
         time.sleep(st)
 
-    logMsg('logRunning', 'Finished long sleep.\n')
+    log_msg('logRunning', 'Finished long sleep.\n')
 
     return 'Pass'
 

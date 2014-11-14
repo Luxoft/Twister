@@ -1,7 +1,7 @@
 
 # File: tsclogging.py ; This file is part of Twister.
 
-# version: 3.003
+# version: 3.006
 
 # Copyright (C) 2012 , Luxoft
 
@@ -44,88 +44,133 @@ LOGS_PATH = TWISTER_PATH + '/logs/'
 if not os.path.exists(LOGS_PATH):
     os.makedirs(LOGS_PATH)
 
-formatter = log.Formatter('%(asctime)s  %(levelname)-8s %(message)s',
+FORMATTER = log.Formatter('%(asctime)s  %(levelname)-8s %(message)s',
             datefmt='%y-%m-%d %H:%M:%S')
 
 # CherryPy logging
-cherry_log = cherrypy.log.error_log
+CHERRY_LOG = cherrypy.log.error_log
 
 # Config file logging
-dateTag = datetime.datetime.now().strftime("%Y-%b-%d %H-%M-%S")
-LOG_FILE = LOGS_PATH + 'Log %s.txt' % dateTag
-filehnd = log.FileHandler(LOG_FILE, mode='w')
-filehnd.setLevel(log.NOTSET)
-filehnd.setFormatter(formatter)
-cherry_log.addHandler(filehnd)
+DATE_TAG = datetime.datetime.now().strftime("%Y-%b-%d %H-%M-%S")
+LOG_FILE = LOGS_PATH + 'Log %s.txt' % DATE_TAG
+FILEHND = log.FileHandler(LOG_FILE, mode='w')
+FILEHND.setLevel(log.NOTSET)
+FILEHND.setFormatter(FORMATTER)
+CHERRY_LOG.addHandler(FILEHND)
 
 # Config console logging
-console = log.StreamHandler()
-console.setLevel(log.NOTSET)
-console.setFormatter(formatter)
-cherry_log.addHandler(console)
+CONSOLE = log.StreamHandler()
+CONSOLE.setLevel(log.NOTSET)
+CONSOLE.setFormatter(FORMATTER)
+CHERRY_LOG.addHandler(CONSOLE)
+
+# Current level
+_LVL = CHERRY_LOG.getEffectiveLevel()
 
 
-__all__ = ['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL', 'LOG_FILE',
-            'logMsg', 'logDebug', 'logInfo', 'logWarning', 'logError', 'logCritical']
+__all__ = ['FULL', 'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL', 'LEVELS', 'LOG_FILE',
+            'log_msg', 'logFull', 'logDebug', 'logInfo', 'logWarning', 'logError', 'logCritical']
 
-DEBUG    = 1
-INFO     = 2
-WARNING  = 3
-ERROR    = 4
-CRITICAL = 5
+FULL     = 5
+DEBUG    = 10
+INFO     = 20
+WARNING  = 30
+ERROR    = 40
+CRITICAL = 50
+
+LEVELS = {
+    FULL:     'FULL',
+    DEBUG:    'DEBUG',
+    INFO:     'INFO',
+    WARNING:  'WARNING',
+    ERROR:    'ERROR',
+    CRITICAL: 'CRITICAL'
+}
 
 
 def getLogLevel():
-    #
-    lvl = cherry_log.getEffectiveLevel()
-    return lvl / 10
-    #
-
-def setLogLevel(Level):
-    #
-    if Level not in (DEBUG, INFO, WARNING, ERROR, CRITICAL):
-        cherry_log.error('LOG: Invalid error level `%s`!' % str(Level))
-        return
-    #
-    global filehnd, console
-    cherry_log.setLevel(Level * 10)
-    filehnd.setLevel(Level * 10)
-    console.setLevel(Level * 10)
+    """ return current log level """
+    global _LVL
+    return LEVELS[_LVL]
     #
 
-def logMsg(Level, *args):
+def setLogLevel(level):
+    """ set the logging details level """
+    all_levels = dict(LEVELS)
+    all_levels.update( dict((v, k) for k, v in LEVELS.iteritems()) )
+
+    # Fix integer levels
+    try:
+        level = int(level)
+    except:
+        pass
+
+    if level not in all_levels:
+        print('---[ Invalid Log Level {}! ]---'.format(level))
+        return False
+
+    # Map string levels
+    if isinstance(level, str):
+        level = all_levels[level]
+
+    global _LVL, FILEHND, CONSOLE
+    _LVL = level
+    CHERRY_LOG.setLevel(_LVL)
+    FILEHND.setLevel(_LVL)
+    CONSOLE.setLevel(_LVL)
+
+    if isinstance(level, str):
+        print('---[ Set Log Level {} ]---'.format(level))
+    else:
+        print('---[ Set Log Level {} ]---'.format(all_levels[level]))
+    return True
     #
-    if Level not in (DEBUG, INFO, WARNING, ERROR, CRITICAL):
-        cherry_log.error('LOG: Invalid error level `{}`!'.format(Level))
+
+def log_msg(level, *args):
+    """ log a message """
+    #
+    if level not in LEVELS:
+        CHERRY_LOG.error('LOG: Invalid error level `{}`! The value must be in {}!'.format(level, LEVELS.keys()))
         return
     #
-    stack = cherry_log.findCaller()
+    stack = CHERRY_LOG.findCaller()
     msg = '{}: {}: {}  {}'.format(os.path.split(stack[0])[1], str(stack[1]), stack[2],
           ' '.join([str(i) for i in args]))
     #
-    if Level == 1:
-        cherry_log.debug(msg)
-    elif Level == 2:
-        cherry_log.info(msg)
-    elif Level == 3:
-        cherry_log.warning(msg)
-    elif Level == 4:
-        cherry_log.error(msg)
+    if level == FULL or level == DEBUG:
+        CHERRY_LOG.debug(msg)
+    elif level == INFO:
+        CHERRY_LOG.info(msg)
+    elif level == WARNING:
+        CHERRY_LOG.warning(msg)
+    elif level == ERROR:
+        CHERRY_LOG.error(msg)
     else:
-        cherry_log.critical(msg)
+        CHERRY_LOG.critical(msg)
     #
 
+def logFull(*args):
+    """ ALL details """
+    global _LVL
+    if _LVL < DEBUG:
+        log_msg(FULL, *args)
+
 def logDebug(*args):
-    logMsg(DEBUG, *args)
+    """ debug """
+    log_msg(DEBUG, *args)
 
 def logInfo(*args):
-    logMsg(INFO, *args)
+    """ info """
+    log_msg(INFO, *args)
 
 def logWarning(*args):
-    logMsg(WARNING, *args)
+    """ warning """
+    log_msg(WARNING, *args)
 
 def logError(*args):
-    logMsg(ERROR, *args)
+    """ error """
+    log_msg(ERROR, *args)
 
 def logCritical(*args):
-    logMsg(CRITICAL, *args)
+    """ critical errors """
+    log_msg(CRITICAL, *args)

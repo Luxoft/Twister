@@ -1,6 +1,6 @@
 /*
 File: CustomDialog.java ; This file is part of Twister.
-Version: 2.001
+Version: 2.002
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -19,29 +19,17 @@ limitations under the License.
 */
 package com.twister;
 
-/*
-File: CustomDialog.java ; This file is part of Twister.
-
-Copyright (C) 2012 , Luxoft
-
-Authors: Andrei Costachi <acostachi@luxoft.com>
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
 import javax.swing.JOptionPane;
 import javax.swing.JDialog;
 import java.awt.Component;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 
 import javax.swing.Icon;
+import javax.swing.JButton;
+import javax.swing.JFrame;
 import javax.swing.JTextField;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -55,6 +43,58 @@ import javax.swing.event.AncestorListener;
  * 
  */
 public class CustomDialog{
+	
+	public static void main(String [] args){
+		JFrame f = new JFrame();
+		final JTextField tf = new JTextField();
+		f.setVisible(true);
+		f.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+		JButton one = new JButton("one");
+		JButton two = new JButton("two");
+		JButton three = new JButton("three");
+		final JDialog dialog = CustomDialog.getDialog(tf,new JButton[]{one,two,three},JOptionPane.PLAIN_MESSAGE,JOptionPane.OK_CANCEL_OPTION,f,"test",null);
+		dialog.addWindowListener(new WindowAdapter(){
+			public void windowClosing(WindowEvent e){
+				tf.setText("");
+			}
+		});
+		one.addActionListener(new ActionListener() {			
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				tf.setText("one");
+				dialog.setVisible(false);
+				dialog.dispose();
+			}
+		});
+		two.addActionListener(new ActionListener() {			
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				tf.setText("two");
+				dialog.setVisible(false);
+				dialog.dispose();
+			}
+		});
+		three.addActionListener(new ActionListener() {			
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				tf.setText("three");
+				dialog.setVisible(false);
+				dialog.dispose();
+			}
+		});
+		dialog.setVisible(true);
+		System.out.println(tf.getText());
+	}
+	
+	public static JDialog getDialog(Object message,Object[] options,int messagetype,int optionType,
+            						Component parent,String title,Icon icon){
+		JOptionPane pane = new JOptionPane(message, messagetype,optionType, icon, options);
+		JDialog dialog = pane.createDialog(parent, title);
+		dialog.setModal(true);
+        dialog.setAlwaysOnTop(true);
+        dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
+        return dialog;
+	}
 
     /*
      * options presented as buttons 
@@ -99,7 +139,7 @@ public class CustomDialog{
      */
     public static String showInputDialog(int type,int options,Component parent,
                                             String title,String text){
-       final  JTextField field = new JTextField();
+        final  JTextField field = new JTextField();
         field.addAncestorListener(new AncestorListener() {
 			
 			@Override

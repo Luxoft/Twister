@@ -1,6 +1,6 @@
 /*
 File: XMLReader.java ; This file is part of Twister.
-Version: 2.013
+Version: 2.026
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -32,24 +32,28 @@ import java.awt.Graphics;
 import java.awt.FontMetrics;
 import java.awt.Font;
 import java.util.ArrayList;
+import java.util.HashMap;
+import com.twister.Configuration;
 
 public class XMLReader{
-    private DocumentBuilderFactory dbf;
-    private DocumentBuilder db;
+    private int preprop = 12;//properties in xml available before Property tag, in testsuites repeat tag is not present, we will substract 2
     private Document doc;
-    private Node fstNode,secNode,trdNode;
-    private Element fstElmnt,fstNmElmnt,secElmnt,
-                    secNmElmnt,trdElmnt,trdNmElmnt;
-    private NodeList fstNmElmntLst,fstNm,fstNmElmntLst2,
-                     secNmElmntLst,secNm,secNmElmntLst2,
+    private Element fstNmElmnt,
+                    secNmElmnt,trdNmElmnt;
+    private NodeList fstNmElmntLst,fstNm,secNmElmntLst,secNm,
                      trdNmElmntLst,trdNm,trdNmElmntLst2,trdNm2;
     private File f;
     private String name,value;
     private int index = 1001;
+    private HashMap <String, Item> projectitems;
+    private HashMap <Item, String> dependencies;
+    
     
     public XMLReader (File file){
-        f = file;
-        dbf = DocumentBuilderFactory.newInstance();
+        dependencies = new HashMap();
+        projectitems = new HashMap();
+        DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+        DocumentBuilder db = null;
         try{db = dbf.newDocumentBuilder();}
         catch(ParserConfigurationException e){
             System.out.println("Could not create a XML parser configuration");}
@@ -71,17 +75,52 @@ public class XMLReader{
             Item theone;
             int k = 0;
             if(node.getNodeName().equals("TestSuite")){
+                
+                
+                
                 fstNmElmntLst = ((Element)node).getElementsByTagName("tsName");
                 fstNmElmnt = (Element)fstNmElmntLst.item(0);
                 fstNm = fstNmElmnt.getChildNodes();
                 FontMetrics metrics = g.getFontMetrics(new Font("TimesRoman", 1, 13));
                 int width = metrics.stringWidth(fstNm.item(0).getNodeValue().toString());
+                
                 if(test){
                     theone = new Item(fstNm.item(0).getNodeValue(),2,
                                         -1,10, width+120,25,indexes);}
                 else{
                     theone = new Item(fstNm.item(0).getNodeValue(),2,
                                         -1,10, width+50,25,indexes);}
+                                        
+                fstNmElmntLst = ((Element)node).getElementsByTagName("ID");
+                if(fstNmElmntLst.getLength()>0){
+                    fstNmElmnt = (Element)fstNmElmntLst.item(0);
+                    fstNm = fstNmElmnt.getChildNodes();
+                    theone.setID(fstNm.item(0).getNodeValue().toString());
+                    projectitems.put(theone.getID(), theone);
+                }
+                
+                fstNmElmntLst = ((Element)node).getElementsByTagName("Dependency");
+                if(fstNmElmntLst.getLength()>0){
+                    fstNmElmnt = (Element)fstNmElmntLst.item(0);
+                    fstNm = fstNmElmnt.getChildNodes();
+                    if(fstNm.getLength()>0)dependencies.put(theone, fstNm.item(0).getNodeValue().toString());
+                } else if(!RunnerRepository.isMaster()){//this is not master
+                    if(!test){
+                        preprop -=2;
+                    }
+                }
+                fstNmElmntLst = ((Element)node).getElementsByTagName("Repeat");
+                if(fstNmElmntLst.getLength()>0){
+                    fstNmElmnt = (Element)fstNmElmntLst.item(0);
+                    fstNm = fstNmElmnt.getChildNodes();
+                    if(fstNm.getLength()>0)theone.setRepeat(Integer.parseInt(fstNm.item(0).getNodeValue().toString()));
+                    if(theone.getRepeat()>1){
+                        width = metrics.stringWidth(theone.getRepeat()+"X "+theone.getName())+40;
+                        theone.getRectangle().setSize(width,(int)theone.getRectangle().getHeight());
+                    }
+                }
+                
+                
                 if(test){
                     String []text={""};
                     try{                          
@@ -94,7 +133,11 @@ public class XMLReader{
                         fstNmElmntLst = ((Element)node).getElementsByTagName("SutName");
                         fstNmElmnt = (Element)fstNmElmntLst.item(0);
                         fstNm = fstNmElmnt.getChildNodes();
-                        text[0] += fstNm.item(0).getNodeValue();
+                        String sut = fstNm.item(0).getNodeValue();
+                        sut = sut.replace(".system","(system)");
+                        sut = sut.replace(".user","(user)");
+                        sut = sut.substring(1);
+                        text[0] += sut;
                     } catch(Exception e){ e.printStackTrace();}
                     theone.setEpId(text);
                 } else{
@@ -107,14 +150,12 @@ public class XMLReader{
                             ex.printStackTrace();
                         }
                     theone.setEpId(fstNm.item(0).getNodeValue().split(";"));
-                    
-                    
                 }
                 
                 //temporary solution for CE
                 if(test){
                    try{
-                       k=6;
+                       k=preprop;
                        NodeList list = ((Element)node).getChildNodes();
                        for(int i=0;i<list.getLength();i++){
                            if(list.item(i).getNodeName().equals("UserDefined")){
@@ -123,13 +164,13 @@ public class XMLReader{
                         }
                     } catch(Exception e){
                         e.printStackTrace();
-                        k=6;
+                        k=preprop;
                     } 
                 } else {
-                    k=6;    
+                    if(RunnerRepository.isMaster())k=preprop;    
+                    else k=preprop-2;
                 }
                 //temporary solution for CE
-                
             }
             else{
                 secNmElmntLst = ((Element)node).getElementsByTagName("tcName");
@@ -141,13 +182,19 @@ public class XMLReader{
                 String f = "";
                 boolean isclearcase = false;
                 if(clearcase.getLength()==0){
-                    f = secNm.item(0).getNodeValue().toString().
-                            split(RunnerRepository.getTestSuitePath())[1];
+                    try{f = secNm.item(0).getNodeValue().toString().
+                            split(RunnerRepository.getTestSuitePath())[1];}
+                    catch(Exception e){
+                        System.out.println("Could not split: "+secNm.item(0).getNodeValue().toString()+" with: "+RunnerRepository.getTestSuitePath()+". Maybe there is a diffenrent suitepath defined in project.");
+                        e.printStackTrace();
+                    }
                     k=2;
+//                     k=6;
                 } else {
                     f = secNm.item(0).getNodeValue().toString();
                     isclearcase = true;
                     k=4;
+//                     k=8;
                 }
                 
                 int width = metrics.stringWidth(f) + 8;
@@ -156,15 +203,60 @@ public class XMLReader{
                 theone.setClearcase(isclearcase);
                 theone.setCEindex(index++);
                 
+                
+                secNmElmntLst = ((Element)node).getElementsByTagName("ID");
+                if(secNmElmntLst.getLength()!=0){
+                    secNmElmnt = (Element)secNmElmntLst.item(0);
+                    secNm = secNmElmnt.getChildNodes();
+                    theone.setID(secNm.item(0).getNodeValue().toString());
+                    projectitems.put(theone.getID(), theone);
+                }
+                
+                fstNmElmntLst = ((Element)node).getElementsByTagName("Dependency");
+                if(fstNmElmntLst.getLength()>0){
+                    fstNmElmnt = (Element)fstNmElmntLst.item(0);
+                    fstNm = fstNmElmnt.getChildNodes();
+                    if(fstNm.getLength()>0)dependencies.put(theone, fstNm.item(0).getNodeValue().toString());
+                }
+                
+                fstNmElmntLst = ((Element)node).getElementsByTagName("Repeat");
+                if(fstNmElmntLst.getLength()>0){
+                    fstNmElmnt = (Element)fstNmElmntLst.item(0);
+                    fstNm = fstNmElmnt.getChildNodes();
+                    if(fstNm.getLength()>0)theone.setRepeat(Integer.parseInt(fstNm.item(0).getNodeValue().toString()));
+                    if(theone.getRepeat()>1){
+                        width = metrics.stringWidth(theone.getRepeat()+"X "+theone.getName())+40;
+                        theone.getRectangle().setSize(width,(int)theone.getRectangle().getHeight());
+                    }
+                }
+                
                 secNmElmntLst = ((Element)node).getElementsByTagName("ConfigFiles");
                 if(secNmElmntLst.getLength()>0){
                     secNmElmnt = (Element)secNmElmntLst.item(0);
-                    secNm = secNmElmnt.getChildNodes();
-                    String configs[] ={};
-                    if(secNm.getLength()>0){
-                        configs= secNm.item(0).getNodeValue().toString().split(";");
+                    //secNm = secNmElmnt.getChildNodes();
+                    
+                    secNmElmntLst = ((Element)node).getElementsByTagName("Config");
+                    int size = secNmElmntLst.getLength();
+                    if(size>0){
+                        for(int i=0;i<size;i++){
+                            Element em = (Element)secNmElmntLst.item(i);
+                            Configuration conf = new Configuration(em.getAttribute("name"));
+                            conf.setEnabled(Boolean.parseBoolean(em.getAttribute("enabled")));
+                            conf.setIeratorOD(Boolean.parseBoolean(em.getAttribute("iterator_default")));
+                            conf.setIteratorSOF(Boolean.parseBoolean(em.getAttribute("iterator_sof")));
+                            theone.getConfigurations().add(conf);
+                        }
                     }
-                    theone.setConfigurations(configs);
+                    
+                    
+                    //String configs[] ={};
+//                     if(secNm.getLength()>0){
+//                         configs = secNm.item(0).getNodeValue().toString().split(";");
+//                         for(String conf:configs){
+//                             theone.getConfigurations().add(new Configuration(conf));
+//                         }
+//                     }
+                    //theone.setConfigurations(configs);
                     k+=2;
                 }
                 if(test){
@@ -189,7 +281,6 @@ public class XMLReader{
                     property.setSubItemVisible(false);
                     property.setValue(value);
                     theone.addSubItem(property);}
-//                 k=4;
             }
 //            if(!(test&&theone.getType()==1)){//if it is test the props should not be read further
                 int subchildren = node.getChildNodes().getLength();
@@ -206,12 +297,13 @@ public class XMLReader{
             trdNmElmntLst = ((Element)node).getElementsByTagName("propName");
             trdNmElmnt = (Element)trdNmElmntLst.item(0);
             trdNm = trdNmElmnt.getChildNodes();
-            name = (trdNm.item(0).getNodeValue().toString());
+            if(trdNm.getLength()>0)name = trdNm.item(0).getNodeValue().toString();
+            else name = "";
             if(name.equals("Runnable")){
                 trdNmElmntLst2 = ((Element)node).getElementsByTagName("propValue");
                 Element trdNmElmnt2 = (Element)trdNmElmntLst2.item(0);
                 trdNm2 = trdNmElmnt2.getChildNodes();
-                value = (trdNm2.item(0).getNodeValue().toString());
+                value = trdNm2.item(0).getNodeValue().toString();
                 item.setRunnable(Boolean.parseBoolean(value));
                 return;}
             else if(name.equals("teardown_file")){
@@ -226,9 +318,10 @@ public class XMLReader{
             trdNmElmntLst2 = ((Element)node).getElementsByTagName("propValue");
             Element trdNmElmnt2 = (Element)trdNmElmntLst2.item(0);
             trdNm2 = trdNmElmnt2.getChildNodes();
-            value = trdNm2.item(0).getNodeValue().toString();
+            if(trdNm2.getLength()>0)value = trdNm2.item(0).getNodeValue().toString();
+            else value = "";
             if(name.equals("Running")){
-                item.setCheck(Boolean.parseBoolean(value));
+                item.setCheck(Boolean.parseBoolean(value),true);
                 return;
             }
             FontMetrics metrics = g.getFontMetrics(new Font("TimesRoman", 0, 11));
@@ -258,13 +351,16 @@ public class XMLReader{
             RunnerRepository.window.mainpanel.p1.suitaDetails.setPreStopOnFail(false);
             RunnerRepository.window.mainpanel.p1.suitaDetails.setPostScript("");
             RunnerRepository.window.mainpanel.p1.suitaDetails.setPreScript("");
+            RunnerRepository.window.mainpanel.p1.suitaDetails.setGlobalDownloadType(null);
         }
+        if(test)preprop-=2;//in testsuites repeat tag is not present
         NodeList nodeLst = doc.getChildNodes().item(0).getChildNodes();
         int childsnr = doc.getChildNodes().item(0).getChildNodes().getLength();
         if(childsnr==0){
             try{System.out.println(f.getCanonicalPath()+" has no content");}
             catch(Exception e){e.printStackTrace();}}
         int indexsuita = 0;
+        ArrayList<String[]> userDefined = new ArrayList<String[]>();
         for(int m=0;m<childsnr;m++){
             Node fstNode = nodeLst.item(m);
             if(!test&&clear){
@@ -275,7 +371,7 @@ public class XMLReader{
                     else RunnerRepository.window.mainpanel.p1.suitaDetails.setStopOnFail(false);
                     continue;
                 }
-                if(fstNode.getNodeName().equals("PrePostMandatory")){
+                else if(fstNode.getNodeName().equals("PrePostMandatory")){
                     if(fstNode.getChildNodes().item(0).getNodeValue().toString().equals("true")){                    
                         RunnerRepository.window.mainpanel.p1.suitaDetails.setPreStopOnFail(true);
                     }
@@ -285,9 +381,10 @@ public class XMLReader{
                 else if(fstNode.getNodeName().equals("tcdelay")){
                     String delay = "";
                     try{delay = fstNode.getChildNodes().item(0).getNodeValue().toString();}
-                    catch(Exception e){}
+                    catch(Exception e){
+                        delay = "";
+                    }
                     RunnerRepository.window.mainpanel.p1.suitaDetails.setDelay(delay);
-                    
                     continue;
                 }
                 else if(fstNode.getNodeName().equals("dbautosave")){
@@ -298,13 +395,10 @@ public class XMLReader{
                     continue;
                 }
                 else if(fstNode.getNodeName().equals("ScriptPre")){
-                    try{
-                        String script = fstNode.getChildNodes().item(0).getNodeValue().toString();
-                        RunnerRepository.window.mainpanel.p1.suitaDetails.setPreScript(script);}
-                    catch(Exception e){
-                        //e.printStackTrace();
-                        RunnerRepository.window.mainpanel.p1.suitaDetails.setPreScript("");
-                    }
+                    String script = "";
+                    try{script = fstNode.getChildNodes().item(0).getNodeValue().toString();}
+                    catch(Exception e){script = "";}
+                    RunnerRepository.window.mainpanel.p1.suitaDetails.setPreScript(script);
                     continue;
                 }
                 else if(fstNode.getNodeName().equals("ClearCaseView")){
@@ -313,54 +407,114 @@ public class XMLReader{
                         ClearCase.setView(view);}
                     catch(Exception e){
                         ClearCase.setView("");
-//                         e.printStackTrace();
-//                         RunnerRepository.window.mainpanel.p1.suitaDetails.setPreScript("");
                     }
                     continue;
+                }
+                else if(fstNode.getNodeName().equals("DownloadLibraries")){
+                    if(RunnerRepository.isMaster()){
+                        try{String librarydownloadtype = fstNode.getChildNodes().item(0).getNodeValue().toString();
+                            RunnerRepository.window.mainpanel.p1.suitaDetails.setGlobalDownloadType(librarydownloadtype);}
+                        catch(Exception e){
+                            RunnerRepository.window.mainpanel.p1.suitaDetails.setGlobalDownloadType(null);
+                        }
+                        continue;
+                    }
                 }
                 else if(fstNode.getNodeName().equals("ScriptPost")){
                     String script = "";
                     try{script = fstNode.getChildNodes().item(0).getNodeValue().toString();}
-                    catch(Exception e){}
+                    catch(Exception e){script = "";}
                     RunnerRepository.window.mainpanel.p1.suitaDetails.setPostScript(script);
-//                     catch(Exception e){
-//                         e.printStackTrace();
-//                         RunnerRepository.window.mainpanel.p1.suitaDetails.setPostScript("");
-//                     }
                     continue;
                 }
                 else if(fstNode.getNodeName().equals("libraries")){
-                    
-                        String [] libraries = {};
-                        try{libraries = fstNode.getChildNodes().item(0).getNodeValue().toString().split(";");}
-                        catch(Exception e){}
-                        RunnerRepository.window.mainpanel.p1.suitaDetails.setGlobalLibs(libraries);
-                    
+                    String [] libraries = {};
+                    try{libraries = fstNode.getChildNodes().item(0).getNodeValue().toString().split(";");}
+                    catch(Exception e){libraries = new String[]{};}
+                    RunnerRepository.window.mainpanel.p1.suitaDetails.setGlobalLibs(libraries);
+                    continue;
+                } else if(fstNode.getNodeName().equals("UserDefined")){
+                    try{
+                        Element element = (Element)fstNode;                
+                        NodeList propname = element.getElementsByTagName("propName");
+                        Element el1 = (Element)propname.item(0);
+                        fstNm = el1.getChildNodes();
+                        String prop ;
+                        if(fstNm.getLength()>0)prop= fstNm.item(0).getNodeValue();
+                        else prop = "";
+                        
+                        NodeList propvalue = element.getElementsByTagName("propValue");
+                        Element el2 = (Element)propvalue.item(0);
+                        fstNm = el2.getChildNodes();
+                        String val ;
+                        if(fstNm.getLength()>0)val = fstNm.item(0).getNodeValue();
+                        else val = "";
+                        String add [] = {prop,val};
+                        userDefined.add(add);
+                    }
+                    catch(Exception e){
+                        System.out.println("There was a problem in reading propName,propValue and add to userDefined");
+                    }
                     continue;
                 }
             }
             if(!fstNode.getNodeName().equals("TestSuite"))continue;            
             ArrayList <Integer> indexpos = new ArrayList <Integer> ();
             indexpos.add(new Integer(indexsuita));            
-            fstElmnt = (Element)fstNode;
+            Element fstElmnt = (Element)fstNode;
             fstNmElmntLst = fstElmnt.getElementsByTagName("tsName");
             fstNmElmnt = (Element)fstNmElmntLst.item(0);
             fstNm = fstNmElmnt.getChildNodes();
             FontMetrics metrics = g.getFontMetrics(new Font("TimesRoman", 1, 13));
-            int width = metrics.stringWidth(fstNm.item(0).getNodeValue().toString());
+            String name = "";
+            try{name = fstNm.item(0).getNodeValue().toString();}
+            catch(Exception e){System.out.println("There is a suite with no name in project");}
+            int width = metrics.stringWidth(name);
             Item suitatemp;
-            if(!test)suitatemp= new Item(fstNm.item(0).getNodeValue(),
+            if(!test)suitatemp= new Item(name,
                                          2,-1,10, width+50,25,indexpos);
-            else suitatemp=  new Item(fstNm.item(0).getNodeValue(),
+            else suitatemp=  new Item(name,
                                       2,-1,10, width+120,25,indexpos);
-            int k=6;
-                                      
+            int k=preprop;            
             fstNmElmntLst = fstElmnt.getElementsByTagName("libraries");
             if(fstNmElmntLst.getLength()>0){
                 fstNmElmnt = (Element)fstNmElmntLst.item(0);
                 fstNm = fstNmElmnt.getChildNodes();
-                suitatemp.setLibs(fstNm.item(0).getNodeValue().split(";"));
+                if(fstNm.getLength()>0){
+                    suitatemp.setLibs(fstNm.item(0).getNodeValue().split(";"));
+                }
                 k+=2;
+            }
+            fstNmElmntLst = fstElmnt.getElementsByTagName("ID");
+            if(fstNmElmntLst.getLength()>0){
+                fstNmElmnt = (Element)fstNmElmntLst.item(0);
+                fstNm = fstNmElmnt.getChildNodes();
+                suitatemp.setID(fstNm.item(0).getNodeValue());
+                projectitems.put(suitatemp.getID(), suitatemp);
+            } else {
+                if(!test)k-=2;
+            }
+            
+            fstNmElmntLst = fstElmnt.getElementsByTagName("Dependency");
+            if(fstNmElmntLst.getLength()>0){
+                fstNmElmnt = (Element)fstNmElmntLst.item(0);
+                fstNm = fstNmElmnt.getChildNodes();
+                if(fstNm.getLength()>0)dependencies.put(suitatemp, fstNm.item(0).getNodeValue().toString());
+            }else {
+                if(!test)k-=2;
+            }
+            
+            fstNmElmntLst = fstElmnt.getElementsByTagName("Repeat");
+            if(fstNmElmntLst.getLength()>0){
+                fstNmElmnt = (Element)fstNmElmntLst.item(0);
+                fstNm = fstNmElmnt.getChildNodes();
+                if(fstNm.getLength()>0)suitatemp.setRepeat(Integer.parseInt(fstNm.item(0).getNodeValue().toString()));
+                if(suitatemp.getRepeat()>1){
+                    width = metrics.stringWidth(suitatemp.getRepeat()+"X "+suitatemp.getName())+40;
+                    suitatemp.getRectangle().setSize(width,(int)suitatemp.getRectangle().getHeight());
+                }
+            }else {
+                if(!test)k-=2;
             }
             
             try{fstNmElmntLst = fstElmnt.getElementsByTagName("PanicDetect");
@@ -385,39 +539,35 @@ public class XMLReader{
                     fstNmElmntLst = fstElmnt.getElementsByTagName("SutName");
                     fstNmElmnt = (Element)fstNmElmntLst.item(0);
                     fstNm = fstNmElmnt.getChildNodes();
-                    text[0] += fstNm.item(0).getNodeValue();
+                    String sut = fstNm.item(0).getNodeValue();
+                    sut = sut.replace(".system","(system)");
+                    sut = sut.replace(".user","(user)");
+                    sut = sut.substring(1);
+                    text[0] += sut;
                 } catch(Exception e){ e.printStackTrace();}
                 suitatemp.setEpId(text);
-                
-            } else{
-//                 try{                          
-//                     fstNmElmntLst = fstElmnt.getElementsByTagName("EpId");
-//                     fstNmElmnt = (Element)fstNmElmntLst.item(0);
-//                     fstNm = fstNmElmnt.getChildNodes();
-//                 } catch(Exception e){
-                    try{fstNmElmntLst = fstElmnt.getElementsByTagName("SutName");
-                        if(fstNmElmntLst.getLength()>0){
-                            fstNmElmnt = (Element)fstNmElmntLst.item(0);
-                            fstNm = fstNmElmnt.getChildNodes();
-                        } else {
-                            System.out.println("There is an element that has no EpId or SutName!!!");
-                        }
-                    } catch (Exception ex){
-                        
-                        ex.printStackTrace();
+            } else{                
+                try{fstNmElmntLst = fstElmnt.getElementsByTagName("SutName");
+                    if(fstNmElmntLst.getLength()>0){
+                        fstNmElmnt = (Element)fstNmElmntLst.item(0);
+                        fstNm = fstNmElmnt.getChildNodes();
+                    } else {
+                        System.out.println("There is an element that has no EpId or SutName!!!");
                     }
-//                 }
-                
-    //             suitatemp.setEpId(fstNm.item(0).getNodeValue());
+                } catch (Exception ex){
+                    
+                    ex.printStackTrace();
+                }
                 try{suitatemp.setEpId(fstNm.item(0).getNodeValue().split(";"));}
                 catch(Exception e){
-                    String [] s = {fstNm.item(0).getNodeValue()};
-                    suitatemp.setEpId(s);}
+                    if(fstNm.item(0)!=null){
+                        String [] s = {fstNm.item(0).getNodeValue()};
+                        suitatemp.setEpId(s);
+                    } else {
+                        suitatemp.setEpId(new String[]{});
+                    }
+                }
             }
-            
-            
-            
-            
             
             //temp solution for CE
             int items = fstElmnt.getChildNodes().getLength();
@@ -443,50 +593,24 @@ public class XMLReader{
                     suitatemp.addUserDef(new String[]{prop,val});
                 }
             }
-            //temp solution for CE
-            
-            
-            
-//             fstNmElmntLst = fstElmnt.getElementsByTagName("UserDefined");
-//             int userdefinitions = fstNmElmntLst.getLength();            
-//             for(int l=0;l<userdefinitions;l++){
-//                 Element element = (Element)fstNmElmntLst.item(l);                
-//                 NodeList propname = element.getElementsByTagName("propName");
-//                 Element el1 = (Element)propname.item(0);
-//                 fstNm = el1.getChildNodes();
-//                 String prop ;
-//                 if(fstNm.getLength()>0)prop= fstNm.item(0).getNodeValue();
-//                 else prop = "";
-//                 NodeList propvalue = element.getElementsByTagName("propValue");
-//                 Element el2 = (Element)propvalue.item(0);
-//                 fstNm = el2.getChildNodes();
-//                 String val ;
-//                 if(fstNm.getLength()>0)val = fstNm.item(0).getNodeValue();
-//                 else val = "";
-//                 suitatemp.addUserDef(new String[]{prop,val});}
-                
+            //temp solution for CE                
                 
                 
             int subchildren = fstElmnt.getChildNodes().getLength();
             int index=0;
             indexsuita++;
-            //if(test)k+=2;
-            for( k+=(userdefinitions*2);k<subchildren-1;k++){
+            for( k+=userdefinitions*2;k<subchildren-1;k++){
                 k++;
                 ArrayList <Integer> temp =(ArrayList <Integer>)indexpos.clone();
                 temp.add(new Integer(index));
                 manageSubChilderen(suitatemp,fstElmnt.getChildNodes().item(k),
                                     temp,g,test);
                 index++;}
-//             if(!test)RunnerRepository.addSuita(suitatemp);
             if(!test)suite.add(suitatemp);
-            
             else{
-//                 RunnerRepository.addTestSuita(suitatemp);
                 suite.add(suitatemp);
                 
                 String currents = suitatemp.getEpId()[0].split(" : ")[0];
-//                 for(String currents:suiteeps){
                     boolean found = false;
                     for(String s:RunnerRepository.getLogs()){
                         if(s.equals(currents+"_"+RunnerRepository.getLogs().get(4))){                        
@@ -498,28 +622,25 @@ public class XMLReader{
                             RunnerRepository.getLogs().add(currents+"_"+
                                                      RunnerRepository.getLogs().get(4));
                     }
-//                 }
-            
-            
-            
-            
-//             for(String s:RunnerRepository.getLogs()){
-//                 String [] suiteeps = suitatemp.getEpId();
-//                 for(String currents:suiteeps){
-//                     if(s.equals(suitatemp.getEpId()+"_"+RunnerRepository.getLogs().get(4))){                        
-//                         found = true;
-//                         break;
-//                     }
-//                 }
-//                 if(found)break;                
-//             }
-//             if(!found){
-//                 RunnerRepository.getLogs().add(suitatemp.getEpId()+"_"+
-//                                             RunnerRepository.getLogs().get(4));
-//                                         }
-                                    
-                                    
-                                    }}
+                }
+            }
+        int size = RunnerRepository.window.mainpanel.p1.suitaDetails.getProjectDefsNr();
+        if(userDefined.size()!=size){
+            System.out.println("Warning, project has "+userDefined.size()+" fields while in db.xml are defined "+size+" fields");
+        }
+        RunnerRepository.window.mainpanel.p1.suitaDetails.setProjectUserDefined(userDefined);
+        //manage defined dependencie
+        for(Item item:dependencies.keySet()){
+            String values = dependencies.get(item);
+            String dependencie [] = values.split(";");
+            for(String value:dependencie){
+                String id = value.split(":")[0];
+                String status = value.split(":")[1];
+                Item el = projectitems.get(id);
+                item.getDependencies().put(el, status);
+            }
+        }
+        
         if(!test){
             if(RunnerRepository.getSuiteNr()>0){
                 while(RunnerRepository.window.mainpanel.p1.sc.g==null){

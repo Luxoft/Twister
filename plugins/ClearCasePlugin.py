@@ -1,16 +1,15 @@
 
 # File: ClearCasePlugin.py ; This file is part of Twister.
 
-# version: 2.007
+# version: 3.004
 
 # Copyright (C) 2012-2014 , Luxoft
 
 # Authors:
-#    Adrian Toader <adtoader@luxoft.com>
 #    Andrei Costachi <acostachi@luxoft.com>
-#    Andrei Toma <atoma@luxoft.com>
 #    Cristi Constantin <crconstantin@luxoft.com>
 #    Daniel Cioata <dcioata@luxoft.com>
+#    Mihai Tudoran <mtudoran@luxoft.com>
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,18 +24,15 @@
 # limitations under the License.
 
 """
-    ClearCase plugin wraps cleartool library.
-    Executes the given commands using cleartool library.
+    ClearCase plugin executes the given commands using SshShell library.
 """
-from __future__ import print_function
 
+from __future__ import print_function
 
 import os, sys
 import re
 import time
 import base64
-import random
-import subprocess
 
 try: import simplejson as json
 except: import json
@@ -45,7 +41,6 @@ TWISTER_PATH = os.getenv('TWISTER_PATH')
 if not TWISTER_PATH:
     raise Exception('TWISTER_PATH environment variable is not set! Exiting!')
 
-from common.helpers import userHome
 from lib.TscSshLib import SshShell
 from BasePlugin import BasePlugin
 
@@ -57,13 +52,12 @@ class CC(object):
 
     def __init__(self, user, password):
 
-        if not user: raise Exception('Username is empty! Cannot login!')
-        if not password: raise Exception('Password is empty! Cannot login!')
+        if not user: raise Exception('CC: Username is empty! Cannot login!')
+        if not password: raise Exception('CC: Password is empty! Cannot login!')
 
         self.cleartoolSsh = SshShell(name='cleartool', host='localhost', user=user, password=password)
         self.cleartoolSsh.set_timeout(2)
         time.sleep(1)
-        #self.cleartoolSsh.read()
 
 
     def cmd(self, args):
@@ -79,17 +73,18 @@ class CC(object):
         if not args.has_key('command') or not isinstance(args['command'], str):
             return False
 
-        if args['command'].startswith('cleartool setview'):
-            print('Clearcase Plugin Srv: Changing view: `{}`.'.format(args['command']))
+        command = args['command']
 
-        response = self.cleartoolSsh.write(args['command'])
+        if command.startswith('cleartool setview'):
+            print('CC: Changing view: `{}`.'.format(command))
 
-        response = self.parseSshResponse(args['command'], response)
+        response = self.cleartoolSsh.write(command)
+
+        response = self.parseSshResponse(command, response)
         response = '\n'.join(response)
 
-        if args['command'].startswith('cleartool setview'):
+        if command.startswith('cleartool setview'):
             time.sleep(2)
-            #self.cleartoolSsh.setPrompt()
             response = ''
 
         return json.dumps(response)
@@ -117,12 +112,12 @@ class CC(object):
 
 
     def getPathTree(self, path):
-        """  """
+        """ List files and folders """
 
         if not path:
             return False
 
-        treeCommand = ('import os\n'\
+        treeCommand = ( 'import os\n'\
                         'rootdir = %s\n'\
                         'dir = dict()\n'\
                         'rootdir = rootdir.rstrip(os.sep)\n'\
@@ -134,7 +129,7 @@ class CC(object):
                         '    parent[folders[-1]] = subdir\n'\
                         'r = dict()\n'\
                         'r.update([(rootdir, dir[os.path.basename(rootdir)]), ])\n'\
-                        'print(r)' % repr(path))
+                        'print(r)' % repr(path) )
 
         pwd = self.cleartoolSsh.write('pwd')
         self.cleartoolSsh.write('cd')
@@ -149,7 +144,7 @@ class CC(object):
             response = [r for r in response if r][0]
             response = eval(response)
         except Exception as e:
-            print('getPathTree error: {} || response: {} '.format(e, response))
+            print('CC getPathTree error: {} || response: {} '.format(e, response))
             response = ''
 
         return json.dumps(response)
@@ -171,7 +166,7 @@ class CC(object):
 
             response = '\n'.join(response)
         except Exception as e:
-            print('getTestDescription error: {} || response: {} '.format(e, response))
+            print('CC getTestDescription error: {} || response: {} '.format(e, response))
             return ''
 
         li_tags = re.findall('^[ ]*?[#]*?[ ]*?<(?P<tag>\w+)>([ -~\n]+?)</(?P=tag)>', response, re.MULTILINE)
@@ -211,7 +206,7 @@ class CC(object):
                 return response
             return response
         except Exception as e:
-            print('getTestFile error: {} || response: {} '.format(e, response))
+            print('CC getTestFile error: {} || response: {} '.format(e, response))
             return ''
 
 
@@ -221,18 +216,209 @@ class CC(object):
         """
 
         try:
-            command = 'python -c "import base64; print(base64.b64decode(\'{c}\'))"  > {f}'.format(
-                                                                c=base64.b64encode(content), f=fname)
+            command = 'python -c "import base64; print(base64.b64decode(\'{c}\'))"  > {f}'.format(c=base64.b64encode(content), f=fname)
             response = self.cleartoolSsh.write(command)
 
             if len(response) >= 2:
-                print('error: {}'.format(response))
+                print('CC setTestFile error: {}'.format(response))
 
             return True
         except Exception as e:
             return ''
 
-#
+
+    def mkview(self, args):
+        """
+        Send mkview command.
+        """
+
+        try:
+            command = 'cleartool mkview'
+            for key in args:
+                if not key == 'command':
+                    command += ' ' + key + ' ' + args[key]
+
+            response = self.cleartoolSsh.write(command)
+
+            if len(response) >= 2:
+                print('CC mkview error: {}'.format(response))
+
+            return True
+        except Exception as e:
+            return ''
+
+
+    def lsview(self, args):
+        """
+        Send lsview command.
+        """
+
+        try:
+            command = 'cleartool lsview'
+            for key in args:
+                if not key == 'command':
+                    command += ' ' + key + ' ' + args[key]
+
+            response = self.cleartoolSsh.write(command)
+
+            if len(response) >= 2:
+                print('CC lsview error: {}'.format(response))
+
+            return True
+        except Exception as e:
+            return ''
+
+
+    def mkelem(self, args):
+        """
+        Send mkelem command.
+        """
+
+        try:
+            command = 'cleartool mkelem'
+            for key in args:
+                if not key == 'command':
+                    command += ' ' + key + ' ' + args[key]
+
+            response = self.cleartoolSsh.write(command)
+
+            if len(response) >= 2:
+                print('CC mkelem error: {}'.format(response))
+
+            return True
+        except Exception as e:
+            return ''
+
+
+    def rmelem(self, args):
+        """
+        Send rmelem command.
+        """
+
+        try:
+            command = 'cleartool rmelem'
+            for key in args:
+                if not key == 'command':
+                    command += ' ' + key + ' ' + args[key]
+
+            response = self.cleartoolSsh.write(command)
+
+            if len(response) >= 2:
+                print('CC rmelem error: {}'.format(response))
+
+            return True
+        except Exception as e:
+            return ''
+
+
+    def mklabel(self, args):
+        """
+        Send mklabel command.
+        """
+
+        try:
+            command = 'cleartool mklabel'
+            for key in args:
+                if not key == 'command':
+                    command += ' ' + key + ' ' + args[key]
+
+            response = self.cleartoolSsh.write(command)
+
+            if len(response) >= 2:
+                print('CC mklabel error: {}'.format(response))
+
+            return True
+        except Exception as e:
+            return ''
+
+
+    def mkattr(self, args):
+        """
+        Send mkattr command.
+        """
+
+        try:
+            command = 'cleartool mkattr'
+            for key in args:
+                if not key == 'command':
+                    command += ' ' + key + ' ' + args[key]
+
+            response = self.cleartoolSsh.write(command)
+
+            if len(response) >= 2:
+                print('CC mkattr error: {}'.format(response))
+
+            return True
+        except Exception as e:
+            return ''
+
+
+    def describe(self, args):
+        """
+        Send describe command.
+        """
+
+        try:
+            command = 'cleartool describe'
+            for key in args:
+                if not key == 'command':
+                    command += ' ' + key + ' ' + args[key]
+
+            response = self.cleartoolSsh.write(command)
+
+            if len(response) >= 2:
+                print('CC describe error: {}'.format(response))
+
+            return True
+        except Exception as e:
+            return ''
+
+    def lsactivity(self, args):
+        """
+        Send lsactivity command.
+        """
+
+        try:
+            # we have to extract the view name from sent command
+            command = 'cleartool lsview'
+            viewname = ''
+            for key in args:
+                if key == 'view':
+                    viewname = args[key]
+                    command += ' ' + viewname
+
+            # check if the view exists using lsview
+            response = self.cleartoolSsh.write(command)
+            response = self.parseSshResponse(command, response)
+            response = '\n'.join(response)
+            if 'cleartool: Error:' in response:
+                return '*ERROR* View `{}` doesn\'t exist !'.format(viewname)
+
+            # set the view
+            command = 'cleartool setview ' + viewname
+            response = self.cleartoolSsh.write(command)
+            response = self.parseSshResponse(command, response)
+            response = '\n'.join(response)
+            if 'cleartool: Error:' in response:
+                return '*ERROR* View `{}` cannot be set !'.format(viewname)
+
+            # list the activities
+            command = 'cleartool lsactivity -cview -short'
+            response = self.cleartoolSsh.write(command)
+            response = self.parseSshResponse(command, response)
+            response = '\n'.join(response)
+
+            # exit from view
+            response1 = self.cleartoolSsh.write('exit')
+            response1 = self.parseSshResponse(command, response1)
+
+            return response
+        except Exception as e:
+            return ''
+
+
+# # #
+
 
 class Plugin(BasePlugin):
 
@@ -246,12 +432,12 @@ class Plugin(BasePlugin):
         BasePlugin.__init__(self, user, data)
         self.user = user
         self.data = data
-        passwd = self.data['ce'].getUserInfo(self.user, 'user_passwd')
+        passwd = self.data['ce'].get_user_info(self.user, 'user_passwd')
         self.conn = CC(self.user, passwd)
 
 
     def __del__(self):
-        """  """
+        """ On plugin exit """
 
         print('EXIT PLUGIN')
         del self.user
@@ -284,6 +470,30 @@ class Plugin(BasePlugin):
                 return False
             return self.setTestFile(args['file_name'], args['content'])
 
+        elif args['command'] == 'mkview':
+            return self.conn.mkview(args)
+
+        elif args['command'] == 'lsview':
+            return self.conn.lsview(args)
+
+        elif args['command'] == 'mkelem':
+            return self.conn.mkelem(args)
+
+        elif args['command'] == 'rmelem':
+            return self.conn.rmelem(args)
+
+        elif args['command'] == 'mklabel':
+            return self.conn.mklabel(args)
+
+        elif args['command'] == 'mkattr':
+            return self.conn.mkattr(args)
+
+        elif args['command'] == 'describe':
+            return self.conn.describe(args)
+
+        elif args['command'] == 'lsactivity':
+            return self.conn.lsactivity(args)
+
         try:
             resp = self.conn.cmd(args)
         except Exception as e:
@@ -293,28 +503,12 @@ class Plugin(BasePlugin):
         return resp
 
 
-    def onStart(self, clear_case_view=None):
-        """
-        Called on project start.
-        """
-
-        # No data provided ?
-        if not clear_case_view:
-            print('CC Plug-in onStart: ClearCase View empty `{}`! Your tests will NOT run!'.format(clear_case_view))
-            return False
-
-        print('CC Plug-in: Changing ClearCase View to `{}`.'.format(clear_case_view))
-
-        self.data['clear_case_view'] = clear_case_view
-        self.run( {'command': 'cleartool setview {}'.format(clear_case_view)} )
-
-
     def getPathTree(self, path):
         """  """
         try:
             return self.conn.getPathTree(path)
         except Exception as e:
-            print('getPathTree error: {}'.format(e))
+            print('CC Plug-in: getPathTree error {}'.format(e))
             return ''
 
 
@@ -326,7 +520,7 @@ class Plugin(BasePlugin):
         try:
             return self.conn.getTestFile(fname, raw)
         except Exception as e:
-            print('getTestFile error: {}'.format(e))
+            print('CC Plug-in: getTestFile error {}'.format(e))
             return ''
 
 
@@ -338,7 +532,7 @@ class Plugin(BasePlugin):
         try:
             return self.conn.getTestDescription(fname)
         except Exception as e:
-            print('getTestDescription error: {}'.format(e))
+            print('CC Plug-in: getTestDescription error {}'.format(e))
             return ''
 
 
@@ -350,7 +544,7 @@ class Plugin(BasePlugin):
         try:
             return self.conn.setTestFile(fname, content)
         except Exception as e:
-            print('getTestFile error: {}'.format(e))
+            print('CC Plug-in: getTestFile error {}'.format(e))
             return ''
 
 #

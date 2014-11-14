@@ -86,7 +86,7 @@ def test():
 	print 'list_connections'
 	print sm.list_connections()
 
-	logMsg('logRunning','Twister Ssh test done.')
+	log_msg('logRunning','Twister Ssh test done.')
 	# This return is used by the framework!
 	return "PASS"
 

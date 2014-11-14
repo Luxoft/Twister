@@ -1,5 +1,5 @@
 
-# version: 2.001
+# version: 3.001
 
 """
 <title>Testing Globals</title>
@@ -25,12 +25,24 @@ class Class2(object):
 
 print 'Setting 2 functions, 2 classes and 2 instances, for using in the next tests!'
 
-setGlobal('func1', func1)
-setGlobal('func2', func2)
-setGlobal('Class1', Class1)
-setGlobal('Class2', Class2)
-setGlobal('Class1i', Class1())
-setGlobal('Class2i', Class2())
+set_global('func1', func1)
+assert func1 is get_global('func1'), "Func 1 was not saved!"
+print "Func 1 saved."
+
+set_global('func2', func2)
+assert func2 is get_global('func2'), "Func 2 was not saved!"
+print "Func 2 saved."
+
+set_global('Class1', Class1)
+assert Class1 is get_global('Class1'), "Class 1 was not saved!"
+print "Class 1 saved."
+
+set_global('Class2', Class2)
+assert Class2 is get_global('Class2'), "Class 2 was not saved!"
+print "Class 2 saved."
+
+set_global('Class1i', Class1())
+set_global('Class2i', Class2())
 
 #
 

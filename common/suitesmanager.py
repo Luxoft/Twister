@@ -1,7 +1,7 @@
 
 # File: suitesmanager.py ; This file is part of Twister.
 
-# version: 2.003
+# version: 3.001
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -23,6 +23,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""
+Module for general methods
+"""
 
 import os
 import sys
@@ -44,6 +47,7 @@ class SuitesManager(OrderedDict):
     """
 
     def _recursive_find_suites(self, nodes, result=[]):
+        """ search suites in recursive mode """
         # Nodes are Ordered Dicts
         for id, node in nodes.iteritems():
             if node.get('type', 'file') != 'suite':
@@ -54,7 +58,7 @@ class SuitesManager(OrderedDict):
         return result
 
 
-    def getSuites(self):
+    def get_suites(self):
         """
         Returns a list of suite IDs.
         """
@@ -64,6 +68,7 @@ class SuitesManager(OrderedDict):
 
 
     def _recursive_find_files(self, nodes, result=[]):
+        """ search for files recursive mode """
         # Nodes are Ordered Dicts
         for id, node in nodes.iteritems():
             # This is a file
@@ -75,13 +80,14 @@ class SuitesManager(OrderedDict):
         return result
 
 
-    def getFiles(self, suite_id=None, recursive=True):
+    def get_files(self, suite_id=None, recursive=True):
         """
         Returns a list of file IDs. Can filter for one suite.
         """
         if suite_id:
-            suite = self.findId(suite_id, self)
-            if not suite: return []
+            suite = self.find_id(suite_id, self)
+            if not suite:
+                return []
             if recursive:
                 # Must pass a null result as default parameter!
                 return self._recursive_find_files(suite['children'], [])
@@ -105,7 +111,7 @@ class SuitesManager(OrderedDict):
                 return result
 
 
-    def iterNodes(self, nodes=None, result=[]):
+    def iter_nodes(self, nodes=None, result=[]):
         """
         Depth iterate through suites and files.
         This is used by the Execution Runner.
@@ -115,11 +121,11 @@ class SuitesManager(OrderedDict):
         for id, node in nodes.iteritems():
             result.append([id, node])
             if node.get('type', 'file') == 'suite':
-                self.iterNodes(node['children'], result)
+                self.iter_nodes(node['children'], result)
         return result
 
 
-    def findId(self, node_id, nodes=None, _found=None):
+    def find_id(self, node_id, nodes=None, _found=None):
         """
         Find a node, using the ID.
         """
@@ -132,7 +138,7 @@ class SuitesManager(OrderedDict):
             if id == node_id:
                 return node
             if node.get('type', 'file') == 'suite':
-                _found = self.findId(node_id, node['children'], _found)
+                _found = self.find_id(node_id, node['children'], _found)
         return _found
 
 #

@@ -1,6 +1,6 @@
 /*
 File: Services.java ; This file is part of Twister.
-Version: 2.003
+Version: 3.001
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -45,7 +45,7 @@ public class Services extends JPanel{
         setBackground(Color.WHITE);
         setLayout(new BoxLayout(this, BoxLayout.PAGE_AXIS));
         try{
-            String result = RunnerRepository.getRPCClient().execute("serviceManagerCommand",
+            String result = RunnerRepository.getRPCClient().execute("service_mngr_command",
                                                           new Object[]{"list"}).toString();
             String [] services = result.split(",");       
             for(String s:services){
@@ -58,8 +58,8 @@ public class Services extends JPanel{
         }
         new Thread(){
             public void run (){
-                ArrayList<String> sarray = new<String> ArrayList();
-                ArrayList <String>rarray = new<String> ArrayList();
+                ArrayList<String> sarray = new ArrayList();
+                ArrayList <String>rarray = new ArrayList();
                 String [] services;
                 while(RunnerRepository.run){
                     try{
@@ -69,7 +69,7 @@ public class Services extends JPanel{
                             for(Component c:getComponents()){
                                 rarray.add(((MyPanel)c).getName());
                             }
-                            String result = RunnerRepository.getRPCClient().execute("serviceManagerCommand",
+                            String result = RunnerRepository.getRPCClient().execute("service_mngr_command",
                                                                       new Object[]{"list"}).toString();
                             services = result.split(",");
                             for(String c:services){
@@ -102,10 +102,10 @@ public class Services extends JPanel{
     private void addNewServices(String name){
         try{
             MyPanel p = new MyPanel(name);
-            String result = RunnerRepository.getRPCClient().execute("serviceManagerCommand",
+            String result = RunnerRepository.getRPCClient().execute("service_mngr_command",
                                                       new Object[]{"description",name}).toString();
             p.setDescription(result);
-            result = RunnerRepository.getRPCClient().execute("serviceManagerCommand",
+            result = RunnerRepository.getRPCClient().execute("service_mngr_command",
                                                       new Object[]{"status",name}).toString();
             if(result.equals("-1")){
                 p.setStatus("running");
@@ -186,7 +186,7 @@ public class Services extends JPanel{
                     while(RunnerRepository.run){
                         try{
                             if(isShowing()){
-                                String result = RunnerRepository.getRPCClient().execute("serviceManagerCommand",
+                                String result = RunnerRepository.getRPCClient().execute("service_mngr_command",
                                                                         new Object[]{"status",name}).toString();
                                 if(result.equals("-1")){
                                     status.setText("running");
@@ -239,7 +239,7 @@ public class Services extends JPanel{
             f.add(p,BorderLayout.CENTER);
             f.add(panel,BorderLayout.SOUTH);
             try{
-                conf.setText(RunnerRepository.getRPCClient().execute("serviceManagerCommand",
+                conf.setText(RunnerRepository.getRPCClient().execute("service_mngr_command",
                                                               new Object[]{"get config",name}).toString());
             } catch(Exception e){
                 e.printStackTrace();
@@ -248,7 +248,7 @@ public class Services extends JPanel{
         
         private void saveConf(){
             try{
-                String result = RunnerRepository.getRPCClient().execute("serviceManagerCommand",
+                String result = RunnerRepository.getRPCClient().execute("service_mngr_command",
                                                   new Object[]{"set config",name,conf.getText()}).toString();
                 info.setText("  "+result);
             } catch(Exception e){
@@ -258,7 +258,7 @@ public class Services extends JPanel{
         
         public void startService(){
             try{
-                String result = RunnerRepository.getRPCClient().execute("serviceManagerCommand",
+                String result = RunnerRepository.getRPCClient().execute("service_mngr_command",
                                                               new Object[]{"start",name}).toString();
             } catch(Exception e){
                 e.printStackTrace();
@@ -267,7 +267,7 @@ public class Services extends JPanel{
         
         public void stopService(){
             try{
-                String result = RunnerRepository.getRPCClient().execute("serviceManagerCommand",
+                String result = RunnerRepository.getRPCClient().execute("service_mngr_command",
                                                               new Object[]{"stop",name}).toString();
             } catch(Exception e){
                 e.printStackTrace();

@@ -1,7 +1,7 @@
 
 # File: CeServices.py ; This file is part of Twister.
 
-# version: 2.004
+# version: 3.001
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -23,7 +23,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+"""
+User Service Module
+"""
 import os, sys
 import json
 import time
@@ -40,7 +42,7 @@ SM_GET_CONFIG = 5
 SM_SET_CONFIG = 6
 SM_GET_LOG    = 7
 
-sm_command_map = {
+SM_COMMAND_MAP = {
     SM_START      : 'start',
     SM_STOP       : 'stop',
     SM_STATUS     : 'status',
@@ -64,6 +66,7 @@ from common import iniparser
 #
 
 class ServiceManager(object):
+    """ manager for user service """
 
     def __init__(self):
 
@@ -88,63 +91,75 @@ class ServiceManager(object):
         logDebug('SM: Stopping Service Manager...')
 
         for service in self.twister_services:
-            if self.serviceStatus(service) == -1:
-                self.serviceStop(service)
+            if self.service_status(service) == -1:
+                self.service_stop(service)
 
         del self.twister_services
 
 
-    def sendCommand(self, command, name='', *args, **kwargs):
+    def send_command(self, command, name='', *args, **kwargs):
+        """ send command to service """
+        logFull('CeServices:send_command')
 
-        if command==SM_LIST or command==sm_command_map[SM_LIST]:
-            return self.listServices()
+        if command == SM_LIST or command == SM_COMMAND_MAP[SM_LIST]:
+            return self.list_services()
 
         found = False
 
-        for service in self.twister_services:
-            if name == service['name']:
+        service = None
+        for service_item in self.twister_services:
+            if name == service_item['name']:
                 found = True
+                service = service_item
                 break
 
         if not found:
             logDebug('SM: Invalid service name: `%s`!'.format(name))
             return False
 
-        elif command==SM_STATUS or command==sm_command_map[SM_STATUS]:
-            return self.serviceStatus(service)
+        elif command == SM_STATUS or command == SM_COMMAND_MAP[SM_STATUS]:
+            return self.service_status(service)
 
-        elif command==SM_DESCRIP or command==sm_command_map[SM_DESCRIP]:
+        elif command == SM_DESCRIP or command == SM_COMMAND_MAP[SM_DESCRIP]:
             return service.get('descrip')
 
-        if command==SM_START or command==sm_command_map[SM_START]:
-            return self.serviceStart(service)
+        if command == SM_START or command == SM_COMMAND_MAP[SM_START]:
+            return self.service_start(service)
 
-        elif command==SM_STOP or command==sm_command_map[SM_STOP]:
-            return self.serviceStop(service)
+        elif command == SM_STOP or command == SM_COMMAND_MAP[SM_STOP]:
+            return self.service_stop(service)
 
-        elif command==SM_GET_CONFIG or command==sm_command_map[SM_GET_CONFIG]:
-            return self.readConfig(service)
+        elif command == SM_GET_CONFIG or command == SM_COMMAND_MAP[SM_GET_CONFIG]:
+            return self.read_config(service)
 
-        elif command==SM_SET_CONFIG or command==sm_command_map[SM_SET_CONFIG]:
-            try: return self.saveConfig(service, args[0][0])
-            except: return 'SM: Invalid number of parameters for save config!'
+        elif command == SM_SET_CONFIG or command == SM_COMMAND_MAP[SM_SET_CONFIG]:
+            try:
+                return self.save_config(service, args[0][0])
+            except:
+                return 'SM: Invalid number of parameters for save config!'
 
-        elif command==SM_GET_LOG or command==sm_command_map[SM_GET_LOG]:
-            try: return self.getConsoleLog(service, read=args[0][0], fstart=args[0][1])
-            except: return 'SM: Invalid number of parameters for read log!'
+        elif command == SM_GET_LOG or command == SM_COMMAND_MAP[SM_GET_LOG]:
+            try:
+                return self.get_console_log(service, read=args[0][0], fstart=args[0][1])
+            except:
+                return 'SM: Invalid number of parameters for read log!'
 
         else:
             return 'SM: Unknown command number: `{0}`!'.format(command)
 
 
-    def listServices(self):
+    def list_services(self):
+        """ return list of services """
+        logFull('CeServices:list_services')
         srv = []
         for service in self.twister_services:
             srv.append(service['name'])
         return ','.join(srv)
 
 
-    def serviceStatus(self, service):
+    def service_status(self, service):
+        """ return status of service """
+        logFull('CeServices:service_status')
         # Values are: -1, 0, or any error code
         # -1 means the app is still running
 
@@ -161,7 +176,9 @@ class ServiceManager(object):
         return rc
 
 
-    def serviceStart(self, service):
+    def service_start(self, service):
+        """ start service """
+        logFull('CeServices:service_start')
 
         tprocess = service.get('pid', 0)
 
@@ -203,8 +220,10 @@ class ServiceManager(object):
         logs_dir = os.path.split(log_path)[0]
 
         if not os.path.isdir(logs_dir):
-            try: os.mkdir(logs_dir)
-            except: logError('SM: Cannot create logs folder `{}`!'.format(logs_dir))
+            try:
+                os.mkdir(logs_dir)
+            except:
+                logError('SM: Cannot create logs folder `{}`!'.format(logs_dir))
 
         p_cmd = [sys.executable, '-u', script_path, config_path]
 
@@ -223,9 +242,11 @@ class ServiceManager(object):
         return True
 
 
-    def serviceStop(self, service):
+    def service_stop(self, service):
+        """ stop service """
+        logFull('CeServices:service_stop')
 
-        rc = self.serviceStatus(service)
+        rc = self.service_status(service)
         if not rc:
             logDebug('SM: Service name `{}` is not running.'.format(service['name']))
             return False
@@ -253,12 +274,16 @@ class ServiceManager(object):
         return True
 
 
-    def serviceKill(self, service):
+    def service_kill(self, service):
+        """ forced stop user service """
+        logFull('CeServices:service_kill')
 
-        return self.serviceStop(service)
+        return self.service_stop(service)
 
 
-    def readConfig(self, service):
+    def read_config(self, service):
+        """ Read configuration """
+        logFull('CeServices:read_config')
 
         config_path = '{0}/services/{1}/{2}'.format(TWISTER_PATH, service['name'], service['config'])
 
@@ -272,7 +297,9 @@ class ServiceManager(object):
         return data or ''
 
 
-    def saveConfig(self, service, data):
+    def save_config(self, service, data):
+        """ Save configuration """
+        logFull('CeServices:save_config')
 
         config_path = '{0}/services/{1}/{2}'.format(TWISTER_PATH, service['name'], service['config'])
 
@@ -286,10 +313,11 @@ class ServiceManager(object):
         return True
 
 
-    def getConsoleLog(self, service, read, fstart):
+    def get_console_log(self, service, read, fstart):
         """
         Called in the Java GUI to show the logs.
         """
+        logFull('CeServices:get_console_log')
         if fstart is None:
             return '*ERROR for {0}!* Parameter FSTART is NULL!'.format(service['name'])
 
@@ -298,7 +326,7 @@ class ServiceManager(object):
         if not os.path.exists(filename):
             return '*ERROR for {0}!* No such log file `{0}`!'.format(service['name'], filename)
 
-        if not read or read=='0':
+        if not read or read == '0':
             return os.path.getsize(filename)
 
         fstart = long(fstart)

@@ -1,6 +1,6 @@
 /*
 File: Window.java ; This file is part of Twister.
-Version: 2.004
+Version: 2.009
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -137,28 +137,12 @@ public class Window extends JFrame{
                                             RunnerRepository.getBar()+"Twister");
                     dispose();
                     RunnerRepository.run = false;
+                    RunnerRepository.window.mainpanel.p4.getTB().releaseAllResources();
                     if(!applet)System.exit(0);}});
             addComponentListener(new ComponentAdapter(){
                 public void componentResized(ComponentEvent e){
                     if(RunnerRepository.window!=null){
                         RunnerRepository.setSize(getWidth(), getHeight());
-                        
-                        //mainpanel.p2.splitPane.setSize(getWidth()-52,getHeight()-120);
-                        
-//                         mainpanel.p1.splitPane.setSize(getWidth()-52,getHeight()-120);
-//                         mainpanel.setSize(getWidth()-28,getHeight()-50);
-//                         mainpanel.p4.getScroll().setSize(getWidth()-310,getHeight()-150);
-//                         mainpanel.p4.getMain().setSize(getWidth()-300,getHeight()-130);
-//                         mainpanel.p4.getTB().setPreferredSize(
-//                                     new Dimension(getWidth()-300,getHeight()-150));
-//                         mainpanel.p4.getPlugins().setPreferredSize(
-//                                     new Dimension(getWidth()-300,getHeight()-150));
-//                         mainpanel.p4.getPlugins().horizontalsplit.setPreferredSize(
-//                                     new Dimension(getWidth()-305,getHeight()-155));
-                                    
-                                    
-                        //mainpanel.p4.getPlugins().setDimension(new Dimension(getWidth()-300,getHeight()-160));                        
-                        //RunnerRepository.window.mainpanel.p5.nettop.setPreferredSize(new Dimension(getWidth()-50,672));
                     }}});
             setVisible(true);}
         RunnerRepository.introscreen.setStatus("Starting applet");

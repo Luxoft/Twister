@@ -16,7 +16,7 @@ def test():
 	'''
 
 	testName = 'test_py_telnet.py'
-	logMsg('logTest', "\nTestCase:%s starting\n" % testName)
+	log_msg('logTest', "\nTestCase:%s starting\n" % testName)
 	error_code = "PASS"
 
 	tn = telnetlib.Telnet('134.117.136.48', 23, 60)
@@ -46,7 +46,7 @@ def test():
 
 	print tn.read_very_eager()
 
-	logMsg('logTest', "TestCase:%s %s\n" % (testName, error_code))
+	log_msg('logTest', "TestCase:%s %s\n" % (testName, error_code))
 
 	# This return is used by the framework!
 	return error_code
