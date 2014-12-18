@@ -227,6 +227,7 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
     def __init__(self, project):
 
         self.project = project
+        self.type = 'tb'
         self.resources = constant_dictionary
         self.reservedResources = {}
         self.lockedResources = {}

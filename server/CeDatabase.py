@@ -1,7 +1,7 @@
 
 # File: CeDatabase.py ; This file is part of Twister.
 
-# version: 3.002
+# version: 3.008
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -30,6 +30,7 @@ This module is responsible with managing connections, read and write in the data
 """
 
 import os
+import re
 import sys
 import time
 import socket
@@ -47,7 +48,9 @@ if TWISTER_PATH not in sys.path:
     sys.path.append(TWISTER_PATH)
 
 from common.xmlparser import DBParser
+from common.helpers import execScript
 from common.tsclogging import logDebug, logInfo, logWarning, logError
+
 
 
 class CeDbManager(object):
@@ -67,7 +70,7 @@ class CeDbManager(object):
         self.project = project
 
 
-    def connect_db(self, user):
+    def connect_db(self, user, db_server='', db_name=''):
         """
         Connect to database.
         """
@@ -77,53 +80,64 @@ class CeDbManager(object):
             logError('Database: Null DB.XML file for user `{}`! Cannot connect!'.format(user))
             return False
 
-        # DB.xml parser
-        db_config = DBParser(user, db_file).db_config
+        c_time = time.time()
+        usr_server = '{}_{}_{}'.format(user, db_server, db_name)
+
+        # Existing connection ?
+        if self.connections.get(usr_server):
+            # This is a very fresh connection !
+            if c_time - self.connections[usr_server]['dt'] < 1.0:
+                return self.connections[usr_server]['conn']
+
+        # DB.xml + Shared DB parser
+        users_groups = self.project._parse_users_and_groups()
+        shared_db_path = users_groups['shared_db_cfg']
+        if os.path.isfile(shared_db_path):
+            db_config = DBParser(user, db_file, shared_db_path).db_config
+        else:
+            db_config = DBParser(user, db_file).db_config
+
+        # Try to use the default pair
+        if not db_server and not db_name:
+            db_server, db_name = db_config['default_server']
+
+        # Check server + DB pair
+        if (db_server, db_name) not in db_config['servers']:
+            logWarning('Database: Invalid server + DB pair {} for user `{}`! '\
+                'Cannot connect!'.format((db_server, db_name), user))
+            return False
+
+        db_user = db_config['servers'][(db_server, db_name)]['u']
+        db_passwd = db_config['servers'][(db_server, db_name)]['p']
+        # Need to magically identify the correct key; the first pair is from private DB.xml;
+        if (db_server, db_name) == db_config['servers'].keys()[0]:
+            encr_key = None
+        else:
+            encr_key = users_groups.get('shared_db_key', 'Luxoft')
         # Decode database password
-        db_password = self.project.decrypt_text(user, db_config.get('password'))
+        db_password = self.project.decrypt_text(user, db_passwd, encr_key)
 
         try:
-            conn = MySQLdb.connect(host=db_config.get('server'), db=db_config.get('database'),
-                                   user=db_config.get('user'), passwd=db_password)
+            logDebug('User `{}` connecting to MySQL `{} @ {} / {}`...'.format(user, db_user, db_server, db_name))
+            conn = MySQLdb.connect(host=db_server, db=db_name, user=db_user, passwd=db_password)
+            conn.autocommit = False
         except MySQLdb.Error as e:
             logError('MySQL error for user `{}`: `{} - {}`!'.format(user, e.args[0], e.args[1]))
             return False
 
-        conn.autocommit = False
+        # Keep connection
+        self.connections[usr_server] = {'conn': conn, 'dt': c_time}
+
         return conn
 
 
-    def project_data(self, user):
+    def static_project_data(self, user):
         """
-        Collect all data from a user: Ep, Suite, File, using the DB.XML for the current project.
+        Collect all files data, for a user.
         """
-        # Get the path to DB.XML
-        db_file = self.project.get_user_info(user, 'db_config')
-        if not db_file:
-            logError('Database: Null DB.XML file for user `{}`! Nothing to do!'.format(user))
-            return False
-
-        # Database parser, fields, queries
-        # This is created every time the Save to Database is called
-        db_parser = DBParser(user, db_file)
-        queries = db_parser.getInsertQueries() # List
-        fields  = db_parser.getInsertFields()  # Dictionary
-        del db_parser
-
-        # Defaul substitute dict
-        default_subst = {k: '' for k, v in fields.iteritems()}
-
-        if not queries:
-            logDebug('Database: There are no queries defined for user `{}`! '\
-                'Nothing to do!'.format(user))
-            return False
-
-        conn = self.connect_db(user)
-        if not conn:
-            return False
-
         # Central Engine variables ...
-        system = platform.machine() +' '+ platform.system() +', '+ ' '.join(platform.linux_distribution())
+        system = platform.machine() + ' ' + platform.system() + ', ' + \
+             ' '.join(platform.linux_distribution())
 
         # Timezone. Read from etc/timezone 1st, etc/sysconfig/clock 2nd, or from Time module
         try:
@@ -142,6 +156,8 @@ class CeDbManager(object):
         except Exception:
             ce_ip = ''
 
+        # Default substitute dict
+        default_subst = {}
         default_subst['twister_user'] = user
         default_subst['twister_ce_type'] = self.project.server_init['ce_server_type'].lower()
         default_subst['twister_server_location'] = self.project.server_init.get('ce_server_location', '')
@@ -154,14 +170,6 @@ class CeDbManager(object):
         default_subst['twister_ce_hostname'] = ce_host
         default_subst['twister_ce_ip'] = ce_ip
         default_subst['twister_ce_python_revision'] = '.'.join([str(v) for v in sys.version_info])
-
-        # UserScript cache
-        usr_script_cache_s = {} # Suite
-        usr_script_cache_p = {} # Project
-
-        # DbSelect cache
-        db_select_cache_s = {} # Suite
-        db_select_cache_p = {} # Project
 
         def fix_log(tc_log):
             tc_log = tc_log.replace('\n', '<br>\n')
@@ -182,9 +190,8 @@ class CeDbManager(object):
 
             for file_id in SuitesManager.get_files():
 
-                # Substitute data
+                # Default substitute data
                 subst_data = dict(default_subst)
-
                 # Add EP info
                 subst_data.update(ep_info)
                 del subst_data['suites']
@@ -193,6 +200,22 @@ class CeDbManager(object):
                 file_info = SuitesManager.find_id(file_id)
                 suite_id = file_info['suite']
                 suite_info = SuitesManager.find_id(suite_id)
+
+                # This is the root suite data
+                root_suite = dict(suite_info)
+
+                while 1:
+                    root_suite_id = root_suite['suite']
+                    root_suite = SuitesManager.find_id(root_suite_id)
+                    if not root_suite:
+                        root_suite = {}
+                        break
+                    if not root_suite['suite']:
+                        break
+
+                # Add root suite data
+                subst_data.update(root_suite)
+                # Add current suite data
                 subst_data.update(suite_info)
                 del subst_data['children']
 
@@ -207,12 +230,14 @@ class CeDbManager(object):
                     continue
 
                 # Insert/ fix DB variables
-                subst_data['twister_ep_name']    = epname
+                subst_data['twister_ep_name'] = epname
+                subst_data['twister_suite_id'] = suite_id
                 subst_data['twister_suite_name'] = suite_info['name']
                 subst_data['twister_tc_reason'] = file_info.get('_reason', '')
                 subst_data['twister_tc_iteration'] = file_info.get('iterationNr', '')
                 subst_data['twister_tc_full_path'] = file_info['file']
                 subst_data['twister_tc_name'] = os.path.split(file_info['file'])[1]
+                subst_data['twister_tc_id'] = file_id
                 # subst_data['twister_tc_title'] = ''
                 # subst_data['twister_tc_description'] = ''
 
@@ -233,10 +258,6 @@ class CeDbManager(object):
                     del subst_data['pd']
                 except Exception:
                     pass
-
-                # Escape all unicodes variables before SQL Statements!
-                subst_data = {k: conn.escape_string(v) if isinstance(v, unicode) else v for \
-                    k, v in subst_data.iteritems()}
 
                 # Log CLI for this EP - Suite - Test
                 try:
@@ -268,11 +289,70 @@ class CeDbManager(object):
                 except Exception:
                     subst_data['twister_tc_log_test'] = '*no log*'
 
-                # Pre-calculated queries
-                all_queries = []
+                # :: Debug ::
+                import pprint ; pprint.pprint(subst_data)
 
-                # For every insert SQL statement, build correct data...
-                for query in queries:
+                # Append all data for current file
+                all_data.append(subst_data)
+
+        all_data = sorted(all_data, key=lambda file_info: file_info['twister_tc_id'])
+
+        return all_data
+
+
+    def project_data(self, user, save_to_db=False):
+        """
+        Collect all data from a user, using the DB.XML for the current project.
+        If save to DB is active, the function will also save.
+        """
+        # Get the path to DB.XML
+        db_file = self.project.get_user_info(user, 'db_config')
+        if not db_file:
+            logError('Database: Null DB.XML file for user `{}`! Nothing to do!'.format(user))
+            return False
+
+        usr_roles = self.project._parse_users_and_groups()
+        shared_db_path = usr_roles['shared_db_cfg']
+        db_cfg_role = 'CHANGE_DB_CFG' in usr_roles['users'][user]['roles']
+        # Get inserts will automatically handle private/ shared DB.xml
+        all_inserts = DBParser(user, db_file, shared_db_path).get_inserts(db_cfg_role)
+
+        if not all_inserts:
+            logWarning('Database: Cannot use inserts defined for user `{}`!'.format(user))
+            return False
+
+        # UserScript cache
+        usr_script_cache_s = {} # Suite
+        usr_script_cache_p = {} # Project
+
+        # DbSelect cache
+        db_select_cache_s = {} # Suite
+        db_select_cache_p = {} # Project
+
+        conn, curs = None, None
+
+        # Pre-calculated data
+        all_data = []
+
+        for subst_data in self.static_project_data(user):
+
+            # For every host, build correct data...
+            for host_db in all_inserts:
+
+                c_inserts = all_inserts[host_db]['inserts']
+                c_fields = all_inserts[host_db]['fields']
+
+                conn = self.connect_db(user, *host_db)
+                if not conn:
+                    continue
+                curs = conn.cursor()
+
+                # Escape all unicodes variables before SQL Statements!
+                subst_data = {k: conn.escape_string(v) if isinstance(v, unicode) else v for \
+                    k, v in subst_data.iteritems()}
+
+                # For every query of the current host
+                for query in c_inserts:
 
                     # All variables of type `UserScript` must be replaced with the script result
                     try:
@@ -284,15 +364,15 @@ class CeDbManager(object):
                         field = field[1:]
 
                         # Invalid field ?
-                        if field not in fields:
+                        if field not in c_fields:
                             continue
 
                         # If the field is not `UserScript`, ignore it
-                        if fields.get(field, {}).get('type') != 'UserScript':
+                        if c_fields.get(field, {}).get('type') != 'UserScript':
                             continue
 
                         # Field level: Suite or Project
-                        lvl = fields.get(field)['level']
+                        lvl = c_fields.get(field)['level']
 
                         # Get Script Path, or null string
                         u_script = subst_data.get(field, '')
@@ -306,8 +386,8 @@ class CeDbManager(object):
                             if u_script not in usr_script_cache_p:
                                 # Execute script and use result
                                 r = execScript(u_script)
-                                logDebug('Database: UserScript for `{}` was executed at '\
-                                    'LVL `{}`.'.format(user, lvl))
+                                # logDebug('Database: UserScript for `{}` was executed at '\
+                                #     'LVL `{}`.'.format(user, lvl))
                                 # Save result in cache
                                 usr_script_cache_p[u_script] = r
                             else:
@@ -315,13 +395,14 @@ class CeDbManager(object):
                                 r = usr_script_cache_p[u_script]
                         # Execute for every suite
                         else:
+                            suite_id = subst_data['twister_suite_id']
                             if suite_id not in usr_script_cache_s:
                                 usr_script_cache_s[suite_id] = {}
                             if u_script not in usr_script_cache_s[suite_id]:
                                 # Execute script and use result
                                 r = execScript(u_script)
-                                logDebug('Database: UserScript for `{}` was executed at '\
-                                    'LVL `{}`.'.format(user, lvl))
+                                # logDebug('Database: UserScript for `{}` was executed at '\
+                                #     'LVL `{}`.'.format(user, lvl))
                                 # Save result in cache
                                 usr_script_cache_s[suite_id][u_script] = r
                             else:
@@ -332,6 +413,9 @@ class CeDbManager(object):
                         if not r:
                             r = ''
                         query = query.replace('$'+field, r)
+
+                        # Adding user script fields
+                        subst_data[field] = r
 
                     # All variables of type `DbSelect` must be replaced with the SQL result
                     try:
@@ -344,14 +428,14 @@ class CeDbManager(object):
                         field = field[1:-1]
 
                         # Invalid field ?
-                        if field not in fields:
+                        if field not in c_fields:
                             continue
 
                         # Get Auto Query, or null string
-                        u_query = fields.get(field, {}).get('query', '')
+                        u_query = c_fields.get(field, {}).get('query', '')
 
                         # Field level: Suite, Project, or Testcase
-                        lvl = fields.get(field)['level']
+                        lvl = c_fields.get(field)['level']
 
                         if not u_query:
                             logError('User `{}`, file `{}`: Cannot build query! Field `{}` '\
@@ -364,8 +448,8 @@ class CeDbManager(object):
                                 # Execute User Query
                                 curs.execute(u_query)
                                 q_value = curs.fetchone()[0]
-                                logDebug('Database: DbSelect for `{}` was executed at '\
-                                    'LVL `{}`.'.format(user, lvl))
+                                # logDebug('Database: DbSelect for `{}` was executed at '\
+                                #     'LVL `{}`.'.format(user, lvl))
                                 # Save result in cache
                                 db_select_cache_p[u_query] = q_value
                             else:
@@ -373,14 +457,15 @@ class CeDbManager(object):
                                 q_value = db_select_cache_p[u_query]
                         # Execute User Query for every suite
                         elif lvl == 'Suite':
+                            suite_id = subst_data['twister_suite_id']
                             if suite_id not in db_select_cache_s:
                                 db_select_cache_s[suite_id] = {}
                             if u_query not in db_select_cache_s[suite_id]:
                                 # Execute User Query
                                 curs.execute(u_query)
                                 q_value = curs.fetchone()[0]
-                                logDebug('Database: DbSelect for `{}` was executed at '\
-                                    'LVL `{}`.'.format(user, lvl))
+                                # logDebug('Database: DbSelect for `{}` was executed at '\
+                                #     'LVL `{}`.'.format(user, lvl))
                                 # Save result in cache
                                 db_select_cache_s[suite_id][u_query] = q_value
                             else:
@@ -390,11 +475,13 @@ class CeDbManager(object):
                             # Execute User Query
                             curs.execute(u_query)
                             q_value = curs.fetchone()[0]
-                            logDebug('Database: DbSelect for `{}` was executed at '\
-                                'LVL `TestCase`.'.format(user))
+                            # logDebug('Database: DbSelect for `{}` was executed at '\
+                            #     'LVL `TestCase`.'.format(user))
 
                         # Replace @variables@ with real Database values
                         query = query.replace('@'+field+'@', str(q_value))
+                        # Adding auto insert fields
+                        subst_data[field] = str(q_value)
 
                     # String Template
                     tmpl = Template(query)
@@ -407,65 +494,35 @@ class CeDbManager(object):
                             'Error on `{}`!'.format(user, subst_data['file'], e))
                         return False
 
-                    # Append pre-calculated query
-                    all_queries.append(query)
+                    # Save query in database ?
+                    if save_to_db:
+                        # Execute MySQL Query!
+                        try:
+                            curs.execute(query)
+                            logDebug('Executed query\n\t``{}``\n\t on {} OK.'.format(query.strip(), host_db))
+                            conn.commit()
+                        except MySQLdb.Error as e:
+                            logError('Error in query ``{}`` , for user `{}`!\n\t'\
+                                'MySQL Error {}: {}!'.format(query, user, e.args[0], e.args[1]))
+                            conn.rollback()
+                            return False
 
-                # Save query for later
-                subst_data['twister_qq_query'] = all_queries
+            # :: Debug ::
+            # import pprint ; pprint.pprint(subst_data)
 
-                # :: Debug ::
-                # import pprint ; pprint.pprint(subst_data)
+            # Append all data for current file
+            all_data.append(subst_data)
 
-                # Append pre-calculated file
-                all_data.append(subst_data)
-
-        return conn, all_data
+        return all_data
 
 
     def save_to_database(self, user):
         """
         Save all data from a user: Ep, Suite, File, into database,
-        using the DB.XML for the current project.
+        using the DB.XML files for the current project.
         """
         with self.db_lock:
-
-            # All database info, for current project
-            try:
-                conn, data = self.project_data(user)
-                if not data:
-                    logWarning('Cannot save project in database, for user `{}`!'.format(user))
-                    return False
-            except Exception:
-                logWarning('Cannot save project in database, for user `{}`!'.format(user))
-                return False
-
-            # Database connections
-            curs = conn.cursor()
-            conn.begin()
-
-            # For each record in the prepared data
-            for record in data:
-                # Maybe empty pre-calculated query ?
-                if not record.get('twister_qq_query'):
-                    conn.rollback()
-                    return False
-
-                for query in record['twister_qq_query']:
-                    # Execute MySQL Query!
-                    try:
-                        curs.execute(query)
-                        logDebug('Executed query ``{}`` OK.'.format(query.strip()))
-                    except MySQLdb.Error as e:
-                        logError('Error in query ``{}`` for user `{}`!\n\t'\
-                            'MySQL Error {}: {}!'.format(query, user, e.args[0], e.args[1]))
-                        conn.rollback()
-                        return False
-
-            conn.commit()
-            curs.close()
-            conn.close()
-
-        return True
+            return self.project_data(user, True)
 
 
 # Eof()

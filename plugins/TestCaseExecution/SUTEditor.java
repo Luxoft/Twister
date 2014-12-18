@@ -261,7 +261,6 @@ public class SutEditor extends JPanel{
                         HashMap <String,String>hm = new <String,String>HashMap();
                         hm.put("_id","");
                         String resp = client.execute("delete_component_sut", new Object[]{parentid,name,hm}).toString();
-                        System.out.println("delete_component_sut"+parentid+" - "+name+" - "+hm+" - "+resp);
                         if(resp.indexOf("ERROR")==-1){
                             DefaultTreeModel model = (DefaultTreeModel)tree.getModel();
                             model.removeNodeFromParent(treenode);
@@ -271,9 +270,7 @@ public class SutEditor extends JPanel{
                         }
                     } else if (userobj instanceof Comp) {
                         torem = ((Comp)userobj).getID();
-                        System.out.println("delete_component_sut"+torem);
                         String s = client.execute("delete_component_sut", new Object[]{torem}).toString();
-                        System.out.println("respons: "+s);
                         if(s.indexOf("ERROR")==-1){
                             ((DefaultTreeModel)tree.getModel()).removeNodeFromParent(treenode);
                             selectedSUT(null);                        
@@ -500,26 +497,23 @@ public class SutEditor extends JPanel{
     
     public void getSUT(String sutname,DefaultMutableTreeNode sutnode,boolean editable){
         try{
+            sutname = sutname.replace("//", "/");
             Object ob = client.execute("get_sut", new Object[]{sutname});
             HashMap hash = (HashMap)ob;
             this.editable = editable;
-//          Object[] children = (Object[])hash.get("children");
             DefaultMutableTreeNode epsnode;//child
             DefaultTreeModel model = (DefaultTreeModel)tree.getModel();
             root.removeAllChildren();
             String name,path,eps;
             Object[] subchildren;
-//          for(Object o:children){
-//                 hash= (HashMap)client.execute("get_sut", new Object[]{o.toString()});
-//                 hash= (HashMap)o;
-                path = hash.get("path").toString();
-                name = path.split("/")[path.split("/").length-1];
-                try{eps = ((HashMap)hash.get("meta")).get("_epnames_"+RunnerRepository.user).toString();}
-                catch(Exception e){eps = "";}
-                epsnode = new DefaultMutableTreeNode("EP:"+eps,false);
-                root.add(epsnode);
-                subchildren = (Object[])hash.get("children");
-                buildChildren(subchildren,root);
+            path = hash.get("path").toString();
+            name = path.split("/")[path.split("/").length-1];
+            try{eps = ((HashMap)hash.get("meta")).get("_epnames_"+RunnerRepository.user).toString();}
+            catch(Exception e){eps = "";}
+            epsnode = new DefaultMutableTreeNode("EP:"+eps,false);
+            root.add(epsnode);
+            subchildren = (Object[])hash.get("children");
+            buildChildren(subchildren,root);
             model.reload();
             this.rootsut = sutname;
             this.sutnode = sutnode;
@@ -552,8 +546,6 @@ public class SutEditor extends JPanel{
                 Object ob = client.execute("get_sut", new Object[]{childid});
                 if(ob.getClass()==HashMap.class){
                     HashMap subhash= (HashMap)ob;
-                    System.out.println("get_sut:"+childid+" - "+subhash);
-                    //HashMap subhash= (HashMap)o;
                     String subpath = subhash.get("path").toString();
                     String subname = subpath.split("/")[subpath.split("/").length-1];
                     HashMap meta = (HashMap)subhash.get("meta");
@@ -643,8 +635,8 @@ public class SutEditor extends JPanel{
     
     public String getEpsFromSut(String sutname){
         String eps = "";
-        try{//HashMap hash= (HashMap)client.execute("getSut", new Object[]{sutname,RunnerRepository.user,RunnerRepository.user});
-            Object ob = client.execute("get_sut", new Object[]{sutname});
+        sutname = sutname.replace("//", "/");
+        try{Object ob = client.execute("get_sut", new Object[]{sutname});
             if(ob.toString().indexOf("*ERROR*")!=-1){
                 CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,SutEditor.this,"ERROR", ob.toString());
                 return "";
@@ -652,7 +644,6 @@ public class SutEditor extends JPanel{
             try{HashMap hash = (HashMap)ob;
                 eps = ((HashMap)hash.get("meta")).get("_epnames_"+RunnerRepository.user).toString();}
             catch(Exception e){
-                //System.out.println("Error in getting _epnames_"+RunnerRepository.user+" from meta in: "+hash.toString()+" . Called in SutEditor->getEpsFromSut");
                 eps = "";                
             }
         }
@@ -792,10 +783,7 @@ public class SutEditor extends JPanel{
                     try{
                         String id = "";
                         if(nodes[i].getType()==0){
-                            try{//Object ob = client.execute("get_sut", new Object[]{"/"+nodes[i].getName()});
-                                Object ob = client2.execute("get_tb", new Object[]{"/"+nodes[i].getName()});
-                                //System.out.println("get_tb:"+"/"+nodes[i].getName()+": "+ob.toString());
-                                //HashMap hash = (HashMap)client.execute("get_sut", new Object[]{"/"+nodes[i].getName()});
+                            try{Object ob = client2.execute("get_tb", new Object[]{"/"+nodes[i].getName()});
                                 HashMap hash = (HashMap)ob;
                                 id = hash.get("id").toString();
                             } catch(Exception e){

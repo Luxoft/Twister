@@ -16,7 +16,7 @@ print 'Bindings found :: {}\n'.format(json.dumps(bindings, indent=4))
 for b in bindings:
 	print 'Binding for `{}` ->'.format(b), get_binding(b), '...'
 
-print '\nConfig files for this testcase :: {}\n'.format(CONFIG)
+print '\nCONFIG FILES for this testcase :: {}\n'.format(CONFIG)
 
 # This must be binded in the applet, or it will be False
 print get_bind_id('ro1/A', 'c1.xml')
@@ -30,21 +30,89 @@ print '\n'
 # Gets the default
 print get_bind_id('Component_1')
 print get_bind_name('Component_1')
+print
 
 print get_bind_id('Component_2')
 print get_bind_name('Component_2')
-print '\n'
+print
 
 # Also gets the default
 print get_bind_id('Component_1', 'c1.xml')
 print get_bind_name('Component_1', 'c1.xml')
+print
 
-config_name =  CONFIG[0].strip()
+print 'CONFIG: ', CONFIG
+config_name = CONFIG[0].strip()
 component_name = get_config(config_name).keys()[0]
 
-print 'set_bind: {}'.format(set_binding(config_name, component_name, SUT))
 
-print 'del_bind: {}'.format(del_binding(config_name, component_name))
+print 'Testing the API with valid configuration: {}/{} -> {}'.format(config_name, component_name, SUT)
+print 'Get bind `{}/{}`: {}'.format(config_name, component_name,
+	get_bind_name(component_name, config_name))
+
+print 'Set bind `{}/{} -> {}`: {}'.format(config_name, component_name, SUT,
+	set_binding(config_name, component_name, SUT))
+
+print 'Get bind again `{}/{}`: {}'.format(config_name, component_name,
+	get_bind_name(component_name, config_name))
+
+print 'Del bind `{}/{}`: {}'.format(config_name, component_name,
+	del_binding(config_name, component_name))
+
+print 'Get bind again `{}/{}`: {}'.format(config_name, component_name,
+	get_bind_name(component_name, config_name))
+print
+
+
+config_name_alter = 'mumu' + config_name
+print 'Testing the API with invalid config_name: {}/{} -> {}'.format(config_name_alter, component_name, SUT)
+print 'Get bind `{}/{}`: {}'.format(config_name_alter, component_name,
+	get_bind_name(component_name, config_name_alter))
+
+print 'Set bind again `{}/{} -> {}`: {}'.format(config_name_alter, component_name, SUT,
+	set_binding(config_name_alter, component_name, SUT))
+
+print 'Get bind `{}/{}`: {}'.format(config_name_alter, component_name,
+	get_bind_name(component_name, config_name_alter))
+
+print 'Del bind again `{}/{}`: {}'.format(config_name_alter, component_name,
+	del_binding(config_name_alter, component_name))
+
+print 'Get bind again `{}/{}`: {}'.format(config_name_alter, component_name,
+	get_bind_name(component_name, config_name_alter))
+print
+
+
+SUT_alter = '12'+SUT+'.user'
+print 'Testing the API with invalid sut: {}/{} -> {}'.format(config_name, component_name, SUT_alter)
+print 'Get bind `{}/{}`: {}'.format(config_name, component_name,
+	get_bind_name(component_name, config_name))
+
+print 'Set bind `{}/{} -> {}`: {}'.format(config_name, component_name, SUT_alter,
+	set_binding(config_name, component_name, SUT_alter))
+
+print 'Get bind `{}/{}`: {}'.format(config_name, component_name,
+	get_bind_name(component_name, config_name))
+print
+
+
+component_name_alter = 'mumu' + component_name
+print 'Testing the API with invalid component_name: {}/{} -> {}'.format(config_name, component_name_alter, SUT)
+print 'Get bind `{}/{}`: {}'.format(config_name, component_name_alter,
+	get_bind_name(component_name_alter, config_name))
+
+print 'Set bind `{}/{} -> {}`: {}'.format(config_name, component_name_alter, SUT,
+	set_binding(config_name, component_name_alter, SUT))
+
+print 'Get bind `{}/{}`: {}'.format(config_name, component_name_alter,
+	get_bind_name('mumu'+component_name_alter, config_name))
+
+print 'Del bind again `{}/{}`: {}'.format(config_name, component_name_alter,
+	del_binding(config_name, component_name_alter))
+
+print 'Get bind again `{}/{}`: {}'.format(config_name, component_name_alter,
+	get_bind_name(component_name_alter, config_name))
+print
 
 #
 

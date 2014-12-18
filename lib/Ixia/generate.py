@@ -2,7 +2,7 @@
 
 # File: generate.py ; This file is part of Twister.
 
-# version: 2.002
+# version: 2.003
 
 # Copyright (C) 2013 , Luxoft
 
@@ -28,16 +28,49 @@
 
 '''
 This file generates Ixia Library wrapper in Python, using TCL functions from IxTclHal.
+Params: - IxOS TCL lib path
+        - IP address of Ixia chassis
 '''
 
 from Tkinter import Tcl
 from collections import OrderedDict
+import re
+import socket
+import sys
+import os
+
+chassis_ip = '10.100.100.45'
+tcl_lib_path = '/home/twister/ixos/ixia/lib/ixTcl1.0'
+
+if len(sys.argv) < 3:
+   print 'Usage: python generate.py <ixos_tcl_lib_path> <chassis_ip_address>'
+   exit()
+
+tcl_lib_path = sys.argv[1]
+chassis_ip = sys.argv[2]
+
+# some minimal checks on IP address
+if chassis_ip.count('.') < 3:
+    print 'ERROR: IP address not valid !'
+
+try:
+    socket.inet_aton(chassis_ip)
+except socket.error:
+    print 'ERROR: IP address not valid !'
+    exit()
+
+# check if IxOS tcl lib path exists
+if tcl_lib_path[-1] == '/':
+    tcl_lib_path = tcl_lib_path.rstrip('/')
+if not os.path.isdir(tcl_lib_path):
+    print 'ERROR: IxOS tcl lib path doesn\'t exists'
+    exit()
 
 tcl = Tcl()
 
 tcl.eval('package req IxTclHal')
-tcl.eval('ixConnectToTclServer 10.144.31.91')
-tcl.eval('ixConnectToChassis 10.144.31.91')
+tcl.eval('ixConnectToTclServer ' + chassis_ip)
+tcl.eval('ixConnectToChassis ' + chassis_ip)
 
 # # # # # # # #
 
@@ -65,17 +98,18 @@ def ix_exec(cmd):
 
 
 if __name__ == "__main__":
+    chassis_ip = '%s'
     funcs = [x[0] for x in locals().items() if callable( x[1] )]
     # print sorted(funcs)
     print 'Found {} functions!'.format(len(funcs))
 
     print 'Is this UNIX?', isUNIX()
-    print 'Connect to TCL Server:', ixConnectToTclServer("10.144.31.91")
-    print 'Connect to Chassis', ixConnectToChassis("10.144.31.91")
+    print 'Connect to TCL Server:', ixConnectToTclServer(chassis_ip)
+    print 'Connect to Chassis', ixConnectToChassis(chassis_ip)
 
     print 'Config chassis...'
     portList = ''
-    chassis('get 10.144.31.91')
+    chassis('get ' + chassis_ip)
     py_chassis = chassis('cget -id')
     print py_chassis
 
@@ -158,7 +192,7 @@ if __name__ == "__main__":
     interfaceTable('config -dhcpV6RequestRate                0')
     interfaceTable('config -dhcpV4MaximumOutstandingRequests 100')
     interfaceTable('config -dhcpV6MaximumOutstandingRequests 100')
-    interfaceTable('config -fcoeRequestRate                  500')
+    #interfaceTable('config -fcoeRequestRate                  500')
     print 'Done.'
 
     print 'Clear All Interfaces ...'
@@ -181,13 +215,13 @@ if __name__ == "__main__":
 
     print 'Call ixWritePortsToHardware and ixCheckLinkState ...'
     # lappend portList [list $chassis $card $port] # ???
-    ixWritePortsToHardware(portList)
+    ixWritePortsToHardware(portList, None)
     ixCheckLinkState(portList)
     print 'Done.'
 
 #
 
-"""
+""" % (chassis_ip)
 
 # # # # # # # #
 
@@ -308,6 +342,64 @@ def fix_tcl_func(func):
     return func
 
 # # # # # # # #
+'''
+Get Ixia libray version from ixTclHal.tcl file
+'''
+ixos_version = ''
+version_file = tcl_lib_path + '/ixTclHal.tcl'
+try:
+    with open(version_file, 'r') as v_file:
+        for line in v_file:
+            if line.startswith('package provide IxTclHal'):
+                ixos_version = line.split()[-1]
+                break
+except:
+    print 'ERROR: Cannot get IxOS version. Exiting !'
+    exit()
+
+# # # # # # # #
+'''
+Generate functions.txt file from file tclIndex
+'''
+FUNCTIONS = []
+tcl_index_file = tcl_lib_path + '/tclIndex'
+try:
+    for line in open(tcl_index_file).readlines():
+        if line.startswith('set auto_index(', 0):
+            line = line.replace('set auto_index(','')
+            FUNCTIONS.append(line.split(')')[0])
+except:
+    pass
+
+# # # # # # # #
+'''
+Update functions.txt file from file ixTclSetup.tcl
+'''
+ix_tcl_setup =  tcl_lib_path + '/ixTclSetup.tcl'
+try:
+    file_content = open(ix_tcl_setup, 'r').read()
+
+    # get entries from ixTclHal::noArgList
+    no_arg_list = re.findall('set ixTclHal::noArgList(.*?)\{(.+?)\}',file_content, re.M | re.S) 
+    FUNCTIONS.extend(no_arg_list[0][1].replace('\\','').split())
+
+    # get entries from ixTclHal::pointerList
+    pointer_list = re.findall('set ixTclHal::pointerList(.*?)\{(.+?)\}',file_content, re.M | re.S)
+    FUNCTIONS.extend(pointer_list[0][1].replace('\\','').split())
+
+    # get entries from ixTclHal::command
+    command_list = re.findall('set ixTclHal::commandList(.*?)\{(.+?)\}',file_content, re.M | re.S)
+    FUNCTIONS.extend(command_list[0][1].replace('\\','').split())
+except:
+    pass
+
+try:
+    with open('functions.txt', 'w') as OUTPUT:
+        OUTPUT.write('\n'.join(FUNCTIONS))
+except:
+    pass
+
+# # # # # # # #
 
 FUNCTIONS = []
 
@@ -384,8 +476,8 @@ for line in open('functions.txt').readlines():
         ' `{0}` cannot be empty!"; return False'.format(x) for x in defaultArgs ])
         tmpl = """
 def {py}({py_arg_l}):
-    # TCL cmd :: {tcl} {tcl_arg_l}
-{def_arg}
+    '''\n     Method Name : {tcl}\n     Arguments   : {tcl_arg_l}
+{def_arg}\n    '''
     r = t.eval("{tcl} {le}".format({py_arg}))
     return r
 """.format(py=fix_tcl_func(func_name), tcl=func_name, py_arg=pyc_args, py_arg_l=pyc_args_long,
@@ -394,7 +486,7 @@ def {py}({py_arg_l}):
     else:
         tmpl = """
 def {py}({py_arg_l}):
-    # TCL cmd :: {tcl} {tcl_arg_l}
+    '''\n    Method Name : {tcl}\n    Arguments   : {tcl_arg_l} \n    '''
     r = t.eval("{tcl} {le}".format({py_arg}))
     return r
 """.format(py=fix_tcl_func(func_name), tcl=func_name, py_arg=pyc_args, py_arg_l=pyc_args_long,
@@ -405,7 +497,8 @@ def {py}({py_arg_l}):
 
 #
 
-OUTPUT = open('TscIxPythonLib.py', 'w')
+output_file = 'TscIxPythonLib_v{}.py'.format(ixos_version)
+OUTPUT = open(output_file, 'w')
 OUTPUT.write(HEAD)
 OUTPUT.write('\n'.join(FUNCTIONS))
 OUTPUT.write(TAIL)

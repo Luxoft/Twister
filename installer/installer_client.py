@@ -1,16 +1,14 @@
 
-# version: 2.005
+# version: 3.005
 
 # File: installer.py ; This file is part of Twister.
 
 # Copyright (C) 2012-2013 , Luxoft
 
 # Authors:
-#    Adrian Toader <adtoader@luxoft.com>
 #    Andrei Costachi <acostachi@luxoft.com>
-#    Andrei Toma <atoma@luxoft.com>
 #    Cristi Constantin <crconstantin@luxoft.com>
-#    Daniel Cioata <dcioata@luxoft.com>
+#    Mihai Dobre <mihdobre@luxoft.com>
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -175,22 +173,8 @@ for fname in to_copy:
         print('Path `{}` does not exist and will not be copied!'.format(fpath))
 
 
-# Restore CONFIG folder, if any
-if os.path.exists(tmp_config):
-    print('\nMoving `config` folder back (from `{}` to `{}`)...'.format(tmp_config, cfg_path))
-    for xname in os.listdir(tmp_config):
-        src_name = tmp_config + xname
-        dst_name = cfg_path + xname
-        if os.path.isfile(dst_name):
-            os.remove(dst_name)
-        elif os.path.isdir(dst_name):
-            shutil.rmtree(dst_name)
-        print('Restoring config `{}`.'.format(dst_name))
-        shutil.move(src_name, cfg_path)
-
-
 # Create cache and logs folders
-try: os.mkdir(INSTALL_PATH +os.sep+ '.twister_cache')
+try: os.mkdir(INSTALL_PATH + '/.twister_cache')
 except: pass
 try: os.mkdir(INSTALL_PATH + '/logs')
 except: pass
@@ -205,6 +189,22 @@ try: os.remove(INSTALL_PATH +os.sep+ 'config/server_init.ini')
 except: pass
 try: os.remove(INSTALL_PATH +os.sep+ 'config/users_and_groups.ini')
 except: pass
+try: os.remove(INSTALL_PATH +os.sep+ 'config/shared_db.xml')
+except: pass
+
+
+# Restore CONFIG folder, if any
+if os.path.exists(tmp_config):
+    print('\nMoving `config` folder back (from `{}` to `{}`)...'.format(tmp_config, cfg_path))
+    for xname in os.listdir(tmp_config):
+        src_name = tmp_config + xname
+        dst_name = cfg_path + xname
+        if os.path.isfile(dst_name):
+            os.remove(dst_name)
+        elif os.path.isdir(dst_name):
+            shutil.rmtree(dst_name)
+        print('Restoring config `{}`.'.format(dst_name))
+        shutil.move(src_name, cfg_path)
 
 
 # Change owner for install folder...
@@ -214,7 +214,6 @@ if os.getuid() == 0:
 
 tcr_proc = subprocess.Popen(['chmod', '775', INSTALL_PATH, '-R'],)
 tcr_proc.wait()
-
 
 try:
     tcr_proc = subprocess.Popen(['chmod', '777', INSTALL_PATH +os.sep+ 'logs', '-R'],)
@@ -230,8 +229,6 @@ for ext in ['txt', 'xml', 'py', 'tcl', 'plx', 'json', 'ini', 'htm', 'js', 'css']
 # Make executables
 os.system('find %s -name "cli.py" -exec chmod +x {} \;' % INSTALL_PATH)
 os.system('find %s -name "start_client" -exec chmod +x {} \;' % INSTALL_PATH)
-os.system('find %s -name "start_client.py" -exec chmod +x {} \;' % INSTALL_PATH)
-os.system('find %s -name "start_packet_sniffer.py" -exec chmod +x {} \;' % INSTALL_PATH)
 
 
 # Fix FWM Config XML

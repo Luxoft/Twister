@@ -1,5 +1,5 @@
 
-# version: 2.005
+# version: 3.005
 
 # File: installer.py ; This file is part of Twister.
 
@@ -148,6 +148,7 @@ if err1 and err2:
 to_copy = [
     'bin/cli.py',
     'bin/set_log_level.py',
+    'bin/setup_shared_db.py',
     'bin/start_server',
     'doc/',
     'server/',
@@ -157,6 +158,7 @@ to_copy = [
     'config/services.ini',
     'config/users_and_groups.ini',
     'config/server_init.ini',
+    'config/shared_db.xml',
     'plugins/',
     'services/',
 ]

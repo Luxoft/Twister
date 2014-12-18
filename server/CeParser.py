@@ -1,7 +1,7 @@
 
 # File: CeParser.py ; This file is part of Twister.
 
-# version: 3.008
+# version: 3.009
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -22,11 +22,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
 import re
 import copy
 import ast
-import uuid
 import json
+from binascii import hexlify
 
 from lxml import etree
 from collections import OrderedDict
@@ -122,17 +123,17 @@ class CeXmlParser(object):
                     deep_copy = copy.deepcopy(parent)
 
                     # generate new unique id
-                    new_id = uuid.uuid4()
+                    new_id = hexlify(os.urandom(5))
                     while new_id in generated_ids:
-                        new_id = uuid.uuid4()
+                        new_id = hexlify(os.urandom(5))
                     # add the id to the already generated ids
-                    generated_ids.append(str(new_id))
+                    generated_ids.append(new_id)
 
                     # add the new_id to repeated_dict to know how the ids propagated
-                    self._add_to_repeated(copy.deepcopy(deep_copy.find('ID').text), str(new_id), repeated_dict, ep)
+                    self._add_to_repeated(copy.deepcopy(deep_copy.find('ID').text), new_id, repeated_dict, ep)
 
                     # update suite id
-                    deep_copy.find('ID').text = str(new_id)
+                    deep_copy.find('ID').text = new_id
 
                     # the suite repeated - add to root
                     if parent is None:
@@ -261,9 +262,9 @@ class CeXmlParser(object):
         '''
         Change IDs if a suite has to repeat
         '''
-
         generated_ids_elems = copy.deepcopy(config_root.xpath('//ID'))
         generated_ids = []
+
         for g_id in generated_ids_elems:
             generated_ids.append(g_id.text)
 
@@ -274,12 +275,12 @@ class CeXmlParser(object):
                 return True
 
         # generate new unique id if necessary
-        new_id = uuid.uuid4()
+        new_id = hexlify(os.urandom(5))
         while new_id in generated_ids:
-            new_id = uuid.uuid4()
-        generated_ids.append(str(new_id))
+            new_id = hexlify(os.urandom(5))
+        generated_ids.append(new_id)
 
-        config_root.find('ID').text = str(new_id)
+        config_root.find('ID').text = new_id
         suite_id = config_root.find('ID').text
 
         kid_ids = config_root.xpath('//ID')
@@ -288,15 +289,15 @@ class CeXmlParser(object):
                 parent = kid_id.getparent()
 
                 # generate new unique id if necessary
-                new_id = uuid.uuid4()
+                new_id = hexlify(os.urandom(5))
                 while new_id in generated_ids:
-                    new_id = uuid.uuid4()
+                    new_id = hexlify(os.urandom(5))
 
-                generated_ids.append(str(new_id))
+                generated_ids.append(new_id)
 
                 # add to repeated_dict the old id and the new one
-                self._add_to_repeated(copy.deepcopy(kid_id.text), str(new_id), repeated_dict, suite_id + "-" + ep)
-                kid_id.text = str(new_id)
+                self._add_to_repeated(copy.deepcopy(kid_id.text), new_id, repeated_dict, suite_id + "-" + ep)
+                kid_id.text = new_id
 
         return True
 
@@ -347,16 +348,16 @@ class CeXmlParser(object):
 
             if parent_tc_copy != parent_tc:
                 # generate new unique id
-                new_id = uuid.uuid4()
+                new_id = hexlify(os.urandom(5))
                 while new_id in generated_ids:
-                    new_id = uuid.uuid4()
+                    new_id = hexlify(os.urandom(5))
 
-                generated_ids.append(str(new_id))
+                generated_ids.append(new_id)
                 # add to repeated dict - needed if dependency
-                self._add_to_repeated(parent_id_initial, str(new_id), repeated_dict, ep)
+                self._add_to_repeated(parent_id_initial, new_id, repeated_dict, ep)
 
                 # update parent_tc_copy id
-                parent_tc_copy.find('ID').text = str(new_id)
+                parent_tc_copy.find('ID').text = new_id
 
             parent_tc.addnext(parent_tc_copy)
             # create a copy for next iteration
@@ -529,7 +530,7 @@ class CeXmlParser(object):
             return '*ERROR* ' + msg
 
         # write general props to testsuties.xml file
-        root = etree.Element("Root")
+        root = etree.Element('Root')
         root.append(xml.find('stoponfail'))
         root.append(xml.find('PrePostMandatory'))
         root.append(xml.find('ScriptPre'))
@@ -626,21 +627,42 @@ class CeXmlParser(object):
         config_fs_root = etree.fromstring(config_ts_root)
         self._resolve_dependencies(repeated_dict, config_fs_root)
 
+        suite_no = 100  # Base ID for suites
+        suite_ids = {}  # Pairs with old -> new suite IDs
+        file_no = 1000  # Base ID for tests
+        file_ids = {}   # Pairs with old -> new file IDs
+
+        # Fix long ugly IDs with short integer IDs
+        for suite_id in config_fs_root.xpath('//TestSuite/ID'):
+            suite_no += 1
+            suite_ids[suite_id.text] = str(suite_no)
+            suite_id.text = str(suite_no)
+
+        # Fix long ugly IDs with short integer IDs
+        for file_id in config_fs_root.xpath('//TestCase/ID'):
+            file_no += 1
+            file_ids[file_id.text] = str(file_no)
+            file_id.text = str(file_no)
+
+        # Final XML string
+        xml_string = etree.tostring(config_fs_root, pretty_print=True)
+
+        # Fix old dependency IDs
+        for old_id, new_id in suite_ids.iteritems():
+            xml_string = xml_string.replace(old_id + ':', new_id + ':')
+
+        for old_id, new_id in file_ids.iteritems():
+            xml_string = xml_string.replace(old_id + ':', new_id + ':')
+
         # write the xml file
         xml_file = userHome(user) + '/twister/config/testsuites.xml'
 
-        xml_header = '<?xml version="1.0" encoding="UTF-8" standalone="no"?>\n\n'
-        resp = self.project.localFs.write_user_file(user, xml_file, xml_header, 'w')
+        resp = self.project.localFs.write_user_file(user, xml_file, xml_string, 'w')
         if resp != True:
             logError(resp)
             return '*ERROR* ' + resp
 
-        resp = self.project.localFs.write_user_file(user, xml_file, etree.tostring(config_fs_root, pretty_print=True), 'w')
-        if resp != True:
-            logError(resp)
-            return '*ERROR* ' + resp
-
-        logDebug("CeParser: Successfully generated: `{}`, user `{}`.".format(xml_file, user))
+        logDebug('CeParser: Successfully generated: `{}`, user `{}`.'.format(xml_file, user))
         return True
 
 

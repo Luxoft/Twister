@@ -1,7 +1,7 @@
 
 # File: CeRpyc.py ; This file is part of Twister.
 
-# version: 3.021
+# version: 3.025
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -630,7 +630,6 @@ class CeRpycService(rpyc.Service):
         """
         Read a binding between a CFG and a SUT.
         The result is XML.
-        
         """
         user = self._check_login()
         if not user:
@@ -646,20 +645,26 @@ class CeRpycService(rpyc.Service):
         """
         user = self._check_login()
         if not user:
-            return False
-        
+            return (False, 'DEFAULT_ERROR')
+
         # <root><name>cfg1</name><bind config="cp1" sut="/s1.user"/></root>
-        
+
         # check if the component exists
         result = self.exposed_get_config(cfg_name, '')
-        if component not in result:
-            return False
+        if not isinstance(result, dict):
+            logWarning('Config "{}" does not exist!'.format(cfg_name))
+            return (False, 'NO_CONFIG_FILE')
         
+        if component not in result:
+            logWarning('Component "{}" does not exist in config "{}"!'.format(component, cfg_name))
+            return (False, 'NO_COMPONENT')
+
         # check if the sut exists
         result = self.project.sut.get_sut(sut, props={'__user': user})
-        if isinstance(result, str):
-            return False
-        
+        if not isinstance(result, dict):
+            logWarning('Sut "{}" does not exist!'.format(sut))
+            return (False, 'NO_SUT')
+
         bindings_xml = self.exposed_get_binding(cfg_name)
         bindings_xml = bindings_xml.replace('<name>{}</name>'.format(cfg_name), '')
         bindings_tree = etree.fromstring(bindings_xml)
@@ -677,9 +682,13 @@ class CeRpycService(rpyc.Service):
         r = self.project.write_file(user, '~/twister/config/bindings.xml', fdata)
         if isinstance(r, str):
             logWarning('User `{}` could not update bindings for `{}`!'.format(user, cfg_name))
+            return (False, 'DEFAULT_ERROR')
         else:
             logDebug('User `{}` writes bindings for `{}`.'.format(user, cfg_name))
-        return r
+
+        # Cfg -> Sut bindings for user
+        self.project.users[user]['bindings'] = self.project.parsers[user].getBindingsConfig()
+        return (True, 'NO_ERROR')
 
 
     def exposed_del_binding(self, cfg_name, component):
@@ -688,26 +697,33 @@ class CeRpycService(rpyc.Service):
         """
         user = self._check_login()
         if not user:
-            return False
+            return (False, 'DEFAULT_ERROR')
         # check if the component exists
         result = self.exposed_get_config(cfg_name, '')
+        if not isinstance(result, dict):
+            logWarning('Config "{}" does not exist!'.format(cfg_name))
+            return (False, 'NO_CONFIG_FILE')
 
         if component not in result:
-            return False
-        
+            logWarning('Component "{}" does not exist in config "{}"!'.format(component, cfg_name))
+            return (False, 'NO_COMPONENT')
+
         bindings_xml = self.exposed_get_binding(cfg_name)
         bindings_xml = bindings_xml.replace('<name>{}</name>'.format(cfg_name), '')
         bindings_xml = re.sub('<bind config="{}" sut=".*?"/>'.format(component), '', bindings_xml)
-        
+
         fdata = self.project.parsers[user].set_binding(cfg_name, bindings_xml)
-        
+
         r = self.project.write_file(user, '~/twister/config/bindings.xml', fdata)
         if isinstance(r, str):
             logWarning('User `{}` could not update bindings for `{}`!'.format(user, cfg_name))
-            return False
+            return (False, 'DEFAULT_ERROR')
         else:
             logDebug('User `{}` writes bindings for `{}`.'.format(user, cfg_name))
-        return True
+
+        # Cfg -> Sut bindings for user
+        self.project.users[user]['bindings'] = self.project.parsers[user].getBindingsConfig()
+        return (True, 'NO_ERROR')
 
 
 # # #   Register / Start / Stop EPs   # # #
@@ -1613,7 +1629,7 @@ class CeRpycService(rpyc.Service):
         logFull('CeRpyc:exposed_reserve_tb')
         user = self._check_login()
         if not user:
-            return False
+            return (False, 'DEFAULT_ERROR')
         return self.project.tb.reserve_tb(query, props={'__user': user})
 
 
@@ -1622,7 +1638,7 @@ class CeRpycService(rpyc.Service):
         logFull('CeRpyc:exposed_reserve_sut')
         user = self._check_login()
         if not user:
-            return False
+            return (False, 'DEFAULT_ERROR')
         return self.project.sut.reserve_sut(query, props={'__user': user})
 
 

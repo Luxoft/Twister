@@ -1,7 +1,7 @@
 
 # File: CeReports.py ; This file is part of Twister.
 
-# version: 3.002
+# version: 3.005
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -59,46 +59,31 @@ from common.xmlparser  import *
 if mako.__version__ < '0.7':
     logWarning('Warning! Mako-template version `{}` is old! Some pages might crash!\n'.format(mako.__version__))
 
-# --------------------------------------------------------------------------------------------------
-# # # #    C L A S S    R e p o r t i n g    # # #
-# --------------------------------------------------------------------------------------------------
 
 
 class ReportingServer(object):
-    """ Generate reports """
+    """
+    Reporting server class.
+    """
 
     db_parser = {}
     glob_fields  = {}
     glob_reports = {}
     glob_redirects = {}
     glob_links   = {}
-    conn = {}
-    curs = {}
 
 
     def __init__(self, project):
-
+        """
+        Initialization function.
+        """
         self.project = project
 
 
-    def connect_db(self, usr):
-        '''
-        Reconnect to the database.
-        '''
-        logFull('CeReports:connect_db')
-        conn = self.project.dbmgr.connect_db(usr)
-        if not conn:
-            raise Exception('Cannot connect to Database!')
-
-        self.conn[usr] = conn
-        self.curs[usr] = conn.cursor()
-
-
     def load_config(self, usr, force=False):
-        '''
+        """
         Read DB Config File for 1 user.
-        '''
-        logFull('CeReports:load_config')
+        """
         if not os.path.isdir(userHome(usr) + '/twister/config'):
             logError('Report Server: Cannot find Twister for user `{}` !'.format(usr))
             return False
@@ -112,29 +97,47 @@ class ReportingServer(object):
         # Create database parser IF necessary, or FORCED...
         if force or (usr not in self.db_parser):
 
-            self.db_parser[usr]      = DBParser(usr, db_file)
-            self.glob_fields[usr]    = self.db_parser[usr].getReportFields()
-            self.glob_reports[usr]   = self.db_parser[usr].getReports()
-            self.glob_redirects[usr] = self.db_parser[usr].getRedirects()
+            self.db_parser[usr] = True
+            self.glob_fields[usr]  = OrderedDict()
+            self.glob_reports[usr] = OrderedDict()
+            self.glob_redirects[usr] = OrderedDict()
 
-            # There are more types of reports:
-            # Normal links, like Home, Help and other normal reports
-            # Redirect links, that don't contain reports
-            # Folders, that don't go anywhere, are just labels for reports
-            self.glob_links[usr] = [{'link': 'Home', 'folder': '', 'type': 'link'}] +\
-                   [{'link': k, 'folder': v.get('folder', ''), 'type': 'link'}\
-                   for k, v in self.glob_reports[usr].iteritems() ] +\
-                   [{'link': k, 'folder': '', 'type': 'redir'}\
-                   for k in self.glob_redirects[usr] ] +\
-                   [{'link': 'Help', 'folder': '', 'type': 'link'}]
+            usr_roles = self.project._parse_users_and_groups()
+            shared_db_path = usr_roles['shared_db_cfg']
+            db_cfg_role = 'CHANGE_DB_CFG' in usr_roles['users'][usr]['roles']
+            # Get reports will automatically handle private/ shared DB.xml
+            report_queries = DBParser(usr, db_file, shared_db_path).get_reports(db_cfg_role)
 
-            self.connect_db(usr)
+            for host_db in report_queries:
+
+                self.glob_fields[usr].update( report_queries[host_db]['fields'] )
+                self.glob_reports[usr].update( report_queries[host_db]['reports'] )
+                self.glob_redirects[usr].update( report_queries[host_db]['redirects'] )
+
+                # There are more types of reports:
+                # Normal links, like Home, Help and other normal reports
+                # Redirect links, that don't contain reports
+                # Folders, that don't go anywhere, are just labels for reports
+                self.glob_links[usr] = [{'link': 'Home', 'type': 'link'}] + \
+                       [{
+                         'link': k,
+                         'type': 'link',
+                         'folder': v.get('folder', ''),
+                         'srvr': '/'.join(v.get('srv_db', []))
+                        } \
+                       for k, v in self.glob_reports[usr].iteritems()] + \
+                       [{'link': k, 'folder': '', 'type': 'redir'} \
+                       for k in self.glob_redirects[usr] ] + \
+                       [{'link': 'Help', 'folder': '', 'type': 'link'}]
+
+        return True
 
 
-    # Report link 1
     @cherrypy.expose
     def index(self, usr=''):
-        """ Index page """
+        """
+        The index page.
+        """
         logFull('CeReports:index')
 
         if not usr:
@@ -154,29 +157,26 @@ class ReportingServer(object):
     @cherrypy.expose
     def home(self, usr=''):
         """ Get reporting link 2 """
-        logFull('CeReports:home')
         return self.index(usr=usr)
 
     # Report link 3
     @cherrypy.expose
     def report(self, usr=''):
         """ Get reporting link 3 """
-        logFull('CeReports:report')
         return self.index(usr=usr)
 
     # Report link 4
     @cherrypy.expose
     def reporting(self, usr=''):
         """ Get reporting link 4 """
-        logFull('CeReports:reporting')
         return self.index(usr=usr)
 
 
-    # Help link
     @cherrypy.expose
     def help(self, usr=''):
         """ Help page """
         logFull('CeReports:help')
+
         if not usr:
             return '<br><b>Error! This link should be accessed by passing a username, eg: /help/some_user<b/>'
 
@@ -188,10 +188,11 @@ class ReportingServer(object):
         return output.render(title='Help', usr=usr, links=self.glob_links[usr])
 
 
-    # Reporting link
     @cherrypy.expose
     def rep(self, report=None, usr=None, **args):
-        """ Generate report """
+        """
+        Reporting link.
+        """
         logFull('CeReports:rep')
 
         if not usr:
@@ -201,8 +202,6 @@ class ReportingServer(object):
             return '<br><b>Error! Username `{}` doesn\'t have a Twister config folder!</b>'.format(usr)
 
         self.load_config(usr) # Re-load all Database XML
-        if usr not in self.conn:
-            self.connect_db(usr)
 
         cherrypy.response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
         cherrypy.response.headers['Pragma']  = 'no-cache'
@@ -225,6 +224,15 @@ class ReportingServer(object):
         report_dict = self.glob_reports[usr][report]
 
         query = report_dict['sqlquery']
+        db_server, db_name = report_dict['srv_db']
+
+        conn = self.project.dbmgr.connect_db(usr, db_server, db_name)
+        if not conn:
+            output = Template(filename=TWISTER_PATH + '/server/template/rep_error.htm')
+            return output.render(links=self.glob_links[usr], title=report, usr=usr,
+                msg='Cannot connect to MySql server `{} / {}` !'.format(db_server, db_name))
+
+        curs = conn.cursor()
 
         # All variables that must be replaced in Query
         vars_to_replace = re.findall('(@.+?@)', query)
@@ -263,20 +271,15 @@ class ReportingServer(object):
 
                     # Execute User Query
                     try:
-                        self.curs[usr].execute(u_query)
-                    except MySQLdb.Error, e:
-                        try:
-                            self.connect_db(usr)
-                        except:
-                            pass
-
+                        curs.execute(u_query)
+                    except MySQLdb.Error as e:
                         output = Template(filename=TWISTER_PATH + '/server/template/rep_error.htm')
                         return output.render(links=self.glob_links[usr], title=report, usr=usr,
                             msg='Error in query `{}`!<br><br><b>MySQL Error {}</b>: {}!'.format(
                                 u_query, e.args[0], e.args[1]))
 
                     try:
-                        u_vals = self.curs[usr].fetchall()
+                        u_vals = curs.fetchall()
                     except Exception, e:
                         output = Template(filename=TWISTER_PATH + '/server/template/rep_error.htm')
                         return output.render(links=self.glob_links[usr], title=report, usr=usr,
@@ -333,18 +336,13 @@ class ReportingServer(object):
         del ajax_links
 
         try:
-            self.curs[usr].execute(query)
-        except MySQLdb.Error, e:
-            try:
-                self.connect_db(usr)
-            except:
-                pass
-            #
+            curs.execute(query)
+        except MySQLdb.Error as e:
             output = Template(filename=TWISTER_PATH + '/server/template/rep_error.htm')
             return output.render(title=report, links=self.glob_links[usr], usr=usr,
                 msg='Error in query `{}`!<br><br><b>MySQL Error {}</b>: {}!'.format(query, e.args[0], e.args[1]))
 
-        descr = [desc[0] for desc in self.curs[usr].description]
+        descr = [desc[0] for desc in curs.description]
 
         # Write DEBUG
         #DEBUG.write(report +' -> '+ user_choices +' -> '+ query + '\n\n') ; DEBUG.flush()
@@ -364,18 +362,13 @@ class ReportingServer(object):
                 query_compr = query_compr.replace(field, str(u_select))
 
             try:
-                self.curs[usr].execute(query_compr)
-            except MySQLdb.Error, e:
-                try:
-                    self.connect_db(usr)
-                except:
-                    pass
-                #
+                curs.execute(query_compr)
+            except MySQLdb.Error as e:
                 output = Template(filename=TWISTER_PATH + '/server/template/rep_error.htm')
                 return output.render(title=report, links=self.glob_links[usr], usr=usr,
-                msg='Error in query `{}`!<br><br><b>MySQL Error {}</b>: {}!'.format(query_compr, e.args[0], e.args[1]))
+                    msg='Error in query `{}`!<br><br><b>MySQL Error {}</b>: {}!'.format(query_compr, e.args[0], e.args[1]))
 
-            headers_tot = [desc[0] for desc in self.curs[usr].description]
+            headers_tot = [desc[0] for desc in curs.description]
 
             # Update headers: must contain both headers.
             descr = descr + ['vs.'] + headers_tot
@@ -389,10 +382,11 @@ class ReportingServer(object):
                              report=descr, chart=report_dict['type'])
 
 
-    # JSON link
     @cherrypy.expose
     def json(self, report, usr, **args):
-        """ Generate json format """
+        """
+        The report data, in json format.
+        """
         logFull('CeReports:json')
 
         if not usr:
@@ -407,8 +401,6 @@ class ReportingServer(object):
             return json.dumps(output, indent=2)
 
         self.load_config(usr) # Re-load all Database XML
-        if usr not in self.conn:
-            self.connect_db(usr)
 
         cherrypy.response.headers['Content-Type']  = 'application/json; charset=utf-8'
         cherrypy.response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
@@ -421,7 +413,17 @@ class ReportingServer(object):
 
         # All info about the report, from DB XML.
         report_dict = self.glob_reports[usr][report]
+
         query = report_dict['sqlquery']
+        db_server, db_name =  report_dict['srv_db']
+
+        conn = self.project.dbmgr.connect_db(usr, db_server, db_name)
+        if not conn:
+            output = Template(filename=TWISTER_PATH + '/server/template/rep_error.htm')
+            return output.render(links=self.glob_links[usr], title=report, usr=usr,
+                msg='Cannot connect to MySql server `{} / {}` !'.format(db_server, db_name))
+
+        curs = conn.cursor()
 
         # All variables that must be replaced in Query
         vars_to_replace = re.findall('(@.+?@)', query)
@@ -433,19 +435,13 @@ class ReportingServer(object):
             query = query.replace(field, str(u_select))
 
         try:
-            self.curs[usr].execute(query)
-        except MySQLdb.Error, e:
-            try:
-                self.connect_db(usr)
-            except:
-                pass
-
-            output = {'aaData':[], 'error':'Error in query `{}`! MySQL Error {}: {}!'
-                .format(query, e.args[0], e.args[1])}
+            curs.execute(query)
+        except MySQLdb.Error as e:
+            output = {'aaData':[], 'error':'Error in query `{}`! MySQL Error {}: {}!'.format(query, e.args[0], e.args[1])}
             return json.dumps(output, indent=2)
 
-        headers = [desc[0] for desc in self.curs[usr].description]
-        rows = self.curs[usr].fetchall()
+        headers = [desc[0] for desc in curs.description]
+        rows = curs.fetchall()
         del query
 
         query_total = report_dict['sqltotal']
@@ -464,19 +460,13 @@ class ReportingServer(object):
                 query_total = query_total.replace(field, str(u_select))
 
             try:
-                self.curs[usr].execute(query_total)
-            except MySQLdb.Error, e:
-                try:
-                    self.connect_db(usr)
-                except:
-                    pass
-
-                output = {'aaData':[], 'error':'Error in query total `{}`! MySQL Error {}: {}!'
-                    .format(query_total, e.args[0], e.args[1])}
+                curs.execute(query_total)
+            except MySQLdb.Error as e:
+                output = {'aaData':[], 'error':'Error in query total `{}`! MySQL Error {}: {}!'.format(query_total, e.args[0], e.args[1])}
                 return json.dumps(output, indent=2)
 
-            headers_tot = [desc[0] for desc in self.curs[usr].description]
-            rows_tot = self.curs[usr].fetchall()
+            headers_tot = [desc[0] for desc in curs.description]
+            rows_tot = curs.fetchall()
 
             if len(headers) != len(headers_tot):
                 output = {'aaData':[], 'error':'The first query has {} columns and the second has {} columns!'
@@ -525,19 +515,14 @@ class ReportingServer(object):
                 query_compr = query_compr.replace(field, str(u_select))
 
             try:
-                self.curs[usr].execute(query_compr)
-            except MySQLdb.Error, e:
-                try:
-                    self.connect_db(usr)
-                except:
-                    pass
-
+                curs.execute(query_compr)
+            except MySQLdb.Error as e:
                 output = {'aaData':[], 'error':'Error in query compare `{}`! '\
                     'MySQL Error {}: {}!'.format(query_total, e.args[0], e.args[1])}
                 return json.dumps(output, indent=2)
 
-            headers_tot = [desc[0] for desc in self.curs[usr].description]
-            rows_tot = self.curs[usr].fetchall()
+            headers_tot = [desc[0] for desc in curs.description]
+            rows_tot = curs.fetchall()
 
             if len(headers) != len(headers_tot): # Must be the same number of columns
                 output = {'aaData':[], 'error':'The first query has {} columns and the second has {} columns!'
@@ -569,7 +554,6 @@ class ReportingServer(object):
             calc_rows = rows
             del rows
 
-
         if (not calc_rows) or (not calc_rows[0:1]):
             output = {'aaData':[], 'error':'The select is empty!'}
             return json.dumps(output, indent=2)
@@ -584,18 +568,21 @@ class ReportingServer(object):
             indent=2, default=dthandler)
 
 
-    # Error page
     @cherrypy.expose
     def error(self, **args):
-        """ Generate error page """
+        """
+        The error page.
+        """
         logFull('CeReports:error')
         output = Template(filename=TWISTER_PATH + '/server/template/rep_error.htm')
         return output.render(title='Error 404', links=[], msg='Sorry, this page does not exist!')
 
-    # Error page
+
     @cherrypy.expose
     def default(self, **args):
-        """ Generate default template """
+        """
+        The error page.
+        """
         logFull('CeReports:default')
         output = Template(filename=TWISTER_PATH + '/server/template/rep_error.htm')
         return output.render(title='Error 404', links=[], msg='Sorry, this page does not exist!')

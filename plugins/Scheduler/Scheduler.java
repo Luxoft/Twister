@@ -1,6 +1,6 @@
 /*
 File: Scheduler.java ; This file is part of Twister.
-Version: 2.003
+Version: 2.004
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -34,8 +34,6 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
@@ -45,8 +43,6 @@ import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Locale;
-import java.util.Properties;
-
 import javax.imageio.ImageIO;
 import javax.swing.BorderFactory;
 import javax.swing.DefaultListCellRenderer;
@@ -69,34 +65,21 @@ import javax.swing.border.BevelBorder;
 import javax.swing.plaf.basic.BasicComboBoxUI;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableColumn;
-
-import com.jcraft.jsch.Channel;
-import com.jcraft.jsch.ChannelSftp;
-import com.jcraft.jsch.ChannelSftp.LsEntry;
-import com.jcraft.jsch.JSch;
-import com.jcraft.jsch.Session;
 import com.toedter.calendar.JDateChooser;
 import com.toedter.calendar.JTextFieldDateEditor;
 import com.twister.CustomDialog;
 import com.twister.Item;
 import com.twister.plugin.baseplugin.BasePlugin;
 import com.twister.plugin.twisterinterface.TwisterPluginInterface;
-
 import org.apache.xmlrpc.XmlRpcException;
 import org.apache.xmlrpc.client.XmlRpcClient;
 import org.apache.xmlrpc.client.XmlRpcClientConfigImpl;
 import org.w3c.dom.Document;
-import javax.xml.transform.OutputKeys;
-import javax.xml.transform.Result;
-import javax.xml.transform.Transformer;
-import javax.xml.transform.TransformerFactory;
-import javax.xml.transform.dom.DOMSource;
-import javax.xml.transform.stream.StreamResult;
 
 public class Scheduler extends BasePlugin implements TwisterPluginInterface {
 	private static final long serialVersionUID = 1L;  
 	private JPanel p;
-	public XmlRpcClient client;
+	public XmlRpcClient client,projectclient;
 	private JLabel left,right,add,remove,modify,tick;
 	private Calendar calendar ;
 	private Icon left0,left1,right0,right1,add0,add1,
@@ -148,6 +131,7 @@ public class Scheduler extends BasePlugin implements TwisterPluginInterface {
 		calendar = Calendar.getInstance();
 		//initializeSFTP();
 		initializeRPC();
+		initializeRPCProjectFiles();
 		p = new JPanel(){
 			private static final long serialVersionUID = 1L;
 			public void paint(Graphics g){
@@ -387,35 +371,39 @@ public class Scheduler extends BasePlugin implements TwisterPluginInterface {
 				initialy = arg0.getY();
 			}
 		});
-		try{c.cd(variables.get("remoteusersdir"));}
-        catch(Exception e){
-            System.out.println("Could not get to "+
-            					variables.get("remoteusersdir")+
-            					" on sftp");
-            e.printStackTrace();
-        }
-        int size ;
-        try{size= c.ls(variables.get("remoteusersdir")).size();}
-        catch(Exception e){
-            System.out.println("No suites xml");
-            size=0;
-            e.printStackTrace();}
-        ArrayList<String> files = new ArrayList<String>();
-        String name=null;
-        for(int i=0;i<size;i++){
-            try{name = ((LsEntry)c.ls(variables.get("remoteusersdir")).get(i)).getFilename();
-                if(name.split("\\.").length==0)continue; 
-                if(name.toLowerCase().indexOf(".xml")==-1)continue;
-                if(name.equals("last_edited.xml"))continue;
-                files.add(name.toString());
-            }
-            catch(Exception e){
-                e.printStackTrace();}
-        }   
-        String users[] = new String[files.size()];
-        for(int i=0;i<files.size();i++){
-            users[i] = files.get(i);
-        }
+		
+//		try{c.cd(variables.get("remoteusersdir"));}
+//        catch(Exception e){
+//            System.out.println("Could not get to "+
+//            					variables.get("remoteusersdir")+
+//            					" on sftp");
+//            e.printStackTrace();
+//        }
+//		
+//        int size ;
+//        try{size= c.ls(variables.get("remoteusersdir")).size();}
+//        catch(Exception e){
+//            System.out.println("No suites xml");
+//            size=0;
+//            e.printStackTrace();}
+//        ArrayList<String> files = new ArrayList<String>();
+//        String name=null;
+//        for(int i=0;i<size;i++){
+//            try{name = ((LsEntry)c.ls(variables.get("remoteusersdir")).get(i)).getFilename();
+//                if(name.split("\\.").length==0)continue; 
+//                if(name.toLowerCase().indexOf(".xml")==-1)continue;
+//                if(name.equals("last_edited.xml"))continue;
+//                files.add(name.toString());
+//            }
+//            catch(Exception e){
+//                e.printStackTrace();}
+//        }
+        //String users[] = new String[files.size()];
+		
+		String users[] = getProjectsFiles();
+        //for(int i=0;i<files.size();i++){
+        //    users[i] = files.get(i);
+        //}
 		final JComboBox<String> tproject = new JComboBox<String>(users);
 		tproject.setUI(new BasicComboBoxUI());
 		tproject.setBounds(76,10,140,23);
@@ -658,36 +646,70 @@ public class Scheduler extends BasePlugin implements TwisterPluginInterface {
 		panel.setBackground(new Color(220,220,220));
 	}
 	
+	//get project files listed
+	public String [] getProjectsFiles(){
+        Object ob = null;
+        try{
+            ob = projectclient.execute("list_projects", new Object[]{});
+            if(ob.toString().indexOf("*ERROR*")!=-1){
+                CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,this,"ERROR", ob.toString());
+                return new String[]{};
+            }
+            HashMap struct = (HashMap)ob;
+            Object [] children = (Object [])struct.get("children");
+            if(children!=null&&children.length>0){
+                ArrayList<String> files = new ArrayList<String>();
+                for(Object subchild:children){
+                    if(((HashMap)subchild).get("folder")==null){
+                        files.add(((HashMap)subchild).get("data").toString());
+                    }
+                }
+                String [] resp = new String[files.size()];
+                files.toArray(resp);
+                return resp;
+            }
+            return new String[]{};
+        } catch (Exception e) {
+            if(ob.toString().indexOf("*ERROR*")!=-1)CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,this,"ERROR", ob.toString());
+            System.out.println("Server response: "+ob.toString());
+            e.printStackTrace();
+            return new String[]{};
+        }
+    }
+	
 	/*
 	 * displays a list of project files
 	 * and inserts the name of the selected one
 	 * into the field
 	 */
 	public void openProjectFile(JTextField field){
-		try{c.cd(variables.get("remoteusersdir"));}
-        catch(Exception e){
-            System.out.println("Could not get to "+variables.get("remoteusersdir")+"on sftp");}
-        int size ;
-        try{size= c.ls(variables.get("remoteusersdir")).size();}
-        catch(Exception e){
-            System.out.println("No suites xml");
-            size=0;}
-        ArrayList<String> files = new ArrayList<String>();
-        String name=null;
-        for(int i=0;i<size;i++){
-            try{name = ((LsEntry)c.ls(variables.get("remoteusersdir")).get(i)).getFilename();
-                if(name.split("\\.").length==0)continue; 
-                if(name.toLowerCase().indexOf(".xml")==-1)continue;
-                if(name.equals("last_edited.xml"))continue;
-                files.add(name.toString());
-            }
-            catch(Exception e){
-                e.printStackTrace();}
-        }   
-        String users[] = new String[files.size()];
-        for(int i=0;i<files.size();i++){
-            users[i] = files.get(i);
-        }
+//		try{c.cd(variables.get("remoteusersdir"));}
+//        catch(Exception e){
+//            System.out.println("Could not get to "+variables.get("remoteusersdir")+"on sftp");}
+//        int size ;
+//        try{size= c.ls(variables.get("remoteusersdir")).size();}
+//        catch(Exception e){
+//            System.out.println("No suites xml");
+//            size=0;}
+//        ArrayList<String> files = new ArrayList<String>();
+//        String name=null;
+//        for(int i=0;i<size;i++){
+//            try{name = ((LsEntry)c.ls(variables.get("remoteusersdir")).get(i)).getFilename();
+//                if(name.split("\\.").length==0)continue; 
+//                if(name.toLowerCase().indexOf(".xml")==-1)continue;
+//                if(name.equals("last_edited.xml"))continue;
+//                files.add(name.toString());
+//            }
+//            catch(Exception e){
+//                e.printStackTrace();}
+//        }   
+//        String users[] = new String[files.size()];
+//        for(int i=0;i<files.size();i++){
+//            users[i] = files.get(i);
+//        }
+        
+        
+        String users[] = getProjectsFiles();
         JComboBox <String>combo = new JComboBox<String>(users);
         
         int resp = (Integer)CustomDialog.showDialog(combo,
@@ -738,7 +760,7 @@ public class Scheduler extends BasePlugin implements TwisterPluginInterface {
 		super.terminate();
 		p=null;
 		client=null;
-		c=null;
+		projectclient = null;
 		left=null;
 		right=null;
 		add=null;
@@ -833,6 +855,19 @@ public class Scheduler extends BasePlugin implements TwisterPluginInterface {
 	        configuration.setBasicUserName(variables.get("user"));
 	        client = new XmlRpcClient();
 	        client.setConfig(configuration);
+	        System.out.println("Client initialized: "+client);}
+		catch(Exception e){System.out.println("Could not conect to "+
+                        variables.get("host")+" :88/");}
+	}
+	
+	public void initializeRPCProjectFiles(){
+		try{
+			XmlRpcClientConfigImpl configuration = new XmlRpcClientConfigImpl();
+	        configuration.setServerURL(new URL("http://"+variables.get("host")+":"+variables.get("port")+"/"));
+	        configuration.setBasicPassword(variables.get("password"));
+	        configuration.setBasicUserName(variables.get("user"));
+	        projectclient = new XmlRpcClient();
+	        projectclient.setConfig(configuration);
 	        System.out.println("Client initialized: "+client);}
 		catch(Exception e){System.out.println("Could not conect to "+
                         variables.get("host")+" :88/");}

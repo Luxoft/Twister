@@ -1,6 +1,6 @@
 /*
 File: Emails.java ; This file is part of Twister.
-Version: 3.001
+Version: 3.002
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -65,8 +65,6 @@ public class Emails extends JPanel{
     public Emails(){
         setLayout(null);
         setPreferredSize(new Dimension(450,560));
-//         setBorder(BorderFactory.createBevelBorder(BevelBorder.LOWERED));
-        //setBorder(BorderFactory.createTitledBorder("Email"));
         setBackground(Color.WHITE);
         TitledBorder border = BorderFactory.createTitledBorder("SMTP server");
         border.setTitleFont(new Font("Arial",Font.PLAIN,14));
@@ -164,25 +162,7 @@ public class Emails extends JPanel{
         enable = new JLabel("Disabled");
         enable.setBounds(360,500,60,20);
         add(enable);
-//         new Thread(){
-//             public void run(){
-//                 while(RunnerRepository.window==null){
-//                     try{Thread.sleep(100);}
-//                     catch(Exception e){e.printStackTrace();}
-//                 }
-// //                 System.out.println(RunnerRepository.window==null);
-// //                 System.out.println(RunnerRepository.window.mainpanel==null);
-// //                 System.out.println(RunnerRepository.window.mainpanel.p4==null);
-// //                 System.out.println(RunnerRepository.window.mainpanel.p4.config==null);
-// //                 System.out.println(RunnerRepository.window.mainpanel.p4.config.emailpanel==null);
-//                 JPanel pl = RunnerRepository.window.mainpanel.p4.config.emailpanel;
-//                 pl.setBounds(80,5,500,75);
-//                 add(pl);
-//             }
-//         }.start();
-        
-        
-        
+
         check = new JCheckBox();
         check.setBounds(412,500,20,20);
         check.addActionListener(new ActionListener(){
@@ -191,9 +171,6 @@ public class Emails extends JPanel{
                 else enable.setText("Disabled");}});
         add(check);
         JButton save = new JButton("Save");
-//         if(!PermissionValidator.canEditEmail()){
-//             save.setEnabled(false);
-//         }
         save.setBounds(352,525,80,20);
         save.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
@@ -201,7 +178,6 @@ public class Emails extends JPanel{
                 if(tpass.getPassword().length == 0){
                     CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, Emails.this, "Warning", "Warning, password not set");}
                 try{
-//                     saveEmailPath();
                     File theone = new File(RunnerRepository.temp+RunnerRepository.getBar()+"Twister"+RunnerRepository.getBar()+"config"+RunnerRepository.getBar()+new File(RunnerRepository.REMOTEEMAILCONFIGFILE).getName());
                     DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
                     DocumentBuilder db = dbf.newDocumentBuilder();                                        
@@ -273,9 +249,6 @@ public class Emails extends JPanel{
                 else CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, Emails.this, "Warning", "File could not be saved");}});
         add(save);
         JButton test = new JButton("Test");
-//         if(!PermissionValidator.canEditEmail()){
-//             test.setEnabled(false);
-//         }
         test.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 testEmail();

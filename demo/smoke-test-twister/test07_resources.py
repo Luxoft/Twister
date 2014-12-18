@@ -55,7 +55,12 @@ def test():
 	print 'Update resource::', set_tb(tb_name, '/', {'more-info': 'y'})
 	print 'Saving resource...', save_reserved_tb(tb_id)
 	print
-
+	
+	print 'Reserving resource...', reserve_tb(tb_id)
+	print 'Update resource::', set_tb(tb_name, '/', {'more-info': 'y'})
+	print 'Saving resource...', save_reserved_tb(tb_id)
+	print
+	
 	child_id = set_tb('child', tb_id, {'some-meta': 'y'})
 	print 'Create child::', child_id
 	print 'Releasing resource...', save_release_reserved_tb(tb_id)

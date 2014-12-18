@@ -1,7 +1,7 @@
 
 # File: CeSuts.py ; This file is part of Twister.
 
-# version: 3.005
+# version: 3.007
 
 # Copyright (C) 2012-2014, Luxoft
 
@@ -226,6 +226,7 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
     def __init__(self, project):
 
         self.project = project
+        self.type = 'sut'
         self.resources = constant_dictionary
         self.reservedResources = {}
         self.lockedResources = {}
@@ -351,7 +352,7 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
         try:
             result = self.format_resource(result, query)
         except Exception:
-            logFull("User {}: The sut is already formated {}".format(user_info[0], query))
+            logFull('The sut `{}` is already formated !'.format(query))
             pass
         if isinstance(result['path'], list):
             result['path'] = '/'.join(result['path'])
@@ -529,11 +530,14 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
             sutPath = self.project.get_user_info(username, 'sys_sut_path')
             if not sutPath:
                 sutPath = '{}/config/sut/'.format(TWISTER_PATH)
-        else:
+        elif sutType == 'user':
             # User SUT path
             sutPath = self.project.get_user_info(username, 'sut_path')
             if not sutPath:
                 sutPath = '{}/twister/config/sut/'.format(usrHome)
+        else:
+            logWarning('Invalid sut type {}'.format(sutType))
+            return False
 
         #avoid having more than one "/" or not having at all
         if query[0] == '/' and sutPath[-1] == '/':
@@ -541,7 +545,7 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
         elif query[0] != '/' and sutPath[-1] != '/':
             query = '/' + query
 
-        fileName = query.split('.')[0] + '.json'
+        fileName = '.'.join(query.split('.')[:-1]) + '.json'
         sutFile = sutPath + fileName
         sutContent = False
 
@@ -656,12 +660,12 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
         logDebug('CeSuts:get_meta_sut {} {}'.format(res_query, props))
 
         if ':' in res_query:
-            meta      = res_query.split(':')[1]
-            res_query = res_query.split(':')[0]
+            res_query, meta = res_query.split(':')
         else:
             meta = ''
 
         result = None
+
         # If the SUT is reserved, get the latest unsaved changes
         if user_info[0] in self.reservedResources:
             for i in range(len(self.reservedResources[user_info[0]].values())):
@@ -673,18 +677,58 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
                 if isinstance(result, dict):
                     break
 
-        # Or get it from the disk
         if not isinstance(result, dict):
-            result = self.get_resource(res_query)
-            # SUT not loaded
-            if not isinstance(result, dict):
-                msg = "User:{} Can not find: {}. Call get_sut for a sut, component, or meta.".format(user_info[0], res_query)
-                logError(msg)
+
+            parts = [p for p in res_query.split('/') if p]
+            # The path is invalid
+            if len(parts) == 1:
                 return False
+
+            curr_parts = [parts.pop(0)]
+
+            while 1:
+                try:
+                    curr_parts.append(parts.pop(0))
+                except Exception:
+                    break
+                curr_path = '/' + '/'.join(curr_parts)
+
+                result = self.get_resource(curr_path)
+                logWarning( result )
+
+                # SUT not loaded
+                if not isinstance(result, dict):
+                    msg = 'User `{}`: Cannot find `{}`!'.format(user_info[0], curr_path)
+                    logWarning(msg)
+                    return False
+
+                if result['meta'].get('_id'):
+                    # Ok, this might be a Device path, instead of SUT path!
+                    tb_id = result['meta']['_id']
+                    self.project.tb.load_tb(verbose=False)
+                    result = self.project.tb.get_tb(tb_id, props)
+
+                    # If the Device ID is invalid, bye bye!
+                    if not isinstance(result, dict):
+                        return False
+
+                    tb_path = '/' + result['path'] + '/' + '/'.join(parts)
+                    result = self.project.tb.get_tb(tb_path, props)
+
+                    # If the Device ID is invalid, bye bye!
+                    if not isinstance(result, dict):
+                        return False
+
+                    if meta:
+                        return result['meta'].get(meta, '')
+                    else:
+                        return result
+
+            return True
 
         if isinstance(result, dict):
 
-            #If this SUT / component is linked with a TB
+            # If this SUT / component is linked with a TB
             if result['meta'].get('_id'):
 
                 # Ok, this might be a Device path, instead of SUT path!

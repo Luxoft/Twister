@@ -1,17 +1,15 @@
 #!/usr/bin/env python2.7
 
-# version: 2.006
+# version: 3.006
 
 # File: install_dev.py ; This file is part of Twister.
 
 # Copyright (C) 2012-2013 , Luxoft
 
 # Authors:
-#    Adrian Toader <adtoader@luxoft.com>
 #    Andrei Costachi <acostachi@luxoft.com>
-#    Andrei Toma <atoma@luxoft.com>
 #    Cristi Constantin <crconstantin@luxoft.com>
-#    Daniel Cioata <dcioata@luxoft.com>
+#    Mihai Dobre <mihdobre@luxoft.com>
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -239,7 +237,6 @@ elif TO_INSTALL == 'client':
         'bin/cli.py',
         'bin/start_client',
         'bin/start_client.py',
-        'bin/start_packet_sniffer.py',
         'doc/',
         'demo/',
         'config/',
@@ -328,6 +325,27 @@ for fname in to_link:
 
 #
 
+if TO_INSTALL == 'client':
+    # Create cache and logs folders
+    try: os.mkdir(INSTALL_PATH + '/.twister_cache')
+    except: pass
+    try: os.mkdir(INSTALL_PATH + '/logs')
+    except: pass
+    try: os.mkdir(INSTALL_PATH + '/config/sut')
+    except: pass
+    # Delete Server config files...
+    try: os.remove(INSTALL_PATH +os.sep+ 'config/resources.json')
+    except: pass
+    try: os.remove(INSTALL_PATH +os.sep+ 'config/services.ini')
+    except: pass
+    try: os.remove(INSTALL_PATH +os.sep+ 'config/server_init.ini')
+    except: pass
+    try: os.remove(INSTALL_PATH +os.sep+ 'config/users_and_groups.ini')
+    except: pass
+    try: os.remove(INSTALL_PATH +os.sep+ 'config/shared_db.xml')
+    except: pass
+
+
 # Restore CONFIG folder, if any
 if os.path.exists(tmp_config):
     print('\nMoving `config` folder back (from `{}` to `{}`)...'.format(tmp_config, cfg_path))
@@ -341,45 +359,28 @@ if os.path.exists(tmp_config):
         print('Restoring config `{}`.'.format(dst_name))
         shutil.move(src_name, cfg_path)
 
-#
 
 if TO_INSTALL == 'client':
-
-    # Create cache and logs folders
-    try: os.mkdir(INSTALL_PATH +os.sep+ '.twister_cache')
-    except: pass
-    try: os.mkdir(INSTALL_PATH +os.sep+ 'logs')
-    except: pass
-    # Delete Server config files...
-    try: os.remove(INSTALL_PATH +os.sep+ 'config/resources.json')
-    except: pass
-    try: os.remove(INSTALL_PATH +os.sep+ 'config/services.ini')
-    except: pass
-    try: os.remove(INSTALL_PATH +os.sep+ 'config/server_init.ini')
-    except: pass
-    try: os.remove(INSTALL_PATH +os.sep+ 'config/users_and_groups.ini')
-    except: pass
     # Change owner for install folder...
-    tcr_proc = subprocess.Popen(['chown', user_name+':'+user_name, INSTALL_PATH, '-R'],)
+    tcr_proc = subprocess.Popen(['chown', user_name+':'+user_name, INSTALL_PATH, '-R'])
+    print('Changing owner to `{0}:{0}` ...'.format(user_name))
     tcr_proc.wait()
+    del tcr_proc
 
-tcr_proc = subprocess.Popen(['chmod', '775', INSTALL_PATH, '-R'],)
+
+tcr_proc = subprocess.Popen(['chmod', '775', INSTALL_PATH, '-R'])
 tcr_proc.wait()
-
-if TO_INSTALL == 'client':
-    tcr_proc = subprocess.Popen(['chmod', '777', INSTALL_PATH +os.sep+ 'logs', '-R'],)
-    tcr_proc.wait()
 
 
 for ext in ['txt', 'xml', 'py', 'tcl', 'plx', 'json', 'ini', 'htm', 'js', 'css']:
     os.system('find %s -name "*.%s" -exec chmod 664 {} \;' % (INSTALL_PATH, ext))
 
+
 # Make executables
 if TO_INSTALL == 'client':
     os.system('find %s -name "cli.py" -exec chmod +x {} \;' % INSTALL_PATH)
     os.system('find %s -name "start_client" -exec chmod +x {} \;' % INSTALL_PATH)
-    os.system('find %s -name "start_client.py" -exec chmod +x {} \;' % INSTALL_PATH)
-    os.system('find %s -name "start_packet_sniffer.py" -exec chmod +x {} \;' % INSTALL_PATH)
+
 
 # Add twister path export
 for fname in glob.glob(INSTALL_PATH + 'bin/*'):
@@ -390,12 +391,12 @@ for fname in glob.glob(INSTALL_PATH + 'bin/*'):
     lines.insert(4, ('export TWISTER_PATH=%s\n\n' % INSTALL_PATH.rstrip('/')))
     open(fname, 'w').write(''.join(lines))
 
+
 # Fix FWM Config XML
 if TO_INSTALL == 'client':
     fwm = Template( open(INSTALL_PATH + 'config/fwmconfig.xml', 'r').read() )
     open(INSTALL_PATH + 'config/fwmconfig.xml', 'w').write( fwm.substitute(HOME=userHome(user_name)) )
     del fwm
 
-#
 
 print('\nTwister installation done!\n')

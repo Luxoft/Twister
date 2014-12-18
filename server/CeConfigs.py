@@ -1,7 +1,7 @@
 
 # File: CeConfigs.py ; This file is part of Twister.
 
-# version: 3.001
+# version: 3.002
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -260,39 +260,73 @@ class CeConfigs(object):
         """
         Save config file - returns a True/ False.
         """
-        lock = self.is_lock_config(fpath)
+        lock = self.config_locks.get(fpath, False)
         if lock and lock != user:
             err = '*ERROR* Config file `{}` is locked by `{}`! Cannot save!'.format(fpath, lock)
             logWarning(err)
             return err
+
+        logDebug('Update config file `{}`, for user `{}`.'.format(fpath, user))
 
         # Auto detect if ClearCase Test Config Path is active
         ccConfig = self.project.get_clearcase_config(user, 'tcfg_path')
         if ccConfig:
             view = ccConfig['view']
             actv = ccConfig['actv']
-            path = ccConfig['path']
+            path = ccConfig['path'].rstrip('/')
             if not path:
                 return '*ERROR* You did not set ClearCase Config Path!'
             user_view_actv = '{}:{}:{}'.format(user, view, actv)
             # If file exists
-            fsz = self.project.clearFs.file_size(user_view_actv, path +'/'+ fpath)
+            fsz = self.project.clearFs.file_size(user_view_actv, path + '/' + fpath)
             # Cannot save an existing file that isn't locked!
             if isinstance(fsz, long) and not lock:
                 err = '*ERROR* Cannot save CC config file `{}`, because it\'s not locked!'.format(fpath)
                 logWarning(err)
                 return err
-            return self.project.write_file(user, path +'/'+ fpath, content, type='clearcase:{}:{}'.format(view, actv))
+            return self.project.write_file(user, path + '/' + fpath, content,
+                type='clearcase:{}:{}'.format(view, actv))
         else:
             dirpath = self.project.get_user_info(user, 'tcfg_path')
             # If file exists
-            fsz = self.project.clearFs.file_size(user, dirpath + '/' + fpath)
+            fsz = self.project.localFs.file_size(user, dirpath + '/' + fpath)
             # Cannot save an existing file that isn't locked!
             if isinstance(fsz, long) and not lock:
                 err = '*ERROR* Cannot save config file `{}`, because it\'s not locked!'.format(fpath)
                 logWarning(err)
                 return err
             return self.project.write_file(user, dirpath + '/' + fpath, content)
+
+
+    def delete_config_file(self, user, fpath):
+        """
+        Delete config file - returns a True/ False.
+        """
+        lock = self.config_locks.get(fpath, False)
+        # Cannot Delete a locked file!
+        if lock:
+            err = '*ERROR* Config file `{}` is locked by `{}`! Cannot delete!'.format(fpath, lock)
+            logWarning(err)
+            return err
+
+        logDebug('Delete config file `{}`, for user `{}`.'.format(fpath, user))
+
+        # Unbind the config file, if it was binded
+        self.project.parsers[user].del_binding(fpath)
+
+        # Auto detect if ClearCase Test Config Path is active
+        ccConfig = self.project.get_clearcase_config(user, 'tcfg_path')
+        if ccConfig:
+            view = ccConfig['view']
+            actv = ccConfig['actv']
+            path = ccConfig['path'].rstrip('/')
+            if not path:
+                return '*ERROR* You did not set ClearCase Config Path!'
+            user_view_actv = '{}:{}:{}'.format(user, view, actv)
+            return self.project.clearFs.delete_user_file(user_view_actv, path + '/' + fpath)
+        else:
+            dirpath = self.project.get_user_info(user, 'tcfg_path')
+            return self.project.localFs.delete_user_file(user, dirpath + '/' + fpath)
 
 
 # Eof()

@@ -1,3 +1,14 @@
+18th December 2014
+
+- code changes to fix issue #147
+- code changes to fix issue #149
+- code changes to fix issue #152
+- code changes to fix issue #155
+- code changes to fix issue #156
+- added support for shared database xml configuration
+- added API to reserve SUT and TB within test cases
+- fixed bug related to get_sut API to retrieve properties recursively
+
 22nd August 2014
 
 - added support for recursive libraries
@@ -206,7 +217,8 @@
 
 - the passwords are encrypted
 - completed the User Management feature
-- issue #20 ; changed the user logging mechanism to work for NIS users as well
+- enhanced the cli de-queue - issue #37
+- changed the user logging mechanism to work for NIS users as well
 - fix for issue #41 - status of testcase displayed as stopped in GUI and aborted in CLI
 - issue #19 ; issue #16 ;added a twister_demo.sql script in installer/packages; can be
   used to create a demo database;the associated db.xml is updated for this database

@@ -6,6 +6,7 @@
 	<user>user</user>
 	<!-- Password for default user `user` with `key = GoBCUdDEzpRZ5empQuAHBfwAMacBByzW` -->
 	<password>aaf93e79299834dfaf7ddac4bccee2d0</password>
+	<use_shared_db>no</use_shared_db>
 </db_config>
 
 <insert_section>

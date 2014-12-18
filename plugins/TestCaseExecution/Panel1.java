@@ -1,6 +1,6 @@
 /*
 File: Panel1.java ; This file is part of Twister.
-Version: 3.011
+Version: 3.013
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -137,7 +137,7 @@ public class Panel1 extends JPanel{
         menu.setBounds(0, 0, width, 20);
         JMenu filemenu = new JMenu("File");
         filemenu.setBounds(10,0,40,20);
-        JMenuItem item = new JMenuItem("New project files");
+        JMenuItem item = new JMenuItem("New project file");
         item.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 addSuiteFile();}});
@@ -798,6 +798,7 @@ public class Panel1 extends JPanel{
     public void edit(boolean openlast){
         final int loc = splitPane3.getDividerLocation();
         splitPane3.setLeftComponent(sc.pane);
+        splitPane2.setLeftComponent(tabs);
         optionstabs.insertTab("Selection Options", null, suitaDetails, null, 0);
         optionstabs.setSelectedIndex(0);
         splitPane3.setRightComponent(optionstabs);
@@ -1375,6 +1376,7 @@ public class Panel1 extends JPanel{
         final int loc = splitPane3.getDividerLocation();
         splitPane3.setLeftComponent(RunnerRepository.window.mainpanel.getP2().sc.pane);
         splitPane3.setRightComponent(suitaDetails);
+        splitPane2.setLeftComponent(null);
         try{
             SwingUtilities.invokeLater(new Runnable(){
                 public void run() {
@@ -1448,11 +1450,11 @@ public class Panel1 extends JPanel{
                 if (chooser.showOpenDialog(Panel1.this) == JFileChooser.APPROVE_OPTION) {
                     boolean cond;
                     if(RunnerRepository.isMaster()){
-                        cond = sc.g.printXML(chooser.getSelectedFile()+".xml", false,true,false,false,false,"",false,null,
+                        cond = sc.g.printXML(chooser.getSelectedFile()+".xml", false,true,false,false,"","",false,null,
                                       RunnerRepository.window.mainpanel.p1.suitaDetails.getProjectDefs(),
                                       RunnerRepository.window.mainpanel.p1.suitaDetails.getGlobalDownloadType());
                     } else {
-                        cond = sc.g.printXML(chooser.getSelectedFile()+".xml", false,true,false,false,false,"",false,null,
+                        cond = sc.g.printXML(chooser.getSelectedFile()+".xml", false,true,false,false,"","",false,null,
                                       RunnerRepository.window.mainpanel.p1.suitaDetails.getProjectDefs(),null);
                     }
                     if(cond){
@@ -1505,7 +1507,7 @@ public class Panel1 extends JPanel{
             suitaDetails.setGlobalLibs(null);
             suitaDetails.setDelay("");
             suitaDetails.setStopOnFail(false);
-            suitaDetails.setSaveDB(false);
+            suitaDetails.setSaveDB("false");
             sc.g.getSelectedCollection().clear();
             RunnerRepository.emptySuites();
             
@@ -1515,10 +1517,10 @@ public class Panel1 extends JPanel{
                                                                 System.getProperty("file.separator")+
                                                                 user+".xml");
             if(RunnerRepository.isMaster()){
-                sc.g.printXML(sc.g.getUser(),false,false,false,false,false,"",false,null,null,
+                sc.g.printXML(sc.g.getUser(),false,false,false,false,"","",false,null,null,
                         RunnerRepository.window.mainpanel.p1.suitaDetails.getGlobalDownloadType());
             } else {
-                sc.g.printXML(sc.g.getUser(),false,false,false,false,false,"",false,null,null,
+                sc.g.printXML(sc.g.getUser(),false,false,false,false,"","",false,null,null,
                         RunnerRepository.window.mainpanel.p1.suitaDetails.getGlobalDownloadType());
             }
 //             (new XMLBuilder(RunnerRepository.getSuite())).writeXMLFile(RunnerRepository.getUsersDirectory()+

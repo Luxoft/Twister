@@ -1,6 +1,6 @@
 /*
 File: XMLReader.java ; This file is part of Twister.
-Version: 2.026
+Version: 2.028
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -34,6 +34,8 @@ import java.awt.Font;
 import java.util.ArrayList;
 import java.util.HashMap;
 import com.twister.Configuration;
+import javax.swing.JOptionPane;
+import com.twister.CustomDialog;
 
 public class XMLReader{
     private int preprop = 12;//properties in xml available before Property tag, in testsuites repeat tag is not present, we will substract 2
@@ -47,6 +49,7 @@ public class XMLReader{
     private int index = 1001;
     private HashMap <String, Item> projectitems;
     private HashMap <Item, String> dependencies;
+    private boolean mismatchshown;
     
     
     public XMLReader (File file){
@@ -75,9 +78,6 @@ public class XMLReader{
             Item theone;
             int k = 0;
             if(node.getNodeName().equals("TestSuite")){
-                
-                
-                
                 fstNmElmntLst = ((Element)node).getElementsByTagName("tsName");
                 fstNmElmnt = (Element)fstNmElmntLst.item(0);
                 fstNm = fstNmElmnt.getChildNodes();
@@ -185,8 +185,14 @@ public class XMLReader{
                     try{f = secNm.item(0).getNodeValue().toString().
                             split(RunnerRepository.getTestSuitePath())[1];}
                     catch(Exception e){
+                        if(!mismatchshown){
+                            CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,RunnerRepository.window,
+                                                "Error", "It looks like there is a mismatch between suitespath and test cases in project!");
+                            mismatchshown = true;
+                        }
                         System.out.println("Could not split: "+secNm.item(0).getNodeValue().toString()+" with: "+RunnerRepository.getTestSuitePath()+". Maybe there is a diffenrent suitepath defined in project.");
                         e.printStackTrace();
+                        f = secNm.item(0).getNodeValue().toString();
                     }
                     k=2;
 //                     k=6;
@@ -345,15 +351,18 @@ public class XMLReader{
     public void parseXML(Graphics g,boolean test,ArrayList <Item> suite, boolean clear){
         if(!test&&clear){
             RunnerRepository.window.mainpanel.p1.suitaDetails.setGlobalLibs(null);
-            RunnerRepository.window.mainpanel.p1.suitaDetails.setSaveDB(false);
+            RunnerRepository.window.mainpanel.p1.suitaDetails.setSaveDB("None");
             RunnerRepository.window.mainpanel.p1.suitaDetails.setDelay("");
             RunnerRepository.window.mainpanel.p1.suitaDetails.setStopOnFail(false);
             RunnerRepository.window.mainpanel.p1.suitaDetails.setPreStopOnFail(false);
             RunnerRepository.window.mainpanel.p1.suitaDetails.setPostScript("");
             RunnerRepository.window.mainpanel.p1.suitaDetails.setPreScript("");
-            RunnerRepository.window.mainpanel.p1.suitaDetails.setGlobalDownloadType(null);
+            if(RunnerRepository.isMaster()){
+                RunnerRepository.window.mainpanel.p1.suitaDetails.setGlobalDownloadType(null);
+            }
         }
         if(test)preprop-=2;//in testsuites repeat tag is not present
+        mismatchshown = false;
         NodeList nodeLst = doc.getChildNodes().item(0).getChildNodes();
         int childsnr = doc.getChildNodes().item(0).getChildNodes().getLength();
         if(childsnr==0){
@@ -387,11 +396,12 @@ public class XMLReader{
                     RunnerRepository.window.mainpanel.p1.suitaDetails.setDelay(delay);
                     continue;
                 }
-                else if(fstNode.getNodeName().equals("dbautosave")){
-                    if(fstNode.getChildNodes().item(0).getNodeValue().toString().equals("true")){                    
-                        RunnerRepository.window.mainpanel.p1.suitaDetails.setSaveDB(true);
+                else if(fstNode.getNodeName().equals("dbautosave")){                  
+                    try{RunnerRepository.window.mainpanel.p1.suitaDetails.setSaveDB(fstNode.getChildNodes().item(0).getNodeValue().toString());}
+                    catch(Exception e){
+                        System.out.println("dbautosave tag in project is not set");
+                        RunnerRepository.window.mainpanel.p1.suitaDetails.setSaveDB("null");
                     }
-                    else RunnerRepository.window.mainpanel.p1.suitaDetails.setSaveDB(false);
                     continue;
                 }
                 else if(fstNode.getNodeName().equals("ScriptPre")){

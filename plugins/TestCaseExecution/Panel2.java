@@ -1,6 +1,6 @@
 /*
 File: Panel2.java ; This file is part of Twister.
-Version: 3.001
+Version: 3.003
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -51,7 +51,7 @@ public class Panel2 extends JPanel{
     private boolean runned = false;
     public JButton stop,play;
     private boolean first = true;
-    private boolean savedb;
+    private String savedb;
 
     public Panel2(final boolean applet){
         RunnerRepository.introscreen.setStatus("Started Monitoring interface initialization");
@@ -139,7 +139,7 @@ public class Panel2 extends JPanel{
                 play.setText("Run");
                 play.setIcon(new ImageIcon(RunnerRepository.playicon));
                 if(runned){
-                    if(!savedb){
+                    if(savedb.equals("false")){
                         new Thread(){
                             public void run(){
                                 try{
@@ -470,7 +470,7 @@ public class Panel2 extends JPanel{
             return index2;}
         return index2;}
         
-    public void setSaveDB(boolean savedb){
+    public void setSaveDB(String savedb){
         this.savedb = savedb;
     }
      

@@ -1,7 +1,7 @@
 
 # File: xmlparser.py ; This file is part of Twister.
 
-# version: 3.022
+# version: 3.031
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -119,8 +119,6 @@ class TSCParser(object):
         self.configTS = None
         self.configHash = None
         self.project_globals = {}
-        self.file_no = 1000
-        self.suite_no = 100
         self.files_config = ''
 
         self.updateConfigTS(files_config)
@@ -247,7 +245,6 @@ class TSCParser(object):
 
         return activeEPs
 
-# # #
 
     def listSettings(self, xmlFile, xFilter=''):
         """
@@ -531,7 +528,6 @@ class TSCParser(object):
 
         return dumpXML(self.user, xmlFile, xmlSoup)
 
-# # #
 
     def _fixLogType(self, logType):
         """
@@ -769,7 +765,6 @@ class TSCParser(object):
         logDebug('Found `{}` bindings for user `{}`.'.format(len(bindings), self.user))
         return bindings
 
-# # #
 
     def _suites_info(self, xml_object, children, epName):
         """
@@ -814,6 +809,11 @@ class TSCParser(object):
         logFull('xmlparser:getSuiteInfo')
         # A suite can be a part of only 1 EP !
         res = OrderedDict()
+        # The first parameter is the Suite name
+        if suite_soup.getparent().xpath('id'):
+            res['suite'] = suite_soup.getparent().xpath('id')[0].text
+        else:
+            res['suite'] = ''
 
         # Add properties from PROJECT
         prop_keys = self.configTS.xpath('/Root/UserDefined/propName')
@@ -826,9 +826,8 @@ class TSCParser(object):
         res.update( dict(zip( [k.text for k in prop_keys], [v.text for v in prop_vals] )) )
 
         res['type'] = 'suite'
-        self.suite_no += 1
-        res['id'] = str(self.suite_no)
-
+        # Get Suite ID from testsuites.xml
+        res['id'] = suite_soup.xpath('ID')[0].text
         # The first parameter is the EP name
         res['ep'] = suite_soup.xpath('EpId')[0].text
 
@@ -852,12 +851,12 @@ class TSCParser(object):
         The "file" must be a XML class.
         """
         logFull('xmlparser:getFileInfo')
+
         res = OrderedDict()
         res['type'] = 'file'
-        self.file_no += 1
-        res['id'] = str(self.file_no)
-
-        # The first parameter is the Suite name
+        # Get File ID from testsuites.xml
+        res['id'] = file_soup.xpath('ID')[0].text
+        # The second parameter is the Suite name
         res['suite'] = file_soup.getparent().xpath('id')[0].text
 
         # Parse all known File Tags
@@ -912,168 +911,249 @@ class TSCParser(object):
 class DBParser(object):
     """
     Requirements: LXML.
-    This parser will read DB.xml.
+    This parser will parse DB.xml and Shared_DB.xml.
     """
 
-    def __init__(self, user, config_data):
+    def __init__(self, user, config_data, shared_data=None):
 
         self.user = user
         self.db_config = {}
         self.config_data = config_data
-        self.xmlDict = None
-        self.updateConfig()
-
-
-    def updateConfig(self):
-        """ update configuration """
-        logFull('xmlparser:updateConfig')
-
-        config_data = self.config_data
+        self.user_xml = None
+        self.shared_xml = None
 
         if os.path.isfile(config_data):
             data = localFs.read_user_file(self.user, config_data)
             try:
-                self.xmlDict = etree.fromstring(data)
+                self.user_xml = etree.fromstring(data)
             except Exception:
-                raise Exception('Db Parser: Invalid DB config file `{}`!'.format(config_data))
-        elif config_data and type(config_data)==type('') or type(config_data)==type(u''):
+                raise Exception('Invalid DB config file `{}`, '\
+                    'for user `{}`!'.format(config_data, self.user))
+        elif config_data and isinstance(config_data, str) or isinstance(config_data, unicode):
             try:
-                self.xmlDict = etree.fromstring(config_data)
+                self.user_xml = etree.fromstring(config_data)
             except Exception:
-                raise Exception('Db Parser: Cannot parse DB config file!')
+                raise Exception('Cannot parse DB config data, for user `{}`!'.format(self.user))
         else:
-            raise Exception('Db Parser: Invalid config data type: `{}`!'.format( type(config_data) ))
+            raise Exception('Invalid config data type: `{}`, '\
+                'for user `{}`!'.format(type(config_data), self.user))
 
-        if self.xmlDict.xpath('db_config/server/text()'):
-            self.db_config['server']    = self.xmlDict.xpath('db_config/server')[0].text
-        if self.xmlDict.xpath('db_config/database/text()'):
-            self.db_config['database']  = self.xmlDict.xpath('db_config/database')[0].text
-        if self.xmlDict.xpath('db_config/user/text()'):
-            self.db_config['user']      = self.xmlDict.xpath('db_config/user')[0].text
-        if self.xmlDict.xpath('db_config/password/text()'):
-            self.db_config['password']  = self.xmlDict.xpath('db_config/password')[0].text
+        if shared_data:
+            if os.path.isfile(shared_data):
+                data = localFs.read_user_file(self.user, shared_data)
+                try:
+                    self.shared_xml = etree.fromstring(data)
+                    logDebug('User `{}` loaded shared DB config from file `{}`.'.format(user, shared_data))
+                except Exception:
+                    raise Exception('Invalid shared DB config file `{}`, '\
+                        'for user `{}`!'.format(shared_data, self.user))
+            elif shared_data and isinstance(shared_data, str) or isinstance(shared_data, unicode):
+                try:
+                    self.shared_xml = etree.fromstring(shared_data)
+                    logDebug('User `{}` loaded shared DB config from a string.'.format(user))
+                except Exception:
+                    raise Exception('Cannot parse shared DB config data, for user `{}`!'.format(self.user))
+            else:
+                raise Exception('Invalid shared config data type: `{}`, '\
+                    'for user `{}`!'.format(type(shared_data), self.user))
 
-# --------------------------------------------------------------------------------------------------
-#           USED BY CENTRAL ENGINE
-# --------------------------------------------------------------------------------------------------
+        # Servers must be in order
+        self.db_config['servers'] = OrderedDict()
 
-    def getInsertQueries(self):
-        """ Used by Central Engine. """
-        logFull('xmlparser:getInsertQueries')
-        return [q.text for q in self.xmlDict.xpath('insert_section/sql_statement')]
+        if self.user_xml.xpath('db_config/server/text()') and self.user_xml.xpath('db_config/database/text()'):
+            # User's server and database
+            db_server = self.user_xml.xpath('db_config/server')[0].text
+            db_name = self.user_xml.xpath('db_config/database')[0].text
+            db_user = self.user_xml.xpath('db_config/user')[0].text
+            db_passwd = self.user_xml.xpath('db_config/password')[0].text
+            self.db_config['default_server'] = (db_server, db_name)
+            self.db_config['servers'][(db_server, db_name)] = {'u': db_user, 'p': db_passwd}
+        else:
+            raise Exception('Invalid DB config, no server and DB, for user `{}`!'.format(self.user))
+
+        self.db_config['use_shared_db'] = False
+
+        if self.user_xml.xpath('db_config/use_shared_db/text()'):
+            use_shared_db = self.user_xml.xpath('db_config/use_shared_db')[0].text
+            if use_shared_db.lower() in ['true', 'yes']:
+                self.db_config['use_shared_db'] = True
+            else:
+                self.db_config['use_shared_db'] = False
+
+        if self.db_config['use_shared_db'] and self.shared_xml is not None:
+            # Servers list
+            for server_section in self.shared_xml.xpath('server_section'):
+                db_server = server_section.xpath('db_config/server')[0].text
+                db_name = server_section.xpath('db_config/database')[0].text
+                db_user = server_section.xpath('db_config/user')[0].text
+                db_passwd = server_section.xpath('db_config/password')[0].text
+                self.db_config['servers'][(db_server, db_name)] = {'u': db_user, 'p': db_passwd}
 
 
-    def getInsertFields(self):
+    def get_inserts(self, db_cfg_role=True):
         """
-        Used by Central Engine.
-        Returns a dictionary with field ID : field info.
+        Used by Database Manager.
+        Returns a list with all insert fields and queries.
         """
-        logFull('xmlparser:getInsertFields')
-        fields = self.xmlDict.xpath('insert_section/field')
+        logFull('dbparser:get_inserts')
+        insert_queries = OrderedDict()
 
-        if not fields:
-            logWarning('User {}: Db Parser: Cannot load the reports fields section!'.format(self.user))
-            return {}
+        # All data from shared db.xml
+        if db_cfg_role and self.db_config['use_shared_db']:
+            if self.shared_xml is None:
+                logWarning('Invalid shared DB XML!')
+                return False
 
-        res = OrderedDict()
+            for server_data in self.shared_xml.xpath('server_section'):
+                # Invalid entry ?
+                if not server_data.xpath('db_config/server/text()') or \
+                    not server_data.xpath('db_config/database/text()'):
+                    continue
+                # Important info
+                db_server = server_data.xpath('db_config/server')[0].text
+                db_name = server_data.xpath('db_config/database')[0].text
 
-        for field in fields:
-            d = {}
-            d['id']    = field.get('ID', '')
-            d['type']  = field.get('Type', '')
-            d['query'] = field.get('SQLQuery', '')
-            d['level'] = field.get('Level', '') # Project / Suite / Testcase
-            res[d['id']]  = d
+                # Insert fields
+                fields = OrderedDict()
+                for field in server_data.xpath('insert_section/field'):
+                    data = {}
+                    data['id'] = field.get('ID', '')
+                    data['type'] = field.get('Type', '')
+                    data['query'] = field.get('SQLQuery', '')
+                    data['level'] = field.get('Level', '') # Project / Suite / Testcase
+                    fields[data['id']] = data
+                # Insert queries
+                inserts = []
+                for elem in server_data.xpath('insert_section/sql_statement'):
+                    inserts.append(elem.text.strip())
+                # Save this info
+                insert_queries[(db_server, db_name)] = {
+                    'inserts': inserts,
+                    'fields': fields
+                }
+            # Return after shared db inserts !
+            return insert_queries
 
-        return res
+        # Fields and Inserts from private db.xml
+        private_db = {}
+        private_db['inserts'] = [q.text for q in self.user_xml.xpath('insert_section/sql_statement')]
+        fields = OrderedDict()
+
+        for field in self.user_xml.xpath('insert_section/field'):
+            data = {}
+            data['id'] = field.get('ID', '')
+            data['type'] = field.get('Type', '')
+            data['query'] = field.get('SQLQuery', '')
+            data['level'] = field.get('Level', '') # Project / Suite / Testcase
+            fields[data['id']] = data
+
+        private_db['fields'] = fields
+        # Important info
+        db_server = self.user_xml.xpath('db_config/server')[0].text
+        db_name = self.user_xml.xpath('db_config/database')[0].text
+        # Add private db to inserts
+        insert_queries[(db_server, db_name)] = private_db
+
+        return insert_queries
 
 
-    def getQuery(self, field_id):
-        """ Used by Central Engine. """
-        logFull('xmlparser:getQuery')
-        res =  self.xmlDict.xpath('insert_section/field[@ID="%s"]' % field_id)
+    def get_query(self, field_id):
+        """
+        Used by the applet.
+        """
+        logFull('dbparser:get_query')
+        res =  self.user_xml.xpath('insert_section/field[@ID="%s"]' % field_id)
         if not res:
-            logWarning('User {}: Db Parser: Cannot find field ID `{}`!'.format(self.user, field_id))
+            logWarning('User {}: Cannot find field ID `{}`!'.format(self.user, field_id))
             return False
 
         query = res[0].get('SQLQuery')
         return query
 
-# --------------------------------------------------------------------------------------------------
-#           USED BY WEB SERVER - REPORTS
-# --------------------------------------------------------------------------------------------------
 
-    def getReportFields(self):
-        """ Used by HTTP Server. """
-        logFull('xmlparser:getReportFields')
-        self.updateConfig()
+    def get_reports(self, db_cfg_role=True):
+        """
+        Used by Reporting Server.
+        Returns a list with all report fields and queries.
+        """
+        logFull('dbparser:get_reports')
+        report_queries = OrderedDict()
 
-        fields = self.xmlDict.xpath('reports_section/field')
+        def get_fields(server_data):
+            """
+            All report fields.
+            """
+            fields = OrderedDict()
+            for field in server_data.xpath('reports_section/field'):
+                data = {}
+                data['id']   = field.get('ID', '')
+                data['type'] = field.get('Type', '')
+                data['label'] = field.get('Label', data['id'])
+                data['sqlquery'] = field.get('SQLQuery', '')
+                fields[data['id']] = data
+            return fields
 
-        if not fields:
-            logWarning('User {}: Db Parser: Cannot load the reports fields section!'.format(self.user))
-            return {}
+        def get_reps(server_data, srv_db):
+            """
+            All reports.
+            """
+            reports = OrderedDict()
+            for report in server_data.xpath('reports_section/report'):
+                data = {}
+                data['id']   = report.get('ID', '')
+                data['type'] = report.get('Type', '')
+                data['path'] = report.get('Path', '')
+                data['folder'] = report.get('Folder', '')
+                data['sqlquery'] = report.get('SQLQuery', '')
+                data['sqltotal'] = report.get('SQLTotal', '')   # SQL Total Query
+                data['sqlcompr'] = report.get('SQLCompare', '') # SQL Query Compare side by side
+                data['srv_db'] = srv_db # Save IP + Database name here
+                reports[data['id']] = data
+            return reports
 
-        res = OrderedDict()
+        def get_redirects(server_data):
+            """
+            All redirects.
+            """
+            redirects = OrderedDict()
+            for redirect in server_data.xpath('reports_section/redirect'):
+                data = {}
+                data['id']   = redirect.get('ID', '')
+                data['path'] = redirect.get('Path', '')
+                redirects[data['id']] = data
+            return redirects
 
-        for field in fields:
-            d = {}
-            d['id']       = field.get('ID', '')
-            d['type']     = field.get('Type', '')
-            d['label']    = field.get('Label', d['id'])
-            d['sqlquery'] = field.get('SQLQuery', '')
-            res[d['id']]  = d
+        # If the user has the role AND use shared DB is disabled
+        if db_cfg_role and not self.db_config['use_shared_db']:
+            db_server = self.user_xml.xpath('db_config/server')[0].text
+            db_name = self.user_xml.xpath('db_config/database')[0].text
+            # Reports and Redirects from private db.xml
+            report_queries[' '] = {
+                'fields': get_fields(self.user_xml),
+                'reports': get_reps(self.user_xml, (db_server, db_name)),
+                'redirects': get_redirects(self.user_xml)
+            }
 
-        return res
+        # Add all data from shared db.xml
+        if self.shared_xml is None:
+            raise Exception('Invalid shared DB XML!')
 
+        for server_data in self.shared_xml.xpath('server_section'):
+            # Invalid entry ?
+            if not server_data.xpath('db_config/server/text()') or \
+                not server_data.xpath('db_config/database/text()'):
+                continue
+            # Important info
+            db_server = server_data.xpath('db_config/server')[0].text
+            db_name = server_data.xpath('db_config/database')[0].text
+            # Save this info
+            report_queries[(db_server, db_name)] = {
+                'fields': get_fields(server_data),
+                'reports': get_reps(server_data, (db_server, db_name)),
+                'redirects': get_redirects(server_data)
+            }
 
-    def getReports(self):
-        """ Used by HTTP Server. """
-        logFull('xmlparser:getReports')
-        self.updateConfig()
-
-        reports = self.xmlDict.xpath('reports_section/report')
-
-        if not reports:
-            logWarning('User {}: Db Parser: Cannot load the database reports section!'.format(self.user))
-            return {}
-
-        res = OrderedDict()
-
-        for report in reports:
-            d = {}
-            d['id']       = report.get('ID', '')
-            d['type']     = report.get('Type', '')
-            d['path']     = report.get('Path', '')
-            d['folder']   = report.get('Folder', '')
-            d['sqlquery'] = report.get('SQLQuery', '')
-            d['sqltotal'] = report.get('SQLTotal', '')   # SQL Total Query
-            d['sqlcompr'] = report.get('SQLCompare', '') # SQL Query Compare side by side
-            res[d['id']]  = d
-
-        return res
-
-
-    def getRedirects(self):
-        """ Used by HTTP Server. """
-        logFull('xmlparser:getRedirects')
-        self.updateConfig()
-
-        redirects = self.xmlDict.xpath('reports_section/redirect')
-
-        if not redirects:
-            logWarning('User {}: Db Parser: Cannot load the database redirects section!'.format(self.user))
-            return {}
-
-        res = OrderedDict()
-
-        for redirect in redirects:
-            d = {}
-            d['id']       = redirect.get('ID', '')
-            d['path']     = redirect.get('Path', '')
-            res[d['id']]  = d
-
-        return res
+        return report_queries
 
 
 # # #   Plugins   # # #

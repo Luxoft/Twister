@@ -1,6 +1,6 @@
 /*
 File: RunnerRepository.java ; This file is part of Twister.
-Version: 3.008
+Version: 3.011
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -84,6 +84,8 @@ import java.awt.GridBagLayout;
 import java.awt.GridBagConstraints;
 import javax.xml.bind.DatatypeConverter;
 import java.util.HashMap;
+import org.xml.sax.InputSource;
+import java.io.StringReader;
 
 /*
  * static class to hold
@@ -133,10 +135,12 @@ public class RunnerRepository {
     public static Container container;
     public static Applet applet;
     private static Document pluginsconfig;
-    private static String version = "3.040";
-    private static String builddate = "06.11.2014";
+    private static String version = "3.042";
+    private static String builddate = "12.12.2014";
     public static String logotxt,os,python;
     private static boolean ismaster = true;
+    public static String tagserrors="";
+    public static boolean showtagerror = true;
     
     public static void setStarter(Starter starter){
         RunnerRepository.starter = starter;
@@ -150,6 +154,7 @@ public class RunnerRepository {
      */
     public static void initialize(String isapplet,String host,Container container,Applet applet){
         RunnerRepository.initialized = false;
+        RunnerRepository.showtagerror = false;
         RunnerRepository.run = true;
         RunnerRepository.container = container;
         RunnerRepository.applet = applet;
@@ -282,7 +287,7 @@ public class RunnerRepository {
                 introscreen.addPercent(0.035);
                 introscreen.repaint();
                 Plugins.deletePlugins();
-                parseDBConfig(RunnerRepository.REMOTEDATABASECONFIGFILE,true);
+                //parseDBConfig(RunnerRepository.REMOTEDATABASECONFIGFILE,true);
                 if(!isCE()){
                     CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,RunnerRepository.window,
                                           "Error", "CE is not running, please start CE in "+
@@ -310,6 +315,9 @@ public class RunnerRepository {
                 if(!RunnerRepository.isapplet)System.exit(0);}
             }
         catch(Exception e){e.printStackTrace();}
+        RunnerRepository.showTagsErrors();
+        RunnerRepository.tagserrors = "";
+        RunnerRepository.showtagerror = true;
         initialized  = true;
     }
     
@@ -609,9 +617,10 @@ public class RunnerRepository {
     public static void resetDBConf(String filename,boolean server){
         databaseUserFields.clear();
         projectUserFields.clear();
-        System.out.println("Reparsing "+filename);
         parseDBConfig(filename,server);
-        window.mainpanel.p1.suitaDetails.restart(databaseUserFields,projectUserFields);}
+        window.mainpanel.p1.suitaDetails.restart(databaseUserFields,projectUserFields);
+        RunnerRepository.window.mainpanel.p1.sc.g.deselectAll(); 
+    }
         
     /*
      * method used to reset Email config
@@ -656,6 +665,32 @@ public class RunnerRepository {
             }
         }
         return file;}
+        
+    /*
+     * method to get Email config file
+     * name - file name
+     * fromserver - if from server(true) else from local temp folder
+     */    
+    public static String getSharedDbString(){
+         try{
+            String ob = RunnerRepository.getRPCClient().execute("get_shared_db", new Object[]{}).toString();
+            if(ob.indexOf("*ERROR*")!=-1){
+                CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,window,"ERROR", ob.toString());
+                return "";
+            }
+            return ob;
+        } catch (Exception e){
+            e.printStackTrace();
+            
+        }
+        return "";
+//         return "<?xml version=\"1.0\"?><root><server_section><db_config><server>localhost</server><database>twister_demo</database></db_config>"+
+//                 "<insert_section><field ID=\"Run_Number\"  FieldName=\"\" FromTable=\"\" SQLQuery=\"\" Label=\"Run Numberssss:\" Type=\"UserText\" GUIDefined=\"true\" Mandatory=\"true\" />"+
+//                 "<sql_statement>INSERT INTO results ( run_nb,username,ce_hostname,ce_ip,ep_ip,ep_hostname,ep_name,suite_name,tc_name,tc_path,tc_status,tc_time_elapsed,tc_date_started,tc_date_finished,tc_log ) VALUES ($Run_Number, '$twister_user', '$twister_ce_hostname', '$twister_ce_ip', '$twister_ep_ip', '$twister_ep_hostname', '$twister_ep_name', '$twister_suite_name', '$twister_tc_name', '$twister_tc_full_path', '$twister_tc_status', '$twister_tc_time_elapsed', '$twister_tc_date_started', '$twister_tc_date_finished', '$twister_tc_log')"+
+//                 "</sql_statement></insert_section>"+
+//                 "<reports_section><field ID=\"Run_Number\" Label=\"Select build\" Type=\"UserSelect\" SQLQuery=\"SELECT DISTINCT run_nb FROM `results` ORDER BY run_nb\" /> <report ID=\"Summary\" Type=\"PieChart\" SQLQuery=\"SELECT tc_status AS 'Status',COUNT(tc_status) AS 'Count' FROM results  WHERE run_nb = '@Run_Number@' group by tc_status \""+
+//                 "/> </reports_section> </server_section> </root>";
+    }
      
     /*
      * parse database config file
@@ -663,48 +698,92 @@ public class RunnerRepository {
      * fromserver - true - false
      */
     public static DefaultMutableTreeNode parseDBConfig(String name,boolean fromServer){
-        File dbConf = getDBConfFile(name,fromServer);
-        DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
         DefaultMutableTreeNode root = new DefaultMutableTreeNode("Root");
-        try{DocumentBuilder db = dbf.newDocumentBuilder();
-            Document doc = db.parse(dbConf);
-            doc.getDocumentElement().normalize();
-            NodeList nodeLst = doc.getElementsByTagName("insert_section");
-            Element tablee = (Element)nodeLst.item(0);
-            NodeList fields = tablee.getElementsByTagName("field");
-            for(int i=0;i<fields.getLength();i++){                
-                tablee = (Element)fields.item(i);
-                if(tablee.getAttribute("GUIDefined").equals("true")){
-                    String field [] = new String[ELEMENTSNR];
-                    field[0]=tablee.getAttribute("Label");
-                    if(field[0]==null){
-                        System.out.println("Warning, no Label element in"+
-                                            " field tag in db.xml at filed nr: "+i);
-                        field[0]="";}
-                    field[1]=tablee.getAttribute("ID");
-                    if(field[1]==null){
-                        System.out.println("Warning, no ID element in "+
-                                            "field tag in db.xml at filed nr: "+i);
-                        field[1]="";}
-                    field[2]=tablee.getAttribute("Type");
-                    if(field[2]==null){
-                        System.out.println("Warning, no Type element in"+
-                                            " field tag in db.xml at filed nr: "+i);
-                        field[2]="";}
-                    field[3]=tablee.getAttribute("Mandatory");
-                    if(field[3]==null){
-                        System.out.println("Warning, no Mandatory element "+
-                                            "in field tag in db.xml at filed nr: "+i);
-                        field[3]="";}
-                    if(tablee.getAttribute("Level")!=null&&tablee.getAttribute("Level").equals("Project")){
-                        projectUserFields.add(field);
-                    } else {
-                        databaseUserFields.add(field);}}}}
-        catch(Exception e){
-            try{System.out.println("Could not parse batabase XML file: "+dbConf.getCanonicalPath());}
-            catch(Exception ex){
-                System.out.println("There is a problem with "+name+" file");
-                ex.printStackTrace();}
+        try{
+            DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+            DocumentBuilder db = dbf.newDocumentBuilder();
+            //shared db section
+            if(RunnerRepository.window.mainpanel.p4.getDBConfig().sharedDbEnabled()){
+                try{
+                    InputSource is = new InputSource(new StringReader(getSharedDbString()));
+                    Document doc = db.parse(is);
+                    doc.getDocumentElement().normalize();
+                    NodeList nodeLst = doc.getElementsByTagName("insert_section");
+                    Element tablee = (Element)nodeLst.item(0);
+                    NodeList fields = tablee.getElementsByTagName("field");
+                    for(int i=0;i<fields.getLength();i++){                
+                        tablee = (Element)fields.item(i);
+                        if(tablee.getAttribute("GUIDefined").equals("true")){
+                            String field [] = new String[ELEMENTSNR];
+                            field[0]=tablee.getAttribute("Label");
+                            if(field[0]==null){
+                                System.out.println("Warning, no Label element in"+
+                                                    " field tag in db.xml at filed nr: "+i);
+                                field[0]="";}
+                            field[1]=tablee.getAttribute("ID");
+                            if(field[1]==null){
+                                System.out.println("Warning, no ID element in "+
+                                                    "field tag in db.xml at filed nr: "+i);
+                                field[1]="";}
+                            field[2]=tablee.getAttribute("Type");
+                            if(field[2]==null){
+                                System.out.println("Warning, no Type element in"+
+                                                    " field tag in db.xml at filed nr: "+i);
+                                field[2]="";}
+                            field[3]=tablee.getAttribute("Mandatory");
+                            if(field[3]==null){
+                                System.out.println("Warning, no Mandatory element "+
+                                                    "in field tag in db.xml at filed nr: "+i);
+                                field[3]="";}
+                            if(tablee.getAttribute("Level")!=null&&tablee.getAttribute("Level").equals("Project")){
+                                projectUserFields.add(field);
+                            } else {
+                                databaseUserFields.add(field);}
+                            }
+                        }
+                    }catch(Exception e){
+                        System.out.println("There was a problem in reading/interpreting shareddb from CE");
+                        e.printStackTrace();
+                    }
+                } else {//user db section
+                    File dbConf = getDBConfFile(name,fromServer);
+                    
+                    Document doc = db.parse(dbConf);
+                    doc.getDocumentElement().normalize();
+                    NodeList nodeLst = doc.getElementsByTagName("insert_section");
+                    Element tablee = (Element)nodeLst.item(0);
+                    NodeList fields = tablee.getElementsByTagName("field");
+                    for(int i=0;i<fields.getLength();i++){                
+                        tablee = (Element)fields.item(i);
+                        if(tablee.getAttribute("GUIDefined").equals("true")){
+                            String field [] = new String[ELEMENTSNR];
+                            field[0]=tablee.getAttribute("Label");
+                            if(field[0]==null){
+                                System.out.println("Warning, no Label element in"+
+                                                    " field tag in db.xml at filed nr: "+i);
+                                field[0]="";}
+                            field[1]=tablee.getAttribute("ID");
+                            if(field[1]==null){
+                                System.out.println("Warning, no ID element in "+
+                                                    "field tag in db.xml at filed nr: "+i);
+                                field[1]="";}
+                            field[2]=tablee.getAttribute("Type");
+                            if(field[2]==null){
+                                System.out.println("Warning, no Type element in"+
+                                                    " field tag in db.xml at filed nr: "+i);
+                                field[2]="";}
+                            field[3]=tablee.getAttribute("Mandatory");
+                            if(field[3]==null){
+                                System.out.println("Warning, no Mandatory element "+
+                                                    "in field tag in db.xml at filed nr: "+i);
+                                field[3]="";}
+                            if(tablee.getAttribute("Level")!=null&&tablee.getAttribute("Level").equals("Project")){
+                                projectUserFields.add(field);
+                            } else {
+                                databaseUserFields.add(field);}}}
+                }
+        }catch(Exception e){
+            System.out.println("There is a problem with "+name+" file");
             e.printStackTrace();}
         return root;}
         
@@ -887,8 +966,12 @@ public class RunnerRepository {
         NodeList nodeLst = doc.getElementsByTagName(tag);
         if(nodeLst.getLength()==0){
             System.out.println("tag "+tag+" not found in "+doc.getDocumentURI());
-            CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,RunnerRepository.window,
-                                        "Warning", tag+" tag not found in "+file);
+            if(showtagerror){
+                CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,RunnerRepository.window,
+                                        "Warning", tag+" tag not found in "+file);  
+            } else {
+                tagserrors+=tag+" tag not found in "+file+"; ";
+            }
             return "";
         }
         Node fstNode = nodeLst.item(0);
@@ -898,8 +981,12 @@ public class RunnerRepository {
         try{toreturn = fstNm.item(0).getNodeValue().toString();}
         catch(Exception e){
             System.out.println(tag+" empty");
-            CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,RunnerRepository.window,
-                                        "Warning", tag+" tag is empty in "+file);
+            if(showtagerror){
+                CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,RunnerRepository.window,
+                                            "Warning", tag+" tag is empty in "+file);
+            } else {
+                tagserrors+=tag+" tag is empty in "+file+"; ";
+            }
             toreturn = "";}
         return toreturn;}
         
@@ -1089,12 +1176,12 @@ public class RunnerRepository {
      */
     public static String getPredefinedSuitesPath(){
         try{
-            Object ob = RunnerRepository.getRPCClient().execute("get_predef_suites_path", new Object[]{});
-            if(ob.toString().indexOf("*ERROR*")!=-1){
+            String ob = RunnerRepository.getRPCClient().execute("get_predef_suites_path", new Object[]{}).toString();
+            if(ob.indexOf("*ERROR*")!=-1){
                 CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,window,"ERROR", ob.toString());
                 return "";
             }
-            return ob.toString();
+            return ob;
         } catch (Exception e){
             e.printStackTrace();
             return "";
@@ -1867,11 +1954,11 @@ public class RunnerRepository {
                                                         append(RunnerRepository.getBar()).append(user).append(".xml").
                                                         toString());
                     if(ismaster){
-                        window.mainpanel.p1.sc.g.printXML( window.mainpanel.p1.sc.g.getUser(),false,false,false,false,false,"",false,null,
+                        window.mainpanel.p1.sc.g.printXML( window.mainpanel.p1.sc.g.getUser(),false,false,false,false,"","",false,null,
                                                         RunnerRepository.window.mainpanel.p1.suitaDetails.getProjectDefs(),
                                                         RunnerRepository.window.mainpanel.p1.suitaDetails.getGlobalDownloadType());
                     } else {
-                        window.mainpanel.p1.sc.g.printXML( window.mainpanel.p1.sc.g.getUser(),false,false,false,false,false,"",false,null,
+                        window.mainpanel.p1.sc.g.printXML( window.mainpanel.p1.sc.g.getUser(),false,false,false,false,"","",false,null,
                                                         RunnerRepository.window.mainpanel.p1.suitaDetails.getProjectDefs(),null);
                     }
                     RunnerRepository.window.mainpanel.p1.suitaDetails.setPreScript("");
@@ -1879,7 +1966,7 @@ public class RunnerRepository {
                     RunnerRepository.window.mainpanel.p1.suitaDetails.setGlobalLibs(null);
                     RunnerRepository.window.mainpanel.p1.suitaDetails.setDelay("");
                     RunnerRepository.window.mainpanel.p1.suitaDetails.setStopOnFail(false);
-                    RunnerRepository.window.mainpanel.p1.suitaDetails.setSaveDB(false);
+                    RunnerRepository.window.mainpanel.p1.suitaDetails.setSaveDB("None");
                 }}
             else{
                 try{
@@ -1968,6 +2055,23 @@ public class RunnerRepository {
      */
     public static boolean isMaster(){
         return ismaster;
+    }
+    
+    /*
+     * errors shown after parsing
+     * configurations
+     */
+    public static void showTagsErrors(){
+        if(RunnerRepository.tagserrors.equals(""))return;
+        String[]errors = RunnerRepository.tagserrors.split(";");
+        JPanel panel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.PAGE_AXIS));
+        JLabel label;
+        for(String s:errors){
+            label = new JLabel(s);
+            panel.add(label);
+        }
+        CustomDialog.showDialog(panel, JOptionPane.WARNING_MESSAGE, JOptionPane.CLOSED_OPTION,window,"Configuration warnings!", null);
     }
         
     /*

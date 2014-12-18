@@ -1,7 +1,7 @@
 
 # File: CeProject.py ; This file is part of Twister.
 
-# version: 3.059
+# version: 3.066
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -292,9 +292,10 @@ class Project(object):
         to check the username and password.
         A user CANNOT use Twister if he doesn't authenticate.
         """
-        logFull('CeProject:check_passwd user `{}`.'.format(user))
-        global usrs_and_pwds, usr_pwds_lock
-        user_passwd = binascii.hexlify(user+':'+passwd)
+        user_passwd = binascii.hexlify(user + ':' + passwd)
+
+        if (not user) or (not passwd):
+            return False
 
         with usr_pwds_lock:
             sess_user = cherrypy.session.get('username')
@@ -336,8 +337,6 @@ class Project(object):
         to check the username and password.
         A user CANNOT use Twister if he doesn't authenticate.
         """
-        logFull('CeProject:rpyc_check_passwd user `{}`.'.format(user))
-        global usrs_and_pwds, usr_pwds_lock
         rpyc_user = 'rpyc_' + user
 
         if (not user) or (not passwd):
@@ -786,6 +785,13 @@ class Project(object):
         if srv_type == 'no_type':
             srv_type = 'development'
 
+        # Add Shared DB key
+        if 'shared_db_cfg' not in cfg:
+            cfg['shared_db_cfg'] = ''
+        # Add Shared E-mail key
+        if 'shared_eml_cfg' not in cfg:
+            cfg['shared_eml_cfg'] = ''
+
         # Cycle all groups
         for grp, grp_data in cfg['groups'].iteritems():
 
@@ -1066,41 +1072,39 @@ class Project(object):
             return '*ERROR* : Unknown command `{}` !'.format(cmd)
 
 
-    def encrypt_text(self, user, text):
+    def encrypt_text(self, user, text, key=None):
         """
         Encrypt a piece of text, using AES.\n
         It can use the user key, or the shared key.
         """
-        logFull('CeProject:encrypt_text user `{}`.'.format(user))
         # Check the username data
         user_roles = self.authenticate(user)
-        key = user_roles.get('key')
+        key = key or user_roles.get('key')
         if not key:
             # Add user key from user's home
             key = self.localFs.read_user_file(user, '~/twister/config/twister.key')
             # Fix key in case of error
             if not key or '*ERROR*' in key:
-                logWarning('Cannot fetch key for `{}`! Fallback to default key!'.format(user))
+                logInfo('Cannot fetch key for `{}`! Fallback to default key!'.format(user))
                 # Use common key from server_init, or "Twister"
                 key = self.server_init.get('common_key', 'Twister')
         return encrypt(text, key)
 
 
-    def decrypt_text(self, user, text):
+    def decrypt_text(self, user, text, key=None):
         """
         Decrypt a piece of text, using AES.\n
         It can use the user key, or the shared key.
         """
-        logFull('CeProject:decrypt_text user `{}`.'.format(user))
         # Check the username data
         user_roles = self.authenticate(user)
-        key = user_roles.get('key')
+        key = key or user_roles.get('key')
         if not key:
             # Add user key from user's home
             key = self.localFs.read_user_file(user, '~/twister/config/twister.key')
             # Fix key in case of error
             if not key or '*ERROR*' in key:
-                logWarning('Cannot fetch key for `{}`! Fallback to default key!'.format(user))
+                logInfo('Cannot fetch key for `{}`! Fallback to default key!'.format(user))
                 # Use common key from server_init, or "Twister"
                 key = self.server_init.get('common_key', 'Twister')
         return decrypt(text, key)
@@ -1992,6 +1996,17 @@ class Project(object):
             # List of started EPs
             started_eps = []
 
+#             tests_list = []
+#             for ep in intersect_eps:
+#                 SuitesManager = self.get_ep_info(user, ep)['suites']
+#                 for key in SuitesManager:
+#                     children = SuitesManager.get(key).get('children')
+#                     for id in children:
+#                         tests_list.append(children.get(id)['file'])
+
+#             libraries = self.localFs.detect_libraries(user, tests_list)
+#             logWarning('Libraries: {}'.format(libraries))
+
             for epname in intersect_eps:
                 if epname == '__anonymous__' and anonim_ep:
                     self._register_ep(user, epname)
@@ -2161,9 +2176,8 @@ class Project(object):
                         # Unordered
                         statuses[file_id] = str(s)
 
-        for tcid in self.test_ids[user]:
-            if tcid in statuses:
-                final.append(statuses[tcid])
+        for tcid in sorted(statuses.keys()):
+            final.append(statuses[tcid])
 
         return final
 
@@ -2660,6 +2674,7 @@ class Project(object):
         Send e-mail function.\n
         Use the force to ignore the enabled/ disabled status.
         """
+        condensed_vars = ['twister_ep_name','twister_suite_name']
         logFull('CeProject:send_mail user `{}`.'.format(user))
 
         with self.eml_lock:
@@ -2738,6 +2753,35 @@ class Project(object):
 
                 return True
 
+            tests_params = self.dbmgr.project_data(user)
+            if not tests_params:
+                return False
+            merged_params = {'date': [time.strftime("%Y-%m-%d %H:%M")]}
+
+            for tp in tests_params:
+                for key in tp:
+                    if key in merged_params:
+                        merged_params[key].append(str(tp[key]))
+                    else:
+                        merged_params[key] = [str(tp.get(key))]
+
+            for key in merged_params:
+                if len(set(merged_params[key])) == 1:
+                    merged_params[key] = str(set(merged_params[key]).pop())
+                elif key in condensed_vars:
+                    to_be_condensed = merged_params[key]
+                    condensed = [to_be_condensed[0]]
+                    last = to_be_condensed[0]
+                    for i in xrange(1,len(to_be_condensed)):
+                        if last != to_be_condensed[i]:
+                            condensed.append(to_be_condensed[i])
+                            last = to_be_condensed[i]
+                        else:
+                            last = to_be_condensed[i]
+                    merged_params[key] = ', '.join(condensed)
+                else:
+                    merged_params[key] = ', '.join(merged_params[key])
+
             logPath = self.users[user]['log_types']['logSummary']
             logSummary = self.localFs.read_user_file(user, logPath)
 
@@ -2754,82 +2798,10 @@ class Project(object):
             logInfo('Preparing e-mail... Server `{SMTPPath}`, user `{SMTPUser}`, from `{From}`, to `{To}`'
                 '...'.format(**eMailConfig))
 
-            ce_host = socket.gethostname()
-            try:
-                ce_ip = socket.gethostbyname(ce_host)
-            except Exception:
-                ce_ip = ''
-            system = platform.machine() +' '+ platform.system() +', '+ ' '.join(platform.linux_distribution())
-
-            # Information that will be mapped into subject or message of the e-mail
-            map_info = {'date': time.strftime("%Y-%m-%d %H:%M")}
-
-            map_info['twister_user']    = user
-            map_info['twister_ce_type'] = self.server_init['ce_server_type'].lower()
-            map_info['twister_server_location'] = self.server_init.get('ce_server_location', '')
-            map_info['twister_rf_fname']    = '{}/config/resources.json'.format(TWISTER_PATH)
-            map_info['twister_pf_fname']    = self.users[user].get('proj_xml_name', '')
-            map_info['twister_ce_os']       = system
-            map_info['twister_ce_hostname'] = ce_host
-            map_info['twister_ce_ip']       = ce_ip
-            map_info['twister_ce_python_revision'] = '.'.join([str(v) for v in sys.version_info])
-
-            # Get all useful information, available for each EP
-            for ep, ep_data in self.users[user]['eps'].iteritems():
-
-                for k in ep_data:
-                    if k in ['suites', 'status', 'last_seen_alive']:
-                        continue
-                    if ep_data[k] == '':
-                        continue
-                    # If the information is already in the mapping info
-                    if k in map_info:
-                        map_info[k] += ', ' + str(ep_data[k])
-                        map_info[k] = ', '.join( sorted(set( map_info[k].split(', ') )) )
-                    else:
-                        map_info[k] = str(ep_data[k])
-
-                suites_manager = ep_data.get('suites')
-
-                if not suites_manager:
-                    continue
-
-                # Get all useful information for each Suite
-                for suite_id in suites_manager.get_suites():
-                    # All info about 1 Suite
-                    suite_data = suites_manager.find_id(suite_id)
-
-                    for k in suite_data:
-                        if k in ['ep', 'children']:
-                            continue
-                        if suite_data[k] == '':
-                            continue
-                        # If the information is already in the mapping info
-                        if k in map_info:
-                            map_info[k] += ', ' + str(suite_data[k])
-                            map_info[k] = ', '.join( sorted(set( map_info[k].split(', ') )) )
-                        else:
-                            map_info[k] = str(suite_data[k])
-
-            try:
-                del map_info['name']
-            except Exception:
-                pass
-            try:
-                del map_info['type']
-            except Exception:
-                pass
-            try:
-                del map_info['pd']
-            except Exception:
-                pass
-
-            # print 'E-mail map info::', json.dumps(map_info, indent=4, sort_keys=True)
-
             # Subject template string
             tmpl = Template(eMailConfig['Subject'])
             try:
-                eMailConfig['Subject'] = tmpl.substitute(map_info)
+                eMailConfig['Subject'] = tmpl.safe_substitute(merged_params)
             except Exception as e:
                 log = 'E-mail ERROR! Cannot build e-mail subject for user `{}`! Error on {}!'.format(user, e)
                 logError(log)
@@ -2839,7 +2811,7 @@ class Project(object):
             # Message template string
             tmpl = Template(eMailConfig['Message'])
             try:
-                eMailConfig['Message'] = tmpl.substitute(map_info)
+                eMailConfig['Message'] = tmpl.safe_substitute(merged_params)
             except Exception as e:
                 log = 'E-mail ERROR! Cannot build e-mail message for user `{}`! Error on {}!'.format(user, e)
                 logError(log)

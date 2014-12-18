@@ -1,6 +1,6 @@
 /*
 File: ConfigFiles.java ; This file is part of Twister.
-Version: 3.002
+Version: 3.003
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -328,6 +328,8 @@ public class ConfigFiles extends JPanel{
                         File dir = new File(RunnerRepository.getUsersDirectory());
                         String[] children = dir.list();
                         for (int i=0; i<children.length; i++){new File(dir, children[i]).delete();}
+                        RunnerRepository.tagserrors = "";
+                        RunnerRepository.showtagerror = false;
                         RunnerRepository.parseConfig();
                         String respons = RunnerRepository.getRPCClient().execute("reset_project", new Object[]{RunnerRepository.user}).toString();
                         if(respons.toLowerCase().equals("false")){
@@ -376,6 +378,9 @@ public class ConfigFiles extends JPanel{
                         RunnerRepository.window.mainpanel.p1.sc.g.setUser(null);
                         RunnerRepository.window.mainpanel.p4.getTB().buildFirstLevelTB();
                         RunnerRepository.window.mainpanel.p4.getSut().sut.getSutTree().getSUT();
+                        RunnerRepository.showTagsErrors();
+                        RunnerRepository.tagserrors = "";
+                        RunnerRepository.showtagerror = true;
                         RunnerRepository.openProjectFile();
                     }
                     else{

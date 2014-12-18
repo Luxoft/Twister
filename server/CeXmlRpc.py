@@ -1,7 +1,7 @@
 
 # File: CeXmlRpc.py ; This file is part of Twister.
 
-# version: 3.011
+# version: 3.013
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -67,10 +67,6 @@ from common.helpers    import *
 from common.tsclogging import *
 from common.xmlparser  import *
 
-
-# --------------------------------------------------------------------------------------------------
-# # # #    C L A S S    C e n t r a l - E n g i n e    # # #
-# --------------------------------------------------------------------------------------------------
 
 
 class CeXmlRpc(_cptools.XMLRPCController):
@@ -584,7 +580,7 @@ class CeXmlRpc(_cptools.XMLRPCController):
 
         # Database parser, fields, queries
         dbparser = DBParser(user, db_file)
-        query = dbparser.getQuery(field_id)
+        query = dbparser.get_query(field_id)
         db_config = dbparser.db_config
         del dbparser
 
@@ -642,12 +638,24 @@ class CeXmlRpc(_cptools.XMLRPCController):
         logDebug('CE: Preparing to save into database for user `{}`...'.format(user))
         time.sleep(2) # Wait all the logs
         ret = self.project.save_to_database(user)
-
         if ret:
             logDebug('CE: Saving to database was successful!')
         else:
             logDebug('CE: Could not save to database!')
         return ret
+
+
+    @cherrypy.expose
+    def get_shared_db(self):
+        """
+        Returns the content of Shared DB xml file.
+        This function is called from the Java GUI.
+        """
+        shared_db_path = self.project._parse_users_and_groups()['shared_db_cfg']
+        if os.path.isfile(shared_db_path):
+            return open(shared_db_path, 'r').read()
+        else:
+            return ''
 
 
 # # #   Persistence   # # #
@@ -1005,14 +1013,18 @@ class CeXmlRpc(_cptools.XMLRPCController):
 
     @cherrypy.expose
     def lock_config(self, fpath):
-        """ lock config """
+        """
+        Lock config.
+        """
         cherry_user = cherrypy.session.get('username')
         return self.project.configs.lock_config(cherry_user, fpath)
 
 
     @cherrypy.expose
     def unlock_config(self, fpath):
-        """ unlock config """
+        """
+        Unlock config.
+        """
         cherry_user = cherrypy.session.get('username')
         return self.project.configs.unlock_config(cherry_user, fpath)
 
@@ -1023,7 +1035,6 @@ class CeXmlRpc(_cptools.XMLRPCController):
         Read config file - returns a base64 string.
         """
         user = cherrypy.session.get('username')
-        logDebug('GUI read_config_file {} {}'.format(user, fpath))
         resp = self.project.configs.read_config_file(user, fpath)
         if resp.startswith('*ERROR*'):
             logWarning(resp)
@@ -1036,37 +1047,7 @@ class CeXmlRpc(_cptools.XMLRPCController):
         Save config file - returns a True/ False.
         """
         user = cherrypy.session.get('username')
-        lock = self.is_lock_config(fpath)
-        if lock and lock != user:
-            err = '*ERROR* Config file `{}` is locked by `{}`! Cannot save!'.format(fpath, lock)
-            logDebug(err)
-            return err
-
-        # Auto detect if ClearCase Test Config Path is active
-        ccConfig = self.project.get_clearcase_config(user, 'tcfg_path')
-        if ccConfig:
-            view = ccConfig['view']
-            actv = ccConfig['actv']
-            path = ccConfig['path']
-            user_view_actv = '{}:{}:{}'.format(user, view, actv)
-            # If file exists
-            fsz = self.project.clearFs.file_size(user_view_actv, path +'/'+ fpath)
-            # Cannot save an existing file that isn't locked!
-            if isinstance(fsz, long) and not lock:
-                err = '*ERROR* Cannot save CC config file `{}`, because it\'s not locked!'.format(fpath)
-                logDebug(err)
-                return err
-            return self.write_file(path +'/'+ fpath, content, 'w', type='clearcase:{}:{}'.format(view, actv))
-        else:
-            dirpath = self.project.get_user_info(user, 'tcfg_path')
-            # If file exists
-            fsz = self.project.clearFs.file_size(user, dirpath + '/' + fpath)
-            # Cannot save an existing file that isn't locked!
-            if isinstance(fsz, long) and not lock:
-                err = '*ERROR* Cannot save config file `{}`, because it\'s not locked!'.format(fpath)
-                logDebug(err)
-                return err
-            return self.write_file(dirpath + '/' + fpath, content)
+        return self.project.configs.save_config_file(user, fpath, binascii.a2b_base64(content))
 
 
     @cherrypy.expose
@@ -1075,27 +1056,7 @@ class CeXmlRpc(_cptools.XMLRPCController):
         Delete config file - returns a True/ False.
         """
         user = cherrypy.session.get('username')
-        lock = self.is_lock_config(fpath)
-        # Cannot Delete a locked file!
-        if lock:
-            err = '*ERROR* Config file `{}` is locked by `{}`! Cannot delete!'.format(fpath, lock)
-            logDebug(err)
-            return err
-
-        # Unbind the config file, if it was binded
-        self.project.parsers[user].del_binding(fpath)
-
-        # Auto detect if ClearCase Test Config Path is active
-        ccConfig = self.project.get_clearcase_config(user, 'tcfg_path')
-        if ccConfig:
-            view = ccConfig['view']
-            actv = ccConfig['actv']
-            path = ccConfig['path']
-            user_view_actv = '{}:{}:{}'.format(user, view, actv)
-            return self.project.clearFs.delete_user_file(user_view_actv, path +'/'+ fpath)
-        else:
-            dirpath = self.project.get_user_info(user, 'tcfg_path')
-            return self.project.localFs.delete_user_file(user, dirpath +'/'+ fpath)
+        return self.project.configs.delete_config_file(user, fpath)
 
 
     @cherrypy.expose

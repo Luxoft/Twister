@@ -1,7 +1,7 @@
 
 # File: CeFs.py ; This file is part of Twister.
 
-# version: 3.022
+# version: 3.024
 
 # Copyright (C) 2012-2014, Luxoft
 
@@ -252,6 +252,19 @@ class BaseFS(object):
         srvr = self._usr_service(user)
         if srvr:
             return srvr.root.targz_folder(fdir, root)
+        else:
+            return '*ERROR* Cannot access the UserService on tar.gz folder, user `{}`!'.format(user)
+
+
+    def detect_libraries(self, user, files):
+        """
+        Autodetect libraries: parses all the tests and finds the import statements.
+        Returns a list of the modules not available by default in python path.
+        """
+        srvr = self._usr_service(user)
+        if srvr:
+            libs = srvr.root.detect_libraries(files)
+            return copy.copy(libs)
         else:
             return '*ERROR* Cannot access the UserService on tar.gz folder, user `{}`!'.format(user)
 

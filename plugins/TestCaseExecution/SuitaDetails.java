@@ -1,6 +1,6 @@
 /*
 File: SuitaDetails.java ; This file is part of Twister.
-Version: 3.004
+Version: 3.006
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -77,13 +77,14 @@ import java.awt.event.MouseEvent;
 import javax.swing.DefaultListModel;
 
 public class SuitaDetails extends JPanel {
-    private JPanel defsContainer,projectDefsContainer,global, suiteoptions, tcoptions, summary;
+    private JPanel defsContainer,projectDefsContainer,global, suiteoptions, tcoptions, summary, savedb;
     private JScrollPane scroll;
     private ArrayList <DefPanel> definitions = new ArrayList <DefPanel>();
     private ArrayList <DefPanel> projectdefinitions = new ArrayList <DefPanel>();
     private TitledBorder border;    
     private JCheckBox stoponfail, runnable, optional, prerequisites,
-                      savedb, panicdetect,teardown,prestoponfail;
+                      //savedb,
+                      panicdetect,teardown,prestoponfail;
     private JTextField tprescript, tpostscript,tview,tlibraries;
     private JButton browse1,browse2,suitelib;
     private Item parent;
@@ -95,6 +96,7 @@ public class SuitaDetails extends JPanel {
     private PropPanel prop;
     private ParamPanel param;
     private JComboBox libraryoption;
+    private JComboBox dbcombo;
     
     
     public void setEnabled(boolean enabled) {
@@ -204,10 +206,38 @@ public class SuitaDetails extends JPanel {
                 .addContainerGap())
         );
         tcdelay = new JLabel("TC delay");
-        savedb = new JCheckBox("DB autosave");
+        JLabel seconds = new JLabel(" seconds");
         ttcdelay = new JTextField();
-        JButton globallib = new JButton("Libraries");
+        ttcdelay.setColumns(5);
+        
+        JPanel tcdelaypanel = new JPanel();
+        tcdelaypanel.setBackground(Color.WHITE);
+        tcdelaypanel.setMaximumSize(new Dimension(210,25));
+        tcdelaypanel.add(tcdelay);
+        tcdelaypanel.add(ttcdelay); 
+        tcdelaypanel.add(seconds);
+        
+        JPanel savedb = new JPanel();
         savedb.setBackground(Color.WHITE);
+        //savedb.setPreferredSize(new Dimension(100,30));
+        savedb.setMaximumSize(new Dimension(180,25));
+        JLabel dblabel = new JLabel("DB save:");
+        dbcombo = new JComboBox();
+//         dbcombo.addItem("Autosave");
+//         dbcombo.addItem("Ask");
+//         dbcombo.addItem("None");
+        
+        dbcombo.addItem("Ask to save");
+        dbcombo.addItem("Save to db");
+        dbcombo.addItem("Do not save");
+        
+        savedb.add(dblabel);
+        savedb.add(dbcombo);
+        
+        
+        //savedb = new JCheckBox("DB autosave");
+        JButton globallib = new JButton("Libraries");
+        //savedb.setBackground(Color.WHITE);
         stoponfail = new JCheckBox("Stop on fail");
         stoponfail.setBackground(Color.WHITE);
         JLabel prescript = new JLabel();
@@ -293,7 +323,7 @@ public class SuitaDetails extends JPanel {
                         .addGroup(layout.createSequentialGroup()
                             .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                                 .addComponent(libraries)
-                                .addComponent(tcdelay)
+                                //.addComponent(tcdelay)
                                 .addComponent(prescript)
                                 .addComponent(postscript))
                             .addGap(18, 18, 18)
@@ -301,7 +331,8 @@ public class SuitaDetails extends JPanel {
                                 .addComponent(tpostscript, javax.swing.GroupLayout.DEFAULT_SIZE, 186, Short.MAX_VALUE)
                                 .addComponent(tprescript, javax.swing.GroupLayout.DEFAULT_SIZE, 186, Short.MAX_VALUE)
                                 .addComponent(tlibraries)
-                                .addComponent(ttcdelay, javax.swing.GroupLayout.DEFAULT_SIZE, 186, Short.MAX_VALUE))
+                                //.addComponent(ttcdelay, javax.swing.GroupLayout.DEFAULT_SIZE, 186, Short.MAX_VALUE)
+                                )
                             .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                             .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                                 .addGroup(layout.createSequentialGroup()
@@ -318,6 +349,8 @@ public class SuitaDetails extends JPanel {
                             .addComponent(stoponfail, javax.swing.GroupLayout.PREFERRED_SIZE, 105, javax.swing.GroupLayout.PREFERRED_SIZE)
                             .addGap(18, 18, 18)
                             .addComponent(savedb)
+                            .addGap(18, 18, 18)
+                            .addComponent(tcdelaypanel)
                             .addGap(0, 0, Short.MAX_VALUE)))
                     .addContainerGap())
             );
@@ -329,12 +362,16 @@ public class SuitaDetails extends JPanel {
             .addGroup(layout.createSequentialGroup()
                 .addGap(12, 12, 12)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(stoponfail, javax.swing.GroupLayout.PREFERRED_SIZE, 20, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(savedb))
+//                    .addComponent(stoponfail, javax.swing.GroupLayout.PREFERRED_SIZE, 20, javax.swing.GroupLayout.PREFERRED_SIZE)
+//                    .addComponent(stoponfail, 300, 20, 300)
+                    .addComponent(stoponfail, 35, 35, 35)
+                    .addComponent(savedb)
+                    .addComponent(tcdelaypanel)
+                    )
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(ttcdelay, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(tcdelay))
+//                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+//                     .addComponent(ttcdelay, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+//                     .addComponent(tcdelay))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(tprescript, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
@@ -366,7 +403,7 @@ public class SuitaDetails extends JPanel {
                         .addGroup(layout.createSequentialGroup()
                             .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                                 .addComponent(libraries)
-                                .addComponent(tcdelay)
+                                //.addComponent(tcdelay)
                                 .addComponent(prescript)
                                 .addComponent(postscript))
                             .addGap(18, 18, 18)
@@ -374,7 +411,8 @@ public class SuitaDetails extends JPanel {
                                 .addComponent(tpostscript, javax.swing.GroupLayout.DEFAULT_SIZE, 186, Short.MAX_VALUE)
                                 .addComponent(tprescript, javax.swing.GroupLayout.DEFAULT_SIZE, 186, Short.MAX_VALUE)
                                 .addComponent(tlibraries, javax.swing.GroupLayout.DEFAULT_SIZE, 186, Short.MAX_VALUE)
-                                .addComponent(ttcdelay, javax.swing.GroupLayout.DEFAULT_SIZE, 186, Short.MAX_VALUE))
+                                //.addComponent(ttcdelay, javax.swing.GroupLayout.DEFAULT_SIZE, 186, Short.MAX_VALUE)
+                                )
                             .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                             .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                                 .addGroup(layout.createSequentialGroup()
@@ -389,6 +427,8 @@ public class SuitaDetails extends JPanel {
                             .addComponent(stoponfail, javax.swing.GroupLayout.PREFERRED_SIZE, 105, javax.swing.GroupLayout.PREFERRED_SIZE)
                             .addGap(18, 18, 18)
                             .addComponent(savedb)
+                            .addGap(18, 18, 18)
+                            .addComponent(tcdelaypanel)
                             .addGap(0, 0, Short.MAX_VALUE)))
                     .addContainerGap())
             );
@@ -398,12 +438,14 @@ public class SuitaDetails extends JPanel {
             .addGroup(layout.createSequentialGroup()
                 .addGap(12, 12, 12)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(stoponfail, javax.swing.GroupLayout.PREFERRED_SIZE, 20, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(savedb))
+//                    .addComponent(stoponfail, javax.swing.GroupLayout.PREFERRED_SIZE, 20, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(stoponfail, 35, 35, 35)
+                    .addComponent(savedb)
+                    .addComponent(tcdelaypanel))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(ttcdelay, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(tcdelay))
+//                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+//                     .addComponent(ttcdelay, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+//                     .addComponent(tcdelay))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(tprescript, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
@@ -427,7 +469,8 @@ public class SuitaDetails extends JPanel {
 
         layout.linkSize(javax.swing.SwingConstants.HORIZONTAL, new java.awt.Component[] {browse1, browse2, globallib});
 
-        layout.linkSize(javax.swing.SwingConstants.VERTICAL, new java.awt.Component[] {browse1, tprescript, ttcdelay});
+        //layout.linkSize(javax.swing.SwingConstants.VERTICAL, new java.awt.Component[] {browse1, tprescript, ttcdelay});
+        layout.linkSize(javax.swing.SwingConstants.VERTICAL, new java.awt.Component[] {browse1, tprescript});
 
         layout.linkSize(javax.swing.SwingConstants.VERTICAL, new java.awt.Component[] {browse2, tpostscript, tlibraries});
         
@@ -917,7 +960,10 @@ public class SuitaDetails extends JPanel {
             
       
     public String getGlobalDownloadType(){
-        return libraryoption.getSelectedItem().toString();
+        if(libraryoption!=null && libraryoption.getSelectedItem()!=null){
+            return libraryoption.getSelectedItem().toString();
+        }
+        return "";
     }
     
     public void setGlobalDownloadType(String type){
@@ -1121,7 +1167,6 @@ public class SuitaDetails extends JPanel {
     }
 
     public void setGlobalDetails(){
-//         scroll.setViewportView(global);
         scroll.setViewportView(projectDefsContainer);
         setBorderTitle("Global options");
     }
@@ -1140,8 +1185,14 @@ public class SuitaDetails extends JPanel {
     public boolean preStopOnFail(){
         return prestoponfail.isSelected();}
         
-    public boolean saveDB(){
-        return savedb.isSelected();}
+    public String saveDB(){
+        //if(dbcombo.getSelectedItem().toString().equals("Ask to save"))return "true";
+        //else if(dbcombo.getSelectedItem().toString().equals("Save to db"))return "false";
+        if(dbcombo.getSelectedItem().toString().equals("Ask to save"))return "false";
+        else if(dbcombo.getSelectedItem().toString().equals("Save to db"))return "true";
+        else if(dbcombo.getSelectedItem().toString().equals("Do not save"))return "null";  
+        return "";
+    }
         
     public void setStopOnFail(boolean value){
         stoponfail.setSelected(value);}
@@ -1149,8 +1200,18 @@ public class SuitaDetails extends JPanel {
     public void setPreStopOnFail(boolean value){
         prestoponfail.setSelected(value);}
         
-    public void setSaveDB(boolean value){
-        savedb.setSelected(value);}
+    public void setSaveDB(String value){
+        dbcombo.setSelectedIndex(0);
+        if(value.equals("false"))value = "Ask to save";
+        else if(value.equals("true"))value = "Save to db";
+        else value = "Do not save";
+        for(int i=0;i<dbcombo.getItemCount();i++){
+            if(dbcombo.getItemAt(i).toString().equals(value)){
+                dbcombo.setSelectedIndex(i);
+                break;
+            }
+        }   
+    }
         
     public void setDelay(String delay){
         ttcdelay.setText(delay);}

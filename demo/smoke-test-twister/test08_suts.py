@@ -1,6 +1,6 @@
 
 #
-# <ver>version: 3.002</ver>
+# <ver>version: 3.003</ver>
 # <title>Test CommonLib and Resource Allocator / SUTs</title>
 # <description>This suite checks the most basic functionality of Twister.<br>
 # Functions `get_sut`, `set_sut` and *the rest* are included in the interpreter!</description>
@@ -55,6 +55,8 @@ def test():
 		return 'FAIL', _REASON
 	print
 
+	print 'Reserving SUT...', reserve_sut(sut_id)
+	print
 	print 'Reserving SUT...', reserve_sut(sut_id)
 	child_id = set_sut('child', sut_id, {'some-meta': 'y'})
 	print 'Create child::', child_id

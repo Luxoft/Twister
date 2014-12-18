@@ -1,6 +1,6 @@
 /*
 File: Grafic.java ; This file is part of Twister.
-Version: 3.0034
+Version: 3.0035
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -2320,7 +2320,7 @@ public class Grafic extends JPanel{
      */
     public boolean printXML(String user, boolean skip,
                             boolean local, boolean stoponfail,boolean prestoponfail,
-                            boolean savedb, String delay,boolean lib, ArrayList<Item> array,String [][] projdefined,String downloadlibraryoption){
+                            String savedb, String delay,boolean lib, ArrayList<Item> array,String [][] projdefined,String downloadlibraryoption){
         //skip = true
         try{if(array==null)array = RunnerRepository.getSuite();
             XMLBuilder xml = new XMLBuilder(array);

@@ -1,6 +1,6 @@
 # File: CeCommonAllocator.py ; This file is part of Twister.
 
-# version: 3.003
+# version: 3.004
 
 # Copyright (C) 2012-2014, Luxoft
 
@@ -287,8 +287,13 @@ class CommonAllocator(object):
         reserve a resource for a certain user
         """
 
+        try:
+            source = 'xmlrpc' if cherrypy.session.get('username') else 'error' # call from the applet
+        except:
+            source = 'rpyc' # call from the tests
+
         user_info = self.user_info(props)
-        logDebug('CeCommonAllocator:reserve_resource {} {} {}'.format(res_query, props, user_info[0]))
+        logDebug('CeCommonAllocator:reserve_resource {} {} {} {}'.format(res_query, props, user_info[0],self.type.upper()))
 
         # in case we recive meta info too
         if ':' in res_query:
@@ -301,29 +306,44 @@ class CommonAllocator(object):
                 if _isResourceLocked != user_info[0]:
                     msg = 'User {}: The resource is locked for {} !'.format(user_info[0], _isResourceLocked)
                     logError(msg)
-                    return '*ERROR* ' + msg
+                    if source == 'rpyc':
+                        return (False, 'TB_LOCKED')
+                    else:
+                        return '*ERROR* ' + msg
                 else:
                     msg = 'User {}: Has already locked this resource: {}'.format(user_info[0], res_query)
                     logDebug(msg)
-                    return True
+                    if source == 'rpyc':
+                        return (False, 'TB_LOCKED')
+                    else:
+                        return True
             #verify is the resource is reserved by other user
             _isResourceReserved = self.is_resource_reserved(res_query)
             if _isResourceReserved:
                 if _isResourceReserved != user_info[0]:
                     msg = 'User {}: The resource is reserved for {}!'.format(user_info[0], _isResourceReserved)
                     logError(msg)
-                    return '*ERROR* ' + msg
+                    if source == 'rpyc':
+                        return (False, '{}_RESERVED'.format(self.type.upper()))
+                    else:
+                        return '*ERROR* ' + msg
                 else:
                     msg = 'User {}: Has already reserved this resource: {}'.format(user_info[0], res_query)
                     logDebug(msg)
-                    return True
+                    if source == 'rpyc':
+                        return (False, '{}_RESERVED'.format(self.type.upper()))
+                    else:
+                        return True
 
             node_path = self.get_resource(res_query)
 
             if not node_path or isinstance(node_path, str):
                 msg = "User {}: No such resource {}".format(user_info[0], res_query)
                 logError(msg)
-                return "*ERROR* " + msg
+                if source == 'rpyc':
+                    return (False, '{}_UNKNOWN'.format(self.type.upper()))
+                else:
+                    return "*ERROR* " + msg
 
             #we need to set as reserved the root of this resource
             if isinstance(node_path['path'], list) and len(node_path['path']) > 1:
@@ -332,15 +352,20 @@ class CommonAllocator(object):
                 if not node_path:
                     msg = 'User {}: Reserve Resource: Cannot find resource path or ID !'.format(user_info[0])
                     logError(msg)
-                    return '*ERROR* ' + msg
+                    if source == 'rpyc':
+                        return (False, '{}_RESERVED'.format(self.type.upper()))
+                    else:
+                        return '*ERROR* ' + msg
 
             #adding the resource to reservedResources dictionary
             if user_info[0] in self.reservedResources:
                 self.reservedResources[user_info[0]].update([(node_path['id'], copy.deepcopy(node_path)), ])
             else:
                 self.reservedResources.update([(user_info[0], {node_path['id']: copy.deepcopy(node_path)}), ])
-
-        return True #RESOURCE_RESERVED
+        if source == 'rpyc':
+            return (True, 'NO_ERROR')
+        else:
+            return True #RESOURCE_RESERVED
 
 
     def is_resource_reserved(self, res_query, props={}):

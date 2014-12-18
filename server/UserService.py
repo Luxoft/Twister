@@ -1,7 +1,7 @@
 
 # File: UserService.py ; This file is part of Twister.
 
-# version: 3.014
+# version: 3.015
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -29,6 +29,7 @@ This process runs in the Twister Client folder.
 """
 
 import os
+import re
 import sys
 import pwd
 import grp
@@ -37,6 +38,8 @@ import shutil
 import subprocess
 import tarfile
 import cStringIO
+import multiprocessing
+
 
 import rpyc
 from rpyc.utils.server import ThreadedServer
@@ -69,6 +72,21 @@ def logWarning(msg):
 def logError(msg):
     """ error """
     log_msg("ERROR", msg)
+
+pattern = re.compile('from[\s]+([\w]+).*?[\s]+import|[\s]*import[\s]+([\w]+)[\s]*\n')
+
+def worker(files):
+    """
+    A worker that parses a batch of tests. Returns all the import statements found.
+    """
+    missing = set([])
+    for file in files:
+        f = open(file, 'r')
+        data = f.read()
+        f.close()
+        imports = pattern.findall(data)
+        missing.update([i[0] or i[1] for i in imports])
+    return sorted(missing)
 
 if sys.version < '2.7':
     logError('Python version error! User Service must run on Python 2.7++ !')
@@ -449,6 +467,40 @@ class UserService(rpyc.Service):
         with tarfile.open(fileobj=io, mode='w:gz') as binary:
             binary.add(name=name, recursive=True)
         return io.getvalue()
+
+
+    @staticmethod
+    def exposed_detect_libraries(files):
+        """
+        Autodetect libraries: parses all the tests and finds the import statements.
+        Returns a list of the modules not available by default in python path.
+        """
+        numthreads = 4*multiprocessing.cpu_count()
+        num_files = len(files)/numthreads
+
+        # create the process pool
+        pool = multiprocessing.Pool(processes=numthreads)
+        #start = time.time()
+        result_list = pool.map(worker, (files[i*num_files:((i+1)*num_files if i != numthreads-1 else len(files))] for i in range(0,numthreads)))
+        #print 'Total time: {}'.format(time.time() - start)
+
+        result = []
+
+        for l in result_list:
+            result+=l
+
+        old_stdout = sys.stdout
+        new_stdout = cStringIO.StringIO()
+        new_stdout.flush()
+        sys.stdout = new_stdout
+        help('modules')
+        sys.stdout = old_stdout
+        modules = new_stdout.getvalue().split('\n')[3:-5]
+        avail_modules = []
+        modules = map((lambda m:avail_modules.extend(re.sub('[\s]+',' ',m).split(' '))), modules)
+
+        result_list = sorted(set(result) - set(avail_modules))
+        return result_list
 
 
     @staticmethod

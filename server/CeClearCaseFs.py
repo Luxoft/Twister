@@ -256,7 +256,7 @@ class ClearCaseFs(BaseFS, CcBorg):
             user_view = user_view.rstrip(':')
 
         # make sure the CC service is started
-        self._usr_service('bpopescu:twister_view_dev_2')
+        self._usr_service(user_view)
 
         proc = self._services.get(user_view, {}).get('proc')
         if proc:

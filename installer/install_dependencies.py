@@ -1,6 +1,6 @@
 #!/usr/bin/env python2.7
 
-# version: 3.005
+# version: 3.006
 
 # File: install.py ; This file is part of Twister.
 
@@ -188,7 +188,7 @@ def install_w_internet(lib_name):
     elif lib_name == 'LXML-Python':
         print('\n~~~ Installing `{}` from System repositories ~~~\n'.format(lib_name))
 
-        if platform.dist()[0] in ['fedora', 'centos']:
+        if platform.dist()[0] in ['fedora', 'centos', 'redhat']:
             tcr_proc = subprocess.Popen(['yum', '-y', 'install', 'libxslt-devel', 'libxml2-devel'])
         else:
             tcr_proc = subprocess.Popen(['apt-get', 'install', 'python-lxml', '-y', '--force-yes'])
@@ -225,7 +225,7 @@ def install_offline(lib_name):
 
         if platform.dist()[0] == 'SuSE':
             tcr_proc = subprocess.Popen(['zypper', 'install', '-yl', 'mysql-devel'])
-        elif platform.dist()[0] in ['fedora', 'centos']:
+        elif platform.dist()[0] in ['fedora', 'centos', 'redhat']:
             tcr_proc = subprocess.Popen(['yum', '-y', 'install', 'mysql-devel'])
         else:
             tcr_proc = subprocess.Popen(['apt-get', 'install', 'python-mysqldb', '-y', '--force-yes'])
@@ -242,7 +242,7 @@ def install_offline(lib_name):
         print('\n~~~ Installing `{}` from System repositories ~~~\n'.format(lib_name))
 
         # Requires libxml2 and libxslt
-        if platform.dist()[0] in ['fedora', 'centos']:
+        if platform.dist()[0] in ['fedora', 'centos', 'redhat']:
             tcr_proc = subprocess.Popen(['yum', '-y', 'install', 'libxslt-devel', 'libxml2-devel'])
         else:
             tcr_proc = subprocess.Popen(['apt-get', 'install', 'libxslt-dev', 'python-lxml', '-y', '--force-yes'])
