@@ -24,6 +24,12 @@ def test():
 	print 'Query Root (/)...', get_tb('/')
 	print
 
+	print is_tb_reserved('/tb1')
+	print get_tb_user('/tb1')
+	print is_sut_reserved('/SUT1.user')
+	print get_sut_user('/SUT1.user')
+	print
+
 	tb_name = 'tb_' + hexlify(urandom(4))
 	print 'Create a tb `{}`...'.format(tb_name)
 	tb_id = set_tb(tb_name, '/', {'meta1': 1, 'meta2': 2})
@@ -55,12 +61,12 @@ def test():
 	print 'Update resource::', set_tb(tb_name, '/', {'more-info': 'y'})
 	print 'Saving resource...', save_reserved_tb(tb_id)
 	print
-	
+
 	print 'Reserving resource...', reserve_tb(tb_id)
 	print 'Update resource::', set_tb(tb_name, '/', {'more-info': 'y'})
 	print 'Saving resource...', save_reserved_tb(tb_id)
 	print
-	
+
 	child_id = set_tb('child', tb_id, {'some-meta': 'y'})
 	print 'Create child::', child_id
 	print 'Releasing resource...', save_release_reserved_tb(tb_id)

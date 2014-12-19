@@ -1,6 +1,6 @@
 # File: TscCommonLib.py ; This file is part of Twister.
 
-# version: 3.018
+# version: 3.019
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -784,6 +784,66 @@ class TscCommonLib(object):
         """
         try:
             return self.ce_proxy.discard_release_reserved_sut(query)
+        except Exception as e:
+            print('Error on discard & release SUT! `{}`!'.format(e))
+            return None
+
+
+    def is_tb_reserved(self, query):
+        """
+        Yes or No.
+        """
+        try:
+            result = self.ce_proxy.is_tb_reserved(query)
+            if not result or result == 'false':
+                return False
+            else:
+                return True
+        except Exception as e:
+            print('Error on discard & release SUT! `{}`!'.format(e))
+            return None
+
+
+    def get_tb_user(self, query):
+        """
+        User name.
+        """
+        try:
+            result = self.ce_proxy.is_tb_reserved(query)
+            if not result or result == 'false':
+                return False
+            else:
+                return result
+        except Exception as e:
+            print('Error on discard & release SUT! `{}`!'.format(e))
+            return None
+
+
+    def is_sut_reserved(self, query):
+        """
+        Yes or No.
+        """
+        try:
+            result = self.ce_proxy.is_sut_reserved(query)
+            if not result or result == 'false':
+                return False
+            else:
+                return True
+        except Exception as e:
+            print('Error on discard & release SUT! `{}`!'.format(e))
+            return None
+
+
+    def get_sut_user(self, query):
+        """
+        User name.
+        """
+        try:
+            result = self.ce_proxy.is_sut_reserved(query)
+            if not result or result == 'false':
+                return False
+            else:
+                return result
         except Exception as e:
             print('Error on discard & release SUT! `{}`!'.format(e))
             return None
