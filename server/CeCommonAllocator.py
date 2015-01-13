@@ -199,7 +199,7 @@ class CommonAllocator(object):
         if not resource or not query:
             msg = 'Cannot get a null resource {} or a new query {}!'.format(resource, query)
             logError(msg)
-            return None
+            return False
 
         if ':' in query:
             query = query.split(':')[0]

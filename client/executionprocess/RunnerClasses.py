@@ -1,7 +1,7 @@
 
 # File: TestCaseRunnerClasses.py ; This file is part of Twister.
 
-# version: 3.008
+# version: 3.010
 
 # Copyright (C) 2012-2014, Luxoft
 
@@ -33,6 +33,7 @@ import os
 import sys
 import time
 import glob
+import json
 from shutil import copyfile
 
 import subprocess # For running Perl/ Jython
@@ -113,6 +114,10 @@ class TCRunTcl(object):
         self.tcl.setvar('FILE_NAME', globs['FILE_NAME'])
         self.tcl.setvar('CONFIG', ';'.join(globs['CONFIG']))
         self.tcl.setvar('ITERATION', globs['ITERATION'])
+
+        # Set properties Associative Array
+        for k, v in globs['PROPERTIES'].iteritems():
+            self.tcl.eval('set PROPERTIES({}) {}'.format(k, v))
 
         # Compatibility log message
         self.tcl.createcommand('logMessage', globs['log_msg'])
@@ -289,6 +294,9 @@ class TCRunPerl(object):
         if  str_to_execute[0] == '#':
             str_to_execute = '\n'.join(str_to_execute.split('\n')[1:])
 
+        perl_config = '( ' + json.dumps(globs['CONFIG'])[1:-1] + ' )'
+        perl_props = '( ' + json.dumps(globs['PROPERTIES'])[1:-1].replace('": ', '" => ') + ' )'
+
         text_head = r"""#!/usr/bin/perl
 
 $STATUS_PASS     = 0;
@@ -304,8 +312,10 @@ $SUT = TWISTER_SUT();
 $USER = TWISTER_USER();
 $SUITE_NAME = TWISTER_SUITE_NAME();
 $FILE_NAME  = TWISTER_FILE_NAME();
+@CONFIG = %s;
+%%PROPERTIES = %s;
 
-"""
+""" % (perl_config, perl_props)
 
         text_tail = r"""
 use Inline Python => <<"END_OF_PYTHON_CODE";

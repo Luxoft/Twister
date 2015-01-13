@@ -1,3 +1,7 @@
+13th January
+
+- code changes to release SUT when the testing is stopped manually
+
 18th December 2014
 
 - code changes to fix issue #147
@@ -8,6 +12,7 @@
 - added support for shared database xml configuration
 - added API to reserve SUT and TB within test cases
 - fixed bug related to get_sut API to retrieve properties recursively
+
 
 22nd August 2014
 

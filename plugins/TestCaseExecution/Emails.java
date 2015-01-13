@@ -1,6 +1,6 @@
 /*
 File: Emails.java ; This file is part of Twister.
-Version: 3.002
+Version: 3.003
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -171,6 +171,9 @@ public class Emails extends JPanel{
                 else enable.setText("Disabled");}});
         add(check);
         JButton save = new JButton("Save");
+        if(!PermissionValidator.canEditEmail()){
+            save.setEnabled(false);
+        }
         save.setBounds(352,525,80,20);
         save.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){

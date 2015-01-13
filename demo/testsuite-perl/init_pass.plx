@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
 #
-# version: 3.001
+# version: 3.002
 # <title>init file</title>
 # <description>Test status</description>
 #
@@ -18,6 +18,12 @@ print "System Under Test: $SUT \n";
 print "Exec process: $EP \n";
 print "Suite: $SUITE_NAME \n";
 print "Remote file: $FILE_NAME \n";
+
+print "Config arr: @CONFIG \n";
+@pkeys = keys %PROPERTIES;
+@pvals = values %PROPERTIES;
+print "Properties keys: @pkeys \n";
+print "Properties vals: @pvals \n";
 
 exit($STATUS_PASS);
 

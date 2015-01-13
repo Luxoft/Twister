@@ -1,7 +1,7 @@
 
 # File: CeProject.py ; This file is part of Twister.
 
-# version: 3.066
+# version: 3.067
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -246,6 +246,7 @@ class Project(object):
         self.test_ids = {}  # IDs shortcut
         self.suite_ids = {} # IDs shortcut
         self.plugins = {}   # User plugins
+        self.calc_libraries = {} # dict with user:precalculated_libraries
 
         self.usr_lock = allocate_lock()  # User change lock
         self.auth_lock = allocate_lock()  # Authenticate change lock
@@ -2003,9 +2004,10 @@ class Project(object):
 #                     children = SuitesManager.get(key).get('children')
 #                     for id in children:
 #                         tests_list.append(children.get(id)['file'])
-
+#   
 #             libraries = self.localFs.detect_libraries(user, tests_list)
 #             logWarning('Libraries: {}'.format(libraries))
+#             self.calc_libraries[user] = libraries
 
             for epname in intersect_eps:
                 if epname == '__anonymous__' and anonim_ep:
@@ -2033,6 +2035,30 @@ class Project(object):
         # If the engine is running, or paused and it received STOP from the user...
         elif executionStatus in [STATUS_RUNNING, STATUS_PAUSED, STATUS_INVALID] and new_status == STATUS_STOP:
 
+            # Remove reservation of SUTs/TBs
+            
+            reserved_suts = self.sut.reservedResources
+            if reserved_suts:
+                reserved_suts_ids = reserved_suts[user].keys()
+                for id in reserved_suts_ids:
+                    result = self.sut.discard_release_reserved_sut(id)
+                    if not result:
+                        msg = '*ERROR* Cannot discard reservation for SUT with id {}.'.format(id)
+                        logWarning(msg)
+                    else:
+                        logDebug('Reservation discarded for SUT id `{}`.'.format(id))
+            
+            reserved_tbs = self.tb.reservedResources
+            if reserved_tbs:
+                reserved_tbs_ids = reserved_tbs[user].keys()
+                for id in reserved_tbs_ids:
+                    result = self.tb.discard_release_reserved_tb(id)
+                    if not result:
+                        msg = '*ERROR* Cannot discard reservation for TB with id {}.'.format(id)
+                        logWarning(msg)
+                    else:
+                        logDebug('Reservation discarded for TB id `{}`.'.format(id))
+            
             # Execute "Post Script"
             script_post = self.get_user_info(user, 'script_post')
             script_mandatory = self.get_user_info(user, 'script_mandatory')
@@ -2599,6 +2625,11 @@ class Project(object):
 
         # All libraries for user
         else:
+            
+            libs = []
+            
+#             libs = self.calc_libraries.get(user) # add autodetected libraries. MAKE A SET to remove duplicates
+            
             # Current project libraries
             proj_libs = self.get_user_info(user, 'libraries') or ''
 
@@ -2608,13 +2639,11 @@ class Project(object):
                     dl_libs = 'flat'
                 else:
                     dl_libs = 'deep'
-
             if dl_libs == 'flat':
-                libs = [x.strip() for x in proj_libs.split(';') if x.strip()] if proj_libs else []
+                libs.extend([x.strip() for x in proj_libs.split(';') if x.strip()] if proj_libs else [])
                 logDebug('Current project flat libraries for user `{}`: {}.'.format(user, libs))
                 return libs
 
-            libs = []
 
             for lib in proj_libs.split(';'):
                 lib = lib.strip().strip('/')
@@ -2664,7 +2693,6 @@ class Project(object):
                                 libs.append(init_to_insert)
 
                 libs.append(lib)
-
             logDebug('Current project deep libraries for user `{}`: {}.'.format(user, libs))
             return libs
 

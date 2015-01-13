@@ -22,6 +22,11 @@ puts "Remote file:: $FILE_NAME"
 puts "Config files:: $CONFIG"
 puts "Iteration nr:: $ITERATION"
 
+puts "\nProperties::"
+foreach i [array names PROPERTIES] {
+    puts "PROPERTIES($i) = $PROPERTIES($i)"
+}
+
 # Load Expect and some demo library
 #package require Expect
 #package require DemoLib

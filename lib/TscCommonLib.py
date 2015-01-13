@@ -323,8 +323,8 @@ class TscCommonLib(object):
         """
         try:
             marshal.dumps(value)
-            cls._ce_proxy()
-            return cls.ce_proxy.set_global_variable(var, value)
+            ce = cls._ce_proxy()
+            return ce.set_global_variable(var, value)
         except Exception:
             cls.global_vars[var] = value
             return True

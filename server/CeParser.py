@@ -582,7 +582,11 @@ class CeXmlParser(object):
                     sut = '/' + sut
                     sut_eps = self.project.sut.get_info_sut(sut + ':_epnames_' + user, {'__user': user})
 
-                    if sut_eps and sut_eps != "false":
+                    if '*ERROR*' in sut_eps:
+                        logError(sut_eps)
+                        return sut_eps
+
+                    if sut_eps and isinstance(sut_eps, str):
                         sut_eps_list = [ep for ep in sut_eps.split(';') if ep]
 
                         for ep in sut_eps_list:
