@@ -1,6 +1,6 @@
 #!/usr/bin/env python2.7
 
-# version: 3.030
+# version: 3.031
 
 # File: ExecutionProcess.py ; This file is part of Twister.
 
@@ -161,6 +161,14 @@ class EpService(rpyc.Service):
         """
         global DEBUG
         DEBUG = False
+        return None
+
+
+    def exposed_set_interact(self, msg):
+        """
+        Sets the response from the user for a user interaction
+        """
+        RUNNER.commonLib.interact = copy.deepcopy(msg) 
         return None
 
 
@@ -385,7 +393,7 @@ class ThreadedLogger(Thread):
 
 def dbg_breakpoint():
     """
-    This function be called only from a test!
+    This function should be called only from a test!
     It will block the test and wait for the "NEXT" command.
     """
     global DEBUG

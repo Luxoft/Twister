@@ -1,7 +1,7 @@
 
 # File: CeProject.py ; This file is part of Twister.
 
-# version: 3.067
+# version: 3.072
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -253,8 +253,10 @@ class Project(object):
         self.epl_lock = allocate_lock()  # EP lock
         self.stt_lock = allocate_lock()  # File status lock
         self.int_lock = allocate_lock()  # Internal use lock
+        self.panic_lock = allocate_lock()  # Lock for panic detect
         self.log_lock = allocate_lock()  # Log access lock
         self.eml_lock = allocate_lock()  # E-mail lock
+        self.interact_lock = allocate_lock() # Lock used for interaction queue
 
         # Read the production/ development option.
         cfg_path = '{}/config/server_init.ini'.format(TWISTER_PATH)
@@ -1675,15 +1677,14 @@ class Project(object):
         return self.rsrv.service.conns.get(local_client, {}).get('conn', False)
 
 
-    def _find_specific_ep(self, user, epname='ep'):
+    def _find_specific_ep(self, user, ep='ep'):
         """
         Helper function to find a local EP connection.
         """
-        ep_addr = self.rsrv.service._findConnection(usr=user, hello=epname)
-
+        ep_addr = self.rsrv.service._findConnection(user, 'ep',epname=ep)
         # Cannot find local conns
         if not ep_addr:
-            logWarning('*WARN* Cannot find local EP `{}`, for user `{}`!'.format(epname, user))
+            logWarning('*WARN* Cannot find local EP `{}`, for user `{}`!'.format(ep, user))
             return False
 
         return self.rsrv.service.conns.get(ep_addr, {}).get('conn', False)
@@ -1825,7 +1826,7 @@ class Project(object):
 
                     # On Central Engine stop, save to database
                     db_auto_save = self.get_user_info(user, 'db_auto_save')
-                    if db_auto_save and save_to_db:
+                    if db_auto_save and db_auto_save.lower() == 'save' and save_to_db:
                         logDebug('Project: Preparing to save into database...')
                         time.sleep(2) # Wait all the logs
                         ret = self.save_to_database(user)
@@ -1863,12 +1864,27 @@ class Project(object):
                         logDebug('User `{}` changed `{}` file statuses from '
                             '"Pending" to "Not executed".'.format(user, statuses_changed))
 
+        # If one or more EPs get an interact
+        elif STATUS_INTERACT in [self.get_ep_info(user, ep).get('status', 8) for ep in intersect_eps]:
+
+            # If User status was running
+            if self.get_user_info(user, 'status') == STATUS_RUNNING:
+                self.set_user_info(user, 'status', STATUS_INTERACT)
+                logInfo('Project: At least one EP is in interact for user `{}`! General user status changed to INTERACT.\n'.format(user))
+                
+        # If EPs get out from interact state
+        elif STATUS_INTERACT not in [self.get_ep_info(user, ep).get('status', 8) for ep in intersect_eps]:
+            # If User status was running
+            if self.get_user_info(user, 'status') == STATUS_INTERACT:
+                self.set_user_info(user, 'status', STATUS_RUNNING)
+                logInfo('Project: All EPs are running for user `{}`! General user status changed to RUNNING.\n'.format(user))
+
         return reversed[new_status]
 
 
     def set_exec_status_all(self, user, new_status, msg=''):
         """
-        Set execution status for all EPs. (STATUS_STOP, STATUS_PAUSED, STATUS_RUNNING).
+        Set execution status for all EPs. (STATUS_STOP, STATUS_PAUSED, STATUS_RUNNING, STATUS_INTERACT).
         Returns a string (stopped, paused, running).
         The `message` parameter can explain why the status has changed.
         """
@@ -1909,6 +1925,10 @@ class Project(object):
         if executionStatus in [STATUS_STOP, STATUS_INVALID] and new_status == STATUS_RUNNING:
 
             proj_reset = False
+
+            # Reset the interact queue for user
+            with self.interact_lock:
+                self.set_user_info(user, 'interact', [])
 
             # If the Msg contains 2 paths, separated by comma
             if msg and len(msg.split(',')) == 2:
@@ -2004,7 +2024,7 @@ class Project(object):
 #                     children = SuitesManager.get(key).get('children')
 #                     for id in children:
 #                         tests_list.append(children.get(id)['file'])
-#   
+#
 #             libraries = self.localFs.detect_libraries(user, tests_list)
 #             logWarning('Libraries: {}'.format(libraries))
 #             self.calc_libraries[user] = libraries
@@ -2033,10 +2053,10 @@ class Project(object):
                 return msg
 
         # If the engine is running, or paused and it received STOP from the user...
-        elif executionStatus in [STATUS_RUNNING, STATUS_PAUSED, STATUS_INVALID] and new_status == STATUS_STOP:
+        elif executionStatus in [STATUS_RUNNING, STATUS_PAUSED, STATUS_INTERACT, STATUS_INVALID] and new_status == STATUS_STOP:
 
             # Remove reservation of SUTs/TBs
-            
+
             reserved_suts = self.sut.reservedResources
             if reserved_suts:
                 reserved_suts_ids = reserved_suts[user].keys()
@@ -2047,7 +2067,7 @@ class Project(object):
                         logWarning(msg)
                     else:
                         logDebug('Reservation discarded for SUT id `{}`.'.format(id))
-            
+
             reserved_tbs = self.tb.reservedResources
             if reserved_tbs:
                 reserved_tbs_ids = reserved_tbs[user].keys()
@@ -2058,7 +2078,7 @@ class Project(object):
                         logWarning(msg)
                     else:
                         logDebug('Reservation discarded for TB id `{}`.'.format(id))
-            
+
             # Execute "Post Script"
             script_post = self.get_user_info(user, 'script_post')
             script_mandatory = self.get_user_info(user, 'script_mandatory')
@@ -2625,11 +2645,11 @@ class Project(object):
 
         # All libraries for user
         else:
-            
+
             libs = []
-            
+
 #             libs = self.calc_libraries.get(user) # add autodetected libraries. MAKE A SET to remove duplicates
-            
+
             # Current project libraries
             proj_libs = self.get_user_info(user, 'libraries') or ''
 
@@ -3386,7 +3406,7 @@ class Project(object):
                 self.panicDetectRegularExpressions[user].update(
                                                     [(regExpID, regExpData), ])
 
-                with self.int_lock:
+                with self.panic_lock:
                     config = open(self.pdConfigPath, 'wb')
                     json.dump(self.panicDetectRegularExpressions, config)
                     config.close()
@@ -3417,7 +3437,7 @@ class Project(object):
 
                 self.panicDetectRegularExpressions[user].update(
                                                     [(regExpID, regExpData), ])
-                with self.int_lock:
+                with self.panic_lock:
                     config = open(self.pdConfigPath, 'wb')
                     json.dump(self.panicDetectRegularExpressions, config)
                     config.close()
@@ -3439,7 +3459,7 @@ class Project(object):
                 regExpData = self.panicDetectRegularExpressions[user].pop(regExpID)
                 del(regExpData)
 
-                with self.int_lock:
+                with self.panic_lock:
                     config = open(self.pdConfigPath, 'wb')
                     json.dump(self.panicDetectRegularExpressions, config)
                     config.close()

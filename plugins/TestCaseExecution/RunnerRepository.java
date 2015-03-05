@@ -1,6 +1,6 @@
 /*
 File: RunnerRepository.java ; This file is part of Twister.
-Version: 3.011
+Version: 3.012
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -111,7 +111,7 @@ public class RunnerRepository {
                          REMOTELIBRARY,PREDEFINEDSUITES,
                          REMOTEUSERSDIRECTORY,BINDINGPATH,  //REMOTEHARDWARECONFIGDIRECTORY,
                          PLUGINSLOCALGENERALCONF, GLOBALSREMOTEFILE,SUTPATH,SYSSUTPATH,
-                         SECONDARYLOGSPATH,PATHENABLED,TESTCONFIGPATH;
+                         SECONDARYLOGSPATH,PATHENABLED,TESTCONFIGPATH,SHAREDDB;
     public static Image passicon,testbedicon,porticon,suitaicon, tcicon, propicon,
                         failicon, passwordicon, playicon, stopicon, pauseicon,logo,dependencyicon,
                         background,notexecicon,pendingicon,skipicon,stoppedicon,
@@ -135,8 +135,8 @@ public class RunnerRepository {
     public static Container container;
     public static Applet applet;
     private static Document pluginsconfig;
-    private static String version = "3.043";
-    private static String builddate = "19.12.2014";
+    private static String version = "3.053";
+    private static String builddate = "24.02.2015";
     public static String logotxt,os,python;
     private static boolean ismaster = true;
     public static String tagserrors="";
@@ -903,6 +903,11 @@ public class RunnerRepository {
                 SUTPATH = getTagContent(doc,"SutPath", "framework config.");
                 SYSSUTPATH = getTagContent(doc,"SysSutPath", "framework config.");
                 GLOBALSREMOTEFILE = getTagContent(doc,"GlobalParams", "framework config.");
+                try{SHAREDDB = getTagContent(doc,"UseSharedDb", "framework config.");
+                } catch(Exception e){
+                    System.out.println("There was an error with shared db section in fwmconfig!!!");
+                    SHAREDDB = "false";
+                }
             }
             catch(Exception e){e.printStackTrace();}
             try{Thread.sleep(100);}

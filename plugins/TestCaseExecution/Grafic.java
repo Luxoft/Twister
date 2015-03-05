@@ -1733,7 +1733,7 @@ public class Grafic extends JPanel{
                          false,false,
                          RunnerRepository.window.mainpanel.p1.suitaDetails.stopOnFail(),
                          RunnerRepository.window.mainpanel.p1.suitaDetails.preStopOnFail(),
-                         RunnerRepository.window.mainpanel.p1.suitaDetails.saveDB(),
+                        RunnerRepository.window.mainpanel.p1.suitaDetails.saveDB(),
                          RunnerRepository.window.mainpanel.p1.suitaDetails.getDelay(),
                          true,array,RunnerRepository.window.mainpanel.p1.suitaDetails.getProjectDefs(),null);
             }

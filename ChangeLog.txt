@@ -1,6 +1,7 @@
-13th January
+05th march 2015:
 
-- code changes to release SUT when the testing is stopped manually
+- fix for issue #163
+- fix for issue #152
 
 18th December 2014
 

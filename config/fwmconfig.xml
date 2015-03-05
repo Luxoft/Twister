@@ -8,6 +8,7 @@ Master config file for Twister.
     <UsersPath>$HOME/twister/config/projects</UsersPath>
     <GlobalParams>$HOME/twister/config/globals.xml</GlobalParams>
     <DbConfigFile>$HOME/twister/config/db.xml</DbConfigFile>
+    <UseSharedDb>false</UseSharedDb>
     <EmailConfigFile>$HOME/twister/config/email.xml</EmailConfigFile>
     <LibsPath>$HOME/twister/libs</LibsPath>
     <PredefinedSuitesPath>$HOME/Documents</PredefinedSuitesPath>
@@ -16,6 +17,7 @@ Master config file for Twister.
     <ArchiveLogsPathActive>false</ArchiveLogsPathActive>
     <SysSutPath>/opt/twister/config/sut</SysSutPath>
     <SutPath>$HOME/twister/config/sut</SutPath>
+
     <LogsPath>$HOME/twister/logs</LogsPath>
     <LogFiles>
         <logRunning>log_running.log</logRunning>

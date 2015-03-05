@@ -137,7 +137,8 @@ if __name__ == "__main__":
 
 
     # CherryPy config
-    CONF = {'global': {
+    CONF = {
+            'global': {
             'server.socket_host': '0.0.0.0',
             'server.socket_port': SERVER_PORT,
             'server.thread_pool': 90,
@@ -151,6 +152,10 @@ if __name__ == "__main__":
             'tools.auth_basic.checkpassword': Project.check_passwd,
             },
             '/static': {
+            'tools.sessions.on': False,
+            'tools.auth_basic.on': False,
+            'tools.auth_digest.on': False,
+            'tools.auth.on': False,
             'tools.staticdir.on': True,
             'tools.staticdir.dir': TWISTER_PATH + '/server/static',
             },

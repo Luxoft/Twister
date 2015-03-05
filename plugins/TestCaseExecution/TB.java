@@ -1,6 +1,6 @@
 /*
 File: TB.java ; This file is part of Twister.
-Version: 3.003
+Version: 3.006
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -102,8 +102,14 @@ public class TB extends JPanel{
         if(PermissionValidator.canEditTB())buttonPanel.add(remove);
         remove.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
-                if(optpan.tname.getText().equals(""))return;
-                removeComp();
+                if(tree.getSelectionPaths().length>1){
+                    removeMultiple();
+                    if(tree.getSelectionPaths()!=null&&tree.getSelectionPaths().length==1){
+                        componentsSelected(tree.getSelectionPaths(),null);
+                    }
+                }
+                else if(optpan.tname.getText().equals(""))return;
+                else removeComp();
             }
         });
         
@@ -123,7 +129,15 @@ public class TB extends JPanel{
                         e.printStackTrace();
                     }
                 }
-            }});
+            }
+            
+            public void keyPressed(KeyEvent ev){
+                if(ev.getKeyCode() == KeyEvent.VK_DELETE && PermissionValidator.canEditTB()){
+                    remove.doClick();
+                }
+            }
+        
+        });
         tree.addMouseListener(new MouseAdapter(){
             public void mouseReleased(final MouseEvent ev){
                 if(ev.getClickCount()==2){
@@ -167,7 +181,7 @@ public class TB extends JPanel{
         optpan = new NodePanel(tree,client);
         tree.setDragEnabled(true);
         tree.setRootVisible(false);
-        tree.getSelectionModel().setSelectionMode(TreeSelectionModel.SINGLE_TREE_SELECTION);
+        //tree.getSelectionModel().setSelectionMode(TreeSelectionModel.SINGLE_TREE_SELECTION);
         jScrollPane1 = new JScrollPane();
         tree.setBorder(BorderFactory.createBevelBorder(BevelBorder.LOWERED));
         jScrollPane1.setViewportView(tree);
@@ -291,105 +305,118 @@ public class TB extends JPanel{
         );
         tree.addMouseListener(new MouseAdapter(){
             public void mouseReleased(MouseEvent ev){
-                TreePath tp = tree.getPathForLocation(ev.getX(), ev.getY());
-                if (tp != null){
-                    tree.setSelectionPath(tp);
-                    DefaultMutableTreeNode treenode = (DefaultMutableTreeNode)tp.getLastPathComponent();
-                    if(ev.getButton() == MouseEvent.BUTTON3){
-                        if(treenode.getUserObject() instanceof Node){
-                            Node node = (Node)treenode.getUserObject();
-                            if(node.getType()==0){
-                                if(node.getReserved().equals(RunnerRepository.user)){
-                                    optpan.setParent(node,treenode,true);
-                                    add.setText("Add Component");
-                                    remove.setEnabled(true);
-                                    add.setEnabled(true);
-                                } else {
-                                    optpan.setParent(node,treenode,false);
-                                    if(node.getReserved().equals("")&&node.getLock().equals("")){
-                                        remove.setEnabled(true);
-                                    }
-                                    else{
-                                        remove.setEnabled(false);
-                                    }
-                                   if(!node.getReserved().equals(""))add.setEnabled(false);
-                                }
-                                if(!node.getReserved().equals("")){
-                                    remove.setEnabled(false);
-                                }
-                                showTBPopUp(treenode,node,ev);
-                            } else {
-                                Object ob = ((DefaultMutableTreeNode)((DefaultTreeModel)tree.getModel()).getPathToRoot(treenode)[1]).getUserObject();
-                                if(ob instanceof Node){
-                                    String reserved = ((Node)ob).getReserved();
-                                    if(reserved.equals(RunnerRepository.user)){
-                                        showNodePopUp(treenode,ev,node);
-                                        optpan.setParent(node,treenode,true);
-                                        add.setText("Add Component");
-                                        remove.setEnabled(true);
-                                        add.setEnabled(true);
-                                    }else {
-                                        optpan.setParent(node,treenode,false);
-                                        remove.setEnabled(false);
-                                        add.setEnabled(false);
-                                    }
-                                }
-                            }
-                        }
-                        else{
-                            optpan.setParent(null,null,false);
-                            remove.setEnabled(false);
-                            add.setEnabled(false);
-                        }
-                    } else{
-                        if(treenode.getUserObject() instanceof Node){
-                            Node node = (Node)treenode.getUserObject();
-                            if(node.getType()==0){
-                                if(node.getReserved().equals(RunnerRepository.user)){
-                                    optpan.setParent(node,treenode,true);
-                                    add.setText("Add Component");
-                                    add.setEnabled(true);
-                                } else {
-                                    optpan.setParent(node,treenode,false);
-                                    if(node.getReserved().equals("")&&node.getLock().equals(""))remove.setEnabled(true);
-                                    else remove.setEnabled(false);
-                                    if(!node.getReserved().equals(""))add.setEnabled(false);
-                                }
-                                if(!node.getReserved().equals("")){
-                                    remove.setEnabled(false);
-                                }
-                            } else {
-                                Object ob = ((DefaultMutableTreeNode)((DefaultTreeModel)tree.getModel()).getPathToRoot(treenode)[1]).getUserObject();
-                                if(ob instanceof Node){
-                                    String reserved = ((Node)ob).getReserved();
-                                    if(reserved.equals(RunnerRepository.user)){
-                                        optpan.setParent(node,treenode,true);
-                                        add.setText("Add Component");
-                                        remove.setEnabled(true);
-                                        add.setEnabled(true);
-                                    } else {
-                                        optpan.setParent(node,treenode,false);
-                                        remove.setEnabled(false);
-                                        add.setEnabled(false);
-                                    }
-                                }
-                            }
+                //TreePath tp = tree.getPathForLocation(ev.getX(), ev.getY());
+                TreePath tps [] = tree.getSelectionPaths();
+                if (tps!=null && tps.length>0){
+                    componentsSelected(tps,ev);
+                } else {
+                    clearParent();
+                    add.setText("Add TB");
+                    add.setEnabled(true);
+                }}});}
+                
+                
+                
+     public void componentsSelected(TreePath tps [],MouseEvent ev){
+         if(tps.length>1){
+            setNullSelection();
+            remove.setEnabled(true);
+        } else {
+            //tree.setSelectionPath(tp);
+            TreePath tp = tps[0];
+            DefaultMutableTreeNode treenode = (DefaultMutableTreeNode)tp.getLastPathComponent();
+            if(ev!=null && ev.getButton() == MouseEvent.BUTTON3){
+                if(treenode.getUserObject() instanceof Node){
+                    Node node = (Node)treenode.getUserObject();
+                    if(node.getType()==0){
+                        if(node.getReserved().equals(RunnerRepository.user)){
+                            optpan.setParent(node,treenode,true);
+                            add.setText("Add Component");
+                            remove.setEnabled(true);
+                            add.setEnabled(true);
                         } else {
-                            optpan.setParent(null,null,false);
-                            add.setEnabled(false);
+                            add.setText("Add TB");
+                            add.setEnabled(true);
+                            optpan.setParent(node,treenode,false);
+                            if(node.getReserved().equals("")&&node.getLock().equals("")){
+                                remove.setEnabled(true);
+                            }
+                            else{
+                                remove.setEnabled(false);
+                            }
+                           if(!node.getReserved().equals(""))add.setEnabled(false);
+                        }
+                        if(!node.getReserved().equals("")){
                             remove.setEnabled(false);
+                        }
+                        showTBPopUp(treenode,node,ev);
+                    } else {
+                        Object ob = ((DefaultMutableTreeNode)((DefaultTreeModel)tree.getModel()).getPathToRoot(treenode)[1]).getUserObject();
+                        if(ob instanceof Node){
+                            String reserved = ((Node)ob).getReserved();
+                            if(reserved.equals(RunnerRepository.user)){
+                                showNodePopUp(treenode,ev,node);
+                                optpan.setParent(node,treenode,true);
+                                add.setText("Add Component");
+                                remove.setEnabled(true);
+                                add.setEnabled(true);
+                            }else {
+                                optpan.setParent(node,treenode,false);
+                                remove.setEnabled(false);
+                                add.setEnabled(false);
+                            }
+                        }
+                    }
+                }
+                else{
+                    optpan.setParent(null,null,false);
+                    remove.setEnabled(false);
+                    add.setEnabled(false);
+                }
+            } else{
+                if(treenode.getUserObject() instanceof Node){
+                    Node node = (Node)treenode.getUserObject();
+                    if(node.getType()==0){
+                        if(node.getReserved().equals(RunnerRepository.user)){
+                            optpan.setParent(node,treenode,true);
+                            add.setText("Add Component");
+                            add.setEnabled(true);
+                        } else {
+                            add.setText("Add TB");
+                            optpan.setParent(node,treenode,false);
+                            if(node.getReserved().equals("")&&node.getLock().equals(""))remove.setEnabled(true);
+                            else remove.setEnabled(false);
+                            if(!node.getReserved().equals(""))add.setEnabled(false);
+                        }
+                        if(!node.getReserved().equals("")){
+                            remove.setEnabled(false);
+                        }
+                    } else {
+                        Object ob = ((DefaultMutableTreeNode)((DefaultTreeModel)tree.getModel()).getPathToRoot(treenode)[1]).getUserObject();
+                        if(ob instanceof Node){
+                            String reserved = ((Node)ob).getReserved();
+                            if(reserved.equals(RunnerRepository.user)){
+                                optpan.setParent(node,treenode,true);
+                                add.setText("Add Component");
+                                remove.setEnabled(true);
+                                add.setEnabled(true);
+                            } else {
+                                optpan.setParent(node,treenode,false);
+                                remove.setEnabled(false);
+                                add.setEnabled(false);
+                            }
                         }
                     }
                 } else {
-                    clearParent();
-//                     add.setText("Add TB");
-//                     remove.setEnabled(false);
-//                     add.setEnabled(true);
-//                     tree.setSelectionPath(null);
-//                     optpan.setParent(null,null,false);
-                    if(ev.getButton() == MouseEvent.BUTTON3){
-                        addRootNodePopUp(ev);
-                    }}}});}
+                    optpan.setParent(null,null,false);
+                    add.setEnabled(false);
+                    remove.setEnabled(false);
+                }
+            }
+        }
+    }
+                
+                
                     
     
     //clear parent and selections
@@ -398,6 +425,13 @@ public class TB extends JPanel{
         remove.setEnabled(false);
         add.setEnabled(true);
         tree.setSelectionPath(null);
+        optpan.setParent(null,null,false);
+    }
+    
+    public void setNullSelection(){
+        add.setText("Add TB");
+        remove.setEnabled(false);
+        add.setEnabled(true);
         optpan.setParent(null,null,false);
     }
                     
@@ -414,6 +448,30 @@ public class TB extends JPanel{
 //                 release("/"+node.getName());
                 discardAndRelease("/"+node.getName());
                 setSavedState(treenode,true);
+            }
+        }
+    }
+    
+    public void removeMultiple(){
+        TreePath tps [] = tree.getSelectionPaths();
+        for(TreePath tp:tps){
+            DefaultMutableTreeNode treenode = (DefaultMutableTreeNode)tp.getLastPathComponent();
+            if(treenode.getUserObject() instanceof Node){
+                Node node = (Node)treenode.getUserObject();
+                byte type = node.getType();
+                if(type==0){//tb
+                    if(node.getReserved().equals("") && node.getLock().equals("")){
+                        removeNode(node,treenode);
+                    }
+                } else if(type==1){//module
+                    Node parent = node.getParent();
+                    while(parent.getParent()!=null){
+                        parent = parent.getParent();
+                    }
+                    if(parent.getReserved().equals(RunnerRepository.user)){
+                        removeNode(node,treenode);
+                    }
+                }
             }
         }
     }
@@ -773,7 +831,7 @@ public class TB extends JPanel{
     public void removeComp(){
         TreePath tp = tree.getSelectionPath();
         DefaultMutableTreeNode treenode = (DefaultMutableTreeNode)tp.getLastPathComponent();
-        Node node = (Node)treenode.getUserObject();
+        Node node = (Node)treenode.getUserObject(); 
         removeNode(node,treenode);
     }
     

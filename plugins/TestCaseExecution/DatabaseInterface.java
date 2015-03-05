@@ -1,6 +1,6 @@
 /*
 File: DatabaseInterface.java ; This file is part of Twister.
-Version: 3.002
+Version: 3.007
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -78,31 +78,21 @@ public class DatabaseInterface extends JPanel {
     private JButton iadd;
     private JLabel fromtable;
     private JPanel insertaddpanel;
-    private JScrollPane jScrollPane1;
-    private JScrollPane jScrollPane2;
-    private JScrollPane jScrollPane3;
-    private JPanel maindatabasepanel;
-    private JPanel mainsharedpanel;
-    private JPanel mainfieldpanel;
-    private JPanel maininsertpanel;
-    private JPanel mainreportspanel;
+    private JScrollPane jScrollPane1,jScrollPane2,jScrollPane3;
+    private JPanel maindatabasepanel,mainsharedpanel,mainfieldpanel,maininsertpanel,mainreportspanel;
     private JButton radd;
-    private JPanel reportfieldpanel;
-    private JPanel reportredirect;
-    private JPanel reportreport;
-    private JPanel reposrts;
-    private JPanel reposrtsaddpanel;
-    private JPanel database;
+    private JPanel reportfieldpanel,reportredirect,reportreport,reposrts,reposrtsaddpanel,database;
     private JComboBox sctype;
     private JPanel sql;
     private JLabel stype;
     private JTextField tid1,tlabel,tserver,tdatabase,sharedserver;
     private JPasswordField tpassword;
     private JTextField tuser,shareddatabase;
-    private String initialpass,initialsharedpass;
+    private String initialpass,initialsharedpass, shareduser, sharedpass;;
     private Node server,ndatabase,user,password,sharedservernode,shareddatabasenode,sharedenablednode;
     private Document doc;
     private JRadioButton enabled,userdb;
+    
     
     public DatabaseInterface() {
         initComponents();
@@ -130,7 +120,7 @@ public class DatabaseInterface extends JPanel {
         mainreportspanel.add(reposrtsaddpanel); 
         
         for(Component c:((JPanel)maindatabasepanel.getComponents()[0]).getComponents()){
-            if(c.getClass()!=JLabel.class){
+            if(c.getClass()!=JLabel.class && c.getClass()!=JButton.class){
                 ((JTextField)c).setText("");
             }
         }
@@ -209,35 +199,12 @@ public class DatabaseInterface extends JPanel {
                     
                     
                     if(PermissionValidator.canEditDB()){
-                        content = el.getElementsByTagName("use_shared_db");
-                        if(content!=null&&content.getLength()==1){
-                            try{sharedenablednode = content.item(0).getFirstChild();
-                                
-                                String value = sharedenablednode.getNodeValue();
-                                if(value.equals("true")){
-                                    enabled.setSelected(true);
-                                    userdb.setSelected(false);
-                                } else {
-                                    enabled.setSelected(false);  
-                                    userdb.setSelected(true);
-                                }
-                            }
-                            catch(Exception e){
-                                sharedenablednode = doc.createTextNode("false");
-                                content.item(0).appendChild(sharedenablednode);
-                                enabled.setSelected(false);
-                                userdb.setSelected(true);
-                            }
+                        if(RunnerRepository.SHAREDDB.equals("true")){
+                            enabled.setSelected(true);
+                            userdb.setSelected(false);
                         } else {
-                            System.out.println("use_shared_db section is wrong configured in database file");
-                            if(content.getLength()==0){
-                                Element element = doc.createElement("use_shared_db");
-                                el.appendChild(element);
-                                sharedenablednode = doc.createTextNode("false");
-                                element.appendChild(sharedenablednode);
-                                enabled.setSelected(false);
-                                userdb.setSelected(true);
-                            }
+                            enabled.setSelected(false);
+                            userdb.setSelected(true);
                         }
                     } else {
                         enabled.setSelected(true);
@@ -253,12 +220,13 @@ public class DatabaseInterface extends JPanel {
                     Document doctemp = dbtemp.parse(is);                
                     doctemp.getDocumentElement().normalize();
                     NodeList nodeLsttemp = ((Element)doctemp.getFirstChild()).getElementsByTagName("db_config");
-                    if(nodeLst!=null&&nodeLst.getLength()==1){
-                        Element eltemp = (Element)nodeLst.item(0);
+                    if(nodeLsttemp!=null&&nodeLsttemp.getLength()==1){
+                        Element eltemp = (Element)nodeLsttemp.item(0);
                         content = eltemp.getElementsByTagName("server");
                         if(content!=null&&content.getLength()==1){
                             try{sharedservernode = content.item(0).getFirstChild();
-                                sharedserver.setText(sharedservernode.getNodeValue());}
+                                sharedserver.setText(sharedservernode.getNodeValue());
+                            }
                             catch(Exception e){
                                 sharedservernode = doc.createTextNode("");
                                 content.item(0).appendChild(sharedservernode);
@@ -274,16 +242,17 @@ public class DatabaseInterface extends JPanel {
                             }
                         }
                         
-                        content = el.getElementsByTagName("database");
+                        content = ((Element)doctemp.getFirstChild()).getElementsByTagName("database");
                         if(content!=null&&content.getLength()==1){
                             try{shareddatabasenode = content.item(0).getFirstChild();
-                                shareddatabase.setText(shareddatabasenode.getNodeValue());}
+                                shareddatabase.setText(shareddatabasenode.getNodeValue());
+                            }
                             catch(Exception e){
                                 shareddatabasenode = doc.createTextNode("");
                                 content.item(0).appendChild(shareddatabasenode);
                                 shareddatabase.setText("");}
                         } else {
-                            System.out.println("shared password section is wrong configured in database file");
+                            System.out.println("shared database section is wrong configured in database file");
                             if(content.getLength()==0){
                                 Element element = doc.createElement("database");
                                 el.appendChild(element);
@@ -292,13 +261,36 @@ public class DatabaseInterface extends JPanel {
                                 shareddatabase.setText("");
                             }
                         }
+                        
+                        content = ((Element)doctemp.getFirstChild()).getElementsByTagName("user");
+                        if(content!=null&&content.getLength()==1){
+                            try{shareddatabasenode = content.item(0).getFirstChild();
+                                shareduser = shareddatabasenode.getNodeValue();
+                                System.out.println("shareduser:"+shareduser);
+                            }
+                            catch(Exception e){
+                                e.printStackTrace();
+                            }
+                        } else {
+                            System.out.println("shared user section is wrong configured in database file");
+                        }
+                        
+                        content = ((Element)doctemp.getFirstChild()).getElementsByTagName("password");
+                        if(content!=null&&content.getLength()==1){
+                            try{shareddatabasenode = content.item(0).getFirstChild();
+                                sharedpass = shareddatabasenode.getNodeValue();
+                                System.out.println("sharedpass:"+sharedpass);
+                            }
+                            catch(Exception e){
+                                e.printStackTrace();
+                            }
+                        } else {
+                            System.out.println("shared password section is wrong configured in database file");
+                        }
                     }
                 } else {
                     System.out.println("db_config section is wrong configured in database file");
                 }
-                
-                
-                
                 
                 nodeLst = ((Element)doc.getFirstChild()).getElementsByTagName("insert_section");
                 if(nodeLst!=null&&nodeLst.getLength()==1){
@@ -426,7 +418,6 @@ public class DatabaseInterface extends JPanel {
                                 ReportReport ipan = new ReportReport(mainreportspanel);
                                 mainreportspanel.add(ipan);
                                 props = n.getAttributes();
-                                
                                 setField(ipan.tid4,props,"ID");
                                 setField(ipan.tquery4,props,"SQLTotal");
                                 setField(ipan.tquery3,props,"SQLQuery");
@@ -510,8 +501,6 @@ public class DatabaseInterface extends JPanel {
         d.setLayout(new GridBagLayout());
         GridBagConstraints gridBagConstraints = new GridBagConstraints();
         
-        
-        
         gridBagConstraints.gridx = 0;
         JLabel user = new JLabel("Server: ");  
         d.add(user,gridBagConstraints);
@@ -532,6 +521,27 @@ public class DatabaseInterface extends JPanel {
         d.add(shareddatabase,gridBagConstraints);
         
         
+        JButton testdatabase = new JButton("Test Connection");
+        d.add(testdatabase,gridBagConstraints);
+        testdatabase.addActionListener(new ActionListener(){
+            public void actionPerformed(ActionEvent ev){
+                try{System.out.println(sharedserver.getText()+" - "+shareddatabase.getText()+" - "+shareduser+" - "+sharedpass+" - "+true);
+                    String respons  = RunnerRepository.getRPCClient().execute("test_database", new Object[]{sharedserver.getText(),
+                                                                                              shareddatabase.getText(),
+                                                                                              shareduser,
+                                                                                              sharedpass,true}).toString();
+                    if(respons.equals("false"))respons="Connection ERROR!";
+                    else if(respons.equals("true"))respons="Connection successful!";
+                    CustomDialog.showInfo(JOptionPane.PLAIN_MESSAGE,RunnerRepository.window,
+                                   "Test Database",
+                                   respons);
+                } catch(Exception e){
+                    e.printStackTrace();
+                }
+            }
+        });
+        
+        
         mainsharedpanel.add(d);
         if(!PermissionValidator.canEditDB()){
             enabled.setEnabled(false);
@@ -545,6 +555,16 @@ public class DatabaseInterface extends JPanel {
         JPanel d = new JPanel();
         d.setLayout(new GridBagLayout());
         GridBagConstraints gridBagConstraints = new GridBagConstraints();
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
         gridBagConstraints.gridx = 0;
         JLabel server = new JLabel("Server: ");
         d.add(server,gridBagConstraints);
@@ -573,6 +593,27 @@ public class DatabaseInterface extends JPanel {
         tpassword = new JPasswordField(); 
         tpassword.setPreferredSize(new Dimension(200,25));
         d.add(tpassword,gridBagConstraints);
+        
+        JButton testdatabase = new JButton("Test Connection");
+        d.add(testdatabase,gridBagConstraints);
+        testdatabase.addActionListener(new ActionListener(){
+            public void actionPerformed(ActionEvent ev){
+                try{String respons  = RunnerRepository.getRPCClient().execute("test_database", new Object[]{tserver.getText(),
+                                                                                              tdatabase.getText(),
+                                                                                              tuser.getText(),
+                                                                                              new String(tpassword.getPassword())}).toString();
+                    if(respons.equals("false"))respons="Connection ERROR!";
+                    else if(respons.equals("true"))respons="Connection successful!";
+                    CustomDialog.showInfo(JOptionPane.PLAIN_MESSAGE,RunnerRepository.window,
+                                   "Test Database",
+                                   respons);
+                } catch(Exception e){
+                    e.printStackTrace();
+                }
+            }
+        });
+        
+        
         maindatabasepanel.add(d);
         if(!PermissionValidator.canEditDB()){
             tdatabase.setEnabled(false);
@@ -591,7 +632,7 @@ public class DatabaseInterface extends JPanel {
         mainsharedpanel = new JPanel();
         mainsharedpanel.setBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(Color.BLACK), "Shared Database"));
         add(mainsharedpanel,BorderLayout.CENTER);
-        mainsharedpanel.setMaximumSize(new Dimension(2000,150));
+        //mainsharedpanel.setMaximumSize(new Dimension(2000,150));
         
         JPanel temp = new JPanel();
         temp.setLayout(new BorderLayout());
@@ -626,7 +667,7 @@ public class DatabaseInterface extends JPanel {
         database.setLayout(new BorderLayout());        
         
         maindatabasepanel.setLayout(new BoxLayout(maindatabasepanel, BoxLayout.PAGE_AXIS));
-        database.setMaximumSize(new Dimension(2000, 40));  
+        //database.setMaximumSize(new Dimension(2000, 40));  
         initSharedDatabasePanel();
         initDatabasePanel();
         
@@ -740,8 +781,9 @@ public class DatabaseInterface extends JPanel {
         tab.add("Reports Section", reposrts);
         
         JPanel savepanel = new JPanel();
+        savepanel.setBorder(BorderFactory.createEmptyBorder(0, 59, 0, 0));
         savepanel.setLayout(new FlowLayout(FlowLayout.CENTER, 4, 2));
-        JButton save = new JButton("Save File");
+        JButton save = new JButton("Save Configuration");
         save.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
                 generateFile();
@@ -749,7 +791,7 @@ public class DatabaseInterface extends JPanel {
         if(PermissionValidator.canEditDB()){
             savepanel.add(save);
         }
-        add(savepanel,BorderLayout.SOUTH);
+        add(savepanel,BorderLayout.CENTER);
     }
     
     public boolean sharedDbEnabled(){
@@ -777,7 +819,7 @@ public class DatabaseInterface extends JPanel {
                 }
             }
             password.setNodeValue(p);
-            sharedenablednode.setNodeValue(enabled.isSelected()+"");
+            //sharedenablednode.setNodeValue(enabled.isSelected()+"");
             File file = new File(RunnerRepository.temp+RunnerRepository.getBar()+"Twister"+RunnerRepository.
                                   getBar()+"config"+RunnerRepository.getBar()+
                                   new File(RunnerRepository.REMOTEDATABASECONFIGFILE).getName());
@@ -791,9 +833,14 @@ public class DatabaseInterface extends JPanel {
             transformer.transform(source, result);
             FileInputStream in = new FileInputStream(file);
             RunnerRepository.uploadRemoteFile(RunnerRepository.REMOTEDATABASECONFIGPATH, in,null, file.getName(),false,null);
+            RunnerRepository.window.mainpanel.p4.getConfig().saveXML(false, "fwmconfig");
+            
+            
+            
+            RunnerRepository.getRPCClient().execute("switch_db_shared", new Object[]{enabled.isSelected()});
             CustomDialog.showInfo(JOptionPane.PLAIN_MESSAGE,RunnerRepository.window,
                                    "Success",
-                                   "File successfully generated");
+                                   "Database file successfully generated");
         } catch (Exception e){
             CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,RunnerRepository.window,
                                   "Warning",
@@ -801,6 +848,20 @@ public class DatabaseInterface extends JPanel {
             e.printStackTrace();
         }
         RunnerRepository.resetDBConf(RunnerRepository.REMOTEDATABASECONFIGFILE,true);
+    }
+    
+//     public void setSharedDb(boolean shared){
+//         if(shared){
+//             enabled.setSelected(true);
+//             userdb.setSelected(false);
+//         } else {
+//             enabled.setSelected(false);
+//             userdb.setSelected(true);
+//         }
+//     }
+    
+    public boolean isSharedDb(){
+        return enabled.isSelected();
     }
 }
 

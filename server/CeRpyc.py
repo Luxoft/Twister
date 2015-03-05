@@ -1,7 +1,7 @@
 
 # File: CeRpyc.py ; This file is part of Twister.
 
-# version: 3.025
+# version: 3.027
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -27,6 +27,7 @@ RPYC interface to clients.
 
 import os
 import sys
+import copy
 import time
 import json
 import thread
@@ -211,14 +212,17 @@ class CeRpycService(rpyc.Service):
             # Address is not required
             else:
                 # If we are looking for a specific EP inside a client
-                if epname and epname in data.get('eps'):
+                if epname and epname in data.get('eps', []):
                     found = str_addr
                     break
                 # If not looking for a specific EP, it's ok
                 elif not epname:
                     found = str_addr
                     break
-
+                # If looking for a specific ep by epname
+                elif epname and hello and data.get('hello') == 'ep::' + epname:
+                    found = str_addr
+                    break
         # logDebug('Found conn:: {}'.format(pformat(self.conns.get(found), width=140)))
 
         return found
@@ -1536,7 +1540,7 @@ class CeRpycService(rpyc.Service):
         return self.project.tb.delete_tb(query, props={'__user': user})
 
 
-    def exposed_get_sut(self, query):
+    def exposed_get_sut(self, query, follow_links=False):
         """
         Get SUT content.
         """
@@ -1545,7 +1549,8 @@ class CeRpycService(rpyc.Service):
         if not user:
             return False
         try:
-            return self.project.sut.get_sut(query, props={'__user': user})
+            return self.project.sut.get_sut(query,
+                props={'__user': user, 'follow_links': follow_links})
         except Exception as e:
             logWarning(e)
             return False
@@ -1703,6 +1708,50 @@ class CeRpycService(rpyc.Service):
         if not user:
             return False
         return self.project.sut.discard_release_reserved_sut(query, props={'__user': user})
+
+
+    def exposed_interact(self, id, ep, type, msg, timeout, options):
+        """
+        Adds interact information in the interaction pool.
+        The interaction pool is held in the `interact` variable under each user.
+        """
+        user = self._check_login()
+        if not user:
+            return False
+        interact_options = {'id': id ,'ep':ep, 'type':type, 'msg':msg, 'timeout':timeout, 'options':options}
+        with self.project.interact_lock:
+            interact_data = self.project.get_user_info(user, 'interact')
+            if interact_data:
+                # it is supposed to be a list of dictionaries
+                interact_data.extend([interact_options])
+            else:
+                interact_data = [interact_options]
+            self.project.set_user_info(user, 'interact', copy.deepcopy(interact_data))
+
+        self.project.set_exec_status(user, ep, STATUS_INTERACT)
+
+        return True
+
+
+    def exposed_remove_interact(self, id, ep, type, msg, timeout, options, reason=''):
+        """
+        Removes an interaction from the interaction pool.
+        The interaction pool is held in the `interact` variable under each user.
+        """
+        user = self._check_login()
+        if not user:
+            return False
+        # global lock for interaction pool
+        with self.project.interact_lock:
+            interact_data = self.project.get_user_info(user, 'interact')
+            try:
+                elem = filter(lambda interact: interact.get('id') == id, interact_data)[0]
+                i = interact_data.index(elem)
+                removed = interact_data.pop(i)
+            except Exception as e:
+                logDebug('Element has been already removed from queue: {}'.format(e))
+            self.project.set_user_info(user, 'interact', interact_data)
+        return True
 
 
 # Eof()

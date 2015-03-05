@@ -1,7 +1,7 @@
 
 # File: CeParser.py ; This file is part of Twister.
 
-# version: 3.009
+# version: 3.010
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -582,11 +582,11 @@ class CeXmlParser(object):
                     sut = '/' + sut
                     sut_eps = self.project.sut.get_info_sut(sut + ':_epnames_' + user, {'__user': user})
 
-                    if '*ERROR*' in sut_eps:
+                    if sut_eps and '*ERROR*' in sut_eps:
                         logError(sut_eps)
                         return sut_eps
 
-                    if sut_eps and isinstance(sut_eps, str):
+                    if sut_eps and (isinstance(sut_eps, str) or isinstance(sut_eps, unicode)):
                         sut_eps_list = [ep for ep in sut_eps.split(';') if ep]
 
                         for ep in sut_eps_list:

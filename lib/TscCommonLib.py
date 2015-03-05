@@ -1,6 +1,6 @@
 # File: TscCommonLib.py ; This file is part of Twister.
 
-# version: 3.019
+# version: 3.023
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -33,13 +33,14 @@ from __future__ import print_function
 
 import os
 import copy
+import time
 import ast
 import inspect
+import binascii
 import platform
 import marshal
 import rpyc
 from rpyc import BgServingThread
-
 # This will work, because TWISTER_PATH is appended to sys.path.
 try:
     from ce_libs import PROXY_ADDR, USER, EP, SUT
@@ -115,6 +116,7 @@ class TscCommonLib(object):
     global_vars = {}
     """ All global variables, shared between tests and libaries. """
 
+    interact = None
     _SUITE_ID = 0
     _FILE_ID = 0
 
@@ -289,6 +291,55 @@ class TscCommonLib(object):
         Gracefully crash test with status `Skip`.
         """
         raise ExceptionTestSkip(reason)
+
+
+    def interact(self, type, msg, timeout=0, options={}):
+        """
+        This function should be called only from a test!
+        It gives to user the opportunity to interact with tests.
+        Params:
+        type: type of the interaction: confirmation window, input window, continue/cancel window
+        msg: the message that will be printed in the window
+        return: True/False or a string
+        """
+        self.interact = None
+        print('\n>> Waiting for user interaction >>')
+        id = binascii.hexlify(os.urandom(4))
+        self.ce_proxy.interact(id, self.epName, type, msg, timeout, options)
+        time.sleep(1)
+        counter = 0.0
+        while self.interact == None:
+            time.sleep(0.5)
+            if timeout > 0:
+                counter += 0.5
+                if counter > timeout:
+                    break
+        counter = 0.0
+        reason = 'User action'
+        if type == 'decide' and self.interact in [None, 'false']:
+            # abort test!
+            if self.interact == None:
+                reason = 'Decide timeout expired!'
+            else:
+                reason = 'Test aborted by user!'
+            self.ce_proxy.set_file_status(self.epName, self._FILE_ID, 5, timeout)
+            self.ce_proxy.set_ep_status(self.epName, 2)
+            print('\n>> Test aborted by user! >>')
+            self.ce_proxy.remove_interact(id, self.epName, type, msg, timeout, options, reason)
+            raise ExceptionTestAbort(reason)
+
+        if self.interact == None:
+            reason = 'Timeout expired'
+            print('Interaction timeout expired!')
+            if type == 'msg':
+                self.interact = True
+            elif type == 'options' and options:
+                self.interact = options['default']
+
+        self.ce_proxy.set_ep_status(self.epName, 2)
+        self.ce_proxy.remove_interact(id, self.epName, type, msg, timeout, options, reason)
+        print('\n>> Interaction response: {} >>'.format(self.interact))
+        return self.interact
 
 
     def log_msg(self, log_type, log_message):
@@ -597,13 +648,13 @@ class TscCommonLib(object):
         return self.delete_tb(query)
 
 
-    def get_sut(self, query, dtype=unicode):
+    def get_sut(self, query, follow_links=False, dtype=unicode):
         """
         Get SUT content.
         query : id/path of sut
         """
         try:
-            data = self.ce_proxy.get_sut(query)
+            data = self.ce_proxy.get_sut(query, follow_links)
             if dtype == str:
                 return self._encode_unicode(data)
             else:

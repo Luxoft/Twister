@@ -1,5 +1,5 @@
 
-# version: 3.004
+# version: 3.006
 
 # Major list of constants.
 
@@ -9,6 +9,7 @@ STATUS_STOP    = 0 # Suicide; the test suite is immediately killed
 STATUS_PAUSED  = 1 # After the current test is finished, the suite is frozen
 STATUS_RUNNING = 2 # The suite is running
 STATUS_RESUME  = 3 # Continue the paused tests
+STATUS_INTERACT = 4 # Execution is paused, waiting for the user interaction
 STATUS_INVALID = 8 # Invalid status
 
 # Test statuses :
@@ -53,7 +54,7 @@ ROLES = [
 # Status translations :
 
 EXEC_STATUS = {'stopped':STATUS_STOP, 'paused':STATUS_PAUSED, 'running':STATUS_RUNNING, 'resume':STATUS_RESUME,
-	'invalid':STATUS_INVALID}
+	'invalid':STATUS_INVALID, 'interact': STATUS_INTERACT}
 
 testStatus = {'pending':STATUS_PENDING, 'working':STATUS_WORKING, 'pass':STATUS_PASS, 'fail':STATUS_FAIL,
 	'skipped':STATUS_SKIPPED, 'aborted':STATUS_ABORTED, 'not executed':STATUS_NOT_EXEC, 'timeout':STATUS_TIMEOUT,
@@ -67,6 +68,7 @@ FWMCONFIG_TAGS = (
 	{'name':'logs_path',	'tag':'LogsPath',			'default':''},
 	{'name':'libs_path',	'tag':'LibsPath',			'default':''},
 	{'name':'db_config',	'tag':'DbConfigFile',		'default':''},
+	{'name':'use_shared_db',	'tag':'UseSharedDb',	'default':False},
 	{'name':'eml_config',	'tag':'EmailConfigFile',	'default':''},
 	{'name':'glob_params',	'tag':'GlobalParams',		'default':''},
 	{'name':'tcfg_path',	'tag':'TestConfigPath',		'default':''},
@@ -82,7 +84,7 @@ FWMCONFIG_TAGS = (
 
 PROJECTCONFIG_TAGS = (
 	{'name':'exit_on_test_fail','tag':'stoponfail',			'default':False, 'type':'bool'},
-	{'name':'db_auto_save',		'tag':'dbautosave',			'default':False, 'type':'bool'},
+	{'name':'db_auto_save',		'tag':'dbautosave',			'default':''},
 	{'name':'tc_delay',			'tag':'tcdelay',			'default':0, 'type':'number'},
 	{'name':'libraries',		'tag':'libraries',			'default':''},
 	{'name':'dl_libs',			'tag':'DownloadLibraries',	'default':''},

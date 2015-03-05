@@ -1,6 +1,6 @@
 /*
 File: ConfigFiles.java ; This file is part of Twister.
-Version: 3.003
+Version: 3.005
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -500,6 +500,8 @@ public class ConfigFiles extends JPanel{
             Element rootElement = document.createElement("FileType");
             root.appendChild(rootElement);
             rootElement.appendChild(document.createTextNode("config"));
+            try{addTag("UseSharedDb",RunnerRepository.window.mainpanel.p4.getDBConfig().isSharedDb()+"",root,blank,document);}
+            catch(Exception e){addTag("UseSharedDb","false",root,blank,document);}
             try{addTag("SysSutPath",syssutpath.getText(),root,blank,document);}
             catch(Exception e){addTag("SysSutPath","",root,blank,document);}
             try{addTag("SutPath",sutpath.getText(),root,blank,document);}
@@ -563,11 +565,11 @@ public class ConfigFiles extends JPanel{
         if(saved){
             CustomDialog.showInfo(JOptionPane.INFORMATION_MESSAGE,
                                   RunnerRepository.window,
-                                  "Successful", "File successfully saved");}
+                                  "Successful", "Config file successfully saved");}
         else{
             CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,
                                   RunnerRepository.window.mainpanel.p4.getConfig(),
-                                  "Warning", "File could not be saved ");
+                                  "Warning", "Config file could not be saved ");
         }
     }
         

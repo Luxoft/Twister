@@ -1,7 +1,7 @@
 
 # File: SchedulerServer.py ; This file is part of Twister.
 
-# version: 3.002
+# version: 3.003
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -529,6 +529,8 @@ class threadCheckTasks(threading.Thread):
 
                 # Start Central Engine !
                 proxy.set_exec_status_all(user, 2, '{}/twister/config/fwmconfig.xml,{}'.format(userHome(user), proj_file))
+
+                log.debug('Project file `{project-file}`, started for user `{user}`.'.format(**task))
 
             # Wait before next cycle
             time.sleep(1)

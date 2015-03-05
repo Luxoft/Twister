@@ -1,6 +1,6 @@
 #!/usr/bin/env python2.7
 
-# version: 3.001
+# version: 3.002
 
 # File: setup_shared_db.py ; This file is part of Twister.
 
@@ -61,11 +61,11 @@ def setup_server():
     print('\nPlease type the IP or name of the MySQL server.')
     print('Type a name to change, or press ENTER to skip.')
     data = ''
-    if db_xml.xpath('server_section/db_config/server/text()'):
-        data = db_xml.xpath('server_section/db_config/server')[0].text
+    if db_xml.xpath('db_config/server/text()'):
+        data = db_xml.xpath('db_config/server')[0].text
     selected = raw_input('[Currently `{}`] : '.format(data))
     if selected:
-        node = db_xml.xpath('server_section/db_config/server')[0]
+        node = db_xml.xpath('db_config/server')[0]
         node.text = selected
 
 
@@ -74,11 +74,11 @@ def setup_database():
     print('\nPlease type name of the MySQL database.')
     print('Type a name to change, or press ENTER to skip.')
     data = ''
-    if db_xml.xpath('server_section/db_config/database/text()'):
-        data = db_xml.xpath('server_section/db_config/database')[0].text
+    if db_xml.xpath('db_config/database/text()'):
+        data = db_xml.xpath('db_config/database')[0].text
     selected = raw_input('[Currently `{}`] : '.format(data))
     if selected:
-        node = db_xml.xpath('server_section/db_config/database')[0]
+        node = db_xml.xpath('db_config/database')[0]
         node.text = selected
 
 
@@ -87,11 +87,11 @@ def setup_user():
     print('\nPlease type the MySQL username.')
     print('Type a name to change, or press ENTER to skip.')
     data = ''
-    if db_xml.xpath('server_section/db_config/user/text()'):
-        data = db_xml.xpath('server_section/db_config/user')[0].text
+    if db_xml.xpath('db_config/user/text()'):
+        data = db_xml.xpath('db_config/user')[0].text
     selected = raw_input('[Currently `{}`] : '.format(data))
     if selected:
-        node = db_xml.xpath('server_section/db_config/user')[0]
+        node = db_xml.xpath('db_config/user')[0]
         node.text = selected
 
 
@@ -99,13 +99,13 @@ def setup_password():
     """ Setup """
     print('\nPlease type the MySQL password.')
     print('Type something to change, or press ENTER to skip.')
-    if db_xml.xpath('server_section/db_config/password/text()'):
-        data = db_xml.xpath('server_section/db_config/password')[0].text
+    if db_xml.xpath('db_config/password/text()'):
+        data = db_xml.xpath('db_config/password')[0].text
         selected = raw_input('[Currently `{}`] : '.format('*' * len(data)))
     else:
         selected = raw_input('[Currently EMPTY] : ')
     if selected:
-        node = db_xml.xpath('server_section/db_config/password')[0]
+        node = db_xml.xpath('db_config/password')[0]
         node.text = encrypt(selected, shared_kk)
 
 

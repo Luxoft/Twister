@@ -1,6 +1,6 @@
 /*
 File: CustomDialog.java ; This file is part of Twister.
-Version: 2.002
+Version: 2.003
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -19,21 +19,16 @@ limitations under the License.
 */
 package com.twister;
 
-import javax.swing.JOptionPane;
-import javax.swing.JDialog;
 import java.awt.Component;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
 
-import javax.swing.Icon;
-import javax.swing.JButton;
-import javax.swing.JFrame;
-import javax.swing.JTextField;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
 import javax.swing.BoxLayout;
+import javax.swing.Icon;
+import javax.swing.JDialog;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JTextField;
 import javax.swing.event.AncestorEvent;
 import javax.swing.event.AncestorListener;
 
@@ -44,46 +39,18 @@ import javax.swing.event.AncestorListener;
  */
 public class CustomDialog{
 	
+	private static JDialog dialog;
+	private static long timeout;
+	private static Thread timout;
+	private static boolean timeoutexited = false; 
+	
 	public static void main(String [] args){
+		
 		JFrame f = new JFrame();
-		final JTextField tf = new JTextField();
 		f.setVisible(true);
 		f.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-		JButton one = new JButton("one");
-		JButton two = new JButton("two");
-		JButton three = new JButton("three");
-		final JDialog dialog = CustomDialog.getDialog(tf,new JButton[]{one,two,three},JOptionPane.PLAIN_MESSAGE,JOptionPane.OK_CANCEL_OPTION,f,"test",null);
-		dialog.addWindowListener(new WindowAdapter(){
-			public void windowClosing(WindowEvent e){
-				tf.setText("");
-			}
-		});
-		one.addActionListener(new ActionListener() {			
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				tf.setText("one");
-				dialog.setVisible(false);
-				dialog.dispose();
-			}
-		});
-		two.addActionListener(new ActionListener() {			
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				tf.setText("two");
-				dialog.setVisible(false);
-				dialog.dispose();
-			}
-		});
-		three.addActionListener(new ActionListener() {			
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				tf.setText("three");
-				dialog.setVisible(false);
-				dialog.dispose();
-			}
-		});
-		dialog.setVisible(true);
-		System.out.println(tf.getText());
+		CustomDialog.setTimeout(2000);
+		CustomDialog.showInputDialog(JOptionPane.QUESTION_MESSAGE,JOptionPane.OK_CANCEL_OPTION, f,"Input", "message").toString();
 	}
 	
 	public static JDialog getDialog(Object message,Object[] options,int messagetype,int optionType,
@@ -104,15 +71,20 @@ public class CustomDialog{
                                     Object[] options, String title,String message){
         JOptionPane pane = new JOptionPane(message, messagetype, 
                                             optiontype, icon, options);
-        JDialog dialog = pane.createDialog(parent, title);
+        dialog = pane.createDialog(parent, title);
         dialog.setAlwaysOnTop(true);
         dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
+        if(CustomDialog.timeout>0)CustomDialog.startTimeout();
         dialog.setVisible(true);
+        if(timeoutexited){
+        	timeoutexited = false;
+        	return "*timeout*";
+        }
         if(pane.getValue()==null){
-            dialog.dispose();
+        	CustomDialog.closeDialog();
             return "NULL";}
         else{
-            dialog.dispose();
+        	CustomDialog.closeDialog();
             return (String)pane.getValue();}}
         
     
@@ -122,16 +94,21 @@ public class CustomDialog{
     public static Object showDialog(Object message,int type,int options,
                                     Component parent,String title,Icon icon){
         JOptionPane pane = new JOptionPane(message,type,options,icon);
-        JDialog dialog = pane.createDialog(parent, title);
+        dialog = pane.createDialog(parent, title);
         dialog.setAlwaysOnTop(true);
         dialog.setModal(true);
         dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
+        if(CustomDialog.timeout>0)CustomDialog.startTimeout();
         dialog.setVisible(true);
+        if(timeoutexited){
+        	timeoutexited = false;
+        	return "*timeout*";
+        }
         if(pane.getValue()==null){
-            dialog.dispose();
+        	CustomDialog.closeDialog();
             return -1;}
         else{
-            dialog.dispose();
+        	CustomDialog.closeDialog();
             return pane.getValue();}}
     
     /*
@@ -166,30 +143,84 @@ public class CustomDialog{
         p.add(field);
         JOptionPane pane = new JOptionPane(p,type,options);
         field.setFocusable(true);
-        JDialog dialog = pane.createDialog(parent, title);
+        dialog = pane.createDialog(parent, title);
         dialog.setAlwaysOnTop(true);
         dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
+        if(CustomDialog.timeout>0)CustomDialog.startTimeout();
         dialog.setVisible(true);
-        if(pane.getValue()==null||
-           (Integer)pane.getValue()==JOptionPane.CANCEL_OPTION){
-            dialog.dispose();
+        if(timeoutexited){
+        	timeoutexited = false;
+        	return "*timeout*";
+        }
+        if(pane.getValue().toString().equals("uninitializedValue"))return null;
+        if(pane.getValue()==null||(Integer)pane.getValue()==JOptionPane.CANCEL_OPTION){
+        	CustomDialog.closeDialog();
             return null;}
         else{
-            dialog.dispose();
+        	CustomDialog.closeDialog();
             return field.getText();
-            }
         }
+    }
     
     /*
      * used to show info
      */
-    public static void showInfo(int type,Component parent,
+    public static String showInfo(int type,Component parent,
                                 String title,String text){
         JLabel label = new JLabel(text);
         JOptionPane pane = new JOptionPane(label,type,
                                            JOptionPane.DEFAULT_OPTION);
-        JDialog dialog = pane.createDialog(parent, title);
+        dialog = pane.createDialog(parent, title);
         dialog.setAlwaysOnTop(true);
         dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
-        dialog.setVisible(true);}
+        if(CustomDialog.timeout>0)CustomDialog.startTimeout();
+        dialog.setVisible(true);
+        CustomDialog.closeDialog();
+        if(timeoutexited){
+        	timeoutexited = false;
+        	return "*timeout*";
+        }
+        return "true";
     }
+    
+    /*
+     * used for dialog timeout, when timout reached, dialog gets disposed
+     * return true if it was executed
+     * returns false if it was not executed
+     */
+    public static boolean startTimeout(){
+    	if(CustomDialog.timeout>0){
+    		timout = new Thread(){
+    			public void run(){
+    				try {
+    					System.out.println("starting sleep timeout for: "+timeout);
+						Thread.sleep(timeout);
+						CustomDialog.timeout=0;
+						if(CustomDialog.dialog!=null && CustomDialog.dialog.isVisible()){
+							CustomDialog.dialog.dispose();
+							timeoutexited = true;
+						}
+					} catch (InterruptedException e) {
+						CustomDialog.timeout=0;
+					}
+    			}
+    		};
+    		timout.start();
+    		return true;
+    	} else {
+    		return false;
+    	}
+    }
+    
+    //timeout setter
+    public static void setTimeout(long timeout){
+    	System.out.println("setting Dialog timeout to:"+timeout);
+    	CustomDialog.timeout=timeout;
+    }
+    
+    private static void closeDialog(){
+    	dialog.dispose();
+    	CustomDialog.timeout=0;
+    	if(timout!=null)timout.interrupt();
+    }
+}

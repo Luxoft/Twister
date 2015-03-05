@@ -1,6 +1,6 @@
 /*
 File: XMLBuilder.java ; This file is part of Twister.
-Version: 3.005
+Version: 3.006
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -335,15 +335,36 @@ public class XMLBuilder{
                 EP = document.createElement("SutName");
                 rootElement.appendChild(EP);
             }
-            for(int j=0;j<suite.get(i).getUserDefNr();j++){
+            
+            
+            
+            
+//             for(int j=0;j<suite.get(i).getUserDefNr();j++){
+//                  Element userdef = document.createElement("UserDefined");
+//                  Element pname = document.createElement("propName");
+//                  pname.appendChild(document.createTextNode(suite.get(i).getUserDef(j)[0]));
+//                  userdef.appendChild(pname);
+//                  Element pvalue = document.createElement("propValue");
+//                  pvalue.appendChild(document.createTextNode(suite.get(i).getUserDef(j)[1]));
+//                  userdef.appendChild(pvalue);
+//                  rootElement.appendChild(userdef);}
+    
+            String userDefsNames[] =  RunnerRepository.window.mainpanel.p1.suitaDetails.getSuiteDefsID();
+            
+            for(int j=0;j<userDefsNames.length;j++){
                 Element userdef = document.createElement("UserDefined");
                 Element pname = document.createElement("propName");
-                pname.appendChild(document.createTextNode(suite.get(i).getUserDef(j)[0]));
+                pname.appendChild(document.createTextNode(userDefsNames[j]));
                 userdef.appendChild(pname);
                 Element pvalue = document.createElement("propValue");
-                pvalue.appendChild(document.createTextNode(suite.get(i).getUserDef(j)[1]));
+                if(suite.get(i).getUserDefNr()>j)
+                    pvalue.appendChild(document.createTextNode(suite.get(i).getUserDef(j)[1]));
+                else
+                    pvalue.appendChild(document.createTextNode(""));
                 userdef.appendChild(pvalue);
-                rootElement.appendChild(userdef);}
+                rootElement.appendChild(userdef);
+            }   
+                
             for(int j=0;j<nrtc;j++){
                 addSubElement(suite.get(i),rootElement,suite.get(i).getSubItem(j),skip,temp);            
             }

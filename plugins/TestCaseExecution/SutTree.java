@@ -1,6 +1,6 @@
 /*
 File: SutTree.java ; This file is part of Twister.
-Version: 3.001
+Version: 3.002
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -52,6 +52,8 @@ import javax.swing.JPopupMenu;
 import javax.swing.JMenuItem;
 import javax.swing.event.AncestorEvent;
 import javax.swing.event.AncestorListener;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
 
 public class SutTree extends JPanel{
     public JTree filestree;
@@ -64,7 +66,7 @@ public class SutTree extends JPanel{
     public SutTree(){
         initializeRPC();
         filestree = new JTree();
-        filestree.getSelectionModel().setSelectionMode(TreeSelectionModel.SINGLE_TREE_SELECTION);
+        //filestree.getSelectionModel().setSelectionMode(TreeSelectionModel.SINGLE_TREE_SELECTION);
         filesroot = new DefaultMutableTreeNode("root", true);
         userroot = new DefaultMutableTreeNode("User", true);
         globalroot = new DefaultMutableTreeNode("Global", true);
@@ -76,64 +78,80 @@ public class SutTree extends JPanel{
         filestree.setRootVisible(false);
         filestree.addMouseListener(new MouseAdapter(){
             public void mouseReleased(MouseEvent ev){
-                TreePath tp = filestree.getPathForLocation(ev.getX(), ev.getY());
-                if(tp!=null){
-                    importxml.setEnabled(true);
-                    newfile.setEnabled(true);
-                    final DefaultMutableTreeNode treenode = (DefaultMutableTreeNode)tp.getLastPathComponent();
-                    if(PermissionValidator.canChangeSutLock() && tp!=null && (ev.getButton() == MouseEvent.BUTTON3) && (treenode.getUserObject() instanceof SUT )){
-                        final SUT sut = (SUT)treenode.getUserObject();
-                        filestree.setSelectionPath(tp);
-                        JPopupMenu p = new JPopupMenu();
-                        JMenuItem item = new JMenuItem("Lock");
-                        item.addActionListener(new ActionListener(){
-                            public void actionPerformed(ActionEvent ev){
-                                try{String resp = client.execute("lock_sut", new Object[]{"/"+sut.getName()+sut.getRoot(),""}).toString();
-                                if(resp.indexOf("*ERROR*")==-1){
-                                    sut.setLock(RunnerRepository.user);
-                                    ((DefaultTreeModel)filestree.getModel()).nodeChanged(treenode);
-                                    openfile.setEnabled(false);
-                                    renamefile.setEnabled(false);
-                                    deletefile.setEnabled(false);
-                                } else {
-                                    CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,SutTree.this,"ERROR", resp);
-                                    System.out.println(sut.getName()+" was not locked, CE respons: "+resp);
-                                }
-                            } catch(Exception e){e.printStackTrace();}
-                            }});
-                        p.add(item);
-                        if(!sut.getLock().equals("")||!sut.getReserved().equals(""))item.setEnabled(false);
-                        item = new JMenuItem("Unlock");
-                        item.addActionListener(new ActionListener(){
-                            public void actionPerformed(ActionEvent ev){
-                                try{String resp = client.execute("unlock_sut", new Object[]{"/"+sut.getName()+sut.getRoot(),""}).toString();
-                                    if(resp.indexOf("*ERROR*")==-1){
-                                        sut.setLock("");
-                                        ((DefaultTreeModel)filestree.getModel()).nodeChanged(treenode);
-                                        openfile.setEnabled(true);
-                                        renamefile.setEnabled(true);
-                                        deletefile.setEnabled(true);
-                                    } else {
-                                        CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,SutTree.this,"ERROR", resp);
-                                        System.out.println(sut.getName()+" was not unlocked, CE respons: "+resp);  
-                                    }
-                                } catch (Exception e){
-                                    e.printStackTrace();
-                                }
-                            }});
-                        p.add(item);
-                        if(!sut.getLock().equals(RunnerRepository.user))item.setEnabled(false);
-                        p.show(filestree,ev.getX(),ev.getY());
-                    } else {
-                        treeContextOptions(tp);
-                    }
-                } else {
+                if(filestree.getSelectionCount()>1){//more than one selected
                     importxml.setEnabled(false);
                     newfile.setEnabled(false);
-                    treeContextOptions(tp);
+                    renamefile.setEnabled(false);
+                    openfile.setEnabled(false);
+                    deletefile.setEnabled(true);
+                    refreshlist.setEnabled(true);
+                    exportxml.setEnabled(false);
+                } else {
+                    TreePath tp = filestree.getPathForLocation(ev.getX(), ev.getY());
+                    if(tp!=null){
+                        importxml.setEnabled(true);
+                        newfile.setEnabled(true);
+                        final DefaultMutableTreeNode treenode = (DefaultMutableTreeNode)tp.getLastPathComponent();
+                        if(PermissionValidator.canChangeSutLock() && tp!=null && (ev.getButton() == MouseEvent.BUTTON3) && (treenode.getUserObject() instanceof SUT )){
+                            final SUT sut = (SUT)treenode.getUserObject();
+                            filestree.setSelectionPath(tp);
+                            JPopupMenu p = new JPopupMenu();
+                            JMenuItem item = new JMenuItem("Lock");
+                            item.addActionListener(new ActionListener(){
+                                public void actionPerformed(ActionEvent ev){
+                                    try{String resp = client.execute("lock_sut", new Object[]{"/"+sut.getName()+sut.getRoot(),""}).toString();
+                                    if(resp.indexOf("*ERROR*")==-1){
+                                        sut.setLock(RunnerRepository.user);
+                                        ((DefaultTreeModel)filestree.getModel()).nodeChanged(treenode);
+                                        openfile.setEnabled(false);
+                                        renamefile.setEnabled(false);
+                                        deletefile.setEnabled(false);
+                                    } else {
+                                        CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,SutTree.this,"ERROR", resp);
+                                        System.out.println(sut.getName()+" was not locked, CE respons: "+resp);
+                                    }
+                                } catch(Exception e){e.printStackTrace();}
+                                }});
+                            p.add(item);
+                            if(!sut.getLock().equals("")||!sut.getReserved().equals(""))item.setEnabled(false);
+                            item = new JMenuItem("Unlock");
+                            item.addActionListener(new ActionListener(){
+                                public void actionPerformed(ActionEvent ev){
+                                    try{String resp = client.execute("unlock_sut", new Object[]{"/"+sut.getName()+sut.getRoot(),""}).toString();
+                                        if(resp.indexOf("*ERROR*")==-1){
+                                            sut.setLock("");
+                                            ((DefaultTreeModel)filestree.getModel()).nodeChanged(treenode);
+                                            openfile.setEnabled(true);
+                                            renamefile.setEnabled(true);
+                                            deletefile.setEnabled(true);
+                                        } else {
+                                            CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,SutTree.this,"ERROR", resp);
+                                            System.out.println(sut.getName()+" was not unlocked, CE respons: "+resp);  
+                                        }
+                                    } catch (Exception e){
+                                        e.printStackTrace();
+                                    }
+                                }});
+                            p.add(item);
+                            if(!sut.getLock().equals(RunnerRepository.user))item.setEnabled(false);
+                            p.show(filestree,ev.getX(),ev.getY());
+                        } else {
+                            treeContextOptions(tp);
+                        }
+                    } else {
+                        importxml.setEnabled(false);
+                        newfile.setEnabled(false);
+                        treeContextOptions(tp);
+                    }
                 }
-                
             }});
+        filestree.addKeyListener(new KeyAdapter(){
+            public void keyPressed(KeyEvent ev){
+                if(ev.getKeyCode() == KeyEvent.VK_DELETE ){
+                    deletefile.doClick();
+                }
+            }
+        });
         setLayout(new BorderLayout());
         sp2 = new JScrollPane(filestree);
         add(sp2,BorderLayout.CENTER);
@@ -245,19 +263,19 @@ public class SutTree extends JPanel{
                 final JTextField tsut = new JTextField();
                 tsut.setFocusable(true);
                 tsut.addAncestorListener(new AncestorListener() {
-        			@Override
-        			public void ancestorRemoved(AncestorEvent arg0) {
-        			}
-        			
-        			@Override
-        			public void ancestorMoved(AncestorEvent arg0) {
-        			}
-        			
-        			@Override
-        			public void ancestorAdded(AncestorEvent arg0) {
-        				tsut.requestFocusInWindow();
-        			}
-        		});
+                    @Override
+                    public void ancestorRemoved(AncestorEvent arg0) {
+                    }
+                    
+                    @Override
+                    public void ancestorMoved(AncestorEvent arg0) {
+                    }
+                    
+                    @Override
+                    public void ancestorAdded(AncestorEvent arg0) {
+                        tsut.requestFocusInWindow();
+                    }
+                });
                 tsut.setBounds(90,5,155,25);
                 JLabel ep = new JLabel("Run on EP's: ");
                 ep.setBounds(5,35,80,25);
@@ -428,30 +446,32 @@ public class SutTree extends JPanel{
     private void setDeleteAction(){
         deletefile.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
-                TreePath tp = filestree.getSelectionPath();
-                if(tp.getPathCount()==0)return;
-                DefaultMutableTreeNode selected = (DefaultMutableTreeNode)tp.getLastPathComponent();
-                DefaultMutableTreeNode root = (DefaultMutableTreeNode)tp.getPathComponent(1);
-                String torem = "";
-                if(root.toString().equals("User")){
-                    torem = "/"+selected.toString()+".user";                    
-                } else {
-                    torem = "/"+selected.toString()+".system";
-                }
-                try{String s = client.execute("delete_sut", new Object[]{torem}).toString();
-                    if(s.indexOf("*ERROR*")==-1){
-                        ((DefaultTreeModel)filestree.getModel()).removeNodeFromParent(selected);
-                        RunnerRepository.window.mainpanel.p1.suitaDetails.setComboTBs();
-                        openfile.setEnabled(false);
-                        renamefile.setEnabled(false);   
-                        deletefile.setEnabled(false);
-                        exportxml.setEnabled(false);
+                TreePath [] tps = filestree.getSelectionPaths();
+                for(TreePath tp:tps){
+                    if(tp.getPathCount()==0)return;
+                    DefaultMutableTreeNode selected = (DefaultMutableTreeNode)tp.getLastPathComponent();
+                    DefaultMutableTreeNode root = (DefaultMutableTreeNode)tp.getPathComponent(1);
+                    String torem = "";
+                    if(root.toString().equals("User")){
+                        torem = "/"+selected.toString()+".user";                    
                     } else {
-                        CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,SutTree.this,"ERROR", "Cannot delete SUT file. "+s);
+                        torem = "/"+selected.toString()+".system";
                     }
-                } catch(Exception e){
-                    System.out.println("Could not delete sut: "+torem);
-                    e.printStackTrace();
+                    try{String s = client.execute("delete_sut", new Object[]{torem}).toString();
+                        if(s.indexOf("*ERROR*")==-1){
+                            ((DefaultTreeModel)filestree.getModel()).removeNodeFromParent(selected);
+                            RunnerRepository.window.mainpanel.p1.suitaDetails.setComboTBs();
+                            openfile.setEnabled(false);
+                            renamefile.setEnabled(false);   
+                            deletefile.setEnabled(false);
+                            exportxml.setEnabled(false);
+                        } else {
+                            CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,SutTree.this,"ERROR", "Cannot delete SUT file. "+s);
+                        }
+                    } catch(Exception e){
+                        System.out.println("Could not delete sut: "+torem);
+                        e.printStackTrace();
+                    }
                 }
             }
         });

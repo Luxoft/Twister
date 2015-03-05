@@ -42,7 +42,7 @@ LEVELS = ['FULL', 'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL']
 try:
     LEVEL = sys.argv[1]
 except:
-    LEVEL = CONN.root.getLogLevel()
+    LEVEL = CONN.root.get_log_level()
     print('\nThe log level is `{}`.\n'.format(LEVEL))
     exit(1)
 

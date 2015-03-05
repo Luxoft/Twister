@@ -1,7 +1,7 @@
 
 # File: CeDatabase.py ; This file is part of Twister.
 
-# version: 3.008
+# version: 3.013
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -70,9 +70,11 @@ class CeDbManager(object):
         self.project = project
 
 
-    def connect_db(self, user, db_server='', db_name=''):
+    def connect_db(self, user, db_server='', db_name='', db_user='', db_passwd='', shared_db=False):
         """
         Connect to database.
+        Must know the IP + Database, the user and if the DB is shared or not,
+        to be able to decrypt the password.
         """
         # Get the path to DB.XML
         db_file = self.project.get_user_info(user, 'db_config')
@@ -89,17 +91,21 @@ class CeDbManager(object):
             if c_time - self.connections[usr_server]['dt'] < 1.0:
                 return self.connections[usr_server]['conn']
 
+        # Use shared DB or not ?
+        use_shared_db = self.project.get_user_info(user, 'use_shared_db')
+        if use_shared_db and use_shared_db.lower() in ['true', 'yes']:
+            use_shared_db = True
+        else:
+            use_shared_db = False
+
         # DB.xml + Shared DB parser
         users_groups = self.project._parse_users_and_groups()
         shared_db_path = users_groups['shared_db_cfg']
-        if os.path.isfile(shared_db_path):
-            db_config = DBParser(user, db_file, shared_db_path).db_config
-        else:
-            db_config = DBParser(user, db_file).db_config
+        db_config = DBParser(user, db_file, shared_db_path, use_shared_db).db_config
 
         # Try to use the default pair
         if not db_server and not db_name:
-            db_server, db_name = db_config['default_server']
+            db_server, db_name, db_user, db_passwd = db_config['default_server']
 
         # Check server + DB pair
         if (db_server, db_name) not in db_config['servers']:
@@ -107,18 +113,21 @@ class CeDbManager(object):
                 'Cannot connect!'.format((db_server, db_name), user))
             return False
 
-        db_user = db_config['servers'][(db_server, db_name)]['u']
-        db_passwd = db_config['servers'][(db_server, db_name)]['p']
         # Need to magically identify the correct key; the first pair is from private DB.xml;
-        if (db_server, db_name) == db_config['servers'].keys()[0]:
-            encr_key = None
-        else:
+        if shared_db:
+            # Shared DB is True
             encr_key = users_groups.get('shared_db_key', 'Luxoft')
+        else:
+            # Fallback to shared DB
+            encr_key = None
+
         # Decode database password
         db_password = self.project.decrypt_text(user, db_passwd, encr_key)
 
+        logDebug('User `{}` connecting to {} MySQL `{} @ {} / {} : {}[...]`.'.format(user,
+                 'shared' if encr_key else 'user', db_user, db_server, db_name, db_passwd[:3]))
+
         try:
-            logDebug('User `{}` connecting to MySQL `{} @ {} / {}`...'.format(user, db_user, db_server, db_name))
             conn = MySQLdb.connect(host=db_server, db=db_name, user=db_user, passwd=db_password)
             conn.autocommit = False
         except MySQLdb.Error as e:
@@ -173,7 +182,7 @@ class CeDbManager(object):
 
         def fix_log(tc_log):
             tc_log = tc_log.replace('\n', '<br>\n')
-            tc_log = conn.escape_string(tc_log)
+            tc_log = MySQLdb.escape_string(tc_log)
             tc_log = tc_log.replace('<div', '&lt;div')
             tc_log = tc_log.replace('</div', '&lt;/div')
             return tc_log
@@ -290,7 +299,7 @@ class CeDbManager(object):
                     subst_data['twister_tc_log_test'] = '*no log*'
 
                 # :: Debug ::
-                import pprint ; pprint.pprint(subst_data)
+                # import pprint ; pprint.pprint(subst_data)
 
                 # Append all data for current file
                 all_data.append(subst_data)
@@ -311,11 +320,21 @@ class CeDbManager(object):
             logError('Database: Null DB.XML file for user `{}`! Nothing to do!'.format(user))
             return False
 
-        usr_roles = self.project._parse_users_and_groups()
-        shared_db_path = usr_roles['shared_db_cfg']
-        db_cfg_role = 'CHANGE_DB_CFG' in usr_roles['users'][user]['roles']
-        # Get inserts will automatically handle private/ shared DB.xml
-        all_inserts = DBParser(user, db_file, shared_db_path).get_inserts(db_cfg_role)
+        # DB.xml + Shared DB parser
+        users_groups = self.project._parse_users_and_groups()
+        shared_db_path = users_groups['shared_db_cfg']
+        db_cfg_role = 'CHANGE_DB_CFG' in users_groups['users'][user]['roles']
+
+        # Use shared DB or not ?
+        use_shared_db = self.project.get_user_info(user, 'use_shared_db')
+        if use_shared_db and use_shared_db.lower() in ['true', 'yes']:
+            use_shared_db = True
+        else:
+            use_shared_db = False
+
+        dbp = DBParser(user, db_file, shared_db_path, use_shared_db)
+        all_inserts = dbp.get_inserts(db_cfg_role)
+        del dbp
 
         if not all_inserts:
             logWarning('Database: Cannot use inserts defined for user `{}`!'.format(user))
@@ -341,14 +360,15 @@ class CeDbManager(object):
 
                 c_inserts = all_inserts[host_db]['inserts']
                 c_fields = all_inserts[host_db]['fields']
+                shared_db = all_inserts[host_db]['shared_db']
 
-                conn = self.connect_db(user, *host_db)
+                conn = self.connect_db(user, *host_db, shared_db=shared_db)
                 if not conn:
                     continue
                 curs = conn.cursor()
 
                 # Escape all unicodes variables before SQL Statements!
-                subst_data = {k: conn.escape_string(v) if isinstance(v, unicode) else v for \
+                subst_data = {k: MySQLdb.escape_string(v) if isinstance(v, unicode) else v for \
                     k, v in subst_data.iteritems()}
 
                 # For every query of the current host
@@ -485,6 +505,9 @@ class CeDbManager(object):
 
                     # String Template
                     tmpl = Template(query)
+
+                    # Fix None values to NULL
+                    subst_data = {k: 'NULL' if v is None else v for k, v in subst_data.iteritems()}
 
                     # Build complete query
                     try:

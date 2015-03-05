@@ -1,7 +1,7 @@
 
 # File: CeXmlRpc.py ; This file is part of Twister.
 
-# version: 3.013
+# version: 3.018
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -246,6 +246,24 @@ class CeXmlRpc(_cptools.XMLRPCController):
         except Exception as e:
             logWarning('User `{}` - exception on EP continue: `{}`!'.format(user, e))
             return False
+
+
+    @cherrypy.expose
+    def send_ep_interact(self, epname, response):
+        """
+        Send remote response to a test interaction.
+        """
+        user = cherrypy.session.get('username')
+        ep_conn = self.project._find_specific_ep(user, epname)
+        if not ep_conn:
+            return False
+        try:
+            ep_conn.root.set_interact(response)
+            logDebug('User `{}` sent EP response continue.'.format(user))
+        except Exception as e:
+            logWarning('User `{}` - exception on EP continue: `{}`!'.format(user, e))
+        self.project.set_exec_status(user, epname, STATUS_RUNNING)
+        return True
 
 
 # # #
@@ -565,41 +583,114 @@ class CeXmlRpc(_cptools.XMLRPCController):
 
 
     @cherrypy.expose
+    def test_database(self, db_server, db_name, db_user, db_password, shared_db=False):
+        """
+        Selects from database.
+        This function is called from the Java GUI.
+        """
+        logFull('CeXmlRpc:test_database')
+        user = cherrypy.session.get('username')
+        conn = False
+
+        try:
+            conn = MySQLdb.connect(host=db_server, db=db_name,
+                   user=db_user, passwd=db_password, connect_timeout=5)
+        except Exception as e:
+            err = 'MySQL error `{}`!'.format(e)
+
+        if not conn:
+            # Need to magically identify the correct key; the first pair is from private DB.xml;
+            if shared_db:
+                # Shared DB is True
+                users_groups = self.project._parse_users_and_groups()
+                encr_key = users_groups.get('shared_db_key', 'Luxoft')
+            else:
+                # Fallback to shared DB
+                encr_key = None
+
+            # Decode database password
+            db_password = self.project.decrypt_text(user, db_password, encr_key)
+
+            try:
+                conn = MySQLdb.connect(host=db_server, db=db_name,
+                       user=db_user, passwd=db_password, connect_timeout=5)
+            except Exception as e:
+                err = 'MySQL error `{}`!'.format(e)
+
+        if conn:
+            logInfo('MySQL {} connection `{} @ {} / {}` is OK, for user `{}`.'.format(
+                'Shared' if shared_db else 'User', db_user, db_server, db_name, user))
+            return True
+        else:
+            logInfo('Failed to connect to MySQL {} connection `{} @ {} / {}`, for user `{}`: {}'.format(
+                'Shared' if shared_db else 'User', db_user, db_server, db_name, user, err))
+            return False
+
+
+    @cherrypy.expose
+    def switch_db_shared(self, shared_db):
+        """
+        Announce the switch between user and shared DB.xml.
+        """
+        logFull('CeXmlRpc:switch_db_shared')
+        user = cherrypy.session.get('username')
+        if shared_db:
+            shared_db = 'true'
+        else:
+            shared_db = 'false'
+
+        logInfo('MySQL database switched to `{}`, for user `{}`.'.format(
+                'Shared' if shared_db=='true' else 'User', user))
+        self.project.set_user_info(user, 'use_shared_db', shared_db)
+        return True
+
+
+    @cherrypy.expose
     def run_db_select(self, user, field_id):
         """
         Selects from database.
         This function is called from the Java GUI.
         """
         logFull('CeXmlRpc:run_db_select')
+
         # Get the path to DB.XML
         db_file = self.project.get_user_info(user, 'db_config')
         if not db_file:
-            errMessage = 'Null DB.XML file for user `{}`! Nothing to do!'.format(user)
-            logError(errMessage)
-            return errMessage
+            err = 'Database: Null DB.XML file for user `{}`! Cannot connect!'.format(user)
+            logError(err)
+            return err
 
+        # Use shared DB or not ?
+        use_shared_db = self.project.get_user_info(user, 'use_shared_db')
+        if use_shared_db and use_shared_db.lower() in ['true', 'yes']:
+            use_shared_db = True
+        else:
+            use_shared_db = False
+
+        # DB.xml + Shared DB parser
+        users_groups = self.project._parse_users_and_groups()
+        shared_db_path = users_groups['shared_db_cfg']
         # Database parser, fields, queries
-        dbparser = DBParser(user, db_file)
-        query = dbparser.get_query(field_id)
-        db_config = dbparser.db_config
-        del dbparser
+        db_parser = DBParser(user, db_file, shared_db_path, use_shared_db)
+        query = db_parser.get_query(field_id)
+        db_config = db_parser.db_config
+        db_server, db_name, db_user, db_passwd = db_config['default_server']
+        del db_parser
 
-        # Decode database password
-        db_password = self.project.decrypt_text( user, db_config.get('password') )
-        if not db_password:
-            errMessage = 'Cannot decrypt the database password user `{}`!'.format(user)
-            logError(errMessage)
-            return errMessage
+        if not query:
+            err = 'Database: Null Query `{}`, user `{}`!'.format(field_id, user)
+            logError(err)
+            return err
+
+        conn = self.project.dbmgr.connect_db(user, db_server, db_name, db_user, db_passwd)
+        curs = conn.cursor()
 
         try:
-            conn = MySQLdb.connect(host=db_config.get('server'), db=db_config.get('database'),
-                user=db_config.get('user'), passwd=db_password)
-            curs = conn.cursor()
             curs.execute(query)
-        except MySQLdb.Error, e:
-            errMessage = 'MySQL Error %d: %s' % (e.args[0], e.args[1])
-            logError(errMessage)
-            return errMessage
+        except MySQLdb.Error as e:
+            err = 'MySQL Error %d: %s' % (e.args[0], e.args[1])
+            logError(err)
+            return err
 
         rows = curs.fetchall()
         msg_str = ','.join( '|'.join([str(i) for i in row]) for row in rows )
@@ -639,10 +730,11 @@ class CeXmlRpc(_cptools.XMLRPCController):
         time.sleep(2) # Wait all the logs
         ret = self.project.save_to_database(user)
         if ret:
-            logDebug('CE: Saving to database was successful!')
+            logDebug('Saving to database was successful, user `{}`!'.format(user))
+            return True
         else:
-            logDebug('CE: Could not save to database!')
-        return ret
+            logDebug('Could not save to database, user `{}`!'.format(user))
+            return False
 
 
     @cherrypy.expose
@@ -1206,6 +1298,30 @@ class CeXmlRpc(_cptools.XMLRPCController):
 
 
     @cherrypy.expose
+    def get_interact_status(self, user):
+        """
+        Return interact queue status.
+        Called by applet or other UI
+        """
+        data = self.project.get_user_info(user)
+        interact_queue = data.get('interact',[])
+        interact_string = ''
+        if interact_queue:
+            for interact in interact_queue:
+                interact_string += '{}*{}*{}*{}'.format(interact['id'],
+                                                        interact['type'],
+                                                        interact['msg'],
+                                                        interact['ep'])
+                if interact['options']:
+                    options = ','.join([str(i) for i in interact['options']['options']])
+                    default_value = interact['options']['default']
+                    interact_string += '*{},{}'.format(options, default_value)
+                if interact != interact_queue[-1]:
+                    interact_string += '|'
+        return interact_string
+
+
+    @cherrypy.expose
     def get_exec_status_all(self, user):
         """
         Return execution status for all EPs. (stopped, paused, running, invalid)\n
@@ -1232,7 +1348,8 @@ class CeXmlRpc(_cptools.XMLRPCController):
 
         # Status + start time + elapsed time
         start_time = start_time.strftime('%Y-%m-%d %H:%M:%S')
-        return '{0}; {1}; {2}; {3}'.format(status, start_time, elapsed_time, data.get('started_by', 'X'))
+
+        return '{0}; {1}; {2}; {3};'.format(status, start_time, elapsed_time, data.get('started_by', 'X'))
 
 
     @cherrypy.expose

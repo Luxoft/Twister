@@ -1,6 +1,6 @@
 /*
 File: SuitaDetails.java ; This file is part of Twister.
-Version: 3.006
+Version: 3.008
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -1188,9 +1188,9 @@ public class SuitaDetails extends JPanel {
     public String saveDB(){
         //if(dbcombo.getSelectedItem().toString().equals("Ask to save"))return "true";
         //else if(dbcombo.getSelectedItem().toString().equals("Save to db"))return "false";
-        if(dbcombo.getSelectedItem().toString().equals("Ask to save"))return "false";
-        else if(dbcombo.getSelectedItem().toString().equals("Save to db"))return "true";
-        else if(dbcombo.getSelectedItem().toString().equals("Do not save"))return "null";  
+        if(dbcombo.getSelectedItem().toString().equals("Ask to save"))return "ask";
+        else if(dbcombo.getSelectedItem().toString().equals("Save to db"))return "save";
+        else if(dbcombo.getSelectedItem().toString().equals("Do not save"))return "nosave";  
         return "";
     }
         
@@ -1202,8 +1202,8 @@ public class SuitaDetails extends JPanel {
         
     public void setSaveDB(String value){
         dbcombo.setSelectedIndex(0);
-        if(value.equals("false"))value = "Ask to save";
-        else if(value.equals("true"))value = "Save to db";
+        if(value.equals("ask"))value = "Ask to save";
+        else if(value.equals("save"))value = "Save to db";
         else value = "Do not save";
         for(int i=0;i<dbcombo.getItemCount();i++){
             if(dbcombo.getItemAt(i).toString().equals(value)){
@@ -1253,6 +1253,14 @@ public class SuitaDetails extends JPanel {
             }
         }
     }  
+    
+    public String [] getSuiteDefsID(){
+        String names [] = new String[getDefsNr()];
+        for(int i=0;i<getDefsNr();i++){
+            names[i] = definitions.get(i).getID();
+        }
+        return names;
+    }
 }
 
 
@@ -1673,6 +1681,10 @@ class DefPanel extends JPanel{
         if(removelistener){
             userDefinition.getDocument().addDocumentListener(doclistener);
         }
+    }
+    
+    public String getID(){
+        return this.id;
     }
 } 
 

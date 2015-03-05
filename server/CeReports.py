@@ -1,7 +1,7 @@
 
 # File: CeReports.py ; This file is part of Twister.
 
-# version: 3.005
+# version: 3.011
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -70,7 +70,8 @@ class ReportingServer(object):
     glob_fields  = {}
     glob_reports = {}
     glob_redirects = {}
-    glob_links   = {}
+    glob_links = {}
+    timers = {}
 
 
     def __init__(self, project):
@@ -94,19 +95,35 @@ class ReportingServer(object):
             logError('Report Server: Null DB.XML file for user `{}`! Nothing to do!'.format(usr))
             return False
 
-        # Create database parser IF necessary, or FORCED...
-        if force or (usr not in self.db_parser):
+        # Current timer
+        c_time = time.time()
 
+        # Create database parser IF necessary, or FORCED, or old connection...
+        if force or (usr not in self.db_parser) or (c_time - self.timers.get(usr, 0) > 5.0):
+
+           # logDebug('Rebuilding fields, reports and redirects for user `{}`...'.format(usr))
+
+            self.timers[usr] = c_time
             self.db_parser[usr] = True
             self.glob_fields[usr]  = OrderedDict()
             self.glob_reports[usr] = OrderedDict()
             self.glob_redirects[usr] = OrderedDict()
 
-            usr_roles = self.project._parse_users_and_groups()
-            shared_db_path = usr_roles['shared_db_cfg']
-            db_cfg_role = 'CHANGE_DB_CFG' in usr_roles['users'][usr]['roles']
-            # Get reports will automatically handle private/ shared DB.xml
-            report_queries = DBParser(usr, db_file, shared_db_path).get_reports(db_cfg_role)
+            # DB.xml + Shared DB parser
+            users_groups = self.project._parse_users_and_groups()
+            shared_db_path = users_groups['shared_db_cfg']
+            db_cfg_role = 'CHANGE_DB_CFG' in users_groups['users'][usr]['roles']
+
+            # Use shared DB or not ?
+            use_shared_db = self.project.get_user_info(usr, 'use_shared_db')
+            if use_shared_db and use_shared_db.lower() in ['true', 'yes']:
+                use_shared_db = True
+            else:
+                use_shared_db = False
+
+            dbp = DBParser(usr, db_file, shared_db_path, use_shared_db)
+            report_queries = dbp.get_reports(db_cfg_role)
+            del dbp
 
             for host_db in report_queries:
 
@@ -123,7 +140,7 @@ class ReportingServer(object):
                          'link': k,
                          'type': 'link',
                          'folder': v.get('folder', ''),
-                         'srvr': '/'.join(v.get('srv_db', []))
+                         'srvr': '/'.join( v.get('srv_db', ['n', 'a'])[:2] )
                         } \
                        for k, v in self.glob_reports[usr].iteritems()] + \
                        [{'link': k, 'folder': '', 'type': 'redir'} \
@@ -218,15 +235,20 @@ class ReportingServer(object):
             output = Template(filename=TWISTER_PATH + '/server/template/rep_error.htm')
             return output.render(title='Missing report', usr=usr,
                 links=self.glob_links[usr],
-                msg='Report `<b>{}</b>` is not defined!'.format(report))
+                msg='Report `<b>{}</b>` is not defined!<br/><br/>'
+                    'Go <a href="/report/home/{}">Home</a> ...'.format(report, usr))
 
         # All info about the report, from DB XML
         report_dict = self.glob_reports[usr][report]
 
         query = report_dict['sqlquery']
-        db_server, db_name = report_dict['srv_db']
+        db_pair = report_dict['srv_db']
+        db_server, db_name, db_user, db_passwd = report_dict['srv_db']
 
-        conn = self.project.dbmgr.connect_db(usr, db_server, db_name)
+        logDebug('Prepare {} report `{}`, for user `{}`...'.format(
+                 'Shared' if report_dict['shared_db'] else 'User', report, usr))
+
+        conn = self.project.dbmgr.connect_db(usr, *db_pair, shared_db=report_dict['shared_db'])
         if not conn:
             output = Template(filename=TWISTER_PATH + '/server/template/rep_error.htm')
             return output.render(links=self.glob_links[usr], title=report, usr=usr,
@@ -344,10 +366,6 @@ class ReportingServer(object):
 
         descr = [desc[0] for desc in curs.description]
 
-        # Write DEBUG
-        #DEBUG.write(report +' -> '+ user_choices +' -> '+ query + '\n\n') ; DEBUG.flush()
-
-
         # ... For Query Compare side by side, the table is double ...
         query_compr = report_dict['sqlcompr']
 
@@ -415,9 +433,10 @@ class ReportingServer(object):
         report_dict = self.glob_reports[usr][report]
 
         query = report_dict['sqlquery']
-        db_server, db_name =  report_dict['srv_db']
+        db_pair = report_dict['srv_db']
+        db_server, db_name, db_user, db_passwd = report_dict['srv_db']
 
-        conn = self.project.dbmgr.connect_db(usr, db_server, db_name)
+        conn = self.project.dbmgr.connect_db(usr, *db_pair, shared_db=report_dict['shared_db'])
         if not conn:
             output = Template(filename=TWISTER_PATH + '/server/template/rep_error.htm')
             return output.render(links=self.glob_links[usr], title=report, usr=usr,
@@ -473,35 +492,22 @@ class ReportingServer(object):
                     .format(len(headers), len(headers_tot))}
                 return json.dumps(output, indent=2)
 
-            if len(rows) != len(rows_tot):
-                output = {'aaData':[], 'error':'The first query has {} rows and the second has {} rows!'
-                    .format(len(rows), len(rows_tot))}
-                return json.dumps(output, indent=2)
-
             # Will calculate the new rows like this:
             # The first column of the first query will not be changed
             # The second row of the first query / the second row of the second query * 100
             calc_rows = []
 
-            for i in range(len(rows)):
-                row = rows[i]
-                tot_row = list(rows_tot[i])
+            rows = {r[0]:r[1] for r in rows}
+            rows_tot = {r[0]:r[1] for r in rows_tot}
 
-                # Null and None values must be numbers
-                if not row[0]:
-                    row = (0.0, row[1])
-                if not row[1]:
-                    row = (row[0], 0.0)
-                if not tot_row[0]:
-                    tot_row[0] = 0.0
-                if not tot_row[1]:
-                    tot_row[1] = 0.1
-
-                # Calculate percent...
-                percent = '%.2f' % ( float(row[1]) / tot_row[1] * 100.0 )
-                # Using the header from Total, because it might be Null in the first query
-                calc_rows.append([tot_row[0], float(percent)])
-
+            for rnb in rows_tot.keys():
+                if rnb in rows.keys():
+                    # Calculate percent...
+                    percent = '%.2f' % ( float(rows[rnb]) / rows_tot[rnb] * 100.0 )
+                    # Using the header from Total, because it might be Null in the first query
+                    calc_rows.append([rnb, float(percent)])
+                else:
+                    calc_rows.append([rnb, 0.0])
 
         # ... SQL Query Compare side by side ...
         elif query_compr:

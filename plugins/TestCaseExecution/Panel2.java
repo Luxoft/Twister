@@ -1,6 +1,6 @@
 /*
 File: Panel2.java ; This file is part of Twister.
-Version: 3.003
+Version: 3.008
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -27,6 +27,7 @@ import java.awt.event.ActionEvent;
 import javax.swing.JSplitPane;
 import javax.swing.JTabbedPane;
 import java.util.ArrayList;
+import java.util.HashMap;
 import javax.swing.JFileChooser;
 import javax.swing.JLabel;
 import java.awt.Color;
@@ -38,6 +39,12 @@ import jxl.Workbook;
 import jxl.CellView;
 import javax.swing.SwingUtilities;
 import com.twister.CustomDialog;
+import javax.swing.JDialog;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
+import javax.swing.JTextField;
+import java.awt.BorderLayout;
+
 
 public class Panel2 extends JPanel{
     private static final long serialVersionUID = 1L;
@@ -52,6 +59,7 @@ public class Panel2 extends JPanel{
     public JButton stop,play;
     private boolean first = true;
     private String savedb;
+    private HashMap<String,JDialog> interactionid = new HashMap();
 
     public Panel2(final boolean applet){
         RunnerRepository.introscreen.setStatus("Started Monitoring interface initialization");
@@ -100,8 +108,10 @@ public class Panel2 extends JPanel{
      */
     private void askCE(JButton play){
         try{String result="";
-            Thread.sleep(1000);
-            try{result = RunnerRepository.getRPCClient().execute("get_exec_status_all",new Object[]{RunnerRepository.getUser()})+" ";}
+            String initialrepons = "";
+            try{result = RunnerRepository.getRPCClient().execute("get_exec_status_all",new Object[]{RunnerRepository.getUser()})+"";
+                initialrepons = result;
+            }
             catch(Exception e){
                 System.out.println("Could not get running status(get_exec_status_all) from CE! Panel2->askCE()");
                 return;
@@ -139,7 +149,7 @@ public class Panel2 extends JPanel{
                 play.setText("Run");
                 play.setIcon(new ImageIcon(RunnerRepository.playicon));
                 if(runned){
-                    if(savedb.equals("false")){
+                    if(savedb.equals("ask")){
                         new Thread(){
                             public void run(){
                                 try{
@@ -199,6 +209,7 @@ public class Panel2 extends JPanel{
                 stop.setEnabled(true);
                 RunnerRepository.window.mainpanel.p1.edit.setEnabled(false);
             }
+            
             Object result1 = RunnerRepository.getRPCClient().execute("get_file_status_all",
                                                                 new Object[]{RunnerRepository.getUser()});
             if(result1!=null){                                    
@@ -208,8 +219,13 @@ public class Panel2 extends JPanel{
                 else{
                     String[] result2 = {(String)result1};
                     updateStatuses(result2);}}
+           if(result.equals("interact")){
+               interact();
+            } else {
+                closeAllInteractions();
             }
-        catch(Exception e){
+            Thread.sleep(1000);
+       }catch(Exception e){
             e.printStackTrace();
             if(first){
                 while(!RunnerRepository.initialized){
@@ -227,14 +243,217 @@ public class Panel2 extends JPanel{
             }
             System.out.println("Could not connect to: "+RunnerRepository.host+" on port"+
                                 RunnerRepository.getCentralEnginePort());
-                                
             e.printStackTrace();
-            
             if(play.isEnabled()){
                 play.setEnabled(false);
                 stop.setEnabled(false);
                 RunnerRepository.window.mainpanel.p1.edit.setEnabled(true);
-            }}}
+            }
+        }
+    }
+    
+    private void closeAllInteractions(){
+        for(Object interid:interactionid.keySet().toArray()){//search for active dialogs that are not present in interaction
+            JDialog d = interactionid.get(interid.toString());
+            if(d!=null&&d.isShowing())d.dispose();
+            interactionid.remove(interid.toString());
+        }
+    }
+    
+    
+    
+    private void interact(){
+        String result = "";
+        try{System.out.println("getting get_interact_status............");
+            result = RunnerRepository.getRPCClient().execute("get_interact_status", new Object[]{RunnerRepository.user})+"";
+            System.out.println("result:"+result);
+            String [] interactions = result.split("\\|");
+            for(Object interid:interactionid.keySet().toArray()){//search for active dialogs that are not present in interaction
+                boolean found = false;
+                for(String str:interactions){
+                    if(str.contains(interid.toString()+"*")){
+                        found = true;
+                        break;
+                    }
+                }
+                if(!found){
+                    final JDialog d = interactionid.get(interid.toString());
+                    if(d!=null&&d.isShowing()){
+                        new Thread(){
+                            public void run(){
+                                d.dispose();}
+                            }.start();
+                    }
+                    interactionid.remove(interid.toString());
+                }
+            }
+            for(String str:interactions){
+                String [] comps = str.split("\\*");
+                final String id = comps[0];
+                if(interactionid.get(id)!=null)continue;
+                String type = comps[1];
+                final String message = comps[2];
+                final String ep = comps[3];
+                
+                if(type.indexOf("msg")!=-1){
+                    new Thread(){public void run(){displayMessage(ep,message,id);}}.start();
+                } else if(type.indexOf("decide")!=-1){
+                     new Thread(){public void run(){displayDecide(ep,message,id);}}.start();
+                } else if(type.indexOf("input")!=-1){
+                     new Thread(){public void run(){displayInput(ep,message,id);}}.start();
+                } else if(type.indexOf("options")!=-1){
+                    final String [] options = comps[4].split(",");
+                    new Thread(){public void run(){displayOptions(ep,message,options,id);}}.start();
+                }
+            }
+        }catch(Exception e){
+            e.printStackTrace();
+            System.out.println("ERROR on:"+result);
+        }
+    }
+            
+    private void displayOptions(final String ep, String message,final String [] buttons,final String id){
+        //remove last element which is default
+        JButton options[] = new JButton [buttons.length-2];
+        for(int i=0;i<options.length;i++){
+            options[i] = new JButton(buttons[i]);
+        }
+        
+        final JDialog dialog = CustomDialog.getDialog(message, options,
+                                                    JOptionPane.PLAIN_MESSAGE,
+                                                    JOptionPane.OK_CANCEL_OPTION,
+                                                    null,//RunnerRepository.window
+                                                    ep+" interact", null);
+        
+        
+        for(final JButton but:options){
+            but.addActionListener(new ActionListener() {
+              @Override
+              public void actionPerformed(ActionEvent arg0) {
+              java.awt.EventQueue.invokeLater(new Runnable() {
+                public void run() {
+                      dialog.dispose();
+                    }
+                });
+              respondToInteraction(but.getText(),ep, id);
+              }
+            });
+        }
+        
+        dialog.addWindowListener(new WindowAdapter(){
+          public void windowClosing(WindowEvent e){
+              respondToInteraction(buttons[buttons.length-1],ep,id);
+           }
+        });
+        interactionid.put(id, dialog);
+        dialog.setVisible(true);         
+        dialog.repaint();
+    }
+            
+            
+    private void displayMessage(final String ep, String message,final String id){
+        JButton ok = new JButton("OK");
+        final JDialog dialog = CustomDialog.getDialog(message, new JButton[]{ok},
+                                                    JOptionPane.PLAIN_MESSAGE,
+                                                    JOptionPane.OK_CANCEL_OPTION,
+                                                    null,//RunnerRepository.window
+                                                    ep+" interact", null);
+        
+        dialog.addWindowListener(new WindowAdapter(){
+          public void windowClosing(WindowEvent e){
+              respondToInteraction("false",ep,id);
+           }
+        });
+        ok.addActionListener(new ActionListener() {
+          @Override
+          public void actionPerformed(ActionEvent arg0) {
+              dialog.setVisible(false);
+              dialog.dispose();
+              respondToInteraction("true",ep,id);
+          }
+        });
+        interactionid.put(id, dialog);
+        dialog.setVisible(true);         
+        dialog.repaint();
+    }
+    
+    private void displayInput(final String ep, String message,final String id){
+        JButton ok = new JButton("OK");
+        final JTextField tf = new JTextField();
+        JLabel lmessage = new JLabel(message);
+        JPanel jp = new JPanel();
+        jp.setLayout(new BorderLayout());
+        jp.add(lmessage, BorderLayout.NORTH);
+        jp.add(tf, BorderLayout.CENTER);
+        final JDialog dialog = CustomDialog.getDialog(jp, new JButton[]{ok},
+                                                    JOptionPane.PLAIN_MESSAGE,
+                                                    JOptionPane.OK_CANCEL_OPTION,
+                                                    null,//RunnerRepository.window
+                                                    ep+" interact", null);
+        
+        dialog.addWindowListener(new WindowAdapter(){
+          public void windowClosing(WindowEvent e){
+              respondToInteraction("",ep,id);
+           }
+        });
+        ok.addActionListener(new ActionListener() {
+          @Override
+          public void actionPerformed(ActionEvent arg0) {
+              dialog.setVisible(false);
+              dialog.dispose();
+              respondToInteraction(tf.getText(),ep,id);
+          }
+        });
+        interactionid.put(id, dialog);
+        dialog.setVisible(true);         
+        dialog.repaint();
+    }
+    
+    private void displayDecide(final String ep, String message,final String id){
+        JButton ok = new JButton("OK");
+        JButton cancel = new JButton("Cancel");        
+        final JDialog dialog = CustomDialog.getDialog(message, new JButton[]{ok,cancel},
+                                                    JOptionPane.PLAIN_MESSAGE,
+                                                    JOptionPane.OK_CANCEL_OPTION,
+                                                    null,//RunnerRepository.window
+                                                    ep+" interact", null);
+        
+        dialog.addWindowListener(new WindowAdapter(){
+          public void windowClosing(WindowEvent e){
+              respondToInteraction("",ep,id);
+           }
+        });
+        ok.addActionListener(new ActionListener() {
+          @Override
+          public void actionPerformed(ActionEvent arg0) {
+              dialog.setVisible(false);
+              dialog.dispose();
+              respondToInteraction("true",ep,id);
+          }
+        });
+        cancel.addActionListener(new ActionListener() {
+          @Override
+          public void actionPerformed(ActionEvent arg0) {
+              dialog.setVisible(false);
+              dialog.dispose();
+              respondToInteraction("false",ep,id);
+          }
+        });
+        interactionid.put(id, dialog);
+        dialog.setVisible(true);         
+        dialog.repaint();
+    }
+    
+    private void respondToInteraction(String message,String ep, String id){
+        try{String result = RunnerRepository.getRPCClient().execute("send_ep_interact", new Object[]{ep,message})+"";
+            interactionid.remove(id);
+            if(result.indexOf("*ERROR*")!=-1){
+                CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,tabbed,"ERROR", result);
+            }
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+    }
                 
     /*
      * Prompt user to save to db or

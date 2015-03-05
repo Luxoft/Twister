@@ -1,7 +1,7 @@
 
 # File: UserService.py ; This file is part of Twister.
 
-# version: 3.015
+# version: 3.016
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -54,8 +54,11 @@ else:
 def log_msg(level, msg):
     """ common logger """
     date_tag = time.strftime('%Y-%b-%d %H-%M-%S')
-    with open(log_file, 'a') as f:
-        f.write('{}\t{}\t{}\n'.format(date_tag, level, msg))
+    try:
+        with open(log_file, 'a') as f:
+            f.write('{}\t{}\t{}\n'.format(date_tag, level, msg))
+    except Exception:
+        print('{}\t{}\t{}\n'.format(date_tag, level, msg))
 
 def logDebug(msg):
     """ debug """
@@ -539,7 +542,10 @@ if __name__ == '__main__':
         logError('Cannot guess user name for the User Service! Exiting!')
         exit(1)
 
-    open(log_file, 'w').close()
+    try:
+        open(log_file, 'w').close()
+    except Exception:
+        print('Cannot reset log!!')
 
     logInfo('User Service: Starting...')
 

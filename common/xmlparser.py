@@ -1,7 +1,7 @@
 
 # File: xmlparser.py ; This file is part of Twister.
 
-# version: 3.031
+# version: 3.036
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -914,24 +914,27 @@ class DBParser(object):
     This parser will parse DB.xml and Shared_DB.xml.
     """
 
-    def __init__(self, user, config_data, shared_data=None):
+    def __init__(self, user, config_data, shared_data=None, use_shared_db=True):
 
         self.user = user
         self.db_config = {}
         self.config_data = config_data
         self.user_xml = None
         self.shared_xml = None
+        self.use_shared_db = use_shared_db
 
         if os.path.isfile(config_data):
             data = localFs.read_user_file(self.user, config_data)
             try:
                 self.user_xml = etree.fromstring(data)
+                # logDebug('User `{}` loaded priv DB config from file `{}`.'.format(user, config_data))
             except Exception:
                 raise Exception('Invalid DB config file `{}`, '\
                     'for user `{}`!'.format(config_data, self.user))
         elif config_data and isinstance(config_data, str) or isinstance(config_data, unicode):
             try:
                 self.user_xml = etree.fromstring(config_data)
+                # logDebug('User `{}` loaded priv DB config from a string.'.format(user))
             except Exception:
                 raise Exception('Cannot parse DB config data, for user `{}`!'.format(self.user))
         else:
@@ -943,22 +946,21 @@ class DBParser(object):
                 data = localFs.read_user_file(self.user, shared_data)
                 try:
                     self.shared_xml = etree.fromstring(data)
-                    logDebug('User `{}` loaded shared DB config from file `{}`.'.format(user, shared_data))
+                    # logDebug('User `{}` loaded shared DB config from file `{}`.'.format(user, shared_data))
                 except Exception:
                     raise Exception('Invalid shared DB config file `{}`, '\
                         'for user `{}`!'.format(shared_data, self.user))
             elif shared_data and isinstance(shared_data, str) or isinstance(shared_data, unicode):
                 try:
                     self.shared_xml = etree.fromstring(shared_data)
-                    logDebug('User `{}` loaded shared DB config from a string.'.format(user))
+                    # logDebug('User `{}` loaded shared DB config from a string.'.format(user))
                 except Exception:
                     raise Exception('Cannot parse shared DB config data, for user `{}`!'.format(self.user))
             else:
                 raise Exception('Invalid shared config data type: `{}`, '\
                     'for user `{}`!'.format(type(shared_data), self.user))
 
-        # Servers must be in order
-        self.db_config['servers'] = OrderedDict()
+        self.db_config['servers'] = []
 
         if self.user_xml.xpath('db_config/server/text()') and self.user_xml.xpath('db_config/database/text()'):
             # User's server and database
@@ -966,28 +968,22 @@ class DBParser(object):
             db_name = self.user_xml.xpath('db_config/database')[0].text
             db_user = self.user_xml.xpath('db_config/user')[0].text
             db_passwd = self.user_xml.xpath('db_config/password')[0].text
-            self.db_config['default_server'] = (db_server, db_name)
-            self.db_config['servers'][(db_server, db_name)] = {'u': db_user, 'p': db_passwd}
+            self.db_config['servers'].append((db_server, db_name))
+            self.db_config['default_server'] = (db_server, db_name, db_user, db_passwd)
         else:
             raise Exception('Invalid DB config, no server and DB, for user `{}`!'.format(self.user))
 
-        self.db_config['use_shared_db'] = False
-
-        if self.user_xml.xpath('db_config/use_shared_db/text()'):
-            use_shared_db = self.user_xml.xpath('db_config/use_shared_db')[0].text
-            if use_shared_db.lower() in ['true', 'yes']:
-                self.db_config['use_shared_db'] = True
-            else:
-                self.db_config['use_shared_db'] = False
-
-        if self.db_config['use_shared_db'] and self.shared_xml is not None:
+        if shared_data and self.shared_xml is not None:
             # Servers list
-            for server_section in self.shared_xml.xpath('server_section'):
-                db_server = server_section.xpath('db_config/server')[0].text
-                db_name = server_section.xpath('db_config/database')[0].text
-                db_user = server_section.xpath('db_config/user')[0].text
-                db_passwd = server_section.xpath('db_config/password')[0].text
-                self.db_config['servers'][(db_server, db_name)] = {'u': db_user, 'p': db_passwd}
+            try:
+                db_server = self.shared_xml.xpath('db_config/server')[0].text
+                db_name = self.shared_xml.xpath('db_config/database')[0].text
+                db_user = self.shared_xml.xpath('db_config/user')[0].text
+                db_passwd = self.shared_xml.xpath('db_config/password')[0].text
+                self.db_config['servers'].append((db_server, db_name))
+            except Exception as e:
+                logWarning('Invalid shared DB XML, for user `{}`: {}!'.format(self.user, e))
+                self.shared_xml = None
 
 
     def get_inserts(self, db_cfg_role=True):
@@ -998,62 +994,66 @@ class DBParser(object):
         logFull('dbparser:get_inserts')
         insert_queries = OrderedDict()
 
-        # All data from shared db.xml
-        if db_cfg_role and self.db_config['use_shared_db']:
-            if self.shared_xml is None:
-                logWarning('Invalid shared DB XML!')
-                return False
+        # If user has the roles and Use Shared DB is disabled (user DB enabled)
+        if db_cfg_role and not self.use_shared_db:
+            # Fields and Inserts from private db.xml
+            private_db = {}
+            private_db['inserts'] = [q.text for q in self.user_xml.xpath('insert_section/sql_statement')]
+            fields = OrderedDict()
 
-            for server_data in self.shared_xml.xpath('server_section'):
-                # Invalid entry ?
-                if not server_data.xpath('db_config/server/text()') or \
-                    not server_data.xpath('db_config/database/text()'):
-                    continue
-                # Important info
-                db_server = server_data.xpath('db_config/server')[0].text
-                db_name = server_data.xpath('db_config/database')[0].text
+            for field in self.user_xml.xpath('insert_section/field'):
+                data = {}
+                data['id'] = field.get('ID', '')
+                data['type'] = field.get('Type', '')
+                data['query'] = field.get('SQLQuery', '')
+                data['level'] = field.get('Level', '') # Project / Suite / Testcase
+                fields[data['id']] = data
 
-                # Insert fields
-                fields = OrderedDict()
-                for field in server_data.xpath('insert_section/field'):
-                    data = {}
-                    data['id'] = field.get('ID', '')
-                    data['type'] = field.get('Type', '')
-                    data['query'] = field.get('SQLQuery', '')
-                    data['level'] = field.get('Level', '') # Project / Suite / Testcase
-                    fields[data['id']] = data
-                # Insert queries
-                inserts = []
-                for elem in server_data.xpath('insert_section/sql_statement'):
-                    inserts.append(elem.text.strip())
-                # Save this info
-                insert_queries[(db_server, db_name)] = {
-                    'inserts': inserts,
-                    'fields': fields
-                }
-            # Return after shared db inserts !
+            private_db['fields'] = fields
+            private_db['shared_db'] = False
+            # Add private db to inserts
+            db_pair = self.db_config['default_server']
+            insert_queries[db_pair] = private_db
+            # Return after user db inserts !
             return insert_queries
 
-        # Fields and Inserts from private db.xml
-        private_db = {}
-        private_db['inserts'] = [q.text for q in self.user_xml.xpath('insert_section/sql_statement')]
-        fields = OrderedDict()
+        if self.shared_xml is None:
+            logWarning('Invalid shared DB XML on get inserts, for user `{}`!'.format(self.user))
+            return insert_queries
 
-        for field in self.user_xml.xpath('insert_section/field'):
+        # Invalid entry ?
+        if not self.shared_xml.xpath('db_config/server/text()') or \
+            not self.shared_xml.xpath('db_config/database/text()'):
+            logWarning('Invalid shared DB XML on get inserts, for user `{}`!'.format(self.user))
+            return insert_queries
+
+        # Important MySQL server info
+        db_server = self.shared_xml.xpath('db_config/server')[0].text
+        db_name = self.shared_xml.xpath('db_config/database')[0].text
+        db_user = self.shared_xml.xpath('db_config/user')[0].text
+        db_passwd = self.shared_xml.xpath('db_config/password')[0].text
+        db_pair = (db_server, db_name, db_user, db_passwd)
+
+        # Insert fields
+        fields = OrderedDict()
+        for field in self.shared_xml.xpath('insert_section/field'):
             data = {}
             data['id'] = field.get('ID', '')
             data['type'] = field.get('Type', '')
             data['query'] = field.get('SQLQuery', '')
             data['level'] = field.get('Level', '') # Project / Suite / Testcase
             fields[data['id']] = data
-
-        private_db['fields'] = fields
-        # Important info
-        db_server = self.user_xml.xpath('db_config/server')[0].text
-        db_name = self.user_xml.xpath('db_config/database')[0].text
-        # Add private db to inserts
-        insert_queries[(db_server, db_name)] = private_db
-
+        # Insert queries
+        inserts = []
+        for elem in self.shared_xml.xpath('insert_section/sql_statement'):
+            inserts.append(elem.text.strip())
+        # Save this info
+        insert_queries[db_pair] = {
+            'inserts': inserts,
+            'fields': fields,
+            'shared_db': True
+        }
+        # Return after shared db inserts !
         return insert_queries
 
 
@@ -1079,7 +1079,7 @@ class DBParser(object):
         logFull('dbparser:get_reports')
         report_queries = OrderedDict()
 
-        def get_fields(server_data):
+        def get_fields(server_data, shared_db=False):
             """
             All report fields.
             """
@@ -1090,10 +1090,11 @@ class DBParser(object):
                 data['type'] = field.get('Type', '')
                 data['label'] = field.get('Label', data['id'])
                 data['sqlquery'] = field.get('SQLQuery', '')
+                data['shared_db'] = shared_db
                 fields[data['id']] = data
             return fields
 
-        def get_reps(server_data, srv_db):
+        def get_reps(server_data, srv_db, shared_db=False):
             """
             All reports.
             """
@@ -1107,11 +1108,12 @@ class DBParser(object):
                 data['sqlquery'] = report.get('SQLQuery', '')
                 data['sqltotal'] = report.get('SQLTotal', '')   # SQL Total Query
                 data['sqlcompr'] = report.get('SQLCompare', '') # SQL Query Compare side by side
+                data['shared_db'] = shared_db
                 data['srv_db'] = srv_db # Save IP + Database name here
                 reports[data['id']] = data
             return reports
 
-        def get_redirects(server_data):
+        def get_redirects(server_data, shared_db=False):
             """
             All redirects.
             """
@@ -1120,39 +1122,54 @@ class DBParser(object):
                 data = {}
                 data['id']   = redirect.get('ID', '')
                 data['path'] = redirect.get('Path', '')
+                data['shared_db'] = shared_db
                 redirects[data['id']] = data
             return redirects
 
-        # If the user has the role AND use shared DB is disabled
-        if db_cfg_role and not self.db_config['use_shared_db']:
-            db_server = self.user_xml.xpath('db_config/server')[0].text
-            db_name = self.user_xml.xpath('db_config/database')[0].text
+        # If the user has the roles AND Use Shared DB is disabled (user DB enabled)
+        if db_cfg_role and not self.use_shared_db:
+            # Insert user DB first and shared DB second
+            db_pair = self.db_config['default_server']
             # Reports and Redirects from private db.xml
-            report_queries[' '] = {
-                'fields': get_fields(self.user_xml),
-                'reports': get_reps(self.user_xml, (db_server, db_name)),
-                'redirects': get_redirects(self.user_xml)
+            report_queries[db_pair] = {
+                'fields': get_fields(self.user_xml, False),
+                'reports': get_reps(self.user_xml, db_pair, False),
+                'redirects': get_redirects(self.user_xml, False)
             }
+        if not self.use_shared_db and not db_cfg_role:
+            logInfo('Insufficient privileges to get user reports, for user `{}`!'.format(self.user))
 
-        # Add all data from shared db.xml
+        # Valid shared db.xml
         if self.shared_xml is None:
-            raise Exception('Invalid shared DB XML!')
+            logWarning('Invalid shared DB XML on get reports, for user `{}`!'.format(self.user))
+            return report_queries
 
-        for server_data in self.shared_xml.xpath('server_section'):
-            # Invalid entry ?
-            if not server_data.xpath('db_config/server/text()') or \
-                not server_data.xpath('db_config/database/text()'):
-                continue
-            # Important info
-            db_server = server_data.xpath('db_config/server')[0].text
-            db_name = server_data.xpath('db_config/database')[0].text
-            # Save this info
-            report_queries[(db_server, db_name)] = {
-                'fields': get_fields(server_data),
-                'reports': get_reps(server_data, (db_server, db_name)),
-                'redirects': get_redirects(server_data)
+        # Invalid entry ?
+        if not self.shared_xml.xpath('db_config/server/text()') or \
+            not self.shared_xml.xpath('db_config/database/text()'):
+            logWarning('Invalid shared DB XML on get reports, for user `{}`!'.format(self.user))
+            return report_queries
+
+        # Important MySQL server info
+        db_server = self.shared_xml.xpath('db_config/server')[0].text
+        db_name = self.shared_xml.xpath('db_config/database')[0].text
+        db_user = self.shared_xml.xpath('db_config/user')[0].text
+        db_passwd = self.shared_xml.xpath('db_config/password')[0].text
+        db_pair = (db_server, db_name, db_user, db_passwd)
+        # Overwrite all private fields, reports or redirects
+        if db_pair in report_queries:
+            report_queries[db_pair]['fields'].update( get_fields(self.shared_xml, True) )
+            report_queries[db_pair]['reports'].update( get_reps(self.shared_xml, db_pair, True) )
+            report_queries[db_pair]['redirects'].update( get_redirects(self.shared_xml, True) )
+        # Save this info
+        else:
+            report_queries[db_pair] = {
+                'fields': get_fields(self.shared_xml, True),
+                'reports': get_reps(self.shared_xml, db_pair, True),
+                'redirects': get_redirects(self.shared_xml, True)
             }
-
+        # Return after shared db inserts !
+        # import pprint ; pprint.pprint(dict(report_queries), width=40)
         return report_queries
 
 

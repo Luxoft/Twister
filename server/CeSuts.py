@@ -1,7 +1,7 @@
 
 # File: CeSuts.py ; This file is part of Twister.
 
-# version: 3.008
+# version: 3.009
 
 # Copyright (C) 2012-2014, Luxoft
 
@@ -455,12 +455,14 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
         """
         user_info = self.user_info(props)
         username = user_info[0]
-        try:
-            applet = True if cherrypy.session.get('username') else False
-        except:
-            applet = False
+        follow_links = False
 
-        logDebug('CeSuts: get_sut {} {}'.format(query, username))
+        # Follow links to TestBeds ?
+        if 'follow_links' in props:
+            follow_links = props['follow_links']
+            del props['follow_links']
+
+        logDebug('CeSuts: get_sut {} {} {}'.format(query, username, follow_links))
         usrHome = userHome(username)
         initial_query = None
 
@@ -488,7 +490,7 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
                     sutContent = self._format_dict_sut(res_dict, query)
 
                     # If this SUT / component is linked with a TB
-                    if sutContent['meta'].get('_id') and not applet:
+                    if sutContent['meta'].get('_id') and follow_links:
 
                         # Ok, this might be a Device path, instead of SUT path!
                         tb_id = sutContent['meta']['_id']
@@ -653,7 +655,7 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
 
             if isinstance(result, dict):
                 sutContent = self._format_dict_sut(result, query)
-            elif not applet:
+            elif follow_links:
                 parts = [p for p in initial_query.split('/') if p]
 
                 if len(parts) == 1:
