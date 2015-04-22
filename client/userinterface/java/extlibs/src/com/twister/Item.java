@@ -1,6 +1,6 @@
 /*
 File: Item.java ; This file is part of Twister.
-Version: 2.012
+Version: 2.013
 Copyright (C) 2012 , Luxoft
 
 Authors: Andrei Costachi <acostachi@luxoft.com>
@@ -47,6 +47,8 @@ public class Item implements Cloneable{
     private HashMap <Item, String> dependencie;
     private String ID;
     private int repeat = 1;
+    private String saveconfig = new String("all");
+    
     
     
     
@@ -335,4 +337,15 @@ public class Item implements Cloneable{
 	public void setDependencies(HashMap<Item, String> dependencie) {
 		this.dependencie = dependencie;
 	}
+
+	public String getSaveconfig() {
+		return saveconfig;
+	}
+
+	public void setSaveconfig(String saveconfig) {
+		this.saveconfig = saveconfig;
+	}
+
+	
+	
 }

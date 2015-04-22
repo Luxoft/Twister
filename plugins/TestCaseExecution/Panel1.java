@@ -1,6 +1,6 @@
 /*
 File: Panel1.java ; This file is part of Twister.
-Version: 3.013
+Version: 3.015
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -63,6 +63,9 @@ import java.awt.datatransfer.DataFlavor;
 import java.awt.dnd.DnDConstants;
 import java.util.UUID;
 import java.io.PrintWriter;
+import com.twister.MySftpBrowser;
+import javax.swing.AbstractAction;
+import java.io.FileInputStream;
 
 /*
  * Suites generation panel
@@ -162,7 +165,7 @@ public class Panel1 extends JPanel{
         item = new JMenuItem("Save project as");
         item.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent ev){
-                saveSuiteAs();}});
+                browseSaveSuiteAs();}});
         filemenu.add(item);
         if(!PermissionValidator.canCreateProject()){
             item.setEnabled(false);
@@ -484,6 +487,79 @@ public class Panel1 extends JPanel{
                                             "Warning, file not saved");
             }
         }
+    }
+    
+    private void browseSaveSuiteAs(){
+        final JTextField tf = new JTextField(RunnerRepository.getTestSuitePath());
+        AbstractAction action = new AbstractAction(){
+            public void actionPerformed(ActionEvent ev){
+                String [] split = tf.getText().split("/");
+                String filename = split[split.length-1];
+                StringBuilder sb = new StringBuilder();
+                for(int i=1;i<split.length-1;i++){
+                    sb.append("/");
+                    sb.append(split[i]);
+                }
+                String path = sb.toString(); 
+                String temporaryfile = RunnerRepository.temp+RunnerRepository.getBar()+"Twister"+RunnerRepository.getBar()+"Users"+RunnerRepository.getBar()+"save_as_temp";
+                boolean cond;
+                if(RunnerRepository.isMaster()){
+                    cond = sc.g.printXML(temporaryfile
+                             ,false,true,
+                             RunnerRepository.window.mainpanel.p1.suitaDetails.stopOnFail(),
+                             RunnerRepository.window.mainpanel.p1.suitaDetails.preStopOnFail(),
+                             RunnerRepository.window.mainpanel.p1.suitaDetails.saveDB(),
+                             RunnerRepository.window.mainpanel.p1.suitaDetails.getDelay(),false,null,
+                             RunnerRepository.window.mainpanel.p1.suitaDetails.getProjectDefs(),
+                             RunnerRepository.window.mainpanel.p1.suitaDetails.getGlobalDownloadType());
+                } else {
+                    cond = sc.g.printXML(temporaryfile
+                             ,false,true,
+                             RunnerRepository.window.mainpanel.p1.suitaDetails.stopOnFail(),
+                             RunnerRepository.window.mainpanel.p1.suitaDetails.preStopOnFail(),
+                             RunnerRepository.window.mainpanel.p1.suitaDetails.saveDB(),
+                             RunnerRepository.window.mainpanel.p1.suitaDetails.getDelay(),false,null,
+                             RunnerRepository.window.mainpanel.p1.suitaDetails.getProjectDefs(),null);
+                }
+                if(cond){
+                    try{
+                        File file = new File(temporaryfile);
+                        FileInputStream in  = new FileInputStream(file);
+                        if(RunnerRepository.uploadRemoteFile(path, in, null, filename, false, null)){
+                            CustomDialog.showInfo(JOptionPane.PLAIN_MESSAGE, 
+                                                RunnerRepository.window, "Success",
+                                                "File successfully saved");
+                        } else {
+                            CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, 
+                                            RunnerRepository.window, "Warning", 
+                                            "Warning, file not saved");
+                        }
+                    }catch(Exception e){
+                        e.printStackTrace();
+                        System.out.println("Could not save project on server!!!");
+                    }
+                }
+                else {CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, 
+                                            RunnerRepository.window, "Warning", 
+                                            "Warning, file not saved");}
+                RunnerRepository.window.mainpanel.p1.sc.g.setCanRequestFocus(true);
+            }
+        };
+        RunnerRepository.window.mainpanel.p1.sc.g.setCanRequestFocus(false);
+        MySftpBrowser browser = new MySftpBrowser(RunnerRepository.host,RunnerRepository.user,RunnerRepository.password,
+                                                  RunnerRepository.CENTRALENGINEPORT,tf,RunnerRepository.window.mainpanel.p1.sc.g,true);
+        browser.setCloseAction(new AbstractAction(){
+            public void actionPerformed(ActionEvent ev){
+                RunnerRepository.window.mainpanel.p1.sc.g.setCanRequestFocus(true);
+            }
+        });
+        browser.setLocation(0, 0);
+        browser.toFront();
+        browser.setFocusable(true);
+        browser.requestFocusInWindow();
+        browser.requestFocus();
+        browser.setButtonText("Save");
+        browser.setAction(action);
     }
     
     
@@ -934,6 +1010,7 @@ public class Panel1 extends JPanel{
                 vecresult[i] = vecresult[i].replace(".system", "(system)");
             }
             for(Item i:RunnerRepository.getSuite()){
+                if(!hasEnabledItems(i))continue;//skip if item is not enabled
                 found = false;
                 for(String item:i.getEpId()){
                     for(String sut:vecresult){
@@ -942,7 +1019,7 @@ public class Panel1 extends JPanel{
                         }
                     }
                     if(!found){
-                        CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE, RunnerRepository.window,"Error","SUT file"+item+" cannot be read");
+                        CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE, RunnerRepository.window,"Error","SUT file "+item+" cannot be read");
                         execute = false;
                         return;
                     }
@@ -1147,6 +1224,18 @@ public class Panel1 extends JPanel{
                 }                
             }
         }
+    }
+    
+    private boolean hasEnabledItems(Item item){
+        if(item.getType()==1)return item.getCheck();
+        else{
+            for(Item i:item.getSubItems()){
+                if(hasEnabledItems(i)){
+                    return true;
+                }
+            }
+        }
+        return false;
     }
     
     private void printItems(Item item){

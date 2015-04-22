@@ -1,6 +1,6 @@
 /*
 File: GraficTest.java ; This file is part of Twister.
-Version: 3.004
+Version: 3.005
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -290,7 +290,9 @@ public class GraficTest extends JPanel{
         for(int i=0;i<times;i++){                   //the number of times the user specified
             for(Item it:items){
                 Item clone = it;
-                if(i!=0)clone = it.clone();
+                if(i!=0){
+                    clone = it.clone();
+                }
                 last.add(clone);
             }
         }
@@ -304,7 +306,6 @@ public class GraficTest extends JPanel{
             catch(Exception e){
                 e.printStackTrace();
             }
-            
         }
         if(!writeXML(last)){
             CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, 
@@ -361,7 +362,15 @@ public class GraficTest extends JPanel{
      * and upload it as a file 
      */
     public boolean writeXML(ArrayList<Item>last){
-        try{XMLBuilder xml = new XMLBuilder(last);
+        try{
+            
+            
+            
+            for(Item i:last){
+                updateItemsId(i);
+            }
+            
+            XMLBuilder xml = new XMLBuilder(last);
             if(RunnerRepository.isMaster()){
                 xml.createXML(true,false,false,true,
                               RunnerRepository.window.mainpanel.p1.suitaDetails.getPreScript(),
@@ -387,25 +396,15 @@ public class GraficTest extends JPanel{
                 for (int i=0; i<path.length-1; i++){
                     result2.append(path[i]);
                     result2.append("/");}}
-            //final String filelocation = result2.toString()+"testsuites_temp.xml";
             if(!xml.writeXMLFile("testsuites.xml", false,true,false)) return false;
-//             new Thread(){
-//                 public void run(){
-//                     try{
-//                         String result = RunnerRepository.getRPCClient().execute("run_temporary",
-//                                                             new Object[]{RunnerRepository.getUser(),
-//                                                                             filelocation})+"";
-//                         if(result.indexOf("ERROR")!=-1){
-//                             CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE, 
-//                                                   GraficTest.this, "Failed", 
-//                                                   result);
-//                         }
-//                     }
-//                     catch(Exception e){
-//                         e.printStackTrace();
-//                     }
-//                 }
-//             }.start();
+            
+            
+            
+            
+            
+            
+            
+            
             return true;
         }
         catch(Exception e){
@@ -461,9 +460,19 @@ public class GraficTest extends JPanel{
     public ArrayList<Item> cloneItems(){
         ArrayList<Item> items = new ArrayList<Item>();
         for(Item i:RunnerRepository.getTestSuite()){
-            items.add(i.clone());
+            Item clone = i.clone();
+            items.add(clone);
         }
         return items;
+    }
+    
+    public void updateItemsId(Item i){
+        i.setID(Math.random()+i.getID());
+        if(i.getType()==2){
+            for(Item item:i.getSubItems()){
+                updateItemsId(item);
+            }
+        }
     }
             
     /*

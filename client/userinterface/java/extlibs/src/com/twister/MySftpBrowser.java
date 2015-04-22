@@ -1,7 +1,7 @@
 package com.twister;
 /*
 File: MySftpBrowser.java ; This file is part of Twister.
-Version: 3.001
+Version: 3.002
 Copyright (C) 2012 , Luxoft
 
 Authors: Andrei Costachi <acostachi@luxoft.com>
@@ -84,6 +84,7 @@ public class MySftpBrowser extends JFrame {
 	private JTable table;
 	private boolean onlyfolders;
 	private AbstractAction action;//action to perform on open button trigger
+	private AbstractAction closeaction;//action to perform on close window
 	private XmlRpcClient client;
 	private String currentlocation;//location on server to modify and pass to different methods
 	private String host;//server host 
@@ -151,6 +152,9 @@ public class MySftpBrowser extends JFrame {
 				}
 				visible = false;
 				dispose();
+				if(closeaction!=null){
+					closeaction.actionPerformed(null);
+				}
 			}
 		});
 		setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
@@ -407,6 +411,16 @@ public class MySftpBrowser extends JFrame {
 
 	public void setAction(AbstractAction action) {
 		this.action = action;
+	}
+	
+	
+
+	public AbstractAction getCloseAction() {
+		return closeaction;
+	}
+
+	public void setCloseAction(AbstractAction closeaction) {
+		this.closeaction = closeaction;
 	}
 
 	/*

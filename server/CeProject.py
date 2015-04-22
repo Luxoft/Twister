@@ -1,7 +1,7 @@
 
 # File: CeProject.py ; This file is part of Twister.
 
-# version: 3.072
+# version: 3.073
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -1281,16 +1281,18 @@ class Project(object):
         """
         # Auto detect if ClearCase Test Config Path is active
         ccConfig = self.get_clearcase_config(user, 'projects_path')
-        if ccConfig:
+        if ccConfig and fpath != 'last_edited.xml':
             view = ccConfig['view']
             actv = ccConfig['actv']
             path = ccConfig['path'].rstrip('/')
             if not path:
                 return '*ERROR* User `{}` did not set ClearCase Project Path!'.format(user)
             user_view_actv = '{}:{}:{}'.format(user, view, actv)
+            logDebug('Saving file `{}` on Clearcase.'.format(fpath))
             return self.clearFs.write_user_file(user_view_actv, path +'/'+ fpath, content)
         else:
             dpath = self.get_user_info(user, 'projects_path').rstrip('/')
+            logDebug('Saving file `{}` on local fs {}'.format(fpath, dpath))
             return self.localFs.write_user_file(user, dpath +'/'+ fpath, content)
 
 
@@ -1871,7 +1873,7 @@ class Project(object):
             if self.get_user_info(user, 'status') == STATUS_RUNNING:
                 self.set_user_info(user, 'status', STATUS_INTERACT)
                 logInfo('Project: At least one EP is in interact for user `{}`! General user status changed to INTERACT.\n'.format(user))
-                
+
         # If EPs get out from interact state
         elif STATUS_INTERACT not in [self.get_ep_info(user, ep).get('status', 8) for ep in intersect_eps]:
             # If User status was running
@@ -2739,39 +2741,41 @@ class Project(object):
                 return log
 
             # Decode e-mail password
-            try:
-                SMTPPwd = self.decrypt_text(user, eMailConfig['SMTPPwd'])
-            except Exception:
-                log = 'SMTP: Password is not set for user `{}`!'.format(user)
-                logError(log)
-                return log
-            if not SMTPPwd:
-                log = 'SMTP: Invalid password for user `{}`! Please update your password and try again!'.format(user)
-                logError(log)
-                return log
-            eMailConfig['SMTPPwd'] = SMTPPwd
+            if eMailConfig['SMTPPwd']:
+                try:
+                    SMTPPwd = self.decrypt_text(user, eMailConfig['SMTPPwd'])
+                except Exception:
+                    log = 'SMTP: Password is not set for user `{}`!'.format(user)
+                    logError(log)
+                    return log
+                if not SMTPPwd:
+                    log = 'SMTP: Invalid password for user `{}`! Please update your password and try again!'.format(user)
+                    logError(log)
+                    return log
+                # Overwrite the password
+                eMailConfig['SMTPPwd'] = SMTPPwd
 
             if force:
                 logDebug('Preparing to send a test e-mail for user `{}`...'.format(user))
 
                 try:
                     server = smtplib.SMTP(eMailConfig['SMTPPath'], timeout=2)
+                    server.ehlo()
                 except Exception:
                     log = 'SMTP: Cannot connect to SMTP server `{}`!'.format(eMailConfig['SMTPPath'])
                     logError(log)
                     return log
 
-                try:
+                if eMailConfig['SMTPUser']:
                     logDebug('SMTP: Preparing to login...')
-                    server.ehlo()
-                    server.starttls()
-                    server.ehlo()
-
-                    server.login(eMailConfig['SMTPUser'], eMailConfig['SMTPPwd'])
-                except Exception:
-                    log = 'SMTP: Cannot authenticate to SMTP server for `{}`! Invalid user `{}` or password!'.format(user, eMailConfig['SMTPUser'])
-                    logError(log)
-                    return log
+                    try:
+                        server.starttls()
+                        server.ehlo()
+                        server.login(eMailConfig['SMTPUser'], eMailConfig['SMTPPwd'])
+                    except Exception:
+                        log = 'SMTP: Cannot authenticate to SMTP server for `{}`! Invalid user `{}` or password!'.format(user, eMailConfig['SMTPUser'])
+                        logError(log)
+                        return log
 
                 try:
                     eMailConfig['To'] = eMailConfig['To'].replace(';', ',')
@@ -2924,24 +2928,27 @@ class Project(object):
                     'The message will NOT be sent.'.format(user))
                 return True
 
+            logDebug('SMTP: Preparing to connect to server `{}`, for user `{}`!'.format(eMailConfig['SMTPPath']))
+
             try:
                 server = smtplib.SMTP(eMailConfig['SMTPPath'], timeout=2)
+                server.ehlo()
             except Exception:
                 log = 'SMTP: Cannot connect to SMTP server `{}`, for user `{}`!'.format(eMailConfig['SMTPPath'], user)
                 logError(log)
                 return log
 
-            try:
+            if eMailConfig['SMTPUser']:
                 logDebug('SMTP: Preparing to login...')
-                server.ehlo()
-                server.starttls()
-                server.ehlo()
-                server.login(eMailConfig['SMTPUser'], eMailConfig['SMTPPwd'])
-            except Exception:
-                log = 'SMTP: Cannot authenticate to SMTP server for `{}`! ' \
-                    'Invalid user `{}` or password!'.format(user, eMailConfig['SMTPUser'])
-                logError(log)
-                return log
+                try:
+                    server.starttls()
+                    server.ehlo()
+                    server.login(eMailConfig['SMTPUser'], eMailConfig['SMTPPwd'])
+                except Exception:
+                    log = 'SMTP: Cannot authenticate to SMTP server for `{}`! ' \
+                        'Invalid user `{}` or password!'.format(user, eMailConfig['SMTPUser'])
+                    logError(log)
+                    return log
 
             try:
                 server.sendmail(eMailConfig['From'], eMailConfig['To'], msg.as_string())

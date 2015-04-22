@@ -1,6 +1,6 @@
 /*
 File: Plugins.java ; This file is part of Twister.
-Version: 2.013
+Version: 2.014
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -689,6 +689,7 @@ public class Plugins extends JPanel{
         catch(Exception e){
             e.printStackTrace();
         }
+        RunnerRepository.openProjectFile();
         
     }
             

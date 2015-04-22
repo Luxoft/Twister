@@ -658,7 +658,7 @@ class CeRpycService(rpyc.Service):
         if not isinstance(result, dict):
             logWarning('Config "{}" does not exist!'.format(cfg_name))
             return (False, 'NO_CONFIG_FILE')
-        
+
         if component not in result:
             logWarning('Component "{}" does not exist in config "{}"!'.format(component, cfg_name))
             return (False, 'NO_COMPONENT')
@@ -1549,6 +1549,11 @@ class CeRpycService(rpyc.Service):
         if not user:
             return False
         try:
+            # Delete possible net-refs
+            if follow_links:
+                follow_links = True
+            else:
+                follow_links = False
             return self.project.sut.get_sut(query,
                 props={'__user': user, 'follow_links': follow_links})
         except Exception as e:

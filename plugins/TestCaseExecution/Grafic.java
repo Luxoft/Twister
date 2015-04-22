@@ -2320,7 +2320,8 @@ public class Grafic extends JPanel{
      */
     public boolean printXML(String user, boolean skip,
                             boolean local, boolean stoponfail,boolean prestoponfail,
-                            String savedb, String delay,boolean lib, ArrayList<Item> array,String [][] projdefined,String downloadlibraryoption){
+                            String savedb, String delay,boolean lib, ArrayList<Item> array,
+                            String [][] projdefined,String downloadlibraryoption){
         //skip = true
         try{if(array==null)array = RunnerRepository.getSuite();
             XMLBuilder xml = new XMLBuilder(array);

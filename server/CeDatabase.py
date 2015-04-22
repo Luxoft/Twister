@@ -1,7 +1,7 @@
 
 # File: CeDatabase.py ; This file is part of Twister.
 
-# version: 3.013
+# version: 3.014
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -105,7 +105,7 @@ class CeDbManager(object):
 
         # Try to use the default pair
         if not db_server and not db_name:
-            db_server, db_name, db_user, db_passwd = db_config['default_server']
+            db_server, db_name, db_user, db_passwd, _ = db_config['default_server']
 
         # Check server + DB pair
         if (db_server, db_name) not in db_config['servers']:
@@ -231,13 +231,6 @@ class CeDbManager(object):
                 # Add file info
                 subst_data.update(file_info)
 
-                # Setup and Teardown files will not be saved to database!
-                if subst_data.get('setup_file') or subst_data.get('teardown_file'):
-                    continue
-                # Pre-Suite or Post-Suite files will not be saved to database
-                if subst_data.get('Pre-Suite') or subst_data.get('Post-Suite'):
-                    continue
-
                 # Insert/ fix DB variables
                 subst_data['twister_ep_name'] = epname
                 subst_data['twister_suite_id'] = suite_id
@@ -355,6 +348,20 @@ class CeDbManager(object):
 
         for subst_data in self.static_project_data(user):
 
+            # Setup and Teardown files will not be saved to database!
+            if subst_data.get('setup_file')=='true' or subst_data.get('teardown_file')=='true':
+                logDebug("Ignoring `{}` file, because it's setup or teardown.".format(subst_data['twister_tc_name']))
+                continue
+            # Pre-Suite or Post-Suite files will not be saved to database
+            if subst_data.get('Pre-Suite') or subst_data.get('Post-Suite'):
+                continue
+
+            # If file has iterators, the iteration save==Failed and the status was Failed
+            if subst_data.get('_cfg_files') and subst_data.get('iterationNr') and \
+                    subst_data.get('iterationSave')=='failed' and subst_data['twister_tc_status']=='PASS':
+                logDebug("Ignoring `{}` file, because iterationSave = `failed`.".format(subst_data['twister_tc_name']))
+                continue
+
             # For every host, build correct data...
             for host_db in all_inserts:
 
@@ -362,7 +369,9 @@ class CeDbManager(object):
                 c_fields = all_inserts[host_db]['fields']
                 shared_db = all_inserts[host_db]['shared_db']
 
-                conn = self.connect_db(user, *host_db, shared_db=shared_db)
+                db_server, db_name, db_user, db_passwd, _ = host_db
+                conn = self.connect_db(user, db_server, db_name, db_user, db_passwd,
+                    shared_db=shared_db)
                 if not conn:
                     continue
                 curs = conn.cursor()

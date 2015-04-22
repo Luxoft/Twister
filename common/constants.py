@@ -1,5 +1,5 @@
 
-# version: 3.006
+# version: 3.007
 
 # Major list of constants.
 
@@ -111,4 +111,5 @@ TESTS_TAGS = (
 	{'name':'_cfg_files',	'tag':'ConfigFiles/Config',	'default':''},
 	{'name':'_depend',		'tag':'Dependency',			'default':''},
 	{'name':'clearcase',	'tag':'ClearCase',			'default':''},
+	{'name':'iterationSave','tag':'iterationSave',		'default':''},
 )

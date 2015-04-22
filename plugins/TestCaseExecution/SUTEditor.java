@@ -1,6 +1,6 @@
 /*
 File: SutEditor.java ; This file is part of Twister.
-Version: 3.004
+Version: 3.007
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -260,7 +260,8 @@ public class SutEditor extends JPanel{
                         }
                         HashMap <String,String>hm = new <String,String>HashMap();
                         hm.put("_id","");
-                        String resp = client.execute("delete_component_sut", new Object[]{parentid,name,hm}).toString();
+                        String resp = client.execute("update_meta_sut", new Object[]{parentid,name,hm}).toString();
+//                        String resp = client.execute("delete_component_sut", new Object[]{parentid,name,hm}).toString();
                         if(resp.indexOf("ERROR")==-1){
                             DefaultTreeModel model = (DefaultTreeModel)tree.getModel();
                             model.removeNodeFromParent(treenode);
@@ -306,60 +307,108 @@ public class SutEditor extends JPanel{
         saveas.setEnabled(false);
         saveas.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent ev){
-                String filename = CustomDialog.showInputDialog(JOptionPane.QUESTION_MESSAGE,
-                                     JOptionPane.OK_CANCEL_OPTION
-                                     ,SutEditor.this,
-                                     "Sut Name", "Please enter sut name");
-                if(filename!=null&&!filename.equals("NULL")){
-                    SUT s = null;
-                    boolean overwrite = false;
-                    sutnode = checkExistingName(suttree.userroot, filename, null);
-                    if(sutnode!=null){
-                        int r = (Integer)CustomDialog.showDialog(new JLabel("This name is already used, overwrite?"),
-                                                                JOptionPane.WARNING_MESSAGE, 
-                                                                JOptionPane.OK_CANCEL_OPTION, SutEditor.this, "Save", null);
-                        if(r != JOptionPane.OK_OPTION){return;}
-                        overwrite = true;
+                
+                final JTextField tf = new JTextField("");
+                AbstractAction action = new AbstractAction(){
+                    public void actionPerformed(ActionEvent ev){
+                        String [] split = tf.getText().split("/");
+                        String filename = split[split.length-1];
+                        StringBuilder sb = new StringBuilder();
+                        for(int i=1;i<split.length-1;i++){
+                            sb.append("/");
+                            sb.append(split[i]);
+                        }
+                        String path = sb.toString();
+                        try{System.out.println(rootsut+" - "+tf.getText());
+                            String resp = client.execute("save_reserved_sut_as", new Object[]{tf.getText(),"/"+rootsut}).toString();
+                            if(resp.indexOf("ERROR")!=-1){
+                                CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,SutEditor.this,"ERROR", resp);
+                                return;
+                            }
+                        } catch (Exception e){
+                            e.printStackTrace();
+                        }
                     }
-                    
-                    try{String resp = client.execute("save_reserved_sut_as", new Object[]{filename,"/"+rootsut}).toString();
-                        if(resp.indexOf("ERROR")!=-1){
-                            CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,SutEditor.this,"ERROR", resp);
-                            return;
-                        }
-                        
-                        //close sut without CE side
-                        if(editable){
-                            suttree.releaseSut(rootsut);
-                        }
-                        rootsut = "";
-                        root.removeAllChildren();
-                        addcomp.setEnabled(false);
-                        close.setEnabled(false);
-                        setep.setEnabled(false);
-                        save.setEnabled(false);
-                        saveas.setEnabled(false);
-                        redcomp.setEnabled(false);
-                        ((DefaultTreeModel)tree.getModel()).reload();
-                        lastsaved = true;
-                        
-//                         close.doClick();
-                        if(!overwrite){
-                            s = new SUT(filename,".user");
-                            sutnode = new DefaultMutableTreeNode(s,false);
-                            suttree.addUserNode(sutnode);
-                        } else {
-                            s = (SUT)sutnode.getUserObject();
-                        }
-                        if(suttree.reserveSut(s)){
-                            s.setReserved(RunnerRepository.user);
-                            ((DefaultTreeModel)suttree.filestree.getModel()).nodeChanged(sutnode);
-                            getSUT(filename+".user",sutnode,true);
-                        }
-                    } catch (Exception e){
-                        e.printStackTrace();
+                };
+                
+                RunnerRepository.window.mainpanel.p1.sc.g.setCanRequestFocus(false);
+                MySftpBrowser browser = new MySftpBrowser(RunnerRepository.host,RunnerRepository.user,RunnerRepository.password,
+                                                          RunnerRepository.CENTRALENGINEPORT,tf,RunnerRepository.window.mainpanel.p1.sc.g,true);
+                browser.setCloseAction(new AbstractAction(){
+                    public void actionPerformed(ActionEvent ev){
+                        RunnerRepository.window.mainpanel.p1.sc.g.setCanRequestFocus(true);
                     }
-                }
+                });
+                browser.setLocation(0, 0);
+                browser.toFront();
+                browser.setFocusable(true);
+                browser.requestFocusInWindow();
+                browser.requestFocus();
+                browser.setButtonText("Save");
+                browser.setAction(action);
+                
+                
+                
+//                 String filename = CustomDialog.showInputDialog(JOptionPane.QUESTION_MESSAGE,
+//                                      JOptionPane.OK_CANCEL_OPTION
+//                                      ,SutEditor.this,
+//                                      "Sut Name", "Please enter sut name");
+//                 if(filename!=null&&!filename.equals("NULL")){
+//                     SUT s = null;
+//                     boolean overwrite = false;
+//                     sutnode = checkExistingName(suttree.userroot, filename, null);
+//                     if(sutnode!=null){
+//                         int r = (Integer)CustomDialog.showDialog(new JLabel("This name is already used, overwrite?"),
+//                                                                 JOptionPane.WARNING_MESSAGE, 
+//                                                                 JOptionPane.OK_CANCEL_OPTION, SutEditor.this, "Save", null);
+//                         if(r != JOptionPane.OK_OPTION){return;}
+//                         overwrite = true;
+//                     }
+//                     
+//                     try{String resp = client.execute("save_reserved_sut_as", new Object[]{filename,"/"+rootsut}).toString();
+//                         if(resp.indexOf("ERROR")!=-1){
+//                             CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,SutEditor.this,"ERROR", resp);
+//                             return;
+//                         }
+//                         
+//                         //close sut without CE side
+//                         if(editable){
+//                             suttree.releaseSut(rootsut);
+//                         }
+//                         rootsut = "";
+//                         root.removeAllChildren();
+//                         addcomp.setEnabled(false);
+//                         close.setEnabled(false);
+//                         setep.setEnabled(false);
+//                         save.setEnabled(false);
+//                         saveas.setEnabled(false);
+//                         redcomp.setEnabled(false);
+//                         ((DefaultTreeModel)tree.getModel()).reload();
+//                         lastsaved = true;
+//                         
+// //                         close.doClick();
+//                         if(!overwrite){
+//                             s = new SUT(filename,".user");
+//                             sutnode = new DefaultMutableTreeNode(s,false);
+//                             suttree.addUserNode(sutnode);
+//                         } else {
+//                             s = (SUT)sutnode.getUserObject();
+//                         }
+//                         if(suttree.reserveSut(s)){
+//                             s.setReserved(RunnerRepository.user);
+//                             ((DefaultTreeModel)suttree.filestree.getModel()).nodeChanged(sutnode);
+//                             getSUT(filename+".user",sutnode,true);
+//                         }
+//                     } catch (Exception e){
+//                         e.printStackTrace();
+//                     }
+//                 }
+                
+                
+                
+                
+                
+                
                 
             };
         });
@@ -498,7 +547,8 @@ public class SutEditor extends JPanel{
     public void getSUT(String sutname,DefaultMutableTreeNode sutnode,boolean editable){
         try{
             sutname = sutname.replace("//", "/");
-            Object ob = client.execute("get_sut", new Object[]{sutname});
+            Object ob = getSut(sutname);
+            //Object ob = client.execute("get_sut", new Object[]{sutname});
             HashMap hash = (HashMap)ob;
             this.editable = editable;
             DefaultMutableTreeNode epsnode;//child
@@ -543,7 +593,8 @@ public class SutEditor extends JPanel{
         for(Object o:children){
             try{
                 childid = o.toString();
-                Object ob = client.execute("get_sut", new Object[]{childid});
+                //Object ob = client.execute("get_sut", new Object[]{childid});
+                Object ob = getSut(childid);
                 if(ob.getClass()==HashMap.class){
                     HashMap subhash= (HashMap)ob;
                     String subpath = subhash.get("path").toString();
@@ -636,7 +687,8 @@ public class SutEditor extends JPanel{
     public String getEpsFromSut(String sutname){
         String eps = "";
         sutname = sutname.replace("//", "/");
-        try{Object ob = client.execute("get_sut", new Object[]{sutname});
+        try{Object ob = getSut(sutname);
+            //Object ob = client.execute("get_sut", new Object[]{sutname});
             if(ob.toString().indexOf("*ERROR*")!=-1){
                 CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,SutEditor.this,"ERROR", ob.toString());
                 return "";
@@ -652,6 +704,11 @@ public class SutEditor extends JPanel{
             e.printStackTrace();
         }
         return eps;
+    }
+    
+    public Object getSut(String sut)throws Exception{ 
+        Object ob = client.execute("get_sut", new Object[]{sut});
+        return ob;
     }
     
     /*

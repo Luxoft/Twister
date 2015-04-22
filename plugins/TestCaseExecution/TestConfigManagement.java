@@ -1,6 +1,6 @@
 /*
 File: TestConfigManagement.java ; This file is part of Twister.
-Version: 3.003
+Version: 3.004
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -32,6 +32,11 @@ import com.twister.Configuration;
 import java.util.Collections;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.awt.Color;
+import java.awt.BorderLayout;
+import javax.swing.JComboBox;
+import java.awt.event.ItemListener;
+import java.awt.event.ItemEvent;
 
 public class TestConfigManagement extends JPanel{
     
@@ -49,6 +54,8 @@ public class TestConfigManagement extends JPanel{
     private javax.swing.JButton remove;
     private javax.swing.JButton removeall;
     private Item parent;
+    private JLabel iteratornr;
+    private JComboBox saveconfig;
     
     public TestConfigManagement(){
         initComponents();
@@ -90,7 +97,11 @@ public class TestConfigManagement extends JPanel{
                 if(parent==null)return;
                 ((DefaultTableModel)jTable1.getModel()).setRowCount(0);
                 parent.getConfigurations().clear();
+                if(parent.getType()==2){
+                    updatedSuiteConfig(true,parent,parent.getConfigurations());
+                }
                 RunnerRepository.window.mainpanel.p1.sc.g.repaint();
+                updateIteratorNr();
             }
         });
 
@@ -171,14 +182,47 @@ public class TestConfigManagement extends JPanel{
             .addGap(0, 0, Short.MAX_VALUE)
         );
         
+        JPanel iteratorpanel = new JPanel();
+        iteratorpanel.setLayout(new BorderLayout());
+        iteratorpanel.setMinimumSize(new Dimension(150,40));
+        iteratorpanel.setPreferredSize(new Dimension(150,40));
+        JLabel saveconfigslabel = new JLabel("Save iterations: ");
+        saveconfig = new JComboBox();
+        saveconfig.addItemListener(new ItemListener(){
+            @Override
+            public void itemStateChanged(ItemEvent e){
+               if(e.getStateChange() == ItemEvent.SELECTED){
+                   if(parent!=null&&parent.getType()==1){
+                       parent.setSaveconfig(saveconfig.getSelectedItem().toString());
+                    }
+        }}});
+        JPanel saveconfigpanel = new JPanel();
+        saveconfigpanel.add(saveconfigslabel);
+        saveconfigpanel.add(saveconfig);
+        
+        
+        saveconfig.setModel(new DefaultComboBoxModel(new String[] {"all","failed"}));
+        
+        iteratornr = new JLabel("Total iterators: ");
+        iteratornr.setFont(iteratornr.getFont().deriveFont(15.0f));
+        
+        iteratorpanel.add(saveconfigpanel,BorderLayout.WEST);
+        JPanel temp = new JPanel();
+        temp.add(iteratornr);
+        iteratorpanel.add(temp,BorderLayout.CENTER);
+        JPanel tablepanel = new JPanel();
+        tablepanel.setLayout(new BorderLayout());
+        tablepanel.add(jScrollPane2,BorderLayout.CENTER);
+        tablepanel.add(iteratorpanel,BorderLayout.NORTH);
+        
         jScrollPane2.setViewportView(jTable1);
-
         javax.swing.GroupLayout jPanel6Layout = new javax.swing.GroupLayout(jPanel6);
         jPanel6.setLayout(jPanel6Layout);
         jPanel6Layout.setHorizontalGroup(
             jPanel6Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel6Layout.createSequentialGroup()
-                .addComponent(jScrollPane2, javax.swing.GroupLayout.DEFAULT_SIZE, 774, Short.MAX_VALUE)
+                //.addComponent(jScrollPane2, javax.swing.GroupLayout.DEFAULT_SIZE, 774, Short.MAX_VALUE)
+                .addComponent(tablepanel, javax.swing.GroupLayout.DEFAULT_SIZE, 774, Short.MAX_VALUE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addGroup(jPanel6Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
                     .addComponent(jPanel2, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
@@ -188,7 +232,7 @@ public class TestConfigManagement extends JPanel{
         );
         jPanel6Layout.setVerticalGroup(
             jPanel6Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(jScrollPane2, javax.swing.GroupLayout.DEFAULT_SIZE, 443, Short.MAX_VALUE)
+            .addComponent(tablepanel, javax.swing.GroupLayout.DEFAULT_SIZE, 443, Short.MAX_VALUE)
             .addGroup(jPanel6Layout.createSequentialGroup()
                 .addComponent(jPanel4, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
@@ -211,6 +255,33 @@ public class TestConfigManagement extends JPanel{
         );
     }
     
+    public void updateIteratorNr(){
+        if(parent==null || parent.getType()==2){
+            iteratornr.setText("Total iterators: 0");
+            return;}
+        StringBuilder sb = new StringBuilder();
+        for(Configuration conf:parent.getConfigurations()){
+            if(!conf.isEnabled())continue;
+            sb.append(conf.getFile());
+            sb.append(",");
+            sb.append(conf.isIeratorOD());
+            sb.append(";");
+        }
+        
+        try{String respons = RunnerRepository.getRPCClient().execute("get_iterations", new Object[]{RunnerRepository.user,sb.toString()}).toString();
+            if(respons.indexOf("*ERROR*")!=-1){
+                CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE, 
+                                      TestConfigManagement.this, "ERROR", 
+                                      respons);
+            } else {
+                iteratornr.setText("Total iterators: "+Integer.parseInt(respons));
+            }
+        } catch(Exception e){
+            System.out.println("There was an error in updating iterators numbers!!!");
+            e.printStackTrace();
+        }
+    }
+    
     public void configModified(String filename,boolean enabled, boolean iteratorod, boolean iteratorsof){
         for(Configuration conf:parent.getConfigurations()){
             if(conf.getFile().equals(filename)){
@@ -218,6 +289,61 @@ public class TestConfigManagement extends JPanel{
                 conf.setIeratorOD(iteratorod);
                 conf.setIteratorSOF(iteratorsof);
                 break;
+            }
+        }
+        if(parent.getType()==2){
+            updatedSuiteConfig(true,parent,parent.getConfigurations());
+        }
+        updateIteratorNr();
+    }
+    
+    
+    //update all subchildren with the modified config array
+    public void updatedSuiteConfig(boolean skip, Item item, ArrayList<Configuration>configs){
+        ArrayList<Configuration>clones = new ArrayList<Configuration>();
+        for(Configuration conf:configs){
+            Configuration clone = conf.clone();
+            clone.setFromSuite(true);
+            clones.add(clone);
+        }
+        
+        if(item.getType()==1){//if item is tc do the magic
+            
+            //remove all configs from suite
+            ArrayList<Configuration>toremove=new ArrayList<Configuration>();
+            for(Configuration cfg:item.getConfigurations()){
+                if(cfg.isFromSuite())toremove.add(cfg);
+            }
+            for(Configuration cfg:toremove){
+                item.getConfigurations().remove(cfg);
+            }
+            
+            //get duplicated configs for future removal
+            toremove.clear();
+            for(Configuration cfg:clones){
+                for(Configuration itemcfg:item.getConfigurations()){
+                    if(itemcfg.getFile().equals(cfg.getFile())){
+                        toremove.add(cfg);
+                        break;
+                    }
+                }
+            }
+            
+            //install the configs
+            item.getConfigurations().addAll(0, clones);
+            
+            //remove the existing ones
+            for(Configuration conf:toremove){
+                item.getConfigurations().remove(conf);
+            }
+            
+        } else if(item.getType()==2){//if item is suite update his children and do the magic on it to
+            if(!skip){//used to skip on first iteration
+                item.getConfigurations().clear();
+                item.getConfigurations().addAll(0, clones);    
+            }
+            for(Item i:item.getSubItems()){
+                updatedSuiteConfig(false,i,configs);
             }
         }
     }
@@ -240,7 +366,9 @@ public class TestConfigManagement extends JPanel{
             Configuration tomove = parent.getConfigurations().get(row);
             parent.getConfigurations().remove(tomove);
             parent.getConfigurations().add(row+move,tomove);
-            //Collections.swap(parent.getConfigurations(),row,row+move);
+        }
+        if(parent.getType()==2){
+            updatedSuiteConfig(true,parent,parent.getConfigurations());
         }
         RunnerRepository.window.mainpanel.p1.sc.g.repaint();
     }
@@ -259,7 +387,9 @@ public class TestConfigManagement extends JPanel{
             Configuration tomove = parent.getConfigurations().get(row);
             parent.getConfigurations().remove(tomove);
             parent.getConfigurations().add(row-move,tomove);    
-            //Collections.swap(parent.getConfigurations(),row,row-move);
+        }
+        if(parent.getType()==2){
+            updatedSuiteConfig(true,parent,parent.getConfigurations());
         }
         RunnerRepository.window.mainpanel.p1.sc.g.repaint();
     }
@@ -281,6 +411,9 @@ public class TestConfigManagement extends JPanel{
                 Collections.swap(parent.getConfigurations(),row,row+1);
             }
         }
+        if(parent.getType()==2){
+            updatedSuiteConfig(true,parent,parent.getConfigurations());
+        }
         RunnerRepository.window.mainpanel.p1.sc.g.repaint();
     }
     
@@ -296,6 +429,9 @@ public class TestConfigManagement extends JPanel{
                 Collections.swap(parent.getConfigurations(),row,row-1);
                 jTable1.addRowSelectionInterval(row-1,row-1);
             }
+        }
+        if(parent.getType()==2){
+            updatedSuiteConfig(true,parent,parent.getConfigurations());
         }
         RunnerRepository.window.mainpanel.p1.sc.g.repaint();
     }
@@ -320,7 +456,11 @@ public class TestConfigManagement extends JPanel{
             tm.removeRow(jTable1.convertRowIndexToModel(row));
         }
         jTable1.clearSelection();
+        if(parent.getType()==2){
+            updatedSuiteConfig(true,parent,parent.getConfigurations());
+        }
         RunnerRepository.window.mainpanel.p1.sc.g.repaint();
+        updateIteratorNr();
     }
     
     public void addConfig(){
@@ -379,33 +519,43 @@ public class TestConfigManagement extends JPanel{
                 conf.setEnabled(true);
                 conf.setIeratorOD(false);
                 conf.setIteratorSOF(false);
+                if(parent.getType()==2)conf.setFromSuite(true);
                 parent.getConfigurations().add(conf);
+            }
+            if(parent.getType()==2){
+                updatedSuiteConfig(true,parent,parent.getConfigurations());
             }
             RunnerRepository.window.mainpanel.p1.sc.g.repaint();
         }
+        updateIteratorNr();
     }
     
     public void setParent(Item parent){
-        if(parent!=null&&parent.getType()!=1){//only tc's allowed
-            if(RunnerRepository.window.mainpanel.p1.getOptionsTabs().getComponentZOrder(this)!=-1){
-				RunnerRepository.window.mainpanel.p1.getOptionsTabs().remove(this);
-			}
-            return;
-        }
         this.parent = parent;
         DefaultTableModel model =(DefaultTableModel)jTable1.getModel();
         model.setRowCount(0);
         if(parent!=null){
             if(RunnerRepository.window.mainpanel.p1.getOptionsTabs().getComponentZOrder(this)==-1){
-				RunnerRepository.window.mainpanel.p1.getOptionsTabs().addTab("Test Configurations", this);
-			}
+                RunnerRepository.window.mainpanel.p1.getOptionsTabs().addTab("Test Configurations", this);
+            }
             for(Configuration conf:parent.getConfigurations()){
                 model.addRow(new Object[]{conf.getFile(),new Boolean(conf.isEnabled()),new Boolean(conf.isIeratorOD()),new Boolean(conf.isIteratorSOF())});
             }
         } else {
             if(RunnerRepository.window.mainpanel.p1.getOptionsTabs().getComponentZOrder(this)!=-1){
-				RunnerRepository.window.mainpanel.p1.getOptionsTabs().remove(this);
-			}
+                RunnerRepository.window.mainpanel.p1.getOptionsTabs().remove(this);
+            }
+        }
+        updateIteratorNr();
+        if(parent!=null){
+            String itemsaveconfig = parent.getSaveconfig();
+            int size = saveconfig.getItemCount();
+            for(int i=0;i<size;i++){
+                if(saveconfig.getItemAt(i).toString().equals(itemsaveconfig)){
+                    saveconfig.setSelectedIndex(i);
+                    break;
+                }
+            }
         }
     }
     

@@ -1,6 +1,6 @@
 /*
 File: Configuration.java ; This file is part of Twister.
-Version: 3.001
+Version: 3.002
 Copyright (C) 2012 , Luxoft
 
 Authors: Andrei Costachi <acostachi@luxoft.com>
@@ -20,10 +20,11 @@ limitations under the License.
 package com.twister;
 
 //configuration class used in Item to represent configurations
-public class Configuration{
+public class Configuration implements Cloneable{
 	private boolean enabled = true;
 	private boolean ieratorOD,iteratorSOF;//OD-onlyDefault,SOF-stoponfail
 	private String file;
+	private boolean isFromSuite = false;
 	
 	public Configuration(String file){
 		this.file = file;
@@ -59,5 +60,21 @@ public class Configuration{
 
 	public void setFile(String file) {
 		this.file = file;
+	}
+	
+	public boolean isFromSuite() {
+		return isFromSuite;
+	}
+
+	public void setFromSuite(boolean isFromSuite) {
+		this.isFromSuite = isFromSuite;
+	}
+	
+	public Configuration clone(){
+		try{Configuration clone = (Configuration)super.clone();
+        	return clone;}
+    catch(CloneNotSupportedException e){
+        e.printStackTrace();
+        return null;}
 	}
 }

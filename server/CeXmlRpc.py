@@ -1,7 +1,7 @@
 
 # File: CeXmlRpc.py ; This file is part of Twister.
 
-# version: 3.018
+# version: 3.019
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -1725,5 +1725,14 @@ class CeXmlRpc(_cptools.XMLRPCController):
 
         return self.project.panic_detect_config(user, args)
 
+
+
+    @cherrypy.expose
+    def get_iterations(self, user, configs):
+        """
+        It computes the number of iterations a test configuration contains
+        It's called each time the user manipulates the configs for a test
+        """
+        return self.project.xparser.get_number_of_iterations(user,configs)
 
 # Eof()

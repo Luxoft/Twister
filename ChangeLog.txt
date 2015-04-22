@@ -1,3 +1,9 @@
+22nd April 2015:
+
+- fix for issue #174
+- fixed issue about dependency on a test case from a different suite running
+  on different EP
+
 05th march 2015:
 
 - fix for issue #163

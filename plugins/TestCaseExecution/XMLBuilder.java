@@ -1,6 +1,6 @@
 /*
 File: XMLBuilder.java ; This file is part of Twister.
-Version: 3.006
+Version: 3.007
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -259,6 +259,20 @@ public class XMLBuilder{
             dependency.appendChild(text);
             rootElement.appendChild(dependency);
             
+            Element em3 = document.createElement("ConfigFiles");
+            if(suite.get(i).getConfigurations().size()>0){
+                Element em4 ;
+                for(Configuration conf:suite.get(i).getConfigurations()){
+                    em4 = document.createElement("Config");
+                    em4.setAttribute("name", conf.getFile());
+                    em4.setAttribute("enabled", conf.isEnabled()+"");
+                    em4.setAttribute("iterator_default", conf.isIeratorOD()+"");
+                    em4.setAttribute("iterator_sof", conf.isIteratorSOF()+"");
+                    em4.setAttribute("from_suite", conf.isFromSuite()+"");
+                    em3.appendChild(em4);
+                }
+            }
+            rootElement.appendChild(em3);
             
             if(suite.get(i).getEpId()!=null&&suite.get(i).getEpId().length>0){
                 em2 = document.createElement("ID");
@@ -335,19 +349,6 @@ public class XMLBuilder{
                 EP = document.createElement("SutName");
                 rootElement.appendChild(EP);
             }
-            
-            
-            
-            
-//             for(int j=0;j<suite.get(i).getUserDefNr();j++){
-//                  Element userdef = document.createElement("UserDefined");
-//                  Element pname = document.createElement("propName");
-//                  pname.appendChild(document.createTextNode(suite.get(i).getUserDef(j)[0]));
-//                  userdef.appendChild(pname);
-//                  Element pvalue = document.createElement("propValue");
-//                  pvalue.appendChild(document.createTextNode(suite.get(i).getUserDef(j)[1]));
-//                  userdef.appendChild(pvalue);
-//                  rootElement.appendChild(userdef);}
     
             String userDefsNames[] =  RunnerRepository.window.mainpanel.p1.suitaDetails.getSuiteDefsID();
             
@@ -507,27 +508,25 @@ public class XMLBuilder{
                 em3.appendChild(document.createTextNode("true"));
                 tc.appendChild(em3);
             }
-            em3 = document.createElement("ConfigFiles");
             
+            em3 = document.createElement("ConfigFiles");
             Element em4 ;
-            //sb = new StringBuilder();
             for(Configuration conf:item.getConfigurations()){
                 em4 = document.createElement("Config");
                 em4.setAttribute("name", conf.getFile());
                 em4.setAttribute("enabled", conf.isEnabled()+"");
                 em4.setAttribute("iterator_default", conf.isIeratorOD()+"");
                 em4.setAttribute("iterator_sof", conf.isIteratorSOF()+"");
+                em4.setAttribute("from_suite", conf.isFromSuite()+"");
                 em3.appendChild(em4);
-                //sb.append(conf.getFile());
-                //sb.append(";");
             }
-//             for(String s:item.getConfigurations()){
-//                 sb.append(s);
-//                 sb.append(";");
-//             }
-//             if(sb.length()>0)sb.setLength(sb.length()-1);
-//             em3.appendChild(document.createTextNode(sb.toString()));
             tc.appendChild(em3);
+            
+            em3 = document.createElement("iterationSave");
+            em3.appendChild(document.createTextNode(item.getSaveconfig()));
+            tc.appendChild(em3);
+            
+            
             if(temp || skip){
                 Element em7 = document.createElement("Title");
                 em7.appendChild(document.createTextNode(""));
@@ -617,6 +616,22 @@ public class XMLBuilder{
             Text text = document.createTextNode(sb.toString());
             dependency.appendChild(text);
             rootElement2.appendChild(dependency);
+            
+            
+            Element em3 = document.createElement("ConfigFiles");
+            if(item.getConfigurations().size()>0){
+                Element em4 ;
+                for(Configuration conf:item.getConfigurations()){
+                    em4 = document.createElement("Config");
+                    em4.setAttribute("name", conf.getFile());
+                    em4.setAttribute("enabled", conf.isEnabled()+"");
+                    em4.setAttribute("iterator_default", conf.isIeratorOD()+"");
+                    em4.setAttribute("iterator_sof", conf.isIteratorSOF()+"");
+                    em4.setAttribute("from_suite", conf.isFromSuite()+"");
+                    em3.appendChild(em4);
+                }
+            }
+            rootElement2.appendChild(em3);
             
             if(item.getEpId()!=null&&!item.getEpId().equals("")){                
                 if(skip){

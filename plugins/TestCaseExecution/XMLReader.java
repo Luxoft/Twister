@@ -1,6 +1,6 @@
 /*
 File: XMLReader.java ; This file is part of Twister.
-Version: 2.028
+Version: 2.029
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -36,9 +36,14 @@ import java.util.HashMap;
 import com.twister.Configuration;
 import javax.swing.JOptionPane;
 import com.twister.CustomDialog;
+import javax.xml.xpath.XPath;
+import javax.xml.xpath.XPathExpression;
+import javax.xml.xpath.XPathFactory;
+import javax.xml.xpath.XPathConstants;
 
 public class XMLReader{
     private int preprop = 12;//properties in xml available before Property tag, in testsuites repeat tag is not present, we will substract 2
+    //private int preprop = 14;//properties in xml available before Property tag, in testsuites repeat tag is not present, we will substract 2
     private Document doc;
     private Element fstNmElmnt,
                     secNmElmnt,trdNmElmnt;
@@ -109,6 +114,27 @@ public class XMLReader{
                         preprop -=2;
                     }
                 }
+                fstNmElmntLst = ((Element)node).getElementsByTagName("ConfigFiles");
+                if(fstNmElmntLst.getLength()>0){
+                    secNmElmnt = (Element)fstNmElmntLst.item(0);
+                    fstNmElmntLst = secNmElmnt.getElementsByTagName("Config");
+                    int size = fstNmElmntLst.getLength();
+                    if(size>0){
+                        for(int i=0;i<size;i++){
+                            Element em = (Element)fstNmElmntLst.item(i);
+                            Configuration conf = new Configuration(em.getAttribute("name"));
+                            conf.setEnabled(Boolean.parseBoolean(em.getAttribute("enabled")));
+                            conf.setIeratorOD(Boolean.parseBoolean(em.getAttribute("iterator_default")));
+                            conf.setIteratorSOF(Boolean.parseBoolean(em.getAttribute("iterator_sof")));
+                            conf.setFromSuite(Boolean.parseBoolean(em.getAttribute("from_suite")));
+                            theone.getConfigurations().add(conf);
+                        }
+                    }
+                    k+=2;
+                }
+                
+                
+                
                 fstNmElmntLst = ((Element)node).getElementsByTagName("Repeat");
                 if(fstNmElmntLst.getLength()>0){
                     fstNmElmnt = (Element)fstNmElmntLst.item(0);
@@ -195,12 +221,10 @@ public class XMLReader{
                         f = secNm.item(0).getNodeValue().toString();
                     }
                     k=2;
-//                     k=6;
                 } else {
                     f = secNm.item(0).getNodeValue().toString();
                     isclearcase = true;
                     k=4;
-//                     k=8;
                 }
                 
                 int width = metrics.stringWidth(f) + 8;
@@ -223,6 +247,15 @@ public class XMLReader{
                     fstNmElmnt = (Element)fstNmElmntLst.item(0);
                     fstNm = fstNmElmnt.getChildNodes();
                     if(fstNm.getLength()>0)dependencies.put(theone, fstNm.item(0).getNodeValue().toString());
+                }
+                
+                secNmElmntLst = ((Element)node).getElementsByTagName("iterationSave");
+                if(secNmElmntLst.getLength()!=0){
+                    secNmElmnt = (Element)secNmElmntLst.item(0);
+                    secNm = secNmElmnt.getChildNodes();
+                    if(secNm!=null&&secNm.getLength()>0){
+                        theone.setSaveconfig(secNm.item(0).getNodeValue().toString());
+                    }
                 }
                 
                 fstNmElmntLst = ((Element)node).getElementsByTagName("Repeat");
@@ -250,6 +283,7 @@ public class XMLReader{
                             conf.setEnabled(Boolean.parseBoolean(em.getAttribute("enabled")));
                             conf.setIeratorOD(Boolean.parseBoolean(em.getAttribute("iterator_default")));
                             conf.setIteratorSOF(Boolean.parseBoolean(em.getAttribute("iterator_sof")));
+                            conf.setFromSuite(Boolean.parseBoolean(em.getAttribute("from_suite")));
                             theone.getConfigurations().add(conf);
                         }
                     }
@@ -361,6 +395,16 @@ public class XMLReader{
                 RunnerRepository.window.mainpanel.p1.suitaDetails.setGlobalDownloadType(null);
             }
         }
+        
+        //chech if suite on level 0 contains Config tag
+        try{XPath xpath = XPathFactory.newInstance().newXPath();
+            XPathExpression expr1 = xpath.compile("//TestSuite/ConfigFiles");
+            NodeList nodes = (NodeList)expr1.evaluate(doc, XPathConstants.NODESET);
+            if(nodes.getLength()>0)preprop+=2;
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+        
         if(test)preprop-=2;//in testsuites repeat tag is not present
         mismatchshown = false;
         NodeList nodeLst = doc.getChildNodes().item(0).getChildNodes();
@@ -370,6 +414,7 @@ public class XMLReader{
             catch(Exception e){e.printStackTrace();}}
         int indexsuita = 0;
         ArrayList<String[]> userDefined = new ArrayList<String[]>();
+        boolean configinit = false;
         for(int m=0;m<childsnr;m++){
             Node fstNode = nodeLst.item(m);
             if(!test&&clear){
@@ -468,7 +513,13 @@ public class XMLReader{
                     continue;
                 }
             }
-            if(!fstNode.getNodeName().equals("TestSuite"))continue;            
+//             if(!configinit){
+//                     k-=2;//backward compatible
+//                     preprop-=2;
+//                     configinit = true;
+//                 }
+
+            if(!fstNode.getNodeName().equals("TestSuite"))continue;    
             ArrayList <Integer> indexpos = new ArrayList <Integer> ();
             indexpos.add(new Integer(indexsuita));            
             Element fstElmnt = (Element)fstNode;
@@ -513,6 +564,28 @@ public class XMLReader{
             }else {
                 if(!test)k-=2;
             }
+            
+            
+            
+            fstNmElmntLst = fstElmnt.getElementsByTagName("ConfigFiles");
+            if(fstNmElmntLst.getLength()>0){
+                fstNmElmnt = (Element)fstNmElmntLst.item(0);
+                if(fstNmElmnt!=null){
+                    fstNmElmntLst = fstNmElmnt.getElementsByTagName("Config");
+                    int size = fstNmElmntLst.getLength();
+                    if(size>0){
+                        for(int i=0;i<size;i++){
+                            Element em = (Element)fstNmElmntLst.item(i);
+                            Configuration conf = new Configuration(em.getAttribute("name"));
+                            conf.setEnabled(Boolean.parseBoolean(em.getAttribute("enabled")));
+                            conf.setIeratorOD(Boolean.parseBoolean(em.getAttribute("iterator_default")));
+                            conf.setIteratorSOF(Boolean.parseBoolean(em.getAttribute("iterator_sof")));
+                            conf.setFromSuite(Boolean.parseBoolean(em.getAttribute("from_suite")));
+                            suitatemp.getConfigurations().add(conf);
+                        }
+                    }
+                }
+            } 
             
             fstNmElmntLst = fstElmnt.getElementsByTagName("Repeat");
             if(fstNmElmntLst.getLength()>0){

@@ -140,7 +140,7 @@ class ReportingServer(object):
                          'link': k,
                          'type': 'link',
                          'folder': v.get('folder', ''),
-                         'srvr': '/'.join( v.get('srv_db', ['n', 'a'])[:2] )
+                         'srvr': '/'.join( v.get('srv_db', [''])[-1:] + v.get('srv_db', ['n','a'])[:2] )
                         } \
                        for k, v in self.glob_reports[usr].iteritems()] + \
                        [{'link': k, 'folder': '', 'type': 'redir'} \
@@ -243,12 +243,13 @@ class ReportingServer(object):
 
         query = report_dict['sqlquery']
         db_pair = report_dict['srv_db']
-        db_server, db_name, db_user, db_passwd = report_dict['srv_db']
+        db_server, db_name, db_user, db_passwd, _ = report_dict['srv_db']
 
         logDebug('Prepare {} report `{}`, for user `{}`...'.format(
                  'Shared' if report_dict['shared_db'] else 'User', report, usr))
 
-        conn = self.project.dbmgr.connect_db(usr, *db_pair, shared_db=report_dict['shared_db'])
+        conn = self.project.dbmgr.connect_db(usr, db_server, db_name, db_user, db_passwd,
+            shared_db=report_dict['shared_db'])
         if not conn:
             output = Template(filename=TWISTER_PATH + '/server/template/rep_error.htm')
             return output.render(links=self.glob_links[usr], title=report, usr=usr,
@@ -434,9 +435,10 @@ class ReportingServer(object):
 
         query = report_dict['sqlquery']
         db_pair = report_dict['srv_db']
-        db_server, db_name, db_user, db_passwd = report_dict['srv_db']
+        db_server, db_name, db_user, db_passwd, _ = report_dict['srv_db']
 
-        conn = self.project.dbmgr.connect_db(usr, *db_pair, shared_db=report_dict['shared_db'])
+        conn = self.project.dbmgr.connect_db(usr, db_server, db_name, db_user, db_passwd,
+            shared_db=report_dict['shared_db'])
         if not conn:
             output = Template(filename=TWISTER_PATH + '/server/template/rep_error.htm')
             return output.render(links=self.glob_links[usr], title=report, usr=usr,

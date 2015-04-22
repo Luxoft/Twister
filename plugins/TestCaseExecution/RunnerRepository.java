@@ -1,6 +1,6 @@
 /*
 File: RunnerRepository.java ; This file is part of Twister.
-Version: 3.012
+Version: 3.014
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -135,8 +135,8 @@ public class RunnerRepository {
     public static Container container;
     public static Applet applet;
     private static Document pluginsconfig;
-    private static String version = "3.053";
-    private static String builddate = "24.02.2015";
+    private static String version = "3.057";
+    private static String builddate = "22.04.2015";
     public static String logotxt,os,python;
     private static boolean ismaster = true;
     public static String tagserrors="";
@@ -1823,6 +1823,7 @@ public class RunnerRepository {
             }
             if(resp.indexOf("*ERROR*")!=-1){
                 CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,window,"ERROR", resp);
+                return false;
             }
             return true;
         } catch (Exception e){
@@ -1949,6 +1950,10 @@ public class RunnerRepository {
                 user = CustomDialog.showInputDialog(JOptionPane.QUESTION_MESSAGE,
                                                     JOptionPane.OK_CANCEL_OPTION, window,
                                                     "File Name", "Please enter file name");
+                if(user.equals("last_edited")){
+                    CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,window,"WARING", "last_edited is reserved, please choose other name!");
+                    openProjectFile();
+                }
                 if(!user.equals("NULL")){
                     RunnerRepository.emptySuites();
                     RunnerRepository.window.mainpanel.p1.sc.g.getSelectedCollection().clear();

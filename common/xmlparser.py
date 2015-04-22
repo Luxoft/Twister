@@ -1,7 +1,7 @@
 
 # File: xmlparser.py ; This file is part of Twister.
 
-# version: 3.036
+# version: 3.037
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -955,7 +955,7 @@ class DBParser(object):
                     self.shared_xml = etree.fromstring(shared_data)
                     # logDebug('User `{}` loaded shared DB config from a string.'.format(user))
                 except Exception:
-                    raise Exception('Cannot parse shared DB config data, for user `{}`!'.format(self.user))
+                    logWarning('Cannot parse shared DB config data, for user `{}`!'.format(self.user))
             else:
                 raise Exception('Invalid shared config data type: `{}`, '\
                     'for user `{}`!'.format(type(shared_data), self.user))
@@ -969,7 +969,7 @@ class DBParser(object):
             db_user = self.user_xml.xpath('db_config/user')[0].text
             db_passwd = self.user_xml.xpath('db_config/password')[0].text
             self.db_config['servers'].append((db_server, db_name))
-            self.db_config['default_server'] = (db_server, db_name, db_user, db_passwd)
+            self.db_config['default_server'] = (db_server, db_name, db_user, db_passwd, 'U')
         else:
             raise Exception('Invalid DB config, no server and DB, for user `{}`!'.format(self.user))
 
@@ -1032,7 +1032,7 @@ class DBParser(object):
         db_name = self.shared_xml.xpath('db_config/database')[0].text
         db_user = self.shared_xml.xpath('db_config/user')[0].text
         db_passwd = self.shared_xml.xpath('db_config/password')[0].text
-        db_pair = (db_server, db_name, db_user, db_passwd)
+        db_pair = (db_server, db_name, db_user, db_passwd, 'S')
 
         # Insert fields
         fields = OrderedDict()
@@ -1155,7 +1155,7 @@ class DBParser(object):
         db_name = self.shared_xml.xpath('db_config/database')[0].text
         db_user = self.shared_xml.xpath('db_config/user')[0].text
         db_passwd = self.shared_xml.xpath('db_config/password')[0].text
-        db_pair = (db_server, db_name, db_user, db_passwd)
+        db_pair = (db_server, db_name, db_user, db_passwd, 'S')
         # Overwrite all private fields, reports or redirects
         if db_pair in report_queries:
             report_queries[db_pair]['fields'].update( get_fields(self.shared_xml, True) )

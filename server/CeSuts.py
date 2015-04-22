@@ -1,7 +1,7 @@
 
 # File: CeSuts.py ; This file is part of Twister.
 
-# version: 3.009
+# version: 3.011
 
 # Copyright (C) 2012-2014, Luxoft
 
@@ -253,7 +253,7 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
             if resource_name[0] == '/':
                 resource_name = resource_name[1:]
 
-            if resource_name.split('.')[1] == 'user':
+            if resource_name.split('.')[-1] == 'user':
                 sutsPath = self.project.get_user_info(user, 'sut_path')
             else:
                 sutsPath = self.project.get_user_info(user, 'sys_sut_path')
@@ -263,7 +263,7 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
 
             filename = os.path.join(sutsPath, '.'.join(resource_name.split('.')[:-1] + ['json']))
 
-            if resource_name.split('.')[1] == 'system':
+            if resource_name.split('.')[-1] == 'system':
                 try:
                     resp = self.project.localFs.write_system_file(filename, \
                         json.dumps(self.resources['children'][resource_name], indent=4), 'w')
@@ -271,7 +271,7 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
                     log.append(e)
                     logError('User {}: Saving ERROR system:: `{}`.'.format(user, e))
 
-            if resource_name.split('.')[1] == 'user':
+            if resource_name.split('.')[-1] == 'user':
                 # user SUT file; we have to check if the cleacase plugin
                 # is activated; if so, use it to write the SUT file; else
                 # use the UserService to read it
@@ -300,6 +300,45 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
         # update id_list
         self.parse_sut(self.resources['children'][resource_name], resource_name)
 
+        return True
+
+
+    @cherrypy.expose
+    def save_sut_as(self, sut_name, path):
+        """
+        Function used to write the sut on the user specified path on the disk.
+        sut_name: is the new name of the sut to be saved
+        path: is the path where the sut is saved. It doesn't contain the sut name at the end.
+        """
+        user = self.user_info({})[0]
+        logFull('CeSuts:_save_as {} {} {} '.format(sut_name, path, user))
+        log = []
+
+        # Write changes, using the Access Lock.
+        with self.save_lock:
+            if sut_name[0] == '/':
+                sut_name = sut_name[1:]
+            if not os.path.exists(path):
+                msg = 'Path does not exist: {}'.format(path)
+                logError(msg)
+                return '*ERROR* '+msg
+            # remove the '_' added when the sut was created 
+            real_name = sut_name[1:]
+            filename = os.path.join(path, '.'.join(real_name.split('.')[:-1] + ['json']))
+            try:
+                resp = self.project.localFs.write_user_file(user, filename, \
+                        json.dumps(self.resources['children'][sut_name], indent=4), 'w')
+            except Exception as e:
+                log.append(e)
+                logError('User {}: Saving ERROR system:: `{}`.'.format(user, e))
+                # targeted resource is saved now; do not continue with
+                # the rest of resources
+        if log:
+            return '*ERROR* ' + str(log)
+
+        # remove the new sut from resources
+        self.resources['children'].pop(sut_name)
+        logDebug('Sut resource: `{}` removed from the resources'.format(sut_name))
         return True
 
 
@@ -655,6 +694,7 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
 
             if isinstance(result, dict):
                 sutContent = self._format_dict_sut(result, query)
+
             elif follow_links:
                 parts = [p for p in initial_query.split('/') if p]
 
@@ -676,7 +716,7 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
 
                     # SUT not loaded
                     if not isinstance(result, dict):
-                        msg = 'User `{}`: Cannot find `{}`!'.format(user_info[0], curr_path)
+                        msg = '*ERROR* Invalid SUT path `{}`!'.format(curr_path)
                         logWarning(msg)
                         return False
 
@@ -704,7 +744,7 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
 
             # Internal error?
             else:
-                msg = '*ERROR* Internal server error!'
+                msg = '*ERROR* Invalid SUT path `{}`!'.format(initial_query)
                 logWarning(msg)
                 return msg
 
@@ -855,7 +895,7 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
 
 
     @cherrypy.expose
-    def create_new_sut(self, name, parent=None, props={}):
+    def create_new_sut(self, name, parent=None, props={}, save=True):
         """
         Create a SUT.
         """
@@ -888,11 +928,12 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
             self.resources['children'][name] = {'id': res_id, 'meta': props, 'children': {}, 'path': [name]}
 
             #save this new SUT
-            issaved = self.save_sut(props, name)
-            if  isinstance(issaved, str):
-                msg = "We could not save this SUT {}".format(name)
-                logDebug(msg)
-                return issaved
+            if save:
+                issaved = self.save_sut(props, name)
+                if  isinstance(issaved, str):
+                    msg = "We could not save this SUT {}".format(name)
+                    logDebug(msg)
+                    return issaved
 
             return res_id
 
@@ -907,23 +948,23 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
         logDebug('CeSuts:update_meta_sut: parent = {} -- props = {} -- username = {} -- name = {}'\
             .format(parent, props, user_info[0], name))
 
-        #if props does not have the corect format we stop this operation
+        # if props does not have the correct format we stop this operation
         if not props or not self.valid_props(props):
             msg = "Wrong format for props = {}".format(props)
             logDebug(msg)
             return '*ERROR* ' + msg
 
-        #can not verify if reserved '/' because I load only the sut that I need
+        # can not verify if reserved '/' because I load only the sut that I need
         if parent == "/" or parent == "1":
             if (name.split('.')[-1] != 'user' and name.split('.')[-1] != 'system'):
                 name = '.'.join([name, 'user'])
-             #we can not reserve the root so we just take the sut we need
+            # we can not reserve the root so we just take the sut we need
             verifyReserved = name
         else:
-            #take the sut that has the component we need
+            # take the sut that has the component we need
             verifyReserved = parent
 
-        #what if this sut is already reserved by other user? We STOP
+        # what if this sut is already reserved by other user? We STOP
         _isResourceReserved = self.is_resource_reserved(verifyReserved, props)
         if _isResourceReserved and _isResourceReserved != user_info[0]:
             msg = 'User {}: Cannot update meta: The resource is reserved for {} !'\
@@ -931,7 +972,7 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
             logError(msg)
             return '*ERROR* ' + msg
 
-        #what if this sut is already locked by other user? We STOP
+        # what if this sut is already locked by other user? We STOP
         _isResourceLocked = self.is_resource_locked(verifyReserved)
         if _isResourceLocked and _isResourceLocked != user_info[0]:
             msg = 'User {}: Reserve resource: The resource is locked for {} !'\
@@ -1598,13 +1639,16 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
     @cherrypy.expose
     def save_reserved_sut_as(self, name, res_query, props={}):
         """
-        Save a reserved SUT as.
+        Save a reserved SUT as name+path.
         """
         user_info = self.user_info(props)
         user = user_info[0]
         logFull('CeSuts:save_reserved_sut_as {} {} {}'.format(name, res_query, user))
-
-        target_name = '/'+name+'.user'
+        path = '/'.join(name.split('/')[:-1])
+        name = name.split('/')[-1]
+        # add a '_' at the begining to be able to save as a new sut with the same name as the old one
+        # the sut is deleted from memory after the json.dump
+        target_name = '/_'+name+ '.' +res_query.split('.')[-1]#'.user'
 
         # verify if the sut exists
         userSutList = self.list_all_suts(user)
@@ -1641,7 +1685,7 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
             return '*ERROR* ' + msg
 
         # Create a new SUT having this new name
-        newSutId = self.create_new_sut(target_name, '/', props)
+        newSutId = self.create_new_sut(target_name, '/', props, False)
 
         if isinstance(newSutId, str) and '*ERROR*' in newSutId:
             msg = 'User {}: New SUT file {} cannot be created!'.format(user, target_name)
@@ -1656,23 +1700,21 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
         oldSut = self.get_reserved_resource(res_query, props)
 
         # Get all the structure of the old sut
-        newSut['meta'].update(oldSut['meta'])
+        newSut['meta'].update(copy.deepcopy(oldSut['meta']))
         # Copy children
-        newSut['children'].update(oldSut['children'])
+        newSut['children'].update(copy.deepcopy(oldSut['children']))
 
         # Recursive fix children IDs
         self.change_ids(newSut)
         # Recursive fix children paths
         self.change_path(newSut, newSut['path'])
 
-        # Need to realease & discard the original SUT and to save & release the targeted SUT
-        self.discard_release_reserved_sut(res_query)
         # Exit now
-        return self.save_reserved_sut(target_name, '{}')
+        return self.save_reserved_sut(target_name, '{}', path)
 
 
     @cherrypy.expose
-    def save_reserved_sut(self, res_query, props={}):
+    def save_reserved_sut(self, res_query, props={}, path=''):
         """
         User has made some changes only on self.reserved_resources.
         In this method we sync self.reserved_resources with self.resources
@@ -1720,7 +1762,10 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
         # Update path
         resources['children'][reserved_node['path'][0]]['path'] = [reserved_node['path'][0]]
         # Now save
-        issaved = self.save_sut(props, resource_node['path'][0])
+        if path == '':
+            issaved = self.save_sut(props, resource_node['path'][0])
+        else:
+            issaved = self.save_sut_as(resource_node['path'][0], path)
 
         if isinstance(issaved, str):
             logDebug("We could not save this Sut for user = {}.".format(user_info[0]))
