@@ -1,7 +1,7 @@
 
 # File: CeProject.py ; This file is part of Twister.
 
-# version: 3.073
+# version: 3.074
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -103,6 +103,7 @@ from string import Template
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from common.tsclogging import *
+from common.tsclogging import getLogLevel
 
 if not sys.version.startswith('2.7'):
     print('Python version error! Central Engine must run on Python 2.7!')
@@ -1621,7 +1622,10 @@ class Project(object):
             logWarning('Project: Invalid File node `{}` !'.format(file_id))
             return False
         file_node[key] = value
-        self._dump()
+
+        # if the debug level is set to FULL or DEBUG, dump the project on disk
+        if getLogLevel() == 'FULL':
+            self._dump()
         return True
 
 
@@ -2120,6 +2124,12 @@ class Project(object):
                     epname = anonim_ep
                 elif epname not in real_eps:
                     continue
+
+                # Set the NEW EP status
+                self.set_ep_info(user, epname, 'status', new_status)
+                # Send STOP to EP Manager
+                rpyc_srv.exposed_stop_ep(epname, user)
+
                 # All files, for current EP
                 files = eps_pointer[epname]['suites'].get_files()
                 for file_id in files:
@@ -2128,10 +2138,6 @@ class Project(object):
                     if current_status in [STATUS_PENDING, -1]:
                         self.set_file_info(user, epname, file_id, 'status', STATUS_NOT_EXEC)
                         statuses_changed += 1
-                # Set the NEW EP status
-                self.set_ep_info(user, epname, 'status', new_status)
-                # Send STOP to EP Manager
-                rpyc_srv.exposed_stop_ep(epname, user)
 
             if statuses_changed:
                 logDebug('User `{}` changed `{}` file statuses from '

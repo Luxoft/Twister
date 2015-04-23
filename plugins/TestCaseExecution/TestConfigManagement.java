@@ -1,6 +1,6 @@
 /*
 File: TestConfigManagement.java ; This file is part of Twister.
-Version: 3.004
+Version: 3.005
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -257,8 +257,10 @@ public class TestConfigManagement extends JPanel{
     
     public void updateIteratorNr(){
         if(parent==null || parent.getType()==2){
+            iteratornr.setVisible(false);
             iteratornr.setText("Total iterators: 0");
             return;}
+        iteratornr.setVisible(true);
         StringBuilder sb = new StringBuilder();
         for(Configuration conf:parent.getConfigurations()){
             if(!conf.isEnabled())continue;

@@ -1018,9 +1018,15 @@ class TwisterRunner(object):
                     self.end_logs(file_id, filename)
                     continue
 
-
-            # Download file from Central Engine!
-            str_to_execute = proxy().download_file(self.epName, file_id)
+            # Download file from Central Engine if it doesn't exists in
+            # EP_CACHE; applicable mostly for repeat scenario
+            str_to_execute = ''
+            if os.path.isfile(EP_CACHE + os.sep + filename.split(os.sep)[-1]):
+                cache_file = EP_CACHE + os.sep + filename.split(os.sep)[-1]
+                with open(cache_file, 'r') as f:
+                    str_to_execute = f.read()
+            else:
+                str_to_execute = proxy().download_file(self.epName, file_id)
 
             # If CE sent False, it means the file is empty, does not exist, or it's not runnable.
             if str_to_execute == '' or str_to_execute.startswith('*ERROR*'):
