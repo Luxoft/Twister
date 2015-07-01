@@ -1,7 +1,7 @@
 
 # File: TestCaseRunnerClasses.py ; This file is part of Twister.
 
-# version: 3.010
+# version: 3.012
 
 # Copyright (C) 2012-2014, Luxoft
 
@@ -43,7 +43,7 @@ from ConfigParser import SafeConfigParser # For parsing Jython config
 
 TWISTER_PATH = os.getenv('TWISTER_PATH')
 if not TWISTER_PATH:
-    print('TWISTER_PATH environment variable is not set! Exiting!')
+    print 'TWISTER_PATH environment variable is not set! Exiting!'
     exit(1)
 
 
@@ -114,19 +114,22 @@ class TCRunTcl(object):
         self.tcl.setvar('FILE_NAME', globs['FILE_NAME'])
         self.tcl.setvar('CONFIG', ';'.join(globs['CONFIG']))
         self.tcl.setvar('ITERATION', globs['ITERATION'])
+        self.tcl.setvar('FIRST_ITERATOR_VAL', globs['FIRST_ITERATOR_VAL'])
+        self.tcl.setvar('FIRST_ITERATOR_NAME', globs['FIRST_ITERATOR_NAME'])
+        self.tcl.setvar('FIRST_ITERATOR_COMP', globs['FIRST_ITERATOR_COMP'])
 
         # Set properties Associative Array
-        for k, v in globs['PROPERTIES'].iteritems():
-            self.tcl.eval('set PROPERTIES({}) {}'.format(k, v))
+        for k_val, v_val in globs['PROPERTIES'].iteritems():
+            self.tcl.eval('set PROPERTIES({}) {}'.format(k_val, v_val))
 
         # Compatibility log message
         self.tcl.createcommand('logMessage', globs['log_msg'])
 
         # Inject all functions
-        for f in globs:
+        for func in globs:
             # print('DEBUG: Exposing Python command `{}` into TCL...'.format(f))
-            if callable(globs[f]):
-                self.tcl.createcommand(f, globs[f])
+            if callable(globs[func]):
+                self.tcl.createcommand(func, globs[func])
 
         to_execute = '\nset argc %i\n' % len(params) + str_to_execute
         to_execute = 'set argv {%s}\n' % str(params)[1:-1] + to_execute
@@ -142,13 +145,15 @@ class TCRunTcl(object):
         Default procedures like "clock", "history", etc are also ignored.
         """
 
-        default_info_vars = ['_tkinter_skip_tk_init', 'argc', 'argv', 'argv0', 'auto_index', 'auto_oldpath',
-            'auto_path', 'env', 'errorCode', 'errorInfo', 'tcl_interactive', 'tcl_libPath', 'tcl_library',
-            'tcl_patchLevel', 'tcl_pkgPath', 'tcl_platform', 'tcl_rcFileName', 'tcl_version', 'exp_library',
-            'expect_library', 'exp_exec_library']
+        default_info_vars = ['_tkinter_skip_tk_init', 'argc', 'argv', 'argv0',\
+        'auto_index', 'auto_oldpath', 'auto_path', 'env', 'errorCode',\
+        'errorInfo', 'tcl_interactive', 'tcl_libPath', 'tcl_library',\
+        'tcl_patchLevel', 'tcl_pkgPath', 'tcl_platform', 'tcl_rcFileName',\
+        'tcl_version', 'exp_library', 'expect_library', 'exp_exec_library']
 
-        default_info_procs = ['auto_execok', 'auto_import', 'auto_load', 'auto_load_index', 'auto_qualify',
-            'clock', 'history', 'tclLog', 'unknown', 'pkg_mkIndex']
+        default_info_procs = ['auto_execok', 'auto_import', 'auto_load',\
+        'auto_load_index', 'auto_qualify', 'clock', 'history', 'tclLog',\
+        'unknown', 'pkg_mkIndex']
 
         # Find all TCL variables !
         self.all_vars = [var0 for var0 in tcl.eval('info vars').split() if var0 not in default_info_vars]
@@ -158,12 +163,13 @@ class TCRunTcl(object):
         for var in self.all_vars:
             try:
                 val = tcl.getvar(var)
-            except Tkinter.TclError as e:
-                if str(e).endswith('variable is array'):
+            except Tkinter.TclError as exp_err:
+                if str(exp_err).endswith('variable is array'):
                     # Recomposed arrays
                     val = tcl.eval('array get %s' % var)
                 else:
-                    print('TC Dump Warning: Cannot get value for var `%s`!' % var)
+                    print 'TC Dump Warning: Cannot get value for var `%s`!'\
+                    % var
                     try:
                         tcl.eval('puts $'+var)
                     except Exception:
@@ -358,6 +364,9 @@ def set_global(*arg, **kw):
 def get_config(*arg, **kw):
     return commonLib.get_config(*arg, **kw)
 
+def get_iter_value(*arg, **kw):
+    return commonLib.get_iter_value(*arg, **kw)
+
 def get_binding(*arg, **kw):
     return commonLib.get_binding(*arg, **kw)
 
@@ -419,62 +428,65 @@ class TCRunJava(object):
 
         _RESULT = None
 
-        returnCode = {
+        ret_code = {
             0: 'PASS',
             1: 'FAIL',
             2: 'ERROR'
         }
 
         # init
-        runnerConfigParser = SafeConfigParser()
+        runner_cfg_parser = SafeConfigParser()
 
         try:
-            runnerConfigParser.read(os.path.join(TWISTER_PATH, 'config/runner.ini'))
+            runner_cfg_parser.read(os.path.join(TWISTER_PATH, 'config/runner.ini'))
 
-            javaCompilerPath = runnerConfigParser.get('javarunner', 'JAVAC_PATH')
-            junitClassPath = runnerConfigParser.get('javarunner', 'JUNIT_PATH')
-            jythonClassPath = runnerConfigParser.get('javarunner', 'JYTHON_PATH')
+            java_compiler_path = runner_cfg_parser.get('javarunner', 'JAVAC_PATH')
+            junit_class_path = runner_cfg_parser.get('javarunner', 'JUNIT_PATH')
+            jython_class_path = runner_cfg_parser.get('javarunner', 'JYTHON_PATH')
 
-            copyfile(os.path.join(TWISTER_PATH, 'common/jython/jythonExternalVariableClass.jpy'),
-                '{0}/.twister_cache/{1}/ce_libs/jythonExternalVariableClass.py'.format(
-                                                                TWISTER_PATH, self.epname))
-            copyfile(os.path.join(TWISTER_PATH, 'common/jython/tscJython.jar'),
-                '{0}/.twister_cache/{1}/ce_libs/tscJython.jar'.format(TWISTER_PATH, self.epname))
-            tscJythonPath = '{0}/.twister_cache/{1}/ce_libs/tscJython.jar'.format(
-                                                                    TWISTER_PATH, self.epname)
-        except Exception as e:
-            print('Error: Compiler path not found')
-            print('Error: {}'.format(e))
+            copyfile(os.path.join(TWISTER_PATH,\
+            'common/jython/jythonExternalVariableClass.jpy'),\
+            '{0}/.twister_cache/{1}/ce_libs/jythonExternalVariableClass.py'.\
+            format(TWISTER_PATH, self.epname))
+
+            copyfile(os.path.join(TWISTER_PATH, 'common/jython/tscJython.jar'),\
+            '{0}/.twister_cache/{1}/ce_libs/tscJython.jar'.\
+            format(TWISTER_PATH, self.epname))
+            tsc_jython_path = '{0}/.twister_cache/{1}/ce_libs/tscJython.jar'.\
+            format(TWISTER_PATH, self.epname)
+        except Exception as exp_err:
+            print 'Error: Compiler path not found'
+            print 'Error: {}'.format(exp_err)
             return None
 
         # create test
-        fileName = os.path.split(globs['FILE_NAME'])[1]
-        filesPath = '{}/.twister_cache/{}'.format(TWISTER_PATH, self.epname)
-        filePath = os.path.join(filesPath, fileName)
+        file_name = os.path.split(globs['FILE_NAME'])[1]
+        files_path = '{}/.twister_cache/{}'.format(TWISTER_PATH, self.epname)
+        file_path = os.path.join(files_path, file_name)
 
-        with open(filePath, 'wb') as fname:
+        with open(file_path, 'wb') as fname:
             fname.write(str_to_execute)
 
 
         # Compile java test
-        subprocess.Popen('{jc} -classpath "{cl0}:{cl1}:{cl2}" {fl}'.format(
-                        jc=javaCompilerPath, cl0=junitClassPath, cl1=tscJythonPath,
-                        cl2=jythonClassPath, fl=filePath), shell=True)
+        subprocess.Popen('{jc} -classpath "{cl0}:{cl1}:{cl2}" {fl}'.\
+        format(jc=java_compiler_path, cl0=junit_class_path,\
+        cl1=tsc_jython_path, cl2=jython_class_path, fl=file_path), shell=True)
 
 
         # Run test
-        compiledFilePath = os.path.join(filesPath, '{fn}.class'.format(fn=os.path.splitext(fileName)[0]))
-        jythonRunner = os.path.join(TWISTER_PATH, 'common/jython/jythonRunner.jpy')
-        jythonProcess = subprocess.Popen('jython {jp} --classFilePath {cf} '\
-            '--testFilePath {fl}'.format(jp=jythonRunner,
-            cf=junitClassPath, fl=compiledFilePath), shell=True)
-        jythonProcess.wait()
+        compiled_file_path = os.path.join(files_path, '{fn}.class'.format(fn=os.path.splitext(file_name)[0]))
+        jython_runner = os.path.join(TWISTER_PATH, 'common/jython/jythonRunner.jpy')
+        jython_proc = subprocess.Popen('jython {jp} --classFilePath {cf} \
+        --testFilePath {fl}'.format(jp=jython_runner, cf=junit_class_path,\
+        fl=compiled_file_path), shell=True)
+        jython_proc.wait()
 
-        if not jythonProcess.returncode in returnCode:
-            print('Unknown return code')
+        if not jython_proc.returncode in ret_code:
+            print 'Unknown return code'
             return None
 
-        _RESULT = returnCode[jythonProcess.returncode]
+        _RESULT = ret_code[jython_proc.returncode]
 
         # The _RESULT must be injected from within the jython script
         return _RESULT
@@ -484,11 +496,11 @@ class TCRunJava(object):
         """
         On exit, cleanup.
         """
-        fileNames = '{}/.twister_cache/{}/*.java*'.format(TWISTER_PATH, self.epname)
-        for filePath in glob.glob(fileNames):
-            # print('Cleanup Java file:',' filePath)
+        file_names = '{}/.twister_cache/{}/*.java*'.format(TWISTER_PATH, self.epname)
+        for file_path in glob.glob(file_names):
+            # print('Cleanup Java file:',' file_path)
             try:
-                os.remove(filePath)
+                os.remove(file_path)
             except Exception:
                 pass
 

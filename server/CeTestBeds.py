@@ -1,6 +1,6 @@
 # File: CeTestBeds.py ; This file is part of Twister.
 
-# version: 3.002
+# version: 3.004
 
 # Copyright (C) 2012-2014, Luxoft
 
@@ -20,10 +20,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+'''
+Module to manage the test beds
+'''
 
 import os
 import sys
-import time
 import copy
 import thread
 
@@ -39,19 +41,19 @@ from cherrypy import _cptools
 
 TWISTER_PATH = os.getenv('TWISTER_PATH')
 if not TWISTER_PATH:
-    print('TWISTER_PATH environment variable is not set! Exiting!')
+    print 'TWISTER_PATH environment variable is not set! Exiting!'
     exit(1)
 if TWISTER_PATH not in sys.path:
     sys.path.append(TWISTER_PATH)
 
-from common.tsclogging import logFull, logDebug, logInfo, logWarning, logError
-from common.helpers import *
+from common.tsclogging import logFull, logDebug, logWarning, logError
+#from common.helpers import user_info
 from server.CeCommonAllocator import CommonAllocator
 
-constant_dictionary = {'version': 0, 'name': '/', 'path' : [], 'meta': {}, 'children': {}}
+CONSTANT_DICTIONARY = {'version': 0, 'name': '/', 'path' : [], 'meta': {}, 'children': {}}
 
 
-def xml_to_res(xml, gparams, skip_header = False):
+def xml_to_res(xml, gparams, skip_header=False):
     """
     Import xml file to TB.
     """
@@ -64,12 +66,12 @@ def xml_to_res(xml, gparams, skip_header = False):
         for folder in xml.findall('folder'):
             tb_path = folder.find('path')
             if tb_path is not None:
-                nd = {'path':[], 'meta': {}, 'id': '', 'children': {}}
+                c_nd = {'path':[], 'meta': {}, 'id': '', 'children': {}}
                 tb_path_text = tb_path.text
                 tb_path_list = [q for q in tb_path_text.split('/') if q]
-                nd['path'].extend(tb_path_list)
+                c_nd['path'].extend(tb_path_list)
             else:
-                nd = {'meta': {}, 'id': '', 'children': {}}
+                c_nd = {'meta': {}, 'id': '', 'children': {}}
 
             # Populate META properties
             meta = folder.find('meta')
@@ -79,23 +81,23 @@ def xml_to_res(xml, gparams, skip_header = False):
                     if meta_name is not None:
                         meta_value = meta_params.find('value')
                         if meta_value is not None and meta_value.text is not None:
-                            nd['meta'][meta_name.text] = meta_value.text
+                            c_nd['meta'][meta_name.text] = meta_value.text
                         else:
-                            nd['meta'][meta_name.text] = ''
+                            c_nd['meta'][meta_name.text] = ''
 
             # If the XML node contains an ID, use it; else, create a random ID
             tb_id = folder.find('id')
             if tb_id is not None:
                 id_value = tb_id.find('value')
                 if id_value is not None and id_value.text is not None:
-                    nd['id'] = id_value.text
+                    c_nd['id'] = id_value.text
                 else:
-                    nd['id'] = hexlify(os.urandom(5))
+                    c_nd['id'] = hexlify(os.urandom(5))
             else:
-                nd['id'] = hexlify(os.urandom(5))
+                c_nd['id'] = hexlify(os.urandom(5))
 
             # Add children for this node
-            res_dict[folder.find('fname').text] = nd
+            res_dict[folder.find('fname').text] = c_nd
             recursive_xml_to_res(folder, res_dict[folder.find('fname').text]['children'])
 
     # we have to get the information at root level(path, meta, id, version) first
@@ -128,7 +130,7 @@ def xml_to_res(xml, gparams, skip_header = False):
     return gparams
 
 
-def res_to_xml(parent_node, xml, skip_header = False):
+def res_to_xml(parent_node, xml, skip_header=False):
     """
     Export TB to xml.
     """
@@ -148,18 +150,18 @@ def res_to_xml(parent_node, xml, skip_header = False):
 
         meta = etree.SubElement(xml, 'meta')
         # meta is a dictionary
-        for k, v in parent_node.get('meta').iteritems():
+        for k_val, v_val in parent_node.get('meta').iteritems():
             tag = etree.SubElement(meta, 'param')
             prop = etree.SubElement(tag, 'name')
-            prop.text = str(k)
-            val  = etree.SubElement(tag, 'value')
-            if v:
-                val.text = str(v)
+            prop.text = str(k_val)
+            val = etree.SubElement(tag, 'value')
+            if v_val:
+                val.text = str(v_val)
             else:
                 val.text = ''
-            typ  = etree.SubElement(tag, 'type')
+            typ = etree.SubElement(tag, 'type')
             typ.text = 'string'
-            desc  = etree.SubElement(tag, 'desc')
+            etree.SubElement(tag, 'desc')
 
         tb_id = etree.SubElement(xml, 'id')
         tb_id.text = parent_node.get('id')
@@ -174,7 +176,7 @@ def res_to_xml(parent_node, xml, skip_header = False):
         return False
 
     for node in sorted(parent_node['children'].keys()):
-        nd = dict(parent_node['children'][node])
+        c_nd = dict(parent_node['children'][node])
 
         # Create empty folder
         folder = etree.SubElement(xml, 'folder')
@@ -182,39 +184,39 @@ def res_to_xml(parent_node, xml, skip_header = False):
         fname = etree.SubElement(folder, 'fname')
         fname.text = node
         # Folder fdesc
-        fdesc = etree.SubElement(folder, 'fdesc')
+        etree.SubElement(folder, 'fdesc')
 
         # get the path if exists
-        if nd.get('path'):
+        if c_nd.get('path'):
             path = etree.SubElement(folder, 'path')
-            path.text = '/'.join(nd.get('path'))
+            path.text = '/'.join(c_nd.get('path'))
 
         # get meta information
         meta = etree.SubElement(folder, 'meta')
-        if  type(nd['meta']) is dict :
-            for k, v in nd['meta'].iteritems():
+        if type(c_nd['meta']) is dict:
+            for k_var, v_var in c_nd['meta'].iteritems():
                 tag = etree.SubElement(meta, 'param')
                 prop = etree.SubElement(tag, 'name')
-                prop.text = str(k)
-                val  = etree.SubElement(tag, 'value')
-                if v:
-                    val.text = str(v)
+                prop.text = str(k_var)
+                val = etree.SubElement(tag, 'value')
+                if v_var:
+                    val.text = str(v_var)
                 else:
                     val.text = ''
-                typ  = etree.SubElement(tag, 'type')
+                typ = etree.SubElement(tag, 'type')
                 typ.text = 'string'
-                desc  = etree.SubElement(tag, 'desc')
+                etree.SubElement(tag, 'desc')
 
         # get the id
-        if nd.get('id'):
+        if c_nd.get('id'):
             tag = etree.SubElement(folder, 'id')
-            val  = etree.SubElement(tag, 'value')
-            val.text = nd['id']
-            typ  = etree.SubElement(tag, 'type')
+            val = etree.SubElement(tag, 'value')
+            val.text = c_nd['id']
+            typ = etree.SubElement(tag, 'type')
             typ.text = 'string'
-            desc  = etree.SubElement(tag, 'desc')
+            etree.SubElement(tag, 'desc')
 
-        ch = res_to_xml(nd, folder, True)
+        res_to_xml(c_nd, folder, True)
 
     return xml
 
@@ -228,7 +230,7 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
 
         self.project = project
         self.type = 'tb'
-        self.resources = constant_dictionary
+        self.resources = CONSTANT_DICTIONARY
         self.reservedResources = {}
         self.lockedResources = {}
         self.acc_lock = thread.allocate_lock() # Task change lock
@@ -237,7 +239,7 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
         self.save_lock = thread.allocate_lock() # Save lock
         self.load_lock = thread.allocate_lock() # Save lock
         self.res_file = '{}/config/resources.json'.format(TWISTER_PATH)
-        self._loadedUsers = {}
+        self._loaded_users = {}
         self.load_tb(verbose=True)
 
 
@@ -249,18 +251,18 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
 
         with self.load_lock:
             if not self.resources.get('children'):
-                self.resources = constant_dictionary
+                self.resources = CONSTANT_DICTIONARY
 
             # try to load test bed resources file
             try:
-                f = open(self.res_file, 'r')
-                self.resources = json.load(f)
-                f.close()
-                del f
+                f_p = open(self.res_file, 'r')
+                self.resources = json.load(f_p)
+                f_p.close()
+                del f_p
                 if verbose:
                     logDebug('TBs loaded successfully.')
-            except Exception as e:
-                logError('Error loading TBs! {}'.format(e))
+            except Exception as exp_err:
+                logError('Error loading TBs! {}'.format(exp_err))
 
             is_res_modified = False
             # make older resources files that don't have 'path' compatible
@@ -290,14 +292,14 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
         log = []
 
         with self.save_lock:
-            v = self.resources.get('version', 0)
-            self.resources['version'] = v + 1
+            ver = self.resources.get('version', 0)
+            self.resources['version'] = ver + 1
             try:
                 logDebug('Saving test bed file.')
-                with open(self.res_file, 'w') as f:
-                    json.dump(self.resources, f, indent=4)
-            except Exception as e:
-                log.append(e)
+                with open(self.res_file, 'w') as f_p:
+                    json.dump(self.resources, f_p, indent=4)
+            except Exception as exp_err:
+                log.append(exp_err)
         if log:
             logError(log)
             return '*ERROR* ' + str(log)
@@ -327,7 +329,7 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
 
         if isinstance(result, dict):
             if ':' in query:
-                meta  = query.split(':')[1]
+                meta = query.split(':')[1]
                 ret = result['meta'].get(meta, '')
                 return ret
             else:
@@ -353,20 +355,20 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
             return "*ERROR* " + msg
 
         if ':' in res_query:
-            meta      = res_query.split(':')[1]
+            meta = res_query.split(':')[1]
             res_query = res_query.split(':')[0]
         else:
             meta = ''
 
-        _isResourceReserved = self.is_resource_reserved(res_query, props)
-        if _isResourceReserved and _isResourceReserved != user_info[0]:
-            msg = 'User {}: The resource is reserved for {} !'.format(user_info[0], _isResourceReserved)
+        _is_res_reserved = self.is_resource_reserved(res_query, props)
+        if _is_res_reserved and _is_res_reserved != user_info[0]:
+            msg = 'User {}: The resource is reserved for {} !'.format(user_info[0], _is_res_reserved)
             logError(msg)
             return '*ERROR* ' + msg
 
-        _isResourceLocked = self.is_resource_locked(res_query)
-        if _isResourceLocked and _isResourceLocked != user_info[0]:
-            msg = 'User {}: The resource is locked for {} !'.format(user_info[0], _isResourceLocked)
+        _is_res_locked = self.is_resource_locked(res_query)
+        if _is_res_locked and _is_res_locked != user_info[0]:
+            msg = 'User {}: The resource is locked for {} !'.format(user_info[0], _is_res_locked)
             logError(msg)
             return '*ERROR* ' + msg
 
@@ -437,20 +439,20 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
         user_info = self.user_info(props)
 
         if ':' in query:
-            meta  = query.split(':')[1]
+            meta = query.split(':')[1]
             query = query.split(':')[0]
         else:
             meta = ''
 
-        _isResourceReserved = self.is_resource_reserved(query, props)
-        if _isResourceReserved and _isResourceReserved != user_info[0]:
-            msg = 'User {}: The resource is reserved for {} !'.format(user_info[0], _isResourceReserved)
+        _is_res_reserved = self.is_resource_reserved(query, props)
+        if _is_res_reserved and _is_res_reserved != user_info[0]:
+            msg = 'User {}: The resource is reserved for {} !'.format(user_info[0], _is_res_reserved)
             logWarning(msg)
             return '*ERROR* ' + msg
 
-        _isResourceLocked = self.is_resource_locked(query)
-        if _isResourceLocked and _isResourceLocked != user_info[0]:
-            msg = 'User {}: The resource is locked for {} !'.format(user_info[0], _isResourceLocked)
+        _is_res_locked = self.is_resource_locked(query)
+        if _is_res_locked and _is_res_locked != user_info[0]:
+            msg = 'User {}: The resource is locked for {} !'.format(user_info[0], _is_res_locked)
             logWarning(msg)
             return '*ERROR* ' + msg
 
@@ -504,7 +506,8 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
                     base_path = '/'.join(result['path'][1:-1])
                     parent = self.get_path(base_path, result)
                     if not isinstance(parent, dict):
-                        msg = msg = 'Rename error for TB `{}`, invalid parent on {}!'.format(result['path'][-1], result['id'])
+                        msg = msg = 'Rename error for TB `{}`, invalid parent \
+                        on {}!'.format(result['path'][-1], result['id'])
                         logWarning(msg)
                         return 'false'
                     parent['children'][new_name] = parent['children'].pop(result['path'][-1])
@@ -532,15 +535,15 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
             logError(msg)
             return "*ERROR* " + msg
 
-        _isResourceReserved = self.is_resource_reserved(parent, props)
-        if _isResourceReserved and _isResourceReserved != user_info[0]:
-            msg = 'User {}: The resource is reserved for {} !'.format(user_info[0], _isResourceReserved)
+        _is_res_reserved = self.is_resource_reserved(parent, props)
+        if _is_res_reserved and _is_res_reserved != user_info[0]:
+            msg = 'User {}: The resource is reserved for {} !'.format(user_info[0], _is_res_reserved)
             logError(msg)
             return '*ERROR* ' + msg
 
-        _isResourceLocked = self.is_resource_locked(parent)
-        if _isResourceLocked and _isResourceLocked != user_info[0]:
-            msg = 'User {}: The resource is locked for {} !'.format(user_info[0], _isResourceLocked)
+        _is_res_locked = self.is_resource_locked(parent)
+        if _is_res_locked and _is_res_locked != user_info[0]:
+            msg = 'User {}: The resource is locked for {} !'.format(user_info[0], _is_res_locked)
             logError(msg)
             return '*ERROR* ' + msg
 
@@ -644,20 +647,20 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
             #we can not reserve the root so we just take the TB we need
             if name[0] != '/':
                 name = '/' + name
-            verifyReserved = name
+            verify_reserved = name
         else:
             #take the TB that has the component we need
-            verifyReserved = parent
+            verify_reserved = parent
 
-        _isResourceReserved = self.is_resource_reserved(verifyReserved, props)
-        if _isResourceReserved and _isResourceReserved != user_info[0]:
-            msg = 'User {}: The resource is reserved for {} !'.format(user_info[0], _isResourceReserved)
+        _is_res_reserved = self.is_resource_reserved(verify_reserved, props)
+        if _is_res_reserved and _is_res_reserved != user_info[0]:
+            msg = 'User {}: The resource is reserved for {} !'.format(user_info[0], _is_res_reserved)
             logError(msg)
             return '*ERROR* ' + msg
 
-        _isResourceLocked = self.is_resource_locked(verifyReserved)
-        if _isResourceLocked and _isResourceLocked != user_info[0]:
-            msg = 'User {}: Reserve resource: The resource is locked for {} !'.format(user_info[0], _isResourceLocked)
+        _is_res_locked = self.is_resource_locked(verify_reserved)
+        if _is_res_locked and _is_res_locked != user_info[0]:
+            msg = 'User {}: Reserve resource: The resource is locked for {} !'.format(user_info[0], _is_res_locked)
             logError(msg)
             return '*ERROR* ' + msg
 
@@ -678,10 +681,10 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
                     return "*ERROR* " + msg
                 return "true"
 
-            parent_p = self.get_reserved_resource(verifyReserved, props)
+            parent_p = self.get_reserved_resource(verify_reserved, props)
 
             if not parent_p:
-                logError('User {}: Cannot access reserved resource `{}` !'.format(user_info[0], verifyReserved))
+                logError('User {}: Cannot access reserved resource `{}` !'.format(user_info[0], verify_reserved))
                 return False
 
             #the resources is deep in the tree, we have to get its direct parent
@@ -812,8 +815,8 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
         self.load_tb(verbose=False)
 
         res = []
-        for k, v in self.resources.get('children').iteritems():
-            res.append([k, v['id']])
+        for k_val, v_val in self.resources.get('children').iteritems():
+            res.append([k_val, v_val['id']])
         result = []
 
         def quick_find_path(dictionary, spath):
@@ -830,19 +833,19 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
                         return usr
             return None
 
-        for tb, tb_id in sorted(res):
-            ruser = quick_find_path(self.reservedResources, tb)
-            luser = quick_find_path(self.lockedResources, tb)
+        for tb_name, tb_id in sorted(res):
+            ruser = quick_find_path(self.reservedResources, tb_name)
+            luser = quick_find_path(self.lockedResources, tb_name)
 
             if (not ruser) and (not luser):
-                result.append({'id': tb_id, 'name': tb, 'status': 'free'})
+                result.append({'id': tb_id, 'name': tb_name, 'status': 'free'})
             elif ruser:
-                result.append({'id': tb_id, 'name': tb, 'status': 'reserved', 'user': ruser})
+                result.append({'id': tb_id, 'name': tb_name, 'status': 'reserved', 'user': ruser})
             elif luser:
-                result.append({'id': tb_id, 'name': tb, 'status': 'locked', 'user': luser})
+                result.append({'id': tb_id, 'name': tb_name, 'status': 'locked', 'user': luser})
             # Both reserved and locked ?
             else:
-                result.append({'id': tb_id, 'name': tb, 'status': 'reserved', 'user': ruser})
+                result.append({'id': tb_id, 'name': tb_name, 'status': 'reserved', 'user': ruser})
 
         logDebug('Fast listing Resources... Found {}.'.format(res))
 
@@ -859,7 +862,7 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
         logDebug('User {}: exporting to XML file `{}`'.format(user_info[0], xml_file))
 
         try:
-            f = open(xml_file, 'w')
+            f_p = open(xml_file, 'w')
         except:
             msg = 'User {}: export XML: XML file `{}` cannot be written !'.format(user_info[0], xml_file)
             logError(msg)
@@ -868,10 +871,10 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
         logDebug('User {}: exporting to XML file `{}`...'.format(user_info[0], xml_file))
 
         xml = etree.Element('root')
-        result = res_to_xml(self.resources, xml, False)
-        f.write('<?xml version="1.0" encoding="UTF-8" standalone="no"?>\n\n')
-        f.write(etree.tostring(xml, pretty_print=True))
-        f.close()
+        res_to_xml(self.resources, xml, False)
+        f_p.write('<?xml version="1.0" encoding="UTF-8" standalone="no"?>\n\n')
+        f_p.write(etree.tostring(xml, pretty_print=True))
+        f_p.close()
 
         return True
 
@@ -883,7 +886,7 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
         WARNING! This erases everything!
         """
         user_info = self.user_info(props)
-        self.resources = constant_dictionary
+        self.resources = CONSTANT_DICTIONARY
 
         logDebug('{} -- XML file `{}` !'.format(user_info[0], xml_file))
         if not os.path.isfile(xml_file):
@@ -902,8 +905,8 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
         with self.imp_lock:
             try:
                 self.resources = xml_to_res(params_xml, {})
-            except Exception as e:
-                msg = 'User {}: Import XML: Exception `{}`.'.format(user_info[0], e)
+            except Exception as exp_err:
+                msg = 'User {}: Import XML: Exception `{}`.'.format(user_info[0], exp_err)
                 logError(msg)
                 return '*ERROR* ' + msg
         # Write changes for Device or SUT
@@ -964,7 +967,7 @@ class TestBeds(_cptools.XMLRPCController, CommonAllocator):
         reserved_node = reserved_resources[resource_node['id']]
 
         # maybe the user renamed the TB
-        if (reserved_node != resource_node):
+        if reserved_node != resource_node:
             self.resources['children'][reserved_node['path'][0]] = \
             self.resources['children'].pop(resource_node['path'][0])
         # or maybe the name of the resource is the same

@@ -1,7 +1,7 @@
 
 # File: CeXmlRpc.py ; This file is part of Twister.
 
-# version: 3.019
+# version: 3.020
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -46,8 +46,6 @@ import socket
 socket.setdefaulttimeout(5)
 import binascii
 import pickle
-import tarfile
-import xmlrpclib
 import urlparse
 import MySQLdb
 
@@ -56,16 +54,17 @@ from cherrypy import _cptools
 
 TWISTER_PATH = os.getenv('TWISTER_PATH')
 if not TWISTER_PATH:
-    print('$TWISTER_PATH environment variable is not set! Exiting!')
+    print '$TWISTER_PATH environment variable is not set! Exiting!'
     exit(1)
 if TWISTER_PATH not in sys.path:
     sys.path.append(TWISTER_PATH)
 
 
-from common.constants  import *
-from common.helpers    import *
-from common.tsclogging import *
-from common.xmlparser  import *
+from common.constants  import STATUS_RUNNING, EXEC_STATUS, STATUS_STOP
+from common.helpers    import systemInfo, userHome, execScript
+from common.helpers    import setFileOwner, getFileTags
+from common.tsclogging import logFull, logWarning, logError, logDebug, logInfo
+from common.xmlparser  import ClearCaseParser, DBParser, PluginParser
 
 
 
@@ -182,11 +181,11 @@ class CeXmlRpc(_cptools.XMLRPCController):
         Store in a json file the tags from each test case file
         """
         user = cherrypy.session.get('username')
-        userConn = self.project._find_local_client(user)
+        user_conn = self.project._find_local_client(user)
         try:
-            result = userConn.root.generate_index()
-        except Exception as e:
-            return '*ERROR* Cannot generate index for user `{}`: `{}`!'.format(user, e)
+            result = user_conn.root.generate_index()
+        except Exception as exp_err:
+            return '*ERROR* Cannot generate index for user `{}`: `{}`!'.format(user, exp_err)
         return result
 
 
@@ -196,11 +195,11 @@ class CeXmlRpc(_cptools.XMLRPCController):
         Search for a query in the file index
         """
         user = cherrypy.session.get('username')
-        userConn = self.project._find_local_client(user)
+        user_conn = self.project._find_local_client(user)
         try:
-            result = copy.deepcopy(userConn.root.parse_index(query))
-        except Exception as e:
-            return '*ERROR* Cannot search index for user `{}`: `{}`!'.format(user, e)
+            result = copy.deepcopy(user_conn.root.parse_index(query))
+        except Exception as exp_err:
+            return '*ERROR* Cannot search index for user `{}`: `{}`!'.format(user, exp_err)
         if isinstance(result, str):
             logWarning(result)
             return result
@@ -209,8 +208,8 @@ class CeXmlRpc(_cptools.XMLRPCController):
         if not result:
             return {'path':tests_path, 'data':'tests', 'folder':True, 'children':[]}
 
-        allFiles = self.project.localFs.list_user_files(user, tests_path, True, True, result)
-        return allFiles
+        all_files = self.project.localFs.list_user_files(user, tests_path, True, True, result)
+        return all_files
 
 
     @cherrypy.expose
@@ -225,8 +224,8 @@ class CeXmlRpc(_cptools.XMLRPCController):
         try:
             ep_conn.root.echo(text)
             return True
-        except Exception as e:
-            logWarning('User `{}` - exception on EP echo: `{}`!'.format(user, e))
+        except Exception as exp_err:
+            logWarning('User `{}` - exception on EP echo: `{}`!'.format(user, exp_err))
             return False
 
 
@@ -243,8 +242,8 @@ class CeXmlRpc(_cptools.XMLRPCController):
             ep_conn.root.dbg_continue()
             logDebug('User `{}` sent EP debug continue.'.format(user))
             return True
-        except Exception as e:
-            logWarning('User `{}` - exception on EP continue: `{}`!'.format(user, e))
+        except Exception as exp_err:
+            logWarning('User `{}` - exception on EP continue: `{}`!'.format(user, exp_err))
             return False
 
 
@@ -260,8 +259,8 @@ class CeXmlRpc(_cptools.XMLRPCController):
         try:
             ep_conn.root.set_interact(response)
             logDebug('User `{}` sent EP response continue.'.format(user))
-        except Exception as e:
-            logWarning('User `{}` - exception on EP continue: `{}`!'.format(user, e))
+        except Exception as exp_err:
+            logWarning('User `{}` - exception on EP continue: `{}`!'.format(user, exp_err))
         self.project.set_exec_status(user, epname, STATUS_RUNNING)
         return True
 
@@ -275,9 +274,9 @@ class CeXmlRpc(_cptools.XMLRPCController):
         Transform 1 ClearCase.XML tag name into a ClearCase view + path.
         """
         user = cherrypy.session.get('username')
-        ccConfigs = ClearCaseParser(user).getConfigs(tag_or_view)
-        if ccConfigs and 'view' in ccConfigs and 'actv' in ccConfigs:
-            return ccConfigs['view'] + ':' + ccConfigs['actv']
+        cc_cfgs = ClearCaseParser(user).getConfigs(tag_or_view)
+        if cc_cfgs and 'view' in cc_cfgs and 'actv' in cc_cfgs:
+            return cc_cfgs['view'] + ':' + cc_cfgs['actv']
         else:
             return False
 
@@ -378,11 +377,11 @@ class CeXmlRpc(_cptools.XMLRPCController):
 
         if type == 'predefined':
             # Auto detect if ClearCase Test Config Path is active
-            ccConfig = self.project.get_clearcase_config(user, 'predefined_path')
-            if ccConfig:
-                view = ccConfig['view']
-                actv = ccConfig['actv']
-                fdir = ccConfig['path'].rstrip('/')
+            cc_cfg = self.project.get_clearcase_config(user, 'predefined_path')
+            if cc_cfg:
+                view = cc_cfg['view']
+                actv = cc_cfg['actv']
+                fdir = cc_cfg['path'].rstrip('/')
                 if not fdir:
                     return '*ERROR* You did not set ClearCase Predefined Suites Path!'
                 user_view_actv = '{}:{}:{}'.format(user, view, actv)
@@ -394,11 +393,11 @@ class CeXmlRpc(_cptools.XMLRPCController):
 
         else:
             # Auto detect if ClearCase Test Config Path is active
-            ccConfig = self.project.get_clearcase_config(user, 'projects_path')
-            if ccConfig:
-                view = ccConfig['view']
-                actv = ccConfig['actv']
-                fdir = ccConfig['path'].rstrip('/')
+            cc_cfg = self.project.get_clearcase_config(user, 'projects_path')
+            if cc_cfg:
+                view = cc_cfg['view']
+                actv = cc_cfg['actv']
+                fdir = cc_cfg['path'].rstrip('/')
                 if not fdir:
                     return '*ERROR* You did not set ClearCase Project Path!'
                 user_view_actv = '{}:{}:{}'.format(user, view, actv)
@@ -436,11 +435,11 @@ class CeXmlRpc(_cptools.XMLRPCController):
         """
         user = cherrypy.session.get('username')
         # Auto detect if ClearCase Test Config Path is active
-        ccConfig = self.project.get_clearcase_config(user, 'projects_path')
-        if ccConfig:
-            view = ccConfig['view']
-            actv = ccConfig['actv']
-            path = ccConfig['path'].rstrip('/')
+        cc_cfg = self.project.get_clearcase_config(user, 'projects_path')
+        if cc_cfg:
+            view = cc_cfg['view']
+            actv = cc_cfg['actv']
+            path = cc_cfg['path'].rstrip('/')
             if not path:
                 return '*ERROR* User `{}` did not set ClearCase Project Path!'.format(user)
             user_view_actv = '{}:{}:{}'.format(user, view, actv)
@@ -459,9 +458,9 @@ class CeXmlRpc(_cptools.XMLRPCController):
         user = cherrypy.session.get('username')
 
         # Auto detect if ClearCase Test Config Path is active
-        ccConfig = self.project.get_clearcase_config(user, 'predefined_path')
-        if ccConfig:
-            fdir = ccConfig['path']
+        cc_cfg = self.project.get_clearcase_config(user, 'predefined_path')
+        if cc_cfg:
+            fdir = cc_cfg['path']
             if not fdir:
                 return '*ERROR* You did not set ClearCase Project Path!'
         else:
@@ -479,10 +478,10 @@ class CeXmlRpc(_cptools.XMLRPCController):
         user = cherrypy.session.get('username')
         # Auto detect if ClearCase Test Config Path is active
         logDebug('GUI read_predefined_suite {} {}'.format(user, abspath))
-        ccConfig = self.project.get_clearcase_config(user, 'predefined_path')
-        if ccConfig:
-            view = ccConfig['view']
-            actv = ccConfig['actv']
+        cc_cfg = self.project.get_clearcase_config(user, 'predefined_path')
+        if cc_cfg:
+            view = cc_cfg['view']
+            actv = cc_cfg['actv']
             user_view_actv = '{}:{}:{}'.format(user, view, actv)
             return self.project.clearFs.read_user_file(user_view_actv, abspath)
         else:
@@ -496,10 +495,10 @@ class CeXmlRpc(_cptools.XMLRPCController):
         """
         user = cherrypy.session.get('username')
         # Auto detect if ClearCase Test Config Path is active
-        ccConfig = self.project.get_clearcase_config(user, 'predefined_path')
-        if ccConfig:
-            view = ccConfig['view']
-            actv = ccConfig['actv']
+        cc_cfg = self.project.get_clearcase_config(user, 'predefined_path')
+        if cc_cfg:
+            view = cc_cfg['view']
+            actv = cc_cfg['actv']
             user_view_actv = '{}:{}:{}'.format(user, view, actv)
             return self.project.clearFs.write_user_file(user_view_actv, abspath, content)
         else:
@@ -517,16 +516,16 @@ class CeXmlRpc(_cptools.XMLRPCController):
         if type == 'clearcase':
             if 'ClearCase' in self.list_plugins(user):
                 # Get all ClearCase data from clearcase XML
-                ccConfigs = ClearCaseParser(user).getConfigs()
-                if not 'tests_path' in ccConfigs:
+                cc_cfgs = ClearCaseParser(user).getConfigs()
+                if not 'tests_path' in cc_cfgs:
                     err = '*ERROR* User `{}` did not activate ClearCase Tests Path!'.format(user)
                     logWarning(err)
                     return err
-                ccConfig = ccConfigs['tests_path']
-                logDebug('CC tests data: {}'.format(ccConfig))
-                view = ccConfig['view']
-                actv = ccConfig['actv']
-                path = ccConfig['path']
+                cc_cfg = cc_cfgs['tests_path']
+                logDebug('CC tests data: {}'.format(cc_cfg))
+                view = cc_cfg['view']
+                actv = cc_cfg['actv']
+                path = cc_cfg['path']
                 if not path:
                     return '*ERROR* User `{}` did not set ClearCase Tests Path!'.format(user)
                 user_view_actv = '{}:{}:{}'.format(user, view, actv)
@@ -593,10 +592,10 @@ class CeXmlRpc(_cptools.XMLRPCController):
         conn = False
 
         try:
-            conn = MySQLdb.connect(host=db_server, db=db_name,
-                   user=db_user, passwd=db_password, connect_timeout=5)
-        except Exception as e:
-            err = 'MySQL error `{}`!'.format(e)
+            conn = MySQLdb.connect(host=db_server, db=db_name,\
+            user=db_user, passwd=db_password, connect_timeout=5)
+        except Exception as exp_err:
+            err = 'MySQL error `{}`!'.format(exp_err)
 
         if not conn:
             # Need to magically identify the correct key; the first pair is from private DB.xml;
@@ -612,10 +611,10 @@ class CeXmlRpc(_cptools.XMLRPCController):
             db_password = self.project.decrypt_text(user, db_password, encr_key)
 
             try:
-                conn = MySQLdb.connect(host=db_server, db=db_name,
-                       user=db_user, passwd=db_password, connect_timeout=5)
-            except Exception as e:
-                err = 'MySQL error `{}`!'.format(e)
+                conn = MySQLdb.connect(host=db_server, db=db_name,\
+                user=db_user, passwd=db_password, connect_timeout=5)
+            except Exception as exp_err:
+                err = 'MySQL error `{}`!'.format(exp_err)
 
         if conn:
             logInfo('MySQL {} connection `{} @ {} / {}` is OK, for user `{}`.'.format(
@@ -639,8 +638,8 @@ class CeXmlRpc(_cptools.XMLRPCController):
         else:
             shared_db = 'false'
 
-        logInfo('MySQL database switched to `{}`, for user `{}`.'.format(
-                'Shared' if shared_db=='true' else 'User', user))
+        logInfo('MySQL database switched to `{}`, for user `{}`.'.\
+        format('Shared' if shared_db == 'true' else 'User', user))
         self.project.set_user_info(user, 'use_shared_db', shared_db)
         return True
 
@@ -687,13 +686,13 @@ class CeXmlRpc(_cptools.XMLRPCController):
 
         try:
             curs.execute(query)
-        except MySQLdb.Error as e:
-            err = 'MySQL Error %d: %s' % (e.args[0], e.args[1])
+        except MySQLdb.Error as exp_err:
+            err = 'MySQL Error %d: %s' % (exp_err.args[0], exp_err.args[1])
             logError(err)
             return err
 
         rows = curs.fetchall()
-        msg_str = ','.join( '|'.join([str(i) for i in row]) for row in rows )
+        msg_str = ','.join('|'.join([str(i) for i in row]) for row in rows)
 
         curs.close()
         conn.close()
@@ -713,7 +712,7 @@ class CeXmlRpc(_cptools.XMLRPCController):
         try:
             ret = self.project.send_mail(user, force)
             return ret
-        except Exception as e:
+        except Exception as exp_err:
             trace = traceback.format_exc()[34:].strip()
             logError('E-mail: Sending e-mail exception `{}` !'.format(trace))
             return False
@@ -785,7 +784,7 @@ class CeXmlRpc(_cptools.XMLRPCController):
         """
         Del a key from the config of a user.
         """
-        user = cherrypy.session.get('username')
+        cherrypy.session.get('username')
         return self.project.del_settings_key(config, key, index)
 
 
@@ -892,8 +891,8 @@ class CeXmlRpc(_cptools.XMLRPCController):
         Search one EP and return True or False.
         """
         logFull('CeXmlRpc:search_ep user `{}`.'.format(user))
-        epDict = self.project.get_user_info(user, 'eps')
-        return epname in epDict
+        ep_dict = self.project.get_user_info(user, 'eps')
+        return epname in ep_dict
 
 
     @cherrypy.expose
@@ -911,8 +910,8 @@ class CeXmlRpc(_cptools.XMLRPCController):
         Returns all EPs for current user.
         """
         logFull('CeXmlRpc:list_eps user `{}`.'.format(user))
-        epList = self.project.get_user_info(user, 'eps') or {}
-        return ','.join(epList.keys())
+        ep_list = self.project.get_user_info(user, 'eps') or {}
+        return ','.join(ep_list.keys())
 
 
     @cherrypy.expose
@@ -956,12 +955,13 @@ class CeXmlRpc(_cptools.XMLRPCController):
         """
         logFull('CeXmlRpc:list_suites user `{}`.'.format(user))
         if not self.search_ep(user, epname):
-            logError('CE ERROR! EP `%s` is not in the list of defined EPs: `%s`!' %\
-                     (str(epname), self.list_eps(user)) )
+            logError('CE ERROR! EP `%s` is not in the list of defined EPs: \
+            `%s`!' % (str(epname), self.list_eps(user)))
             return False
 
-        suiteList   = [str(k)+':'+v['name'] for k, v in self.project.get_ep_info(user, epname)['suites'].items()]
-        return ','.join(suiteList)
+        suite_list = [str(k)+':'+v['name'] for k, v in self.project.\
+        get_ep_info(user, epname)['suites'].items()]
+        return ','.join(suite_list)
 
 
     @cherrypy.expose
@@ -1073,11 +1073,11 @@ class CeXmlRpc(_cptools.XMLRPCController):
         if not user:
             user = cherrypy.session.get('username')
         # Auto detect if ClearCase Test Config Path is active
-        ccConfig = self.project.get_clearcase_config(user, 'tcfg_path')
-        if ccConfig:
-            view = ccConfig['view']
-            actv = ccConfig['actv']
-            path = ccConfig['path']
+        cc_cfg = self.project.get_clearcase_config(user, 'tcfg_path')
+        if cc_cfg:
+            view = cc_cfg['view']
+            actv = cc_cfg['actv']
+            path = cc_cfg['path']
             user_view_actv = '{}:{}:{}'.format(user, view, actv)
             return self.project.clearFs.list_user_files(user_view_actv, path)
         else:
@@ -1160,11 +1160,11 @@ class CeXmlRpc(_cptools.XMLRPCController):
         fpath = fpath.rstrip('/') + '/'
 
         # Auto detect if ClearCase Test Config Path is active
-        ccConfig = self.project.get_clearcase_config(user, 'tcfg_path')
-        if ccConfig:
-            view = ccConfig['view']
-            actv = ccConfig['actv']
-            path = ccConfig['path']
+        cc_cfg = self.project.get_clearcase_config(user, 'tcfg_path')
+        if cc_cfg:
+            view = cc_cfg['view']
+            actv = cc_cfg['actv']
+            path = cc_cfg['path']
             user_view_actv = '{}:{}:{}'.format(user, view, actv)
             return self.project.clearFs.create_user_folder(user_view_actv, path +'/'+ fpath)
         else:
@@ -1203,11 +1203,11 @@ class CeXmlRpc(_cptools.XMLRPCController):
             self.project.parsers[user].del_binding(fdir)
 
         # Auto detect if ClearCase Test Config Path is active
-        ccConfig = self.project.get_clearcase_config(user, 'tcfg_path')
-        if ccConfig:
-            view = ccConfig['view']
-            actv = ccConfig['actv']
-            path = ccConfig['path']
+        cc_cfg = self.project.get_clearcase_config(user, 'tcfg_path')
+        if cc_cfg:
+            view = cc_cfg['view']
+            actv = cc_cfg['actv']
+            path = cc_cfg['path']
             user_view_actv = '{}:{}:{}'.format(user, view, actv)
             return self.project.clearFs.delete_user_folder(user_view_actv, path +'/'+ fpath)
         else:
@@ -1232,12 +1232,12 @@ class CeXmlRpc(_cptools.XMLRPCController):
         Return True/ False.
         """
         fdata = self.project.parsers[user].set_binding(fpath, content)
-        r = self.write_file('~/twister/config/bindings.xml', binascii.b2a_base64(fdata))
-        if r:
+        res = self.write_file('~/twister/config/bindings.xml', binascii.b2a_base64(fdata))
+        if res:
             logDebug('User `{}` writes bindings for `{}`.'.format(user, fpath))
         else:
             logWarning('User `{}` could not update bindings for `{}`!'.format(user, fpath))
-        return r
+        return res
 
 
     @cherrypy.expose
@@ -1283,8 +1283,8 @@ class CeXmlRpc(_cptools.XMLRPCController):
         """
         logFull('CeXmlRpc:get_exec_status user `{}`.'.format(user))
         if not self.search_ep(user, epname):
-            logError('CE ERROR! EP `%s` is not in the list of defined EPs: `%s`!' %
-                     (str(epname), self.list_eps(user)) )
+            logError('CE ERROR! EP `%s` is not in the list of defined \
+            EPs: `%s`!' % (str(epname), self.list_eps(user)))
             return False
 
         data = self.project.get_ep_info(user, epname)
@@ -1293,8 +1293,8 @@ class CeXmlRpc(_cptools.XMLRPCController):
         self.project.set_ep_info(user, epname, 'last_seen_alive', \
             datetime.datetime.today().strftime('%Y-%m-%d %H:%M:%S'))
         # Return a status, or stop
-        reversed = dict((v, k) for k, v in EXEC_STATUS.iteritems())
-        return reversed[data.get('status', 8)]
+        rev_dict = dict((v, k) for k, v in EXEC_STATUS.iteritems())
+        return rev_dict[data.get('status', 8)]
 
 
     @cherrypy.expose
@@ -1304,7 +1304,7 @@ class CeXmlRpc(_cptools.XMLRPCController):
         Called by applet or other UI
         """
         data = self.project.get_user_info(user)
-        interact_queue = data.get('interact',[])
+        interact_queue = data.get('interact', [])
         interact_string = ''
         if interact_queue:
             for interact in interact_queue:
@@ -1329,8 +1329,8 @@ class CeXmlRpc(_cptools.XMLRPCController):
         """
         logFull('CeXmlRpc:get_exec_status_all user `{}`.'.format(user))
         data = self.project.get_user_info(user)
-        reversed = dict((v, k) for k, v in EXEC_STATUS.iteritems())
-        status = reversed[data.get('status', 8)]
+        rev_dict = dict((v, k) for k, v in EXEC_STATUS.iteritems())
+        status = rev_dict[data.get('status', 8)]
 
         # If start time is not define, then define it
         if not data.get('start_time'):
@@ -1429,8 +1429,8 @@ class CeXmlRpc(_cptools.XMLRPCController):
         """
         logFull('CeXmlRpc:list_plugins user `{}`.'.format(user))
         parser = PluginParser(user)
-        pluginsList = parser.getPlugins()
-        return pluginsList.keys()
+        plugins_list = parser.getPlugins()
+        return plugins_list.keys()
 
 
     @cherrypy.expose
@@ -1464,11 +1464,11 @@ class CeXmlRpc(_cptools.XMLRPCController):
 
         try:
             return plugin_p.run(args)
-        except Exception as e:
+        except Exception as exp_err:
             trace = traceback.format_exc()[34:].strip()
             logError('*ERROR* Plugin `{}`, ran with arguments `{}` and raised Exception: `{}`!'\
                      .format(plugin, args, trace))
-            return 'Error on running plugin `{}` - Exception: `{}`!'.format(plugin, e)
+            return 'Error on running plugin `{}` - Exception: `{}`!'.format(plugin, exp_err)
 
 
     @cherrypy.expose
@@ -1499,10 +1499,10 @@ class CeXmlRpc(_cptools.XMLRPCController):
         user_roles = self.project.authenticate(user)
 
         # Auto detect if ClearCase Test Config Path is active
-        ccConfig = self.project.get_clearcase_config(user, 'tests_path')
-        if user_roles and ccConfig:
-            view = ccConfig['view']
-            actv = ccConfig['actv']
+        cc_cfg = self.project.get_clearcase_config(user, 'tests_path')
+        if user_roles and cc_cfg:
+            view = cc_cfg['view']
+            actv = cc_cfg['actv']
             text = self.project.read_file(user, fname, type='clearcase:' + view)
             tags = re.findall('^[ ]*?[#]*?[ ]*?<(?P<tag>\w+)>([ -~\n]+?)</(?P=tag)>', text, re.MULTILINE)
             result = '<br>\n'.join(['<b>' + title + '</b> : ' + descr.replace('<', '&lt;') for title, descr in tags])
@@ -1532,10 +1532,10 @@ class CeXmlRpc(_cptools.XMLRPCController):
         user_roles = self.project.authenticate(user)
 
         # Auto detect if ClearCase Test Config Path is active
-        ccConfig = self.project.get_clearcase_config(user, 'tests_path')
-        if user_roles and ccConfig:
-            view = ccConfig['view']
-            actv = ccConfig['actv']
+        cc_cfg = self.project.get_clearcase_config(user, 'tests_path')
+        if user_roles and cc_cfg:
+            view = cc_cfg['view']
+            actv = cc_cfg['actv']
 
             user_view_actv = '{}:{}:{}'.format(user, view, actv)
             data = self.project.clearFs.system_command(user_view_actv, 'cleartool lsco {}'.format(fname))
@@ -1561,10 +1561,10 @@ class CeXmlRpc(_cptools.XMLRPCController):
         user_roles = self.project.authenticate(user)
 
         # Auto detect if ClearCase Test Config Path is active
-        ccConfig = self.project.get_clearcase_config(user, 'tests_path')
-        if user_roles and ccConfig:
-            view = ccConfig['view']
-            actv = ccConfig['actv']
+        cc_cfg = self.project.get_clearcase_config(user, 'tests_path')
+        if user_roles and cc_cfg:
+            view = cc_cfg['view']
+            actv = cc_cfg['actv']
 
             user_view_actv = '{}:{}:{}'.format(user, view, actv)
             data = self.project.clearFs.system_command(user_view_actv, 'cleartool co {} {}'.format(comment, fname))
@@ -1592,10 +1592,10 @@ class CeXmlRpc(_cptools.XMLRPCController):
         user_roles = self.project.authenticate(user)
 
         # Auto detect if ClearCase Test Config Path is active
-        ccConfig = self.project.get_clearcase_config(user, 'tests_path')
-        if user_roles and ccConfig:
-            view = ccConfig['view']
-            actv = ccConfig['actv']
+        cc_cfg = self.project.get_clearcase_config(user, 'tests_path')
+        if user_roles and cc_cfg:
+            view = cc_cfg['view']
+            actv = cc_cfg['actv']
 
             user_view_actv = '{}:{}:{}'.format(user, view, actv)
             data = self.project.clearFs.system_command(user_view_actv, 'cleartool unco -rm {}'.format(fname))
@@ -1623,10 +1623,10 @@ class CeXmlRpc(_cptools.XMLRPCController):
         user_roles = self.project.authenticate(user)
 
         # Auto detect if ClearCase Test Config Path is active
-        ccConfig = self.project.get_clearcase_config(user, 'tests_path')
-        if user_roles and ccConfig:
-            view = ccConfig['view']
-            actv = ccConfig['actv']
+        cc_cfg = self.project.get_clearcase_config(user, 'tests_path')
+        if user_roles and cc_cfg:
+            view = cc_cfg['view']
+            actv = cc_cfg['actv']
 
             user_view_actv = '{}:{}:{}'.format(user, view, actv)
             data = self.project.clearFs.system_command(user_view_actv, 'cleartool ci {} {}'.format(comment, fname))
@@ -1733,6 +1733,6 @@ class CeXmlRpc(_cptools.XMLRPCController):
         It computes the number of iterations a test configuration contains
         It's called each time the user manipulates the configs for a test
         """
-        return self.project.xparser.get_number_of_iterations(user,configs)
+        return self.project.xparser.get_number_of_iterations(user, configs)
 
 # Eof()

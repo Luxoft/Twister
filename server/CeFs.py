@@ -1,7 +1,7 @@
 
 # File: CeFs.py ; This file is part of Twister.
 
-# version: 3.024
+# version: 3.025
 
 # Copyright (C) 2012-2014, Luxoft
 
@@ -34,18 +34,20 @@ import socket
 import subprocess
 from plumbum import local
 import rpyc
+import pwd
+import grp
 
 socket.setdefaulttimeout(3)
 
 TWISTER_PATH = os.getenv('TWISTER_PATH')
 if not TWISTER_PATH:
-    print('$TWISTER_PATH environment variable is not set! Exiting!')
+    print '$TWISTER_PATH environment variable is not set! Exiting!'
     exit(1)
 if TWISTER_PATH not in sys.path:
     sys.path.append(TWISTER_PATH)
 
-from common.helpers    import *
-from common.tsclogging import *
+from common.helpers    import FsBorg, userHome
+from common.tsclogging import logError, logInfo, logWarning, logDebug
 
 
 class BaseFS(object):
@@ -54,30 +56,36 @@ class BaseFS(object):
     """
     name = ''
 
+    def _usr_service(self, *arg, **kargs):
+        """
+        This method is overwritten by the child classes
+        """
+        pass
+
     def _kill(self, user):
         """
         Kill all services for a user.
         """
-        ps   = local['ps']
+        p_ps = local['ps']
         grep = local['grep']
 
         try:
-            pids = (ps['aux'] | grep['/server/UserService.py'] | grep['^' + user] | grep[self.name])()
+            pids = (p_ps['aux'] | grep['/server/UserService.py'] | grep['^' + user] | grep[self.name])()
         except Exception:
             return
 
         # Kill all leftover processes
         for line in pids.strip().splitlines():
-            li = line.strip().decode('utf').split()
-            PID = int(li[1])
-            del li[2:5]
-            if '/bin/sh' in li:
+            std_li = line.strip().decode('utf').split()
+            p_pid = int(std_li[1])
+            del std_li[2:5]
+            if '/bin/sh' in std_li:
                 continue
-            if '/bin/grep' in li:
+            if '/bin/grep' in std_li:
                 continue
-            logDebug('User {}: Killing ugly zombie `{}`.'.format(user, ' '.join(li)))
+            logDebug('User {}: Killing ugly zombie `{}`.'.format(user, ' '.join(std_li)))
             try:
-                os.kill(PID, 9)
+                os.kill(p_pid, 9)
             except:
                 pass
 
@@ -95,8 +103,8 @@ class BaseFS(object):
         if srvr:
             try:
                 return srvr.root.is_folder(fpath)
-            except Exception:
-                err = '*ERROR* Cannot detect file/ folder `{}`, user `{}`! {}'.format(fpath, user, e)
+            except Exception as exp_err:
+                err = '*ERROR* Cannot detect file/ folder `{}`, user `{}`! {}'.format(fpath, user, exp_err)
                 logWarning(err)
                 return err
         else:
@@ -129,8 +137,8 @@ class BaseFS(object):
         if srvr:
             try:
                 return srvr.root.read_file(fpath, flag, fstart)
-            except Exception as e:
-                err = '*ERROR* Cannot read file `{}`, user `{}`! {}'.format(fpath, user, e)
+            except Exception as exp_err:
+                err = '*ERROR* Cannot read file `{}`, user `{}`! {}'.format(fpath, user, exp_err)
                 logWarning(err)
                 return err
         else:
@@ -151,8 +159,8 @@ class BaseFS(object):
         if srvr:
             try:
                 return srvr.root.write_file(fpath, fdata, flag)
-            except Exception as e:
-                err = '*ERROR* Cannot write into file `{}`, user `{}`! {}'.format(fpath, user, e)
+            except Exception as exp_err:
+                err = '*ERROR* Cannot write into file `{}`, user `{}`! {}'.format(fpath, user, exp_err)
                 logWarning(err)
                 return err
         else:
@@ -222,8 +230,8 @@ class BaseFS(object):
             try:
                 files = srvr.root.list_files(fdir, hidden, recursive, accept, reject)
                 return copy.copy(files)
-            except Exception as e:
-                err = '*ERROR* Cannot list files `{}`, user `{}`! {}'.format(fdir, user, e)
+            except Exception as exp_err:
+                err = '*ERROR* Cannot list files `{}`, user `{}`! {}'.format(fdir, user, exp_err)
                 logWarning(err)
                 return err
         else:
@@ -283,8 +291,8 @@ class BaseFS(object):
             fsize = os.stat(fpath).st_size
             # logDebug('File `{}` is size `{}`.'.format(fpath, fsize))
             return fsize
-        except Exception as e:
-            err = '*ERROR* Cannot find file `{}`! {}'.format(fpath, e)
+        except Exception as exp_err:
+            err = '*ERROR* Cannot find file `{}`! {}'.format(fpath, exp_err)
             logWarning(err)
             return err
 
@@ -305,18 +313,18 @@ class BaseFS(object):
             logWarning(err)
             return err
         try:
-            with open(fpath, flag) as f:
+            with open(fpath, flag) as file_p:
                 # logDebug('Reading file `{}`, flag `{}`.'.format(fpath, flag))
                 if fstart:
-                    f.seek(fstart)
-                fdata = f.read()
+                    file_p.seek(fstart)
+                fdata = file_p.read()
                 if len(fdata) > 20*1000*1000:
                     err = '*ERROR* File data too long `{}`: {}!'.format(fpath, len(fdata))
                     logWarning(err)
                     return err
                 return fdata
-        except Exception as e:
-            err = '*ERROR* Cannot read file `{}`! {}'.format(fpath, e)
+        except Exception as exp_err:
+            err = '*ERROR* Cannot read file `{}`! {}'.format(fpath, exp_err)
             logWarning(err)
             return err
 
@@ -334,8 +342,8 @@ class BaseFS(object):
             logWarning(err)
             return err
         try:
-            with open(fpath, flag) as f:
-                f.write(fdata)
+            with open(fpath, flag) as file_p:
+                file_p.write(fdata)
             # if flag == 'w':
             #     logDebug('Written `{}` chars in ascii file `{}`.'.format(len(fdata), fpath))
             # elif flag == 'wb':
@@ -345,8 +353,9 @@ class BaseFS(object):
             # else:
             #     logDebug('Appended `{}` chars in binary file `{}`.'.format(len(fdata), fpath))
             return True
-        except Exception as e:
-            err = '*ERROR* Cannot write into file `{}`! {}'.format(fpath, e)
+        except Exception as exp_err:
+            err = '*ERROR* Cannot write into file `{}`! {}'.\
+            format(fpath, exp_err)
             logWarning(err)
             return err
 
@@ -398,13 +407,14 @@ class BaseFS(object):
 
             try:
                 names = sorted(os.listdir(path), key=str.lower)
-            except Exception as e:
-                logWarning('*WARN* Cannot list folder `{}`: `{}`!'.format(path, e))
+            except Exception as exp_err:
+                logWarning('*WARN* Cannot list folder `{}`: `{}`!'.\
+                format(path, exp_err))
                 return []
 
             # Cycle a folder
             for fname in names:
-                long_path  = path + '/' + fname
+                long_path = path + '/' + fname
 
                 # If Accept is active and file doesn't match, ignore file
                 if accept and os.path.isfile(long_path):
@@ -446,18 +456,20 @@ class BaseFS(object):
                         gname = grp.getgrgid(fstat.st_gid).gr_name
                     except Exception:
                         gname = fstat.st_gid
-                    meta_info = '{}|{}|{}|{}'.format(uname, gname, fstat.st_size,
-                        time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(fstat.st_mtime)))
+                    meta_info = '{}|{}|{}|{}'.\
+                    format(uname, gname, fstat.st_size,\
+                    time.strftime('%Y-%m-%d %H:%M:%S',\
+                    time.localtime(fstat.st_mtime)))
                 except Exception:
                     meta_info = ''
 
                 # Semi long path
                 short_path = long_path[len_path:]
                 # Data to append
-                nd = {'path': short_path, 'data': fname, 'meta': meta_info}
+                data = {'path': short_path, 'data': fname, 'meta': meta_info}
 
                 if os.path.isdir(long_path):
-                    nd['folder'] = True
+                    data['folder'] = True
                     # Recursive !
                     if recursive:
                         children = dirList(long_path)
@@ -465,10 +477,10 @@ class BaseFS(object):
                         children = []
                     if children in [False, None]:
                         continue
-                    nd['children'] = children
-                    dlist.append(nd)
+                    data['children'] = children
+                    dlist.append(data)
                 else:
-                    flist.append(nd)
+                    flist.append(data)
 
             # Folders first, files second
             return dlist + flist
@@ -505,26 +517,26 @@ class LocalFS(BaseFS, FsBorg):
         logInfo('Created {} FS.'.format(self.name))
 
 
-    def _usr_service(self, user, op='read'):
+    def _usr_service(self, user, oper='read'):
         """
         Launch a user service.
         """
-        if op not in ['read', 'write']:
-            logWarning('Invalid FS operation `{}`, for user `{}`! Will reset to "read".'.format(op, user))
-            op = 'read'
+        if oper not in ['read', 'write']:
+            logWarning('Invalid FS operation `{}`, for user `{}`! Will reset to "read".'.format(oper, user))
+            oper = 'read'
 
         # Must block here, so more users cannot launch Logs at the same time and lose the PID
         with self._srv_lock:
 
             # Try to re-use the logger server, if available
-            conn = self._services.get(user, {}).get('conn_' + op, None)
+            conn = self._services.get(user, {}).get('conn_' + oper, None)
             if conn:
                 try:
                     conn.ping(data='Hello', timeout=30.0)
                     # logDebug('Reuse old {} User Service connection for `{}` OK.'.format(op, user))
                     return conn
-                except Exception as e:
-                    logWarning('Cannot reuse {} User Service for `{}`: `{}`.'.format(op, user, e))
+                except Exception as exp_err:
+                    logWarning('Cannot reuse {} User Service for `{}`: `{}`.'.format(oper, user, exp_err))
                     self._kill(user)
             else:
                 logInfo('Launching a User Service for `{}`, the first time...'.format(user))
@@ -539,10 +551,11 @@ class LocalFS(BaseFS, FsBorg):
                 except Exception:
                     break
 
-            p_cmd = 'su {} -c "{} -u {}/server/UserService.py {} {}"'.format(user, sys.executable,
-                TWISTER_PATH, port, self.name)
-            proc = subprocess.Popen(p_cmd, cwd='{}/twister'.format(userHome(user)), shell=True,
-                   close_fds=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            p_cmd = 'su {} -c "{} -u {}/server/UserService.py {} {}"'.\
+            format(user, sys.executable, TWISTER_PATH, port, self.name)
+            proc = subprocess.Popen(p_cmd, cwd='{}/twister'.\
+            format(userHome(user)), shell=True, close_fds=True,\
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             proc.poll()
             time.sleep(2.0)
 
@@ -567,9 +580,9 @@ class LocalFS(BaseFS, FsBorg):
                     conn_read.root.hello()
                     logDebug('Connected to User Service for `{}`, operation `read`.'.format(user))
                     success = True
-                except Exception as e:
-                    logWarning('Cannot connect to User Service for `{}` - Exception: `{}`! '
-                            'Wait {}s...'.format(user, e, delay))
+                except Exception as exp_err:
+                    logWarning('Cannot connect to User Service for `{}` - \
+                    Exception: `{}`! Wait {}s...'.format(user, exp_err, delay))
 
                 if success:
                     try:
@@ -578,9 +591,10 @@ class LocalFS(BaseFS, FsBorg):
                         conn_write.root.hello()
                         logDebug('Connected to User Service for `{}`, operation `write`.'.format(user))
                         break
-                    except Exception as e:
-                        logWarning('Cannot connect to User Service for `{}` - Exception: `{}`! '
-                                'Wait {}s...'.format(user, e, delay))
+                    except Exception as exp_err:
+                        logWarning('Cannot connect to User Service for `{}` \
+                        - Exception: `{}`! Wait {}s...'.\
+                        format(user, exp_err, delay))
                         success = False
 
                 time.sleep(delay)
@@ -596,7 +610,7 @@ class LocalFS(BaseFS, FsBorg):
 
         logDebug('User Service for `{}` launched on `127.0.0.1:{}` - PID `{}`.'.format(user, port, proc.pid))
 
-        return self._services[user].get('conn_' + op, None)
+        return self._services[user].get('conn_' + oper, None)
 
 #
 
@@ -608,9 +622,9 @@ if __name__ == '__main__':
     assert FS_1 == FS_2, 'Not equal!'
     assert FS_1 is FS_2, 'Not identical!'
 
-    print(FS_1)
-    print(FS_2)
-    print('Ok.')
+    print FS_1
+    print FS_2
+    print 'Ok.'
 
 
 # Eof()

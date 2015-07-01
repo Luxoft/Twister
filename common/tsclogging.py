@@ -1,7 +1,7 @@
 
 # File: tsclogging.py ; This file is part of Twister.
 
-# version: 3.006
+# version: 3.007
 
 # Copyright (C) 2012 , Luxoft
 
@@ -37,15 +37,15 @@ import logging as log
 
 TWISTER_PATH = os.getenv('TWISTER_PATH')
 if not TWISTER_PATH:
-    print('TWISTER_PATH environment variable is not set! Exiting!')
+    print 'TWISTER_PATH environment variable is not set! Exiting!'
     exit(1)
 
 LOGS_PATH = TWISTER_PATH + '/logs/'
 if not os.path.exists(LOGS_PATH):
     os.makedirs(LOGS_PATH)
 
-FORMATTER = log.Formatter('%(asctime)s  %(levelname)-8s %(message)s',
-            datefmt='%y-%m-%d %H:%M:%S')
+FORMATTER = log.Formatter('%(asctime)s  %(levelname)-8s %(message)s', \
+datefmt='%y-%m-%d %H:%M:%S')
 
 # CherryPy logging
 CHERRY_LOG = cherrypy.log.error_log
@@ -71,11 +71,11 @@ _LVL = CHERRY_LOG.getEffectiveLevel()
 __all__ = ['FULL', 'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL', 'LEVELS', 'LOG_FILE',
             'log_msg', 'logFull', 'logDebug', 'logInfo', 'logWarning', 'logError', 'logCritical']
 
-FULL     = 5
-DEBUG    = 10
-INFO     = 20
-WARNING  = 30
-ERROR    = 40
+FULL = 5
+DEBUG = 10
+INFO = 20
+WARNING = 30
+ERROR = 40
 CRITICAL = 50
 
 LEVELS = {
@@ -97,7 +97,7 @@ def getLogLevel():
 def setLogLevel(level):
     """ set the logging details level """
     all_levels = dict(LEVELS)
-    all_levels.update( dict((v, k) for k, v in LEVELS.iteritems()) )
+    all_levels.update(dict((v, k) for k, v in LEVELS.iteritems()))
 
     # Fix integer levels
     try:
@@ -106,7 +106,7 @@ def setLogLevel(level):
         pass
 
     if level not in all_levels:
-        print('---[ Invalid Log Level {}! ]---'.format(level))
+        print '---[ Invalid Log Level {}! ]---'.format(level)
         return False
 
     # Map string levels
@@ -120,9 +120,9 @@ def setLogLevel(level):
     CONSOLE.setLevel(_LVL)
 
     if isinstance(level, str):
-        print('---[ Set Log Level {} ]---'.format(level))
+        print '---[ Set Log Level {} ]---'.format(level)
     else:
-        print('---[ Set Log Level {} ]---'.format(all_levels[level]))
+        print '---[ Set Log Level {} ]---'.format(all_levels[level])
     return True
     #
 
@@ -134,8 +134,8 @@ def log_msg(level, *args):
         return
     #
     stack = CHERRY_LOG.findCaller()
-    msg = '{}: {}: {}  {}'.format(os.path.split(stack[0])[1], str(stack[1]), stack[2],
-          ' '.join([str(i) for i in args]))
+    msg = '{}: {}: {}  {}'.format(os.path.split(stack[0])[1], str(stack[1]),\
+    stack[2], ' '.join([str(i) for i in args]))
     #
     if level == FULL or level == DEBUG:
         CHERRY_LOG.debug(msg)

@@ -11,8 +11,8 @@ Master config file for Twister.
     <UseSharedDb>false</UseSharedDb>
     <EmailConfigFile>$HOME/twister/config/email.xml</EmailConfigFile>
     <LibsPath>$HOME/twister/libs</LibsPath>
-    <PredefinedSuitesPath>$HOME/Documents</PredefinedSuitesPath>
-    <TestConfigPath>$HOME/Documents</TestConfigPath>
+    <PredefinedSuitesPath>$HOME/twister/config/predefined</PredefinedSuitesPath>
+    <TestConfigPath>$HOME/twister/config/test_config</TestConfigPath>
     <ArchiveLogsPath>$HOME/twister/logs_archive</ArchiveLogsPath>
     <ArchiveLogsPathActive>false</ArchiveLogsPathActive>
     <SysSutPath>/opt/twister/config/sut</SysSutPath>

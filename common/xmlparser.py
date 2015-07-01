@@ -1,7 +1,7 @@
 
 # File: xmlparser.py ; This file is part of Twister.
 
-# version: 3.037
+# version: 3.038
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -27,14 +27,13 @@ Parser for xml configuration files
 """
 import os
 import sys
-import time
 import hashlib
 
 from collections import OrderedDict
 
 TWISTER_PATH = os.getenv('TWISTER_PATH')
 if not TWISTER_PATH:
-    print('TWISTER_PATH environment variable is not set! Exiting!')
+    print 'TWISTER_PATH environment variable is not set! Exiting!'
     exit(1)
 sys.path.append(TWISTER_PATH)
 
@@ -42,12 +41,12 @@ from lxml import etree
 from ConfigParser import SafeConfigParser
 from plugins import BasePlugin
 
-from common.helpers import *
-from common.tsclogging import *
-from common.suitesmanager import *
+from common.helpers import userHome
+from common.tsclogging import logDebug, logFull, logWarning, logInfo, logError
+from common.suitesmanager import SuitesManager
 from common.constants import FWMCONFIG_TAGS, PROJECTCONFIG_TAGS
 from common.constants import SUITES_TAGS, TESTS_TAGS
-from CeFs import LocalFS
+from server.CeFs import LocalFS
 
 parser = etree.XMLParser(ns_clean=True, remove_blank_text=True)
 etree.set_default_parser(parser)
@@ -104,8 +103,8 @@ class TSCParser(object):
 
         if os.path.isfile(base_config):
             base_config = localFs.read_user_file(user, base_config)
-        elif base_config and ( type(base_config)==type('') or type(base_config)==type(u'') ) \
-            and ( base_config[0] == '<' and base_config[-1] == '>' ):
+        elif base_config and (type(base_config) == type('') or type(base_config) == type(u'')) \
+            and (base_config[0] == '<' and base_config[-1] == '>'):
             pass
         else:
             raise Exception('Parser ERROR: Invalid config data : `{}`!'.format(base_config))
@@ -132,8 +131,8 @@ class TSCParser(object):
         The file number and suite number have to be unique.
         """
 
-        if files_config and ( type(files_config)==type('') or type(files_config)==type(u'') ) \
-                and ( files_config[0] == '<' and files_config[-1] == '>' ):
+        if files_config and (type(files_config) == type('') or type(files_config) == type(u'')) \
+                and (files_config[0] == '<' and files_config[-1] == '>'):
 
             # This is pure XML data
             config_ts = files_config
@@ -280,7 +279,7 @@ class TSCParser(object):
             return False
         if xmlSoup.xpath(key):
             txt = xmlSoup.xpath(key)[0].text
-            return (txt or '')
+            return txt or ''
         else:
             return False
 
@@ -447,7 +446,7 @@ class TSCParser(object):
             tag = etree.SubElement(suite_xml, 'UserDefined')
             prop = etree.SubElement(tag, 'propName')
             prop.text = str(k)
-            val  = etree.SubElement(tag, 'propValue')
+            val = etree.SubElement(tag, 'propValue')
             val.text = str(v)
 
         # Insert the new suite and save
@@ -488,8 +487,8 @@ class TSCParser(object):
         else:
             suite_xml = suite_xml[0]
 
-        files_index = [ suite_xml.index(s) for s in \
-            suite_xml.xpath('/Root/TestSuite[tsName="{0}"]/TestCase'.format(suite)) ]
+        files_index = [suite_xml.index(s) for s in \
+            suite_xml.xpath('/Root/TestSuite[tsName="{0}"]/TestCase'.format(suite))]
 
         if order == 0:
             # Add before the first file
@@ -520,7 +519,7 @@ class TSCParser(object):
             tag = etree.SubElement(file_xml, 'Property')
             prop = etree.SubElement(tag, 'propName')
             prop.text = str(k)
-            val  = etree.SubElement(tag, 'propValue')
+            val = etree.SubElement(tag, 'propValue')
             val.text = str(v)
 
         # Insert the new file and save
@@ -552,7 +551,7 @@ class TSCParser(object):
         All types of logs exposed from Python to the test cases.
         """
         logFull('xmlparser:getLogTypes')
-        return [ self._fixLogType(log.tag) for log in self.xmlDict.xpath('LogFiles/*')]
+        return [self._fixLogType(log.tag) for log in self.xmlDict.xpath('LogFiles/*')]
 
 
     def getLogFileForType(self, logType):
@@ -680,7 +679,7 @@ class TSCParser(object):
         else:
             found = etree.SubElement(bind_xml, 'binding')
 
-        name  = etree.SubElement(found, 'name')
+        name = etree.SubElement(found, 'name')
         name.text = fpath
 
         try:
@@ -818,12 +817,12 @@ class TSCParser(object):
         # Add properties from PROJECT
         prop_keys = self.configTS.xpath('/Root/UserDefined/propName')
         prop_vals = self.configTS.xpath('/Root/UserDefined/propValue')
-        res.update( dict(zip( [k.text for k in prop_keys], [v.text for v in prop_vals] )) )
+        res.update(dict(zip([k.text for k in prop_keys], [v.text for v in prop_vals])))
 
         # Add property/ value tags from Suite
         prop_keys = suite_soup.xpath('UserDefined/propName')
         prop_vals = suite_soup.xpath('UserDefined/propValue')
-        res.update( dict(zip( [k.text for k in prop_keys], [v.text for v in prop_vals] )) )
+        res.update(dict(zip([k.text for k in prop_keys], [v.text for v in prop_vals])))
 
         res['type'] = 'suite'
         # Get Suite ID from testsuites.xml
@@ -960,7 +959,8 @@ class DBParser(object):
                 raise Exception('Invalid shared config data type: `{}`, '\
                     'for user `{}`!'.format(type(shared_data), self.user))
 
-        self.db_config['servers'] = []
+        # The servers list is used to know how to connect to a specific server name
+        self.db_config['servers'] = {}
 
         if self.user_xml.xpath('db_config/server/text()') and self.user_xml.xpath('db_config/database/text()'):
             # User's server and database
@@ -968,8 +968,8 @@ class DBParser(object):
             db_name = self.user_xml.xpath('db_config/database')[0].text
             db_user = self.user_xml.xpath('db_config/user')[0].text
             db_passwd = self.user_xml.xpath('db_config/password')[0].text
-            self.db_config['servers'].append((db_server, db_name))
             self.db_config['default_server'] = (db_server, db_name, db_user, db_passwd, 'U')
+            self.db_config['servers']['User'] = self.db_config['default_server']
         else:
             raise Exception('Invalid DB config, no server and DB, for user `{}`!'.format(self.user))
 
@@ -980,9 +980,9 @@ class DBParser(object):
                 db_name = self.shared_xml.xpath('db_config/database')[0].text
                 db_user = self.shared_xml.xpath('db_config/user')[0].text
                 db_passwd = self.shared_xml.xpath('db_config/password')[0].text
-                self.db_config['servers'].append((db_server, db_name))
-            except Exception as e:
-                logWarning('Invalid shared DB XML, for user `{}`: {}!'.format(self.user, e))
+                self.db_config['servers']['Shared'] = (db_server, db_name, db_user, db_passwd, 'S')
+            except Exception as err:
+                logWarning('Invalid shared DB XML, for user `{}`: {}!'.format(self.user, err))
                 self.shared_xml = None
 
 
@@ -1062,7 +1062,7 @@ class DBParser(object):
         Used by the applet.
         """
         logFull('dbparser:get_query')
-        res =  self.user_xml.xpath('insert_section/field[@ID="%s"]' % field_id)
+        res = self.user_xml.xpath('insert_section/field[@ID="%s"]' % field_id)
         if not res:
             logWarning('User {}: Cannot find field ID `{}`!'.format(self.user, field_id))
             return False
@@ -1079,50 +1079,49 @@ class DBParser(object):
         logFull('dbparser:get_reports')
         report_queries = OrderedDict()
 
-        def get_fields(server_data, shared_db=False):
+        def get_fields(server_data, srv_name):
             """
             All report fields.
             """
             fields = OrderedDict()
             for field in server_data.xpath('reports_section/field'):
                 data = {}
-                data['id']   = field.get('ID', '')
+                data['id'] = field.get('ID', '')
                 data['type'] = field.get('Type', '')
                 data['label'] = field.get('Label', data['id'])
                 data['sqlquery'] = field.get('SQLQuery', '')
-                data['shared_db'] = shared_db
+                data['srv_name'] = srv_name
                 fields[data['id']] = data
             return fields
 
-        def get_reps(server_data, srv_db, shared_db=False):
+        def get_reps(server_data, srv_name):
             """
             All reports.
             """
             reports = OrderedDict()
             for report in server_data.xpath('reports_section/report'):
                 data = {}
-                data['id']   = report.get('ID', '')
+                data['id'] = report.get('ID', '')
                 data['type'] = report.get('Type', '')
                 data['path'] = report.get('Path', '')
                 data['folder'] = report.get('Folder', '')
                 data['sqlquery'] = report.get('SQLQuery', '')
                 data['sqltotal'] = report.get('SQLTotal', '')   # SQL Total Query
                 data['sqlcompr'] = report.get('SQLCompare', '') # SQL Query Compare side by side
-                data['shared_db'] = shared_db
-                data['srv_db'] = srv_db # Save IP + Database name here
+                data['srv_name'] = srv_name # Save server name here
                 reports[data['id']] = data
             return reports
 
-        def get_redirects(server_data, shared_db=False):
+        def get_redirects(server_data, srv_name):
             """
             All redirects.
             """
             redirects = OrderedDict()
             for redirect in server_data.xpath('reports_section/redirect'):
                 data = {}
-                data['id']   = redirect.get('ID', '')
+                data['id'] = redirect.get('ID', '')
                 data['path'] = redirect.get('Path', '')
-                data['shared_db'] = shared_db
+                data['srv_name'] = srv_name
                 redirects[data['id']] = data
             return redirects
 
@@ -1132,9 +1131,9 @@ class DBParser(object):
             db_pair = self.db_config['default_server']
             # Reports and Redirects from private db.xml
             report_queries[db_pair] = {
-                'fields': get_fields(self.user_xml, False),
-                'reports': get_reps(self.user_xml, db_pair, False),
-                'redirects': get_redirects(self.user_xml, False)
+                'fields': get_fields(self.user_xml, 'User'),
+                'reports': get_reps(self.user_xml, 'User'),
+                'redirects': get_redirects(self.user_xml, 'User')
             }
         if not self.use_shared_db and not db_cfg_role:
             logInfo('Insufficient privileges to get user reports, for user `{}`!'.format(self.user))
@@ -1158,15 +1157,15 @@ class DBParser(object):
         db_pair = (db_server, db_name, db_user, db_passwd, 'S')
         # Overwrite all private fields, reports or redirects
         if db_pair in report_queries:
-            report_queries[db_pair]['fields'].update( get_fields(self.shared_xml, True) )
-            report_queries[db_pair]['reports'].update( get_reps(self.shared_xml, db_pair, True) )
-            report_queries[db_pair]['redirects'].update( get_redirects(self.shared_xml, True) )
+            report_queries[db_pair]['fields'].update(get_fields(self.shared_xml, 'Shared'))
+            report_queries[db_pair]['reports'].update(get_reps(self.shared_xml, 'Shared'))
+            report_queries[db_pair]['redirects'].update(get_redirects(self.shared_xml, 'Shared'))
         # Save this info
         else:
             report_queries[db_pair] = {
-                'fields': get_fields(self.shared_xml, True),
-                'reports': get_reps(self.shared_xml, db_pair, True),
-                'redirects': get_redirects(self.shared_xml, True)
+                'fields': get_fields(self.shared_xml, 'Shared'),
+                'reports': get_reps(self.shared_xml, 'Shared'),
+                'redirects': get_redirects(self.shared_xml, 'Shared')
             }
         # Return after shared db inserts !
         # import pprint ; pprint.pprint(dict(report_queries), width=40)
@@ -1221,10 +1220,11 @@ class PluginParser(object):
 
             self.config[name]['jarfile'] = plugin.xpath('jarfile')[0].text.strip() \
                                              if plugin.xpath('jarfile/text()') else ''
-            self.config[name]['pyfile']  = plugin.xpath('pyfile')[0].text.strip() \
-                                             if plugin.xpath('pyfile/text()') else ''
-            self.config[name]['status']  = plugin.xpath('status')[0].text.strip() \
-                                             if plugin.xpath('status/text()') else ''
+            self.config[name]['pyfile'] = plugin.xpath('pyfile')[0].text.\
+            strip() if plugin.xpath('pyfile/text()') else ''
+
+            self.config[name]['status'] = plugin.xpath('status')[0].text.\
+            strip() if plugin.xpath('status/text()') else ''
 
 
     def getPlugins(self):
@@ -1240,7 +1240,7 @@ class PluginParser(object):
             name = module.split('::')[0]
             if not name:
                 continue
-            mod  = module.split('::')[1]
+            mod = module.split('::')[1]
             if not mod:
                 continue
             if not os.path.isfile('{}/plugins/{}.py'.format(TWISTER_PATH, mod)):
@@ -1315,7 +1315,7 @@ class ClearCaseParser(object):
 
         # Parse all known FWMCONFIG tags
         for tag_dict in FWMCONFIG_TAGS:
-            tag  = tag_dict['tag']
+            tag = tag_dict['tag']
             name = tag_dict['name']
             # Filter ?
             if filter_tag and filter_tag != tag:

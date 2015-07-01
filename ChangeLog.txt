@@ -4,11 +4,6 @@
 - fixed issue about dependency on a test case from a different suite running
   on different EP
 
-05th march 2015:
-
-- fix for issue #163
-- fix for issue #152
-
 18th December 2014
 
 - code changes to fix issue #147

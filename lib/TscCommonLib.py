@@ -410,7 +410,6 @@ class TscCommonLib(object):
         bindings = self.ce_proxy.get_user_variable('bindings') or {}
         return bindings.get(cfg_root)
 
-
     def get_bind_id(self, component_name, test_config='default_binding'):
         """
         Function to get a config -> SUT binding ID.
@@ -441,14 +440,56 @@ class TscCommonLib(object):
         return sut.get('path', False)
 
 
-    def get_iter_value(self, iter_name):
+    def get_iter_value(self, iter_name, cfg_name=None):
         """
         Find iteration value, for a specific iterator name.
         `iter_name` is the name of the iterator to search.
         Returns The iterator value.
         """
         iterNr = self.ce_proxy.get_file_variable(self.epName, self._FILE_ID, 'iterationNr')
-        found = [i.split('=')[-1] for i in iterNr.split(',') if '#{}='.format(iter_name) in i]
+
+        found = []
+        if cfg_name is not None:
+            # if the test configuration name is valid, find it in iterNr
+            cfg_iters = [cfg_item.strip() for cfg_item in iterNr.strip().\
+            split(',') if cfg_name in cfg_item.split('#')[0]]
+            # now we have a list with iterators declared in cfg_name file
+            # search the specified one
+            found = [iter_val.split('=')[-1] for iter_val in cfg_iters \
+            if '#{}='.format(iter_name) in iter_val]
+        else:
+            # no test configuration name provided, search for all iterators
+            # that match iter_name
+            found = [i.split('=')[-1] for i in iterNr.split(',') \
+            if '#{}='.format(iter_name) in i]
+
+        if not found:
+            return ''
+        return found[0]
+
+    def get_iter_comp(self, iter_name, cfg_name=None):
+        """
+        Find component name that is parent of specific iterator name.
+        `iter_name` is the name of the iterator to search.
+        Returns the component name 
+        """
+        iterNr = self.ce_proxy.get_file_variable(self.epName, self._FILE_ID, 'iterationNr')
+
+        found = []
+        if cfg_name is not None:
+            # if the test configuration name is valid, find it in iterNr
+            cfg_iters = [cfg_item.strip() for cfg_item in iterNr.strip().\
+            split(',') if cfg_name in cfg_item.split('#')[0]]
+            # now we have a list with iterators declared in cfg_name file
+            # search the specified one
+            found = [iter_val.split('#')[1] for iter_val in cfg_iters \
+            if '#{}='.format(iter_name) in iter_val]
+        else:
+            # no test configuration name provided, search for all iterators
+            # that match iter_name
+            found = [i.split('#')[1] for i in iterNr.split(',') \
+            if '#{}='.format(iter_name) in i]
+
         if not found:
             return ''
         return found[0]

@@ -596,7 +596,7 @@ class Section(dict):
         if not sequence:
             raise KeyError(": 'popitem(): dictionary is empty'")
         key = sequence[0]
-        val =  self[key]
+        val = self[key]
         del self[key]
         return key, val
 
@@ -630,11 +630,11 @@ class Section(dict):
 
     def keys(self):
         """D.keys() -> list of D's keys"""
-        return (self.scalars + self.sections)
+        return self.scalars + self.sections
 
     def values(self):
         """D.values() -> list of D's values"""
-        return [self[key] for key in (self.scalars + self.sections)]
+        return (self[key] for key in (self.scalars + self.sections))
 
     def iteritems(self):
         """D.iteritems() -> an iterator over the (key, value) items of D"""
@@ -656,8 +656,8 @@ class Section(dict):
                 return self[key]
             except MissingInterpolationOption:
                 return dict.__getitem__(self, key)
-        return '{%s}' % ', '.join([('%s: %s' % (repr(key), repr(_getval(key))))
-            for key in (self.scalars + self.sections)])
+        return '{%s}' % ', '.join([('%s: %s' % (repr(key),\
+        repr(_getval(key)))) for key in (self.scalars + self.sections)])
     __str__ = __repr__
     __str__.__doc__ = "x.__str__() <==> str(x)"
 
@@ -706,8 +706,8 @@ class Section(dict):
         ConfigObj({'section1': {'option1': 'False', 'subsection': {'more_options': 'False'}}})
         """
         for key, val in indict.items():
-            if (key in self and isinstance(self[key], dict) and
-                                isinstance(val, dict)):
+            if key in self and isinstance(self[key], dict) and \
+            isinstance(val, dict):
                 self[key].merge(val)
             else:
                 self[key] = val
@@ -739,8 +739,8 @@ class Section(dict):
         self.comments[newkey] = comm
         self.inline_comments[newkey] = inline_comment
 
-    def walk(self, function, raise_errors=True,
-            call_on_sections=False, **keywargs):
+    def walk(self, function, raise_errors=True, call_on_sections=False,\
+    **keywargs):
         """
         Walk every member and call a function on the keyword and value.
         Return a dictionary of the return values
@@ -950,8 +950,7 @@ class ConfigObj(Section):
         \s*=\s*                 # divider
         (.*)                    # value (including list values and comments)
         $   # line end
-        ''',
-        re.VERBOSE)
+        ''', re.VERBOSE)
     _sectionmarker = re.compile(r'''^
         (\s*)                     # 1: indentation
         ((?:\[\s*)+)              # 2: section marker open
@@ -962,8 +961,7 @@ class ConfigObj(Section):
         )                         # section name close
         ((?:\s*\])+)              # 4: section marker close
         \s*(\#.*)?                # 5: optional comment
-        $''',
-        re.VERBOSE)
+        $''', re.VERBOSE)
     # this regexp pulls list values out as a single string
     # or single values and comments
     # FIXME: this regex adds a '' to the end of comma terminated lists
@@ -991,8 +989,7 @@ class ConfigObj(Section):
             (,)             # alternatively a single comma - empty list
         )
         \s*(\#.*)?          # optional comment
-        $''',
-        re.VERBOSE)
+        $''', re.VERBOSE)
     # use findall to get the members of a list value
     _listvalueexp = re.compile(r'''
         (
@@ -1001,8 +998,7 @@ class ConfigObj(Section):
             (?:[^'",\#]?.*?)       # unquoted
         )
         \s*,\s*                 # comma
-        ''',
-        re.VERBOSE)
+        ''', re.VERBOSE)
     # this regexp is used for the value
     # when lists are switched off
     _nolistvalue = re.compile(r'''^
@@ -1013,8 +1009,7 @@ class ConfigObj(Section):
             (?:)                # Empty value
         )
         \s*(\#.*)?              # optional comment
-        $''',
-        re.VERBOSE)
+        $''', re.VERBOSE)
     # regexes for finding triple quoted values on one line
     _single_line_single = re.compile(r"^'''(.*?)'''\s*(#.*)?$")
     _single_line_double = re.compile(r'^"""(.*?)"""\s*(#.*)?$')
@@ -1202,9 +1197,9 @@ class ConfigObj(Section):
                 return self[key]
             except MissingInterpolationOption:
                 return dict.__getitem__(self, key)
-        return ('ConfigObj({%s})' %
-                ', '.join([('%s: %s' % (repr(key), repr(_getval(key))))
-                for key in (self.scalars + self.sections)]))
+        return ('ConfigObj({%s})' % \
+        ', '.join([('%s: %s' % (repr(key), repr(_getval(key)))) \
+        for key in (self.scalars + self.sections)]))
 
     def _handle_bom(self, infile):
         """
@@ -1222,8 +1217,8 @@ class ConfigObj(Section):
         ``infile`` must always be returned as a list of lines, but may be
         passed in as a single string.
         """
-        if ((self.encoding is not None) and
-            (self.encoding.lower() not in BOM_LIST)):
+        if ((self.encoding is not None) and \
+        (self.encoding.lower() not in BOM_LIST)):
             # No need to check for a BOM
             # the encoding specified doesn't have one
             # just decode
@@ -1444,8 +1439,8 @@ class ConfigObj(Section):
                                     msg = 'Unknown name or type in value at line %s.'
                                 else:
                                     msg = 'Parse error in value at line %s.'
-                                self._handle_error(msg, UnreprError, infile,
-                                    cur_index)
+                                self._handle_error(msg, UnreprError, infile,\
+                                cur_index)
                                 continue
                 else:
                     if self.unrepr:
@@ -1457,8 +1452,8 @@ class ConfigObj(Section):
                                 msg = 'Unknown name or type in value at line %s.'
                             else:
                                 msg = 'Parse error in value at line %s.'
-                            self._handle_error(msg, UnreprError, infile,
-                                cur_index)
+                            self._handle_error(msg, UnreprError, infile,\
+                            cur_index)
                             continue
                     else:
                         # extract comment and lists
@@ -1561,8 +1556,8 @@ class ConfigObj(Section):
                 return ','
             elif len(value) == 1:
                 return self._quote(value[0], multiline=False) + ','
-            return ', '.join([self._quote(val, multiline=False)
-                for val in value])
+            return ', '.join([self._quote(val, multiline=False) \
+            for val in value])
         if not isinstance(value, basestring):
             if self.stringify:
                 value = str(value)
@@ -1571,7 +1566,7 @@ class ConfigObj(Section):
         if not value:
             return '""'
         no_lists_no_quotes = not self.list_values and '\n' not in value and '#' not in value
-        need_triple = multiline and ((("'" in value) and ('"' in value)) or ('\n' in value ))
+        need_triple = multiline and ((("'" in value) and ('"' in value)) or ('\n' in value))
         hash_triple_quote = multiline and not need_triple and ("'" in value) and ('"' in value) and ('#' in value)
         check_for_single = (no_lists_no_quotes or not need_triple) and not hash_triple_quote
         if check_for_single:
@@ -1582,9 +1577,9 @@ class ConfigObj(Section):
             elif '\n' in value:
                 # will only happen if multiline is off - e.g. '\n' in key
                 raise ConfigObjError('Value "%s" cannot be safely quoted.' % value)
-            elif ((value[0] not in wspace_plus) and
-                    (value[-1] not in wspace_plus) and
-                    (',' not in value)):
+            elif ((value[0] not in wspace_plus) and \
+            (value[-1] not in wspace_plus) and \
+            (',' not in value)):
                 quot = noquot
             else:
                 quot = self._get_single_quote(value)
@@ -1766,7 +1761,7 @@ class ConfigObj(Section):
         start = self.indent_type
         if not comment.startswith('#'):
             start += self._a_to_u(' # ')
-        return (start + comment)
+        return start + comment
 
     # Public methods
     def write(self, outfile=None, section=None):
@@ -1799,7 +1794,7 @@ class ConfigObj(Section):
                     line = csp + line
                 out.append(line)
         indent_string = self.indent_type * section.depth
-        for entry in (section.scalars + section.sections):
+        for entry in section.scalars + section.sections:
             if entry in section.defaults:
                 # don't write out default values
                 continue
@@ -1840,8 +1835,8 @@ class ConfigObj(Section):
             # NOTE: This will *screw* UTF16, each line will start with the BOM
             if self.encoding:
                 out = [l.encode(self.encoding) for l in out]
-            if (self.BOM and ((self.encoding is None) or
-                (BOM_LIST.get(self.encoding.lower()) == 'utf_8'))):
+            if (self.BOM and ((self.encoding is None) or \
+            (BOM_LIST.get(self.encoding.lower()) == 'utf_8'))):
                 # Add the UTF8 BOM
                 if not out:
                     out.append('')
@@ -1849,8 +1844,8 @@ class ConfigObj(Section):
             return out
         # Turn the list to a string, joined with correct newlines
         newline = self.newlines or os.linesep
-        if (getattr(outfile, 'mode', None) is not None and outfile.mode == 'w'
-            and sys.platform == 'win32' and newline == '\r\n'):
+        if getattr(outfile, 'mode', None) is not None and outfile.mode == 'w' \
+        and sys.platform == 'win32' and newline == '\r\n':
             # Windows specific hack to avoid writing '\r\r\n'
             newline = '\n'
         output = self._a_to_u(newline).join(out)
@@ -1925,10 +1920,7 @@ class ConfigObj(Section):
                 # (e.g. SimpleVal)
                 pass
             try:
-                check = validator.check(spec,
-                                        val,
-                                        missing=missing
-                                        )
+                check = validator.check(spec, val, missing=missing)
             except validator.baseErrorClass, e:
                 if not preserve_errors or isinstance(e, self._vdtMissingValue):
                     out[entry] = False

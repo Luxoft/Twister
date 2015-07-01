@@ -1,7 +1,7 @@
 
 # File: CeProject.py ; This file is part of Twister.
 
-# version: 3.074
+# version: 3.082
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -77,11 +77,11 @@ import sys
 import re
 import time
 import datetime
-import random
+import copy
 import subprocess
 import socket
 socket.setdefaulttimeout(5)
-import platform
+#import platform
 import smtplib
 import binascii
 import traceback
@@ -89,7 +89,7 @@ import threading
 import paramiko
 
 import cherrypy
-import rpyc
+#import rpyc
 
 try:
     import simplejson as json
@@ -102,39 +102,42 @@ from thread import start_new_thread
 from string import Template
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from common.tsclogging import *
-from common.tsclogging import getLogLevel
 
 if not sys.version.startswith('2.7'):
-    print('Python version error! Central Engine must run on Python 2.7!')
+    print 'Python version error! Central Engine must run on Python 2.7!'
     exit(1)
 
 TWISTER_PATH = os.getenv('TWISTER_PATH')
 if not TWISTER_PATH:
-    print('$TWISTER_PATH environment variable is not set! Exiting!')
+    print '$TWISTER_PATH environment variable is not set! Exiting!'
     exit(1)
 if TWISTER_PATH not in sys.path:
     sys.path.append(TWISTER_PATH)
 
 
-from common.constants  import *
-from common.helpers    import *
-from common.tsclogging import *
-from common.xmlparser  import *
-from common.suitesmanager import *
+from common.constants  import STATUS_WORKING, STATUS_PENDING, testStatus
+from common.constants  import STATUS_NOT_EXEC, STATUS_STOP, STATUS_INVALID
+from common.constants  import STATUS_INTERACT, STATUS_PAUSED, STATUS_RUNNING
+from common.constants  import STATUS_RESUME, EXEC_STATUS, ROLES
+#from common.constants  import user
+from common.helpers    import userHome, execScript, decrypt, encrypt
+from common.tsclogging import getLogLevel
+from common.tsclogging import logDebug, logFull, logError, logWarning
+from common.tsclogging import logInfo, logCritical
+from common.xmlparser  import PluginParser, ClearCaseParser, TSCParser
+from common.suitesmanager import SuitesManager
 from common import iniparser
 
-from CeParser import CeXmlParser
-from CeServices import ServiceManager
-from CeWebUi import WebInterface
-from CeResources import ResourceAllocator
-from CeReports import ReportingServer
-from CeSuts import Suts
-from CeTestBeds import TestBeds
-from CeFs import LocalFS
-from CeClearCaseFs import ClearCaseFs
-from CeConfigs import CeConfigs
-from CeDatabase import CeDbManager
+from server.CeParser import CeXmlParser
+from server.CeServices import ServiceManager
+from server.CeWebUi import WebInterface
+from server.CeReports import ReportingServer
+from server.CeSuts import Suts
+from server.CeTestBeds import TestBeds
+from server.CeFs import LocalFS
+from server.CeClearCaseFs import ClearCaseFs
+from server.CeConfigs import CeConfigs
+from server.CeDatabase import CeDbManager
 
 usrs_and_pwds = {}
 usr_pwds_lock = allocate_lock()
@@ -146,7 +149,7 @@ def cache_users():
     Find all system users that have Twister installer.
     """
     global TWISTER_PATH
-    ti = time.time()
+    t_init = time.time()
     logDebug('Starting to cache users...')
 
     lines = open('/etc/passwd').readlines()
@@ -160,33 +163,36 @@ def cache_users():
                 continue
             if os.path.exists(path + '/twister/config'):
                 users.append(user)
-    except Exception as e:
-        logWarning('Exception on cache PASSWD users: `{}` !'.format(e))
+    except Exception as exp_err:
+        logWarning('Exception on cache PASSWD users: `{}` !'.format(exp_err))
 
     # Check if the machine has NIS users.
     # This operation CAN TAKE A LOT OF TIME!
     try:
         subprocess.check_output('nisdomainname')
-        u = subprocess.check_output("ypcat passwd | awk -F : '{print $1}'", shell=True)
-        for user in u.split():
+        nis_u = subprocess.check_output("ypcat passwd | awk -F : '{print $1}'",\
+        shell=True)
+        for user in nis_u.split():
             home = userHome(user)
             if os.path.exists(home + '/twister/config'):
                 users.append(user)
-    except Exception as e:
-        logWarning('Exception on cache NIS users: `{}` !'.format(e))
+    except Exception as exp_err:
+        logWarning('Exception on cache NIS users: `{}` !'.format(exp_err))
 
     # Eliminate duplicates
-    users = sorted( set(users) )
+    users = sorted(set(users))
     # Write the users on HDD
-    with open(TWISTER_PATH + '/config/cached_users.json', 'w') as f:
+    with open(TWISTER_PATH + '/config/cached_users.json', 'w') as file_p:
         try:
-            json.dump(users, f, indent=4)
+            json.dump(users, file_p, indent=4)
         except Exception:
-            logError('Cache users operation failed! Cannot write in file `{}`!'.format(f))
+            logError('Cache users operation failed! Cannot write \
+            in file `{}`!'.format(file_p))
             return False
 
-    tf = time.time()
-    logInfo('Cache Users operation took `{:.2f}` seconds. Found `{}` Twister users...'.format( (tf-ti), len(users) ))
+    t_final = time.time()
+    logInfo('Cache Users operation took `{:.2f}` seconds. Found `{}` Twister \
+    users...'.format((t_final - t_init), len(users)))
 
     threading.Timer(60*60, cache_users, ()).start()
 
@@ -212,25 +218,27 @@ class Project(object):
     def __init__(self):
 
         try:
-            self.srv_ver = open(TWISTER_PATH + '/server/version.txt').read().strip()
+            self.srv_ver = open(TWISTER_PATH + '/server/version.txt').\
+            read().strip()
             self.srv_ver = 'version `{}`'.format(self.srv_ver)
         except Exception:
             self.srv_ver = ''
 
         try:
-            self.BRANCH = open(TWISTER_PATH + '/server/branch.txt').read().strip()
+            self.BRANCH = open(TWISTER_PATH + '/server/branch.txt').read().\
+            strip()
         except Exception:
             self.BRANCH = 'master'
 
         logInfo('STARTING TWISTER SERVER {}...'.format(self.srv_ver))
-        ti = time.time()
+        t_init = time.time()
 
-        self.rsrv    = None # RPyc server pointer
+        self.rsrv = None # RPyc server pointer
         self.ip_port = None # Will be injected by the Central Engine CherryPy
         self.xparser = CeXmlParser(self)
         self.manager = ServiceManager()
-        self.web   = WebInterface(self)
-        self.tb = TestBeds(self)
+        self.web = WebInterface(self)
+        self.testbeds = TestBeds(self)
         self.sut = Suts(self)
         self.report = ReportingServer(self)
 
@@ -241,8 +249,11 @@ class Project(object):
         self.configs = CeConfigs(self)
         self.dbmgr = CeDbManager(self)
 
+        self.panic_detect_reg_exprs = ""
+
         # Users, parsers, IDs...
         self.users = {}
+        self.roles = {}
         self.parsers = {}
         self.test_ids = {}  # IDs shortcut
         self.suite_ids = {} # IDs shortcut
@@ -262,31 +273,36 @@ class Project(object):
         # Read the production/ development option.
         cfg_path = '{}/config/server_init.ini'.format(TWISTER_PATH)
         if not os.path.isfile(cfg_path):
-            logWarning('Production/ Development ERROR: Cannot find server_init in path `{}`! Will default to `no_type`.'.format(cfg_path))
+            logWarning('Production/ Development ERROR: Cannot find \
+            server_init in path `{}`! Will default to `no_type`.'.\
+            format(cfg_path))
             self.server_init = {'ce_server_type': 'no_type'}
         else:
             cfg = iniparser.ConfigObj(cfg_path)
             self.server_init = cfg.dict()
             # Fix invalid, or inexistend type key?
-            self.server_init['ce_server_type'] = self.server_init.get('ce_server_type', 'no_type').lower()
+            self.server_init['ce_server_type'] = self.server_init.\
+            get('ce_server_type', 'no_type').lower()
         # Fix server type spelling errors, or invalid types?
-        if self.server_init['ce_server_type'] not in ['no_type', 'production', 'development']:
-            logWarning('Production/ Development ERROR: Reset invalid server type from '\
-                '`{ce_server_type}` to `no_type`!'.format(**self.server_init))
+        if self.server_init['ce_server_type'] not in ['no_type', 'production',\
+        'development']:
+            logWarning('Production/ Development ERROR: Reset invalid server \
+            type from `{ce_server_type}` to `no_type`!'.\
+            format(**self.server_init))
             self.server_init['ce_server_type'] = 'no_type'
 
         logInfo('Running server type `{ce_server_type}`.'.format(**self.server_init))
 
         # Panic Detect, load config for current user
-        self.pdConfigPath = '{}/config/PanicDetectData.json'.format(TWISTER_PATH)
-        if not os.path.isfile(self.pdConfigPath):
-            with open(self.pdConfigPath, 'wb') as config:
+        self.panic_cfg_path = '{}/config/PanicDetectData.json'.format(TWISTER_PATH)
+        if not os.path.isfile(self.panic_cfg_path):
+            with open(self.panic_cfg_path, 'wb') as config:
                 config.write('{}')
 
         # Start cache users at the beggining...
         start_new_thread(cache_users, ())
 
-        logInfo('SERVER INITIALIZATION TOOK `{:.4f}` SECONDS.'.format(time.time()-ti))
+        logInfo('SERVER INITIALIZATION TOOK `{:.4f}` SECONDS.'.format(time.time() - t_init))
 
 
     @staticmethod
@@ -315,22 +331,22 @@ class Project(object):
                     cherrypy.session['username'] = user
                 return True
 
-        t = paramiko.Transport(('localhost', 22))
-        t.logger.setLevel(40) # Less spam, please
-        t.start_client()
+        trans = paramiko.Transport(('localhost', 22))
+        trans.logger.setLevel(40) # Less spam, please
+        trans.start_client()
 
         # This operation is pretty heavy!!!
         try:
-            t.auth_password(user, passwd)
-            t.stop_thread()
-            t.close()
+            trans.auth_password(user, passwd)
+            trans.stop_thread()
+            trans.close()
             usrs_and_pwds[user] = passwd
             cherrypy.session['username'] = user
             cherrypy.session['user_passwd'] = user_passwd
             return True
         except Exception:
-            t.stop_thread()
-            t.close()
+            trans.stop_thread()
+            trans.close()
             return False
 
 
@@ -354,20 +370,20 @@ class Project(object):
                 usrs_and_pwds[rpyc_user] = passwd
                 return True
 
-        t = paramiko.Transport(('localhost', 22))
-        t.logger.setLevel(40) # Less spam, please
-        t.start_client()
+        trans = paramiko.Transport(('localhost', 22))
+        trans.logger.setLevel(40) # Less spam, please
+        trans.start_client()
 
         # This operation is pretty heavy!!!
         try:
-            t.auth_password(user, passwd)
-            t.stop_thread()
-            t.close()
+            trans.auth_password(user, passwd)
+            trans.stop_thread()
+            trans.close()
             usrs_and_pwds[rpyc_user] = passwd
             return True
         except Exception:
-            t.stop_thread()
-            t.close()
+            trans.stop_thread()
+            trans.close()
             return False
 
 
@@ -392,15 +408,15 @@ class Project(object):
             # Information about ALL suites for this EP
             # Some master-suites might have sub-suites, but all sub-suites must run on the same EP
             if self.parsers.get(user):
-                suitesInfo = self.parsers[user].getAllSuitesInfo(epname)
+                suites_info = self.parsers[user].getAllSuitesInfo(epname)
             else:
-                suitesInfo = None
+                suites_info = None
 
-            if suitesInfo:
-                self.users[user]['eps'][epname]['sut'] = suitesInfo.values()[0]['sut']
-                self.users[user]['eps'][epname]['suites'] = suitesInfo
-                suites = suitesInfo.get_suites()
-                files = suitesInfo.get_files()
+            if suites_info:
+                self.users[user]['eps'][epname]['sut'] = suites_info.values()[0]['sut']
+                self.users[user]['eps'][epname]['suites'] = suites_info
+                suites = suites_info.get_suites()
+                files = suites_info.get_files()
             else:
                 self.users[user]['eps'][epname]['sut'] = ''
                 self.users[user]['eps'][epname]['suites'] = SuitesManager()
@@ -410,15 +426,16 @@ class Project(object):
             # Ordered list with all suite IDs, for all EPs
             try:
                 self.suite_ids[user].extend(suites)
-            except Exception as e:
-                logWarning('Exception on extend suite IDs: {}'.format(e))
+            except Exception as exp_err:
+                logWarning('Exception on extend suite IDs: {}'.format(exp_err))
             # Ordered list of file IDs, used for Get Status ALL
             try:
                 self.test_ids[user].extend(files)
-            except Exception as e:
-                logWarning('Exception on extend file IDs: {}'.format(e))
+            except Exception as exp_err:
+                logWarning('Exception on extend file IDs: {}'.format(exp_err))
 
-            logDebug('Reload Execution-Process `{}:{}` with `{}` suites and `{}` files.'.format(user, epname, len(suites), len(files)))
+            logDebug('Reload Execution-Process `{}:{}` with `{}` suites \
+            and `{}` files.'.format(user, epname, len(suites), len(files)))
 
         # Save everything.
         self._dump()
@@ -437,10 +454,10 @@ class Project(object):
 
         with self.epl_lock:
 
-            suitesInfo = self.users[user]['eps'][epname].get('suites')
-            if suitesInfo:
-                suites = set(suitesInfo.get_suites())
-                files = set(suitesInfo.get_files())
+            suites_info = self.users[user]['eps'][epname].get('suites')
+            if suites_info:
+                suites = set(suites_info.get_suites())
+                files = set(suites_info.get_files())
                 old_suites = set(self.suite_ids[user])
                 old_files = set(self.test_ids[user])
                 self.suite_ids[user] = sorted(old_suites - suites)
@@ -456,7 +473,9 @@ class Project(object):
 
 
     def _common_proj_reset(self, user, base_config, files_config):
-
+        '''
+        Method to reset the project properties
+        '''
         logDebug('Common Project Reset for `{}` with params:\n\t`{}` & `{}`.'.format(user, base_config, files_config))
 
         if not files_config.endswith('/testsuites.xml'):
@@ -482,34 +501,34 @@ class Project(object):
         self.test_ids[user] = []
 
         # List with all registered EPs for this User
-        epList = self.rsrv.service.exposed_registered_eps(user)
+        ep_list = self.rsrv.service.exposed_registered_eps(user)
 
-        if not epList:
+        if not ep_list:
             logWarning('User `{}` doesn\'t have any registered EPs to run the tests!'.format(user))
 
         # List with all sorted EPs
-        projectEps = self.parsers[user].getActiveEps()
+        project_eps = self.parsers[user].getActiveEps()
 
         # Generate the list of EPs in order
-        for epname in projectEps:
-            if epname in epList:
+        for epname in project_eps:
+            if epname in ep_list:
                 self._register_ep(user, epname)
 
         # Add framework config info to default user
-        self.users[user]['config_path']  = base_config
+        self.users[user]['config_path'] = base_config
         self.users[user]['project_path'] = files_config
 
         # Get project global variables from XML:
         # Path to DB, E-mail XML, Globals, `Testcase Delay` value,
         # `Exit on test Fail` value, 'Libraries', `Database Autosave` value,
         # `Pre and Post` project Scripts, `Scripts mandatory` value
-        for k, v in self.parsers[user].project_globals.iteritems():
-            self.users[user][k] = v
+        for k_var, v_var in self.parsers[user].project_globals.iteritems():
+            self.users[user][k_var] = v_var
 
         self.users[user]['log_types'] = {}
 
-        for logType in self.parsers[user].getLogTypes():
-            self.users[user]['log_types'][logType] = self.parsers[user].getLogFileForType(logType)
+        for log_type in self.parsers[user].getLogTypes():
+            self.users[user]['log_types'][log_type] = self.parsers[user].getLogFileForType(log_type)
 
         # Global params for user
         self.users[user]['global_params'] = self.configs._parse_globals(user)
@@ -535,7 +554,7 @@ class Project(object):
             user_roles = {'roles': [], 'groups': []}
 
         self.users[user]['user_groups'] = ', '.join(user_roles['groups'])
-        self.users[user]['user_roles']  = ', '.join(user_roles['roles'])
+        self.users[user]['user_roles'] = ', '.join(user_roles['roles'])
 
         logDebug('End of common Project Reset for `{}`.'.format(user))
 
@@ -555,8 +574,9 @@ class Project(object):
 
         config_data = None
         # If config path is actually XML data
-        if base_config and ( type(base_config)==type('') or type(base_config)==type(u'') )\
-        and ( base_config[0] == '<' and base_config[-1] == '>' ):
+        if base_config and \
+        (type(base_config) == type('') or type(base_config) == type(u'')) and \
+        (base_config[0] == '<' and base_config[-1] == '>'):
             config_data, base_config = base_config, ''
 
         user_home = userHome(user)
@@ -565,7 +585,7 @@ class Project(object):
         if base_config and not os.path.exists(base_config):
             logCritical('Project ERROR: Config path {}` does not exist !'.format(base_config))
             return False
-        elif not os.path.exists( '{}/twister'.format(user_home) ):
+        elif not os.path.exists('{}/twister'.format(user_home)):
             logCritical('Project ERROR: Cannot find Twister for user `{}`, '\
                 'in path `{}/twister`!'.format(user, user_home))
             return False
@@ -610,8 +630,8 @@ class Project(object):
             logError('*ERROR* Config path `{}` does not exist! Using default config!'.format(base_config))
             base_config = False
 
-        r = self.authenticate(user)
-        if not r:
+        res = self.authenticate(user)
+        if not res:
             return False
 
         logDebug('Preparing to reset project for user `{}`...'.format(user))
@@ -620,7 +640,7 @@ class Project(object):
             logError('*ERROR* Cannot reset the project while still active! (ex: Running, or Pause)')
             return False
 
-        ti = time.clock()
+        t_init = time.clock()
 
         # User config XML files
         if not base_config:
@@ -628,8 +648,8 @@ class Project(object):
         if not files_config:
             files_config = self.users[user]['project_path']
 
-        logDebug('Project: Reload configuration for user `{}`, with config files:\n\t`{}` & `{}`.'
-            ''.format(user, base_config, files_config))
+        logDebug('Project: Reload configuration for user `{}`, with config \
+        files:\n\t`{}` & `{}`.'.format(user, base_config, files_config))
 
         try:
             del self.parsers[user]
@@ -644,9 +664,8 @@ class Project(object):
 
         # Save everything.
         self._dump()
-        logInfo('Project: Reload user operation took `{:.4f}` seconds.'.format(time.clock()-ti))
+        logInfo('Project: Reload user operation took `{:.4f}` seconds.'.format(time.clock() - t_init))
         return True
-
 
     def rename_user(self, name, new_name):
         """
@@ -695,9 +714,9 @@ class Project(object):
         """
         logFull('CeProject:list_users')
         users = []
-        with open(TWISTER_PATH + '/config/cached_users.json', 'r') as f:
+        with open(TWISTER_PATH + '/config/cached_users.json', 'r') as file_p:
             try:
-                users = json.load(f)
+                users = json.load(file_p)
             except Exception:
                 return users
         # Filter active users ?
@@ -720,8 +739,8 @@ class Project(object):
             return False
 
         if user not in self.users:
-            r = self.create_user(user)
-            if not r:
+            res = self.create_user(user)
+            if not res:
                 return False
 
         with self.auth_lock:
@@ -745,7 +764,7 @@ class Project(object):
 
             # Populate the roles in project structure
             self.users[user]['user_groups'] = ', '.join(user_roles['groups'])
-            self.users[user]['user_roles']  = ', '.join(user_roles['roles'])
+            self.users[user]['user_roles'] = ', '.join(user_roles['roles'])
 
         return user_roles
 
@@ -755,11 +774,16 @@ class Project(object):
         Internal function. Save all data structure on HDD.\n
         This function must use a lock!
         """
+        # if the debug level is NOT set to FULL, exit
+        if getLogLevel() != 'FULL':
+            return False
+
         with self.int_lock:
 
-            with open(TWISTER_PATH + '/config/project_users.json', 'w') as f:
+            with open(TWISTER_PATH + '/config/project_users.json', 'w') \
+            as file_p:
                 try:
-                    json.dump(self.users, f, indent=4)
+                    json.dump(self.users, file_p, indent=4)
                 except Exception:
                     pass
 
@@ -778,10 +802,19 @@ class Project(object):
             logError('Users and Groups ERROR: Cannot find roles file in path `{}`!'.format(cfg_path))
             return False
 
+        # get the last modified timer for cfg_path to understand if this file
+        # was changed in the meantime
+        m_time = os.path.getmtime(cfg_path)
+
+        # If the file wasn't change, no need to read the file from HDD
+        if self.roles.get('timer') and (m_time == self.roles['timer']):
+            return self.roles
+
         try:
-            cfg = iniparser.ConfigObj(cfg_path, create_empty=True, write_empty_values=True)
-        except Exception as e:
-            logError('Users and Groups parsing error `{}`!'.format(e))
+            cfg = iniparser.ConfigObj(cfg_path, create_empty=True,\
+            write_empty_values=True)
+        except Exception as exp_err:
+            logError('Users and Groups parsing error `{}`!'.format(exp_err))
             return {'users': {}, 'groups': {}}
 
         srv_type = self.server_init['ce_server_type']
@@ -800,7 +833,7 @@ class Project(object):
         for grp, grp_data in cfg['groups'].iteritems():
 
             roles = grp_data['roles']
-            grp_data['roles']    = []
+            grp_data['roles'] = []
 
             if roles == '0':
                 grp_data['roles'] = []
@@ -849,7 +882,7 @@ class Project(object):
                         usr_data['roles'] += roles
 
             # Fix roles. Must be a list.
-            usr_data['roles'] = sorted( set(usr_data['roles']) )
+            usr_data['roles'] = sorted(set(usr_data['roles']))
 
             # Get old timeout value for user, OR create a new default value
             if not usr_data.get('timeout'):
@@ -860,7 +893,12 @@ class Project(object):
             # Create user key tag
             usr_data['key'] = None
 
-        return cfg.dict()
+        # Update internal structure
+        self.roles = cfg.dict()
+        # Append timer, for next time
+        self.roles['timer'] = m_time
+
+        return self.roles
 
 
     def users_and_groups_mngr(self, user, cmd, name='', *args, **kwargs):
@@ -875,18 +913,19 @@ class Project(object):
         logFull('CeProject:users_and_groups_mngr user `{}`.'.format(user))
         cfg_path = '{}/config/users_and_groups.ini'.format(TWISTER_PATH)
         def create_cfg():
-            return iniparser.ConfigObj(cfg_path, indent_type='\t',
-                create_empty=True, write_empty_values=True)
+            return iniparser.ConfigObj(cfg_path, indent_type='\t',\
+            create_empty=True, write_empty_values=True)
 
         # Reload users and groups
         with self.usr_lock:
-            self.roles = self._parse_users_and_groups()
+            # Updates self.roles !
+            self._parse_users_and_groups()
             if not self.roles:
                 logError('*ERROR* : Cannot call Users & Groups manager! Invalid users and groups file!')
                 return '*ERROR* : Invalid users and groups file!'
 
-        logDebug('Users and Groups command: user `{}`, params: `{}`, `{}`, {}.'.format(
-                 user, cmd, name, *args))
+        logDebug('Users and Groups command: user `{}`, \
+        params: `{}`, `{}`, {}.'.format(user, cmd, name, *args))
 
         # List of roles for current CherryPy user
         cherry_all = self.roles['users'].get(user)
@@ -927,11 +966,10 @@ class Project(object):
                 self.roles[name] = args[0][0]
                 with self.usr_lock:
                     cfg.write()
-            except Exception, e:
-                return '*ERROR* : Exception : `{}` !'.format(e)
+            except Exception, exp_err:
+                return '*ERROR* : Exception : `{}` !'.format(exp_err)
             del cfg
             return True
-
 
         elif cmd == 'list users':
             # List all known users from users and groups config
@@ -950,7 +988,7 @@ class Project(object):
 
         elif cmd == 'list groups':
             # List all known groups from users and groups config
-            groups = self.roles['groups']
+            groups = copy.deepcopy(self.roles['groups'])
             sorted_group_list = sorted(groups.keys())
             groups['_sorted_groups'] = sorted_group_list
             return groups
@@ -959,7 +997,6 @@ class Project(object):
             # List all known roles
             return sorted(ROLES)
 
-
         elif cmd == 'set user':
             # Parameters: user name and list of groups.
             cfg = create_cfg()
@@ -967,8 +1004,8 @@ class Project(object):
                 return '*ERROR* : The user name cannot be empty!'
             # Try to check the user for NIS domains
             try:
-                d = subprocess.check_output('nisdomainname', shell=True)
-                if d.strip() != '(none)':
+                nis_d = subprocess.check_output('nisdomainname', shell=True)
+                if nis_d.strip() != '(none)':
                     try:
                         subprocess.check_output('ypmatch {} passwd'.format(name), shell=True)
                     except Exception:
@@ -978,12 +1015,12 @@ class Project(object):
                 pass
             try:
                 usr_group = args[0][0]
-            except Exception, e:
+            except Exception, exp_err:
                 return '*ERROR* : Invalid group!'
             user_before = cfg['users'].get(name, {})
             try:
                 usr_timeout = args[0][1]
-            except Exception, e:
+            except Exception, exp_err:
                 # Get old timeout value for user, OR create a new default value
                 usr_timeout = user_before.get('timeout', '01')
 
@@ -994,21 +1031,24 @@ class Project(object):
 
             # Create new section in Users
             cfg['users'][name] = user_before
-            cfg['users'][name]['groups_production']  = user_before.get('groups_production', '')
-            cfg['users'][name]['groups_development'] = user_before.get('groups_development', '')
+            cfg['users'][name]['groups_production'] = \
+            user_before.get('groups_production', '')
+            cfg['users'][name]['groups_development'] = \
+            user_before.get('groups_development', '')
             cfg['users'][name]['groups_' + srv_type] = usr_group
-            cfg['users'][name]['key']    = user_before.get('key', binascii.hexlify(os.urandom(16)))
+            cfg['users'][name]['key'] = user_before.get('key',\
+            binascii.hexlify(os.urandom(16)))
             cfg['users'][name]['timeout'] = usr_timeout
             with self.usr_lock:
                 cfg.write()
-            logDebug('Set user `{}` in group `{}`, with timeout `{}`, in Users and Groups.'.format(name, usr_group, usr_timeout))
+            logDebug('Set user `{}` in group `{}`, with timeout `{}`, in \
+            Users and Groups.'.format(name, usr_group, usr_timeout))
             del cfg
 
             # Reload users configuration
             with self.usr_lock:
-                self.roles = self._parse_users_and_groups()
+                self._parse_users_and_groups()
             return True
-
 
         elif cmd == 'delete user':
             cfg = create_cfg()
@@ -1020,15 +1060,14 @@ class Project(object):
                 del cfg['users'][name]
                 with self.usr_lock:
                     cfg.write()
-            except Exception, e:
-                return '*ERROR* : Exception : `{}` !'.format(e)
+            except Exception, exp_err:
+                return '*ERROR* : Exception : `{}` !'.format(exp_err)
             logDebug('Permanently removed user `{}` from Users and Groups.'.format(name))
             del cfg
             # Reload users configuration
             with self.usr_lock:
-                self.roles = self._parse_users_and_groups()
+                self._parse_users_and_groups()
             return True
-
 
         elif cmd == 'set group':
             cfg = create_cfg()
@@ -1036,8 +1075,8 @@ class Project(object):
                 return '*ERROR* : The group name cannot be empty!'
             try:
                 grp_roles = args[0][0]
-            except Exception, e:
-                return '*ERROR* : Exception : `{}` !'.format(e)
+            except Exception, exp_err:
+                return '*ERROR* : Exception : `{}` !'.format(exp_err)
 
             # Fix permissions
             roles = [g.strip() for g in grp_roles.split(',') if g and g in ROLES]
@@ -1050,7 +1089,7 @@ class Project(object):
             del cfg
             # Reload users configuration
             with self.usr_lock:
-                self.roles = self._parse_users_and_groups()
+                self._parse_users_and_groups()
             return True
 
         elif cmd == 'delete group':
@@ -1063,13 +1102,13 @@ class Project(object):
                 del cfg['groups'][name]
                 with self.usr_lock:
                     cfg.write()
-            except Exception, e:
-                return '*ERROR* : Exception : `{}` !'.format(e)
+            except Exception, exp_err:
+                return '*ERROR* : Exception : `{}` !'.format(exp_err)
             logDebug('Permanently removed group `{}` from Users and Groups.'.format(name))
             del cfg
             # Reload users configuration
             with self.usr_lock:
-                self.roles = self._parse_users_and_groups()
+                self._parse_users_and_groups()
             return True
 
         else:
@@ -1118,15 +1157,15 @@ class Project(object):
 
 
     @staticmethod
-    def _fix_cc_xml_tag(user, TagOrView):
+    def _fix_cc_xml_tag(user, tag_or_view):
         """
         Transform 1 ClearCase.XML tag name into a ClearCase view and activity.
         """
-        ccConfigs = ClearCaseParser(user).getConfigs(TagOrView)
-        if ccConfigs and 'view' in ccConfigs and 'actv' in ccConfigs:
-            return ccConfigs['view'] + ':' + ccConfigs['actv']
+        cc_config = ClearCaseParser(user).getConfigs(tag_or_view)
+        if cc_config and 'view' in cc_config and 'actv' in cc_config:
+            return cc_config['view'] + ':' + cc_config['actv']
         else:
-            return TagOrView
+            return tag_or_view
 
 
     @staticmethod
@@ -1136,17 +1175,17 @@ class Project(object):
         """
         if 'ClearCase' in PluginParser(user).getPlugins():
             # Get all ClearCase data from clearcase XML
-            ccConfigs = ClearCaseParser(user).getConfigs()
+            cc_config = ClearCaseParser(user).getConfigs()
             # If the key is disabled, or wrong ...
-            if cc_key not in ccConfigs:
+            if cc_key not in cc_config:
                 return False
             # If the key is OK, return config (view, path)
-            return ccConfigs[cc_key]
+            return cc_config[cc_key]
         else:
             return False
 
 
-    def file_size(self, user, fpath, type='fs'):
+    def file_size(self, user, fpath, f_type='fs'):
         """
         Returns file size.
         If the file is from TWISTER PATH, use System file size,
@@ -1155,9 +1194,9 @@ class Project(object):
         if fpath.startswith(TWISTER_PATH):
             return self.localFs.sys_file_size(fpath)
         else:
-            if type.startswith('clearcase:'):
+            if f_type.startswith('clearcase:'):
                 # ClearCase parameter is `clearcase:view`, or `clearcase:XmlTag`
-                view_or_tag = ':'.join(type.split(':')[1:])
+                view_or_tag = ':'.join(f_type.split(':')[1:])
                 view_actv = self._fix_cc_xml_tag(user, view_or_tag)
                 # logDebug('File size CC {} : {} : {}.'.format(user, view_actv, fpath))
                 return self.clearFs.file_size(user +':'+ view_actv, fpath)
@@ -1165,7 +1204,7 @@ class Project(object):
                 return self.localFs.file_size(user, fpath)
 
 
-    def read_file(self, user, fpath, flag='r', fstart=0, type='fs'):
+    def read_file(self, user, fpath, flag='r', fstart=0, f_type='fs'):
         """
         Read a file from TWISTER PATH, user's home folder, or ClearCase.
         Flag r/ rb = ascii/ binary.
@@ -1173,9 +1212,9 @@ class Project(object):
         if fpath.startswith(TWISTER_PATH):
             return self.localFs.read_system_file(fpath, flag, fstart)
         else:
-            if type.startswith('clearcase:'):
+            if f_type.startswith('clearcase:'):
                 # ClearCase parameter is `clearcase:view`, or `clearcase:XmlTag`
-                view_or_tag = ':'.join(type.split(':')[1:])
+                view_or_tag = ':'.join(f_type.split(':')[1:])
                 view_actv = self._fix_cc_xml_tag(user, view_or_tag)
                 logDebug('Read CC {} : {} : {}.'.format(user, view_actv, fpath))
                 return self.clearFs.read_user_file(user +':'+ view_actv, fpath, flag, fstart)
@@ -1183,14 +1222,14 @@ class Project(object):
                 return self.localFs.read_user_file(user, fpath, flag, fstart)
 
 
-    def write_file(self, user, fpath, fdata, flag='w', type='fs'):
+    def write_file(self, user, fpath, fdata, flag='w', f_type='fs'):
         """
         Write a file in user's home folder, or ClearCase.
         Flag w/ wb = ascii/ binary.
         """
-        if type.startswith('clearcase:'):
+        if f_type.startswith('clearcase:'):
             # ClearCase parameter is `clearcase:view`, or `clearcase:XmlTag`
-            view_or_tag = ':'.join(type.split(':')[1:])
+            view_or_tag = ':'.join(f_type.split(':')[1:])
             view_actv = self._fix_cc_xml_tag(user, view_or_tag)
             logDebug('Write CC {} : {} : {}.'.format(user, view_actv, fpath))
             return self.clearFs.write_user_file(user +':'+ view_actv, fpath, fdata, flag)
@@ -1198,13 +1237,13 @@ class Project(object):
             return self.localFs.write_user_file(user, fpath, fdata, flag)
 
 
-    def delete_file(self, user, fpath, type='fs'):
+    def delete_file(self, user, fpath, f_type='fs'):
         """
         Delete a file in user's home folder, or ClearCase.
         """
-        if type.startswith('clearcase:'):
+        if f_type.startswith('clearcase:'):
             # ClearCase parameter is `clearcase:view`, or `clearcase:XmlTag`
-            view_or_tag = ':'.join(type.split(':')[1:])
+            view_or_tag = ':'.join(f_type.split(':')[1:])
             view_actv = self._fix_cc_xml_tag(user, view_or_tag)
             logDebug('Delete CC file {} : {} : {}.'.format(user, view_actv, fpath))
             return self.clearFs.delete_user_file(user +':'+ view_actv, fpath)
@@ -1212,13 +1251,13 @@ class Project(object):
             return self.localFs.delete_user_file(user, fpath)
 
 
-    def create_folder(self, user, fdir, type='fs'):
+    def create_folder(self, user, fdir, f_type='fs'):
         """
         Create a folder in user's home folder, or ClearCase.
         """
-        if type.startswith('clearcase:'):
+        if f_type.startswith('clearcase:'):
             # ClearCase parameter is `clearcase:view`, or `clearcase:XmlTag`
-            view_or_tag = ':'.join(type.split(':')[1:])
+            view_or_tag = ':'.join(f_type.split(':')[1:])
             view_actv = self._fix_cc_xml_tag(user, view_or_tag)
             logDebug('Create CC folder {} : {} : {}.'.format(user, view_actv, fdir))
             return self.clearFs.create_user_folder(user +':'+ view_actv, fdir)
@@ -1226,13 +1265,13 @@ class Project(object):
             return self.localFs.create_user_folder(user, fdir)
 
 
-    def list_files(self, user, fdir, hidden=True, recursive=True, type='fs'):
+    def list_files(self, user, fdir, hidden=True, recursive=True, f_type='fs'):
         """
         List files from user's home folder, or ClearCase.
         """
-        if type.startswith('clearcase:'):
+        if f_type.startswith('clearcase:'):
             # ClearCase parameter is `clearcase:view`, or `clearcase:XmlTag`
-            view_or_tag = ':'.join(type.split(':')[1:])
+            view_or_tag = ':'.join(f_type.split(':')[1:])
             view_actv = self._fix_cc_xml_tag(user, view_or_tag)
             logDebug('List CC files {} : {} : {}.'.format(user, view_actv, fdir))
             return self.clearFs.list_user_files(user +':'+ view_actv, fdir, hidden, recursive)
@@ -1240,13 +1279,13 @@ class Project(object):
             return self.localFs.list_user_files(user, fdir, hidden, recursive)
 
 
-    def delete_folder(self, fdir, type='fs'):
+    def delete_folder(self, fdir, f_type='fs'):
         """
         Delete a folder from user's home folder, or ClearCase.
         """
-        if type.startswith('clearcase:'):
+        if f_type.startswith('clearcase:'):
             # ClearCase parameter is `clearcase:view`, or `clearcase:XmlTag`
-            view_or_tag = ':'.join(type.split(':')[1:])
+            view_or_tag = ':'.join(f_type.split(':')[1:])
             view_actv = self._fix_cc_xml_tag(user, view_or_tag)
             logDebug('Delete CC folder {} : {} : {}.'.format(user, view_actv, fdir))
             return self.clearFs.delete_user_folder(user +':'+ view_actv, fdir)
@@ -1259,11 +1298,11 @@ class Project(object):
         Read a project file - returns a string.
         """
         # Auto detect if ClearCase Test Config Path is active
-        ccConfig = self.get_clearcase_config(user, 'projects_path')
-        if ccConfig:
-            view = ccConfig['view']
-            actv = ccConfig['actv']
-            path = ccConfig['path'].rstrip('/')
+        cc_config = self.get_clearcase_config(user, 'projects_path')
+        if cc_config:
+            view = cc_config['view']
+            actv = cc_config['actv']
+            path = cc_config['path'].rstrip('/')
             if not path:
                 return '*ERROR* User `{}` did not set ClearCase Project Path!'.format(user)
             user_view_actv = '{}:{}:{}'.format(user, view, actv)
@@ -1281,11 +1320,11 @@ class Project(object):
         Write a project file - returns a True/ False.
         """
         # Auto detect if ClearCase Test Config Path is active
-        ccConfig = self.get_clearcase_config(user, 'projects_path')
-        if ccConfig and fpath != 'last_edited.xml':
-            view = ccConfig['view']
-            actv = ccConfig['actv']
-            path = ccConfig['path'].rstrip('/')
+        cc_config = self.get_clearcase_config(user, 'projects_path')
+        if cc_config and fpath != 'last_edited.xml':
+            view = cc_config['view']
+            actv = cc_config['actv']
+            path = cc_config['path'].rstrip('/')
             if not path:
                 return '*ERROR* User `{}` did not set ClearCase Project Path!'.format(user)
             user_view_actv = '{}:{}:{}'.format(user, view, actv)
@@ -1332,8 +1371,8 @@ class Project(object):
         List all available settings, for 1 config of a user.
         """
         logFull('CeProject:list_settings user `{}`.'.format(user))
-        r = self.authenticate(user)
-        if not r:
+        res = self.authenticate(user)
+        if not res:
             return False
         cfg_path = self._get_config_path(user, config)
         return self.parsers[user].list_settings(cfg_path, x_filter)
@@ -1344,8 +1383,8 @@ class Project(object):
         Fetch a value from 1 config of a user.
         """
         logFull('CeProject:get_settings_value user `{}`.'.format(user))
-        r = self.authenticate(user)
-        if not r:
+        res = self.authenticate(user)
+        if not res:
             return False
         cfg_path = self._get_config_path(user, config)
         return self.parsers[user].get_settings_value(cfg_path, key)
@@ -1356,8 +1395,8 @@ class Project(object):
         Set a value for a key in the config of a user.
         """
         logFull('CeProject:set_settings_value user `{}`.'.format(user))
-        r = self.authenticate(user)
-        if not r:
+        res = self.authenticate(user)
+        if not res:
             return False
         cfg_path = self._get_config_path(user, config)
         try:
@@ -1366,9 +1405,9 @@ class Project(object):
                 logDebug('Updated XML config `{}`, `{}` = `{}`.'.format(config, key, value))
             else:
                 logDebug('Unable to update XML config `{}`, `{}` = `{}` !'.format(config, key, value))
-        except Exception, e:
+        except Exception, exp_err:
             ret = False
-            logDebug('Cannot update key `{}` from XML config `{}`! Exception `{}` !'.format(key, config, e))
+            logDebug('Cannot update key `{}` from XML config `{}`! Exception `{}` !'.format(key, config, exp_err))
         return ret
 
 
@@ -1377,8 +1416,8 @@ class Project(object):
         Del a key from the config of a user.
         """
         logFull('CeProject:del_settings_key user `{}`.'.format(user))
-        r = self.authenticate(user)
-        if not r:
+        res = self.authenticate(user)
+        if not res:
             return False
         cfg_path = self._get_config_path(user, config)
         try:
@@ -1386,9 +1425,9 @@ class Project(object):
             if ret:
                 logDebug('Deleted XML config `{}`, key `{}`, index `{}`.'.format(config, key, index))
             else: logDebug('Unable to delete XML config `{}`, key `{}`, index `{}` !'.format(config, key, index))
-        except Exception, e:
+        except Exception, exp_err:
             ret = False
-            logDebug('Cannot delete key `{}` from XML config `{}`! Exception `{}` !'.format(key, config, e))
+            logDebug('Cannot delete key `{}` from XML config `{}`! Exception `{}` !'.format(key, config, exp_err))
         return ret
 
 
@@ -1401,8 +1440,8 @@ class Project(object):
         If the key is not specified, it can be a huge dictionary.
         """
         logFull('CeProject:get_user_info user `{}`.'.format(user))
-        r = self.authenticate(user)
-        if not r:
+        res = self.authenticate(user)
+        if not res:
             if key:
                 return []
             else:
@@ -1421,8 +1460,8 @@ class Project(object):
         Create or overwrite a variable with a value, for the current user.
         """
         logFull('CeProject:set_user_info user `{}`.'.format(user))
-        r = self.authenticate(user)
-        if not r:
+        res = self.authenticate(user)
+        if not res:
             return False
 
         if not key or key == 'eps':
@@ -1439,8 +1478,8 @@ class Project(object):
         Retrieve all info available, about one EP.
         """
         logFull('CeProject:get_ep_info user `{}`.'.format(user))
-        r = self.authenticate(user)
-        if not r:
+        res = self.authenticate(user)
+        if not res:
             return {}
 
         return self.users[user].get('eps', {}).get(epname, {})
@@ -1452,17 +1491,17 @@ class Project(object):
         The files are found recursive.
         """
         logFull('CeProject:get_ep_files user `{}`.'.format(user))
-        r = self.authenticate(user)
-        if not r:
+        res = self.authenticate(user)
+        if not res:
             return []
 
         if epname not in self.users[user]['eps']:
             logDebug('Project: Invalid EP name `{}` !'.format(epname))
             return False
 
-        ep = self.users[user].get('eps', {}).get(epname, {})
-        if 'suites' in ep:
-            return ep['suites'].get_files()
+        ep_list = self.users[user].get('eps', {}).get(epname, {})
+        if 'suites' in ep_list:
+            return ep_list['suites'].get_files()
         else:
             return []
 
@@ -1472,8 +1511,8 @@ class Project(object):
         Create or overwrite a variable with a value, for one EP.
         """
         logFull('CeProject:set_ep_info user `{}`.'.format(user))
-        r = self.authenticate(user)
-        if not r:
+        res = self.authenticate(user)
+        if not res:
             return False
 
         if epname not in self.users[user]['eps']:
@@ -1487,8 +1526,8 @@ class Project(object):
             self.users[user]['eps'][epname][key] = value
             self._dump()
             return True
-        except Exception as e:
-            logWarning('Cannot set EP `{}` info `{} = {}`: `{}`!'.format(epname, key, value, e))
+        except Exception as exp_err:
+            logWarning('Cannot set EP `{}` info `{} = {}`: `{}`!'.format(epname, key, value, exp_err))
             return False
 
 
@@ -1498,8 +1537,8 @@ class Project(object):
         The files are NOT recursive.
         """
         logFull('CeProject:get_suite_info user `{}`.'.format(user))
-        r = self.authenticate(user)
-        if not r:
+        res = self.authenticate(user)
+        if not res:
             return {}
         eps = self.users[user]['eps']
 
@@ -1522,8 +1561,8 @@ class Project(object):
         Return a list with all file IDs associated with one Suite.
         """
         logFull('CeProject:get_suite_files user `{}`.'.format(user))
-        r = self.authenticate(user)
-        if not r:
+        res = self.authenticate(user)
+        if not res:
             return []
         eps = self.users[user]['eps']
 
@@ -1542,8 +1581,8 @@ class Project(object):
         Create or overwrite a variable with a value, for one Suite.
         """
         logFull('CeProject:set_suite_info user `{}`.'.format(user))
-        r = self.authenticate(user)
-        if not r:
+        res = self.authenticate(user)
+        if not res:
             return False
         eps = self.users[user]['eps']
 
@@ -1575,8 +1614,8 @@ class Project(object):
         The file ID must be unique!
         """
         logFull('CeProject:get_file_info user `{}`.'.format(user))
-        r = self.authenticate(user)
-        if not r:
+        res = self.authenticate(user)
+        if not res:
             return {}
         eps = self.users[user]['eps']
 
@@ -1599,8 +1638,8 @@ class Project(object):
         Create or overwrite a variable with a value, for one Test File.
         """
         logFull('CeProject:set_file_info user `{}`.'.format(user))
-        r = self.authenticate(user)
-        if not r:
+        res = self.authenticate(user)
+        if not res:
             return False
         eps = self.users[user]['eps']
 
@@ -1623,9 +1662,7 @@ class Project(object):
             return False
         file_node[key] = value
 
-        # if the debug level is set to FULL or DEBUG, dump the project on disk
-        if getLogLevel() == 'FULL':
-            self._dump()
+        self._dump()
         return True
 
 
@@ -1634,8 +1671,8 @@ class Project(object):
         Retrieve all info available, about one Test File.\n
         """
         logFull('CeProject:get_dependency_info user `{}`.'.format(user))
-        r = self.authenticate(user)
-        if not r:
+        res = self.authenticate(user)
+        if not res:
             return {}
         found = False
 
@@ -1666,10 +1703,10 @@ class Project(object):
         Helper function to find a local client connection.
         """
         addr = ['127.0.0.1', 'localhost']
-        hostName = socket.gethostname()
-        addr.append(hostName)
+        host_name = socket.gethostname()
+        addr.append(host_name)
         try:
-            addr.append(socket.gethostbyaddr(hostName)[-1][0])
+            addr.append(socket.gethostbyaddr(host_name)[-1][0])
         except Exception:
             pass
 
@@ -1683,14 +1720,14 @@ class Project(object):
         return self.rsrv.service.conns.get(local_client, {}).get('conn', False)
 
 
-    def _find_specific_ep(self, user, ep='ep'):
+    def _find_specific_ep(self, user, ep_id='ep'):
         """
         Helper function to find a local EP connection.
         """
-        ep_addr = self.rsrv.service._findConnection(user, 'ep',epname=ep)
+        ep_addr = self.rsrv.service._findConnection(user, 'ep', epname=ep_id)
         # Cannot find local conns
         if not ep_addr:
-            logWarning('*WARN* Cannot find local EP `{}`, for user `{}`!'.format(ep, user))
+            logWarning('*WARN* Cannot find local EP `{}`, for user `{}`!'.format(ep_id, user))
             return False
 
         return self.rsrv.service.conns.get(ep_addr, {}).get('conn', False)
@@ -1704,10 +1741,10 @@ class Project(object):
         epname = None
 
         addr = ['127.0.0.1', 'localhost']
-        hostName = socket.gethostname()
-        addr.append(hostName)
+        host_name = socket.gethostname()
+        addr.append(host_name)
         try:
-            addr.append(socket.gethostbyaddr(hostName)[-1][0])
+            addr.append(socket.gethostbyaddr(host_name)[-1][0])
         except Exception:
             pass
 
@@ -1717,18 +1754,20 @@ class Project(object):
 
         # Cannot find local client conns
         if not local_client:
-            logWarning('*WARN* Cannot find any local Clients for user `{}` to use for Anonim EP! The Anonim EP will not run!'.format(user))
+            logWarning('*WARN* Cannot find any local Clients for user `{}` to \
+            use for Anonim EP! The Anonim EP will not run!'.format(user))
             return False
 
         # The list of local EPs (EPs from THIS machine)
         local_eps = rpyc_srv.conns.get(local_client, {}).get('eps', [])
         if not local_eps:
-            logWarning('*WARN* Cannot find any local EPs for user `{}` to use for Anonim EP! The Anonim EP will not run!'.format(user))
+            logWarning('*WARN* Cannot find any local EPs for user `{}` to use \
+            for Anonim EP! The Anonim EP will not run!'.format(user))
             return False
 
-        for ep in local_eps:
+        for l_ep in local_eps:
             if self.get_ep_info(user, epname).get('status', STATUS_INVALID) in [STATUS_STOP, STATUS_INVALID]:
-                epname = ep
+                epname = l_ep
                 break
 
         if not epname:
@@ -1763,8 +1802,8 @@ class Project(object):
             logError('Project: Invalid EP name `{}` !'.format(epname))
             return False
         if new_status not in EXEC_STATUS.values():
-            logError('Project: Status value `{}` is not in the list of defined statuses: `{}`!'
-                     ''.format(new_status, EXEC_STATUS.values()) )
+            logError('Project: Status value `{}` is not in the list of \
+            defined statuses: `{}`!'.format(new_status, EXEC_STATUS.values()))
             return False
 
         # Status resume => start running
@@ -1808,15 +1847,16 @@ class Project(object):
 
                 self.set_user_info(user, 'status', STATUS_STOP)
 
-                logInfo('Project: All processes stopped for user `{}`! General user status changed to STOP.\n'.format(user))
+                logInfo('Project: All processes stopped for user `{}`! \
+                General user status changed to STOP.\n'.format(user))
 
                 # If this run is Not temporary
-                if not (user + '_old' in self.users):
+                if not user + '_old' in self.users:
                     # On Central Engine stop, send e-mail
                     try:
                         self.send_mail(user)
-                    except Exception as e:
-                        logError('Could not send e-mail! Exception `{}`!'.format(e))
+                    except Exception as exp_err:
+                        logError('Could not send e-mail! Exception `{}`!'.format(exp_err))
 
                     # Execute "Post Script"
                     script_post = self.get_user_info(user, 'script_post')
@@ -1827,7 +1867,9 @@ class Project(object):
                         if result:
                             logDebug('Post Script executed!\n"{}"\n'.format(result))
                         elif script_mandatory:
-                            logError('Project: Post Script failed and script is mandatory! Will not save the results into database!')
+                            logError('Project: Post Script failed and script \
+                            is mandatory! Will not save the results into \
+                            database!')
                             save_to_db = False
 
                     # On Central Engine stop, save to database
@@ -1845,7 +1887,8 @@ class Project(object):
                     parser = PluginParser(user)
                     plugins = parser.getPlugins()
                     for pname in plugins:
-                        plugin = self._build_plugin(user, pname,  {'ce_stop': 'automatic'})
+                        plugin = self._build_plugin(user, pname,\
+                        {'ce_stop': 'automatic'})
                         try:
                             plugin.onStop()
                         except Exception:
@@ -1867,8 +1910,9 @@ class Project(object):
                             statuses_changed += 1
 
                     if statuses_changed:
-                        logDebug('User `{}` changed `{}` file statuses from '
-                            '"Pending" to "Not executed".'.format(user, statuses_changed))
+                        logDebug('User `{}` changed `{}` file statuses from \
+                        "Pending" to "Not executed".'.\
+                        format(user, statuses_changed))
 
         # If one or more EPs get an interact
         elif STATUS_INTERACT in [self.get_ep_info(user, ep).get('status', 8) for ep in intersect_eps]:
@@ -1876,14 +1920,16 @@ class Project(object):
             # If User status was running
             if self.get_user_info(user, 'status') == STATUS_RUNNING:
                 self.set_user_info(user, 'status', STATUS_INTERACT)
-                logInfo('Project: At least one EP is in interact for user `{}`! General user status changed to INTERACT.\n'.format(user))
+                logInfo('Project: At least one EP is in interact for user `{}`!\
+                General user status changed to INTERACT.\n'.format(user))
 
         # If EPs get out from interact state
         elif STATUS_INTERACT not in [self.get_ep_info(user, ep).get('status', 8) for ep in intersect_eps]:
             # If User status was running
             if self.get_user_info(user, 'status') == STATUS_INTERACT:
                 self.set_user_info(user, 'status', STATUS_RUNNING)
-                logInfo('Project: All EPs are running for user `{}`! General user status changed to RUNNING.\n'.format(user))
+                logInfo('Project: All EPs are running for user `{}`! General \
+                user status changed to RUNNING.\n'.format(user))
 
         return reversed[new_status]
 
@@ -1907,8 +1953,8 @@ class Project(object):
             return False
 
         if new_status not in EXEC_STATUS.values():
-            logError('*ERROR* Status value `{}` is not in the list of defined statuses: `{}`!'
-                     ''.format(new_status, EXEC_STATUS.values()) )
+            logError('*ERROR* Status value `{}` is not in the list of defined \
+            statuses: `{}`!'.format(new_status, EXEC_STATUS.values()))
             return False
 
         # Shortcut to the Rpyc Service
@@ -1921,14 +1967,14 @@ class Project(object):
             new_status = STATUS_RUNNING
 
         # Return the current status, or 8 = INVALID
-        executionStatus = self.get_user_info(user, 'status') or 8
+        exec_status = self.get_user_info(user, 'status') or 8
 
         # All REAL, registered EPs
         real_eps = rpyc_srv.exposed_registered_eps(user)
 
         # Re-initialize the Master XML and Reset all logs on fresh start!
         # This will always happen when the START button is pressed, if CE is stopped
-        if executionStatus in [STATUS_STOP, STATUS_INVALID] and new_status == STATUS_RUNNING:
+        if exec_status in [STATUS_STOP, STATUS_INVALID] and new_status == STATUS_RUNNING:
 
             proj_reset = False
 
@@ -1949,12 +1995,13 @@ class Project(object):
             elif msg and os.path.isfile(msg):
                 data = self.localFs.read_user_file(user, msg)
                 # If the file is XML, send it to project reset function
-                if data[0] == '<' and data [-1] == '>':
+                if data[0] == '<' and data[-1] == '>':
                     logDebug('Using custom XML file: `{}`...'.format(msg))
                     proj_reset = self.reset_project(user, msg)
                     msg = ''
                 else:
-                    logDebug('You are probably trying to use file `{}` as config file, but it\'s not a valid XML!'.format(msg))
+                    logDebug('You are probably trying to use file `{}` as \
+                    config file, but it\'s not a valid XML!'.format(msg))
                     proj_reset = self.reset_project(user)
                 del data
 
@@ -2023,18 +2070,6 @@ class Project(object):
             # List of started EPs
             started_eps = []
 
-#             tests_list = []
-#             for ep in intersect_eps:
-#                 SuitesManager = self.get_ep_info(user, ep)['suites']
-#                 for key in SuitesManager:
-#                     children = SuitesManager.get(key).get('children')
-#                     for id in children:
-#                         tests_list.append(children.get(id)['file'])
-#
-#             libraries = self.localFs.detect_libraries(user, tests_list)
-#             logWarning('Libraries: {}'.format(libraries))
-#             self.calc_libraries[user] = libraries
-
             for epname in intersect_eps:
                 if epname == '__anonymous__' and anonim_ep:
                     self._register_ep(user, epname)
@@ -2059,31 +2094,32 @@ class Project(object):
                 return msg
 
         # If the engine is running, or paused and it received STOP from the user...
-        elif executionStatus in [STATUS_RUNNING, STATUS_PAUSED, STATUS_INTERACT, STATUS_INVALID] and new_status == STATUS_STOP:
+        elif exec_status in [STATUS_RUNNING, STATUS_PAUSED,\
+        STATUS_INTERACT, STATUS_INVALID] and new_status == STATUS_STOP:
 
             # Remove reservation of SUTs/TBs
 
             reserved_suts = self.sut.reservedResources
             if reserved_suts:
                 reserved_suts_ids = reserved_suts[user].keys()
-                for id in reserved_suts_ids:
-                    result = self.sut.discard_release_reserved_sut(id)
+                for s_id in reserved_suts_ids:
+                    result = self.sut.discard_release_reserved_sut(s_id)
                     if not result:
-                        msg = '*ERROR* Cannot discard reservation for SUT with id {}.'.format(id)
+                        msg = '*ERROR* Cannot discard reservation for SUT with id {}.'.format(s_id)
                         logWarning(msg)
                     else:
-                        logDebug('Reservation discarded for SUT id `{}`.'.format(id))
+                        logDebug('Reservation discarded for SUT id `{}`.'.format(s_id))
 
-            reserved_tbs = self.tb.reservedResources
+            reserved_tbs = self.testbeds.reservedResources
             if reserved_tbs:
                 reserved_tbs_ids = reserved_tbs[user].keys()
-                for id in reserved_tbs_ids:
-                    result = self.tb.discard_release_reserved_tb(id)
+                for tb_id in reserved_tbs_ids:
+                    result = self.testbeds.discard_release_reserved_tb(tb_id)
                     if not result:
                         msg = '*ERROR* Cannot discard reservation for TB with id {}.'.format(id)
                         logWarning(msg)
                     else:
-                        logDebug('Reservation discarded for TB id `{}`.'.format(id))
+                        logDebug('Reservation discarded for TB id `{}`.'.format(tb_id))
 
             # Execute "Post Script"
             script_post = self.get_user_info(user, 'script_post')
@@ -2140,8 +2176,8 @@ class Project(object):
                         statuses_changed += 1
 
             if statuses_changed:
-                logDebug('User `{}` changed `{}` file statuses from '
-                    '"Pending" to "Not executed".'.format(user, statuses_changed))
+                logDebug('User `{}` changed `{}` file statuses from \
+                "Pending" to "Not executed".'.format(user, statuses_changed))
 
         # Pause or other statuses ?
         else:
@@ -2176,8 +2212,8 @@ class Project(object):
         This can be filtered for an EP and a Suite.
         """
         logFull('CeProject:get_file_status_all user `{}`.'.format(user))
-        r = self.authenticate(user)
-        if not r:
+        res = self.authenticate(user)
+        if not res:
             return []
 
         if suite_id and not epname:
@@ -2208,13 +2244,13 @@ class Project(object):
                     files = suites_p.get_files(suite_id=None, recursive=True)
 
                 for file_id in files:
-                    s = self.get_file_info(user, epname, file_id)
-                    if s:
-                        s = s.get('status', 10)
+                    f_status = self.get_file_info(user, epname, file_id)
+                    if f_status:
+                        f_status = f_status.get('status', 10)
                     else:
-                        s = 10
+                        f_status = 10
                     # Unordered
-                    statuses[file_id] = str(s)
+                    statuses[file_id] = str(f_status)
             # Default case, no EP and no Suite
             else:
                 for epname in eps:
@@ -2222,13 +2258,13 @@ class Project(object):
                         continue
                     files = eps[epname]['suites'].get_files(suite_id=None, recursive=True)
                     for file_id in files:
-                        s = self.get_file_info(user, epname, file_id)
-                        if s:
-                            s = s.get('status', 10)
+                        f_status = self.get_file_info(user, epname, file_id)
+                        if f_status:
+                            f_status = f_status.get('status', 10)
                         else:
-                            s = 10
+                            f_status = 10
                         # Unordered
-                        statuses[file_id] = str(s)
+                        statuses[file_id] = str(f_status)
 
         for tcid in sorted(statuses.keys()):
             final.append(statuses[tcid])
@@ -2241,8 +2277,8 @@ class Project(object):
         Set status for one file and write in log summary.
         """
         logFull('CeProject:set_file_status user `{}`.'.format(user))
-        r = self.authenticate(user)
-        if not r:
+        res = self.authenticate(user)
+        if not res:
             return False
         eps = self.users[user]['eps']
 
@@ -2250,8 +2286,9 @@ class Project(object):
             logDebug('Project: Invalid EP name `{}` !'.format(epname))
             return False
         if new_status not in testStatus.values():
-            logError('Project: Status value `{}` is not in the list of defined statuses: `{}`!'
-                     ''.format(new_status, sorted(testStatus.values())) )
+            logError('Project: Status value `{}` is not in the list of \
+            defined statuses: `{}`!' ''.format(new_status,\
+            sorted(testStatus.values())))
             return False
 
         data = self.get_file_info(user, epname, file_id)
@@ -2278,24 +2315,30 @@ class Project(object):
             # Inject information into Files. This will be used when saving into database.
             now = datetime.datetime.today()
 
-            self.set_file_info(user, epname, file_id, 'twister_tc_status', status_str.replace('*', ''))
-            self.set_file_info(user, epname, file_id, 'twister_tc_crash_detected',
-                                    data.get('twister_tc_crash_detected', 0))
-            self.set_file_info(user, epname, file_id, 'twister_tc_time_elapsed',   int(time_elapsed))
-            self.set_file_info(user, epname, file_id, 'twister_tc_date_started',
-                                    (now - datetime.timedelta(seconds=time_elapsed)).isoformat())
-            self.set_file_info(user, epname, file_id, 'twister_tc_date_finished',  (now.isoformat()))
+            self.set_file_info(user, epname, file_id, 'twister_tc_status',\
+            status_str.replace('*', ''))
+            self.set_file_info(user, epname, file_id,\
+            'twister_tc_crash_detected',\
+            data.get('twister_tc_crash_detected', 0))
+            self.set_file_info(user, epname, file_id,\
+            'twister_tc_time_elapsed', int(time_elapsed))
+            self.set_file_info(user, epname, file_id,\
+            'twister_tc_date_started',\
+            (now - datetime.timedelta(seconds=time_elapsed)).isoformat())
+            self.set_file_info(user, epname, file_id,\
+            'twister_tc_date_finished', (now.isoformat()))
             suite_name = self.get_suite_info(user, epname, suite).get('name')
 
-            logMessage = ' {ep}::{suite}::{file} | {status} | {elapsed} | {date}\n'.format(
-                    ep = epname.center(9), suite = suite_name.center(9), file = filename.center(28),
-                    status = status_str.center(11),
-                    elapsed = ('%.2fs' % time_elapsed).center(10),
-                    date = now.strftime('%a %b %d, %H:%M:%S'))
+            log_msg = ' {ep}::{suite}::{file} | {status} | {elapsed} | \
+            {date}\n'.format(ep=epname.center(9),\
+            suite=suite_name.center(9), file=filename.center(28),\
+            status=status_str.center(11),\
+            elapsed=('%.2fs' % time_elapsed).center(10),\
+            date=now.strftime('%a %b %d, %H:%M:%S'))
 
             # Get logSummary path from framework config
-            logPath = self.get_user_info(user, 'log_types')['logSummary']
-            resp = self.localFs.write_user_file(user, logPath, logMessage, 'a')
+            log_path = self.get_user_info(user, 'log_types')['logSummary']
+            resp = self.localFs.write_user_file(user, log_path, log_msg, 'a')
 
             if isinstance(resp, str):
                 logError('Summary log file for `{}` cannot be written! User won\'t see any statistics!'.format(user))
@@ -2309,8 +2352,8 @@ class Project(object):
         Reset the status of all files, to value: x.
         """
         logFull('CeProject:set_file_status_all user `{}`.'.format(user))
-        r = self.authenticate(user)
-        if not r:
+        res = self.authenticate(user)
+        if not res:
             return False
         eps = self.users[user]['eps']
 
@@ -2344,8 +2387,8 @@ class Project(object):
         This function writes in TestSuites.XML file.
         """
         logFull('CeProject:set_persistent_suite user `{}`.'.format(user))
-        r = self.authenticate(user)
-        if not r:
+        res = self.authenticate(user)
+        if not res:
             return False
         cfg_path = self._get_config_path(user, 'project')
         logDebug('Create Suite: Will create suite `{}` for user `{}` project.'.format(suite, user))
@@ -2357,8 +2400,8 @@ class Project(object):
         This function writes in TestSuites.XML file.
         """
         logFull('CeProject:del_persistent_suite user `{}`.'.format(user))
-        r = self.authenticate(user)
-        if not r:
+        res = self.authenticate(user)
+        if not res:
             return False
         xpath_suite = '/Root/TestSuite[tsName="{}"]'.format(suite)
         logDebug('Del Suite: Will remove suite `{}` from user `{}` project.'.format(suite, user))
@@ -2370,8 +2413,8 @@ class Project(object):
         This function writes in TestSuites.XML file.
         """
         logFull('CeProject:set_persistent_file user `{}`.'.format(user))
-        r = self.authenticate(user)
-        if not r:
+        res = self.authenticate(user)
+        if not res:
             return False
         cfg_path = self._get_config_path(user, 'project')
         logDebug('Create File: Will create file `{0} - {1}` for user `{2}` project.'.format(suite, fname, user))
@@ -2383,8 +2426,8 @@ class Project(object):
         This function writes in TestSuites.XML file.
         """
         logFull('CeProject:del_persistent_file user `{}`.'.format(user))
-        r = self.authenticate(user)
-        if not r:
+        res = self.authenticate(user)
+        if not res:
             return False
         xpath_file = '/Root/TestSuite[tsName="{0}"]/TestCase[tcName="{1}"]'.format(suite, fname)
         logDebug('Del File: Will remove file `{0} - {1}` from user `{2}` project.'.format(suite, fname, user))
@@ -2395,8 +2438,8 @@ class Project(object):
         """
         This function temporary adds a file at the end of the given suite, during runtime.
         """
-        r = self.authenticate(user)
-        if not r:
+        res = self.authenticate(user)
+        if not res:
             return False
 
         logDebug('Preparing to queue file `{} : {}` for user `{}`...'.format(suite, fname, user))
@@ -2415,11 +2458,11 @@ class Project(object):
                 fname = tests_path + os.sep + fname
 
         # Try create a new file id
-        file_id = str( int(max(self.test_ids[user] or [1000])) + 1 )
+        file_id = str(int(max(self.test_ids[user] or [1000])) + 1)
 
         eps = self.users[user]['eps']
         suite_id = False
-        SuitesManager = False
+        suites_manager = False
 
         # Try to find the suite name
         for epname in eps:
@@ -2428,7 +2471,7 @@ class Project(object):
             for s_id in suites:
                 if manager.find_id(s_id)['name'] == suite:
                     suite_id = s_id
-                    SuitesManager = manager
+                    suites_manager = manager
                     break
             if suite_id:
                 break
@@ -2445,13 +2488,13 @@ class Project(object):
             self.test_ids[user].append(file_id)
 
             finfo = OrderedDict()
-            finfo['type']  = 'file'
+            finfo['type'] = 'file'
             finfo['suite'] = suite_id
-            finfo['file']  = fname
+            finfo['file'] = fname
             finfo['Runnable'] = "true"
 
             # Add file for the user, in a specific suite
-            suite = SuitesManager.find_id(suite_id)
+            suite = suites_manager.find_id(suite_id)
             suite['children'][file_id] = finfo
 
             # Add the file in suites.xml ?
@@ -2467,8 +2510,8 @@ class Project(object):
         This function temporary removes the file id from the project, during runtime.
         If the file did already run, the function does nothing!
         """
-        r = self.authenticate(user)
-        if not r:
+        res = self.authenticate(user)
+        if not res:
             return False
 
         logDebug('Preparing to queue file data `{}` for user `{}`...'.format(data, user))
@@ -2493,13 +2536,13 @@ class Project(object):
             logDebug(log)
             return log
 
-        SuitesManager = self.users[user]['eps'][epname]['suites']
+        suites_manager = self.users[user]['eps'][epname]['suites']
 
         # There are 4 types of dequeue
         if not rest:
             # All files from EP
             suite_id = None
-            files = SuitesManager.get_files(None, True)
+            files = suites_manager.get_files(None, True)
 
             if not files:
                 log = '*ERROR* No files left to unqueue!'
@@ -2512,13 +2555,13 @@ class Project(object):
             # All files from Suite ID
             suite_id = rest
 
-            if suite_id not in SuitesManager.get_suites():
+            if suite_id not in suites_manager.get_suites():
                 log = '*ERROR* Invalid Suite ID `{}` !'.format(suite_id)
                 logError(log)
                 return log
 
-            suite_node = SuitesManager.find_id(suite_id)
-            files = SuitesManager.get_files(suite_id, True)
+            suite_node = suites_manager.find_id(suite_id)
+            files = suites_manager.get_files(suite_id, True)
             logDebug('Removing file IDs `{}` from `{}:{}`...'.format(', '.join(files), epname, suite_id))
 
         elif len(rest) == 4:
@@ -2526,7 +2569,7 @@ class Project(object):
             file_id = rest
             suite_id = None
 
-            if file_id not in SuitesManager.get_files(None, True):
+            if file_id not in suites_manager.get_files(None, True):
                 log = '*ERROR* Invalid File ID `{}` !'.format(file_id)
                 logError(log)
                 return log
@@ -2538,14 +2581,14 @@ class Project(object):
             suite_id = None
             suite_node = None
 
-            if not SuitesManager.get_files(None, True):
+            if not suites_manager.get_files(None, True):
                 log = '*ERROR* No files left to unqueue!'
                 logError(log)
                 return log
 
-            for id, node in SuitesManager.iter_nodes(None, []):
+            for s_id, node in suites_manager.iter_nodes(None, []):
                 if node['type'] == 'suite' and node['name'] == rest:
-                    suite_id = id
+                    suite_id = s_id
                     suite_node = node
 
             if not suite_id:
@@ -2553,7 +2596,7 @@ class Project(object):
                 logError(log)
                 return log
 
-            files = SuitesManager.get_files(suite_id, True)
+            files = suites_manager.get_files(suite_id, True)
             logDebug('Removing file IDs `{}` from `{}:{}`...'.format(', '.join(files), epname, rest))
 
 
@@ -2561,7 +2604,7 @@ class Project(object):
             """
             Find the file node and delete it.
             """
-            file_node = SuitesManager.find_id(file_id)
+            file_node = suites_manager.find_id(file_id)
 
             if not file_node:
                 log = '*ERROR* Invalid File node `{}` !'.format(file_id)
@@ -2575,7 +2618,7 @@ class Project(object):
 
             if not suite_id:
                 suite_id = file_node['suite']
-                suite_node = SuitesManager.find_id(suite_id)
+                suite_node = suites_manager.find_id(suite_id)
 
             if not suite_node:
                 log = '*ERROR* Invalid Suite node `{}` !'.format(suite_id)
@@ -2597,7 +2640,7 @@ class Project(object):
 # # #
 
 
-    def get_libraries_list(self, user, all=True):
+    def get_libraries_list(self, user, all_f=True):
         """
         Returns the list of exposed libraries, from CE libraries folder.\n
         This list will be used to syncronize the libs on all EP computers.
@@ -2613,10 +2656,11 @@ class Project(object):
             user_path = ''
 
         # All Python source files from Libraries folder AND all library folders
-        if all:
+        if all_f:
             # All files + all folders
-            glob_libs = self.localFs.list_system_files(libs_path, hidden=False, recursive=True,
-                accept=['.py', '.zip'], reject=['__init__.py', '__init__.pyc'])
+            glob_libs = self.localFs.list_system_files(libs_path, hidden=False,\
+            recursive=True, accept=['.py', '.zip'],\
+            reject=['__init__.py', '__init__.pyc'])
 
             if isinstance(glob_libs, dict):
                 glob_libs['data'] = '/libs'
@@ -2625,21 +2669,21 @@ class Project(object):
                 return {}
 
             # Auto detect if ClearCase Test Config Path is active
-            ccConfig = self.get_clearcase_config(user, 'libs_path')
-            if ccConfig:
-                view = ccConfig['view']
-                actv = ccConfig['actv']
-                path = ccConfig['path']
+            cc_config = self.get_clearcase_config(user, 'libs_path')
+            if cc_config:
+                view = cc_config['view']
+                actv = cc_config['actv']
+                path = cc_config['path']
                 if not path:
                     return '*ERROR* User `{}` did not set ClearCase Libraries Path!'.format(user)
                 user_view_actv = '{}:{}:{}'.format(user, view, actv)
-                user_libs_all = self.clearFs.list_user_files(user_view_actv, path,
-                    hidden=False, recursive=True,
-                    accept=['.py', '.zip'], reject=['__init__.py', '__init__.pyc'])
+                user_libs_all = self.clearFs.list_user_files(user_view_actv,\
+                path, hidden=False, recursive=True, accept=['.py', '.zip'],\
+                reject=['__init__.py', '__init__.pyc'])
             else:
-                user_libs_all = self.localFs.list_user_files(user, user_path,
-                    hidden=False, recursive=True,
-                    accept=['.py', '.zip'], reject=['__init__.py', '__init__.pyc'])
+                user_libs_all = self.localFs.list_user_files(user, user_path,\
+                hidden=False, recursive=True, accept=['.py', '.zip'],\
+                reject=['__init__.py', '__init__.pyc'])
 
             # All files + all folders
             if isinstance(user_libs_all, dict):
@@ -2685,29 +2729,32 @@ class Project(object):
                         # This is a Global lib
                         lib_path = libs_path + lib
                         lib_root = os.path.split(lib_path)[0]
-                        lib_files = self.localFs.list_system_files(libs_path, hidden=False, recursive=True,
-                            accept=['.py', '.zip'], reject=['__init__.py', '__init__.pyc'])
+                        lib_files = self.localFs.list_system_files(libs_path,\
+                        hidden=False, recursive=True, accept=['.py', '.zip'],\
+                        reject=['__init__.py', '__init__.pyc'])
 
                     else:
                         # This is a User lib
                         lib_path = user_path + lib
                         lib_root = os.path.split(lib_path)[0]
                         # Auto detect if ClearCase Test Config Path is active
-                        ccConfig = self.get_clearcase_config(user, 'libs_path')
-                        if ccConfig:
-                            view = ccConfig['view']
-                            actv = ccConfig['actv']
-                            path = ccConfig['path']
+                        cc_config = self.get_clearcase_config(user, 'libs_path')
+                        if cc_config:
+                            view = cc_config['view']
+                            actv = cc_config['actv']
+                            path = cc_config['path']
                             if not path:
                                 return '*ERROR* User `{}` did not set ClearCase Libraries Path!'.format(user)
                             user_view_actv = '{}:{}:{}'.format(user, view, actv)
-                            lib_files = self.clearFs.list_user_files(user_view_actv, path,
-                                hidden=False, recursive=True,
-                                accept=['.py', '.zip'], reject=['__init__.py', '__init__.pyc'])
+                            lib_files = self.clearFs.\
+                            list_user_files(user_view_actv, path, hidden=False,\
+                            recursive=True, accept=['.py', '.zip'],\
+                            reject=['__init__.py', '__init__.pyc'])
                         else:
-                            lib_files = self.localFs.list_user_files(user, lib_root,
-                                hidden=False, recursive=True,
-                                accept=['.py', '.zip'], reject=['__init__.py', '__init__.pyc'])
+                            lib_files = self.localFs.list_user_files(user,\
+                            lib_root, hidden=False, recursive=True,\
+                            accept=['.py', '.zip'],\
+                            reject=['__init__.py', '__init__.pyc'])
 
                     # List files failed ?
                     if not isinstance(lib_files, dict):
@@ -2724,87 +2771,90 @@ class Project(object):
             logDebug('Current project deep libraries for user `{}`: {}.'.format(user, libs))
             return libs
 
-
     def send_mail(self, user, force=False):
         """
         Send e-mail function.\n
         Use the force to ignore the enabled/ disabled status.
         """
-        condensed_vars = ['twister_ep_name','twister_suite_name']
+        condensed_vars = ['twister_ep_name', 'twister_suite_name']
         logFull('CeProject:send_mail user `{}`.'.format(user))
 
         with self.eml_lock:
 
-            r = self.authenticate(user)
-            if not r:
+            res = self.authenticate(user)
+            if not res:
                 return False
 
             # This is updated every time.
-            eMailConfig = self.parsers[user].getEmailConfig()
-            if not eMailConfig:
+            email_cfg = self.parsers[user].getEmailConfig()
+            if not email_cfg:
                 log = '*ERROR* E-mail configuration for user `{}` not found!'.format(user)
                 logWarning(log)
                 return log
 
             # Decode e-mail password
-            if eMailConfig['SMTPPwd']:
+            if email_cfg['SMTPPwd']:
                 try:
-                    SMTPPwd = self.decrypt_text(user, eMailConfig['SMTPPwd'])
+                    smtp_pwd = self.decrypt_text(user, email_cfg['SMTPPwd'])
                 except Exception:
                     log = 'SMTP: Password is not set for user `{}`!'.format(user)
                     logError(log)
                     return log
-                if not SMTPPwd:
-                    log = 'SMTP: Invalid password for user `{}`! Please update your password and try again!'.format(user)
+                if not smtp_pwd:
+                    log = 'SMTP: Invalid password for user `{}`! \
+                    Please update your password and try again!'.\
+                    format(user)
                     logError(log)
                     return log
                 # Overwrite the password
-                eMailConfig['SMTPPwd'] = SMTPPwd
+                email_cfg['SMTPPwd'] = smtp_pwd
 
             if force:
                 logDebug('Preparing to send a test e-mail for user `{}`...'.format(user))
 
                 try:
-                    server = smtplib.SMTP(eMailConfig['SMTPPath'], timeout=2)
+                    server = smtplib.SMTP(email_cfg['SMTPPath'], timeout=2)
                     server.ehlo()
                 except Exception:
-                    log = 'SMTP: Cannot connect to SMTP server `{}`!'.format(eMailConfig['SMTPPath'])
+                    log = 'SMTP: Cannot connect to SMTP server `{}`!'.format(email_cfg['SMTPPath'])
                     logError(log)
                     return log
 
-                if eMailConfig['SMTPUser']:
+                if email_cfg['SMTPUser']:
                     logDebug('SMTP: Preparing to login...')
                     try:
                         server.starttls()
                         server.ehlo()
-                        server.login(eMailConfig['SMTPUser'], eMailConfig['SMTPPwd'])
+                        server.login(email_cfg['SMTPUser'], email_cfg['SMTPPwd'])
                     except Exception:
-                        log = 'SMTP: Cannot authenticate to SMTP server for `{}`! Invalid user `{}` or password!'.format(user, eMailConfig['SMTPUser'])
+                        log = 'SMTP: Cannot authenticate to SMTP server for \
+                        `{}`! Invalid user `{}` or password!'.\
+                        format(user, email_cfg['SMTPUser'])
                         logError(log)
                         return log
 
                 try:
-                    eMailConfig['To'] = eMailConfig['To'].replace(';', ',')
-                    eMailConfig['To'] = eMailConfig['To'].split(',')
+                    email_cfg['To'] = email_cfg['To'].replace(';', ',')
+                    email_cfg['To'] = email_cfg['To'].split(',')
 
                     msg = MIMEMultipart()
-                    msg['From'] = eMailConfig['From']
-                    msg['To'] = eMailConfig['To'][0]
+                    msg['From'] = email_cfg['From']
+                    msg['To'] = email_cfg['To'][0]
 
-                    if len(eMailConfig['To']) > 1:
+                    if len(email_cfg['To']) > 1:
                         # Carbon Copy recipients
-                        msg['CC'] = ','.join(eMailConfig['To'][1:])
-                    msg['Subject'] = eMailConfig['Subject']
+                        msg['CC'] = ','.join(email_cfg['To'][1:])
+                    msg['Subject'] = email_cfg['Subject']
 
-                    msg.attach(MIMEText(eMailConfig['Message'], 'plain'))
+                    msg.attach(MIMEText(email_cfg['Message'], 'plain'))
 
-                    server.sendmail(eMailConfig['From'], eMailConfig['To'], msg.as_string())
+                    server.sendmail(email_cfg['From'], email_cfg['To'], msg.as_string())
 
                     logDebug('SMTP: E-mail sent successfully!')
                     server.quit()
 
                     return True
-                except Exception as e:
+                except Exception as exp_err:
                     log = 'SMTP: Cannot send e-mail for user `{}`!'.format(user)
                     logError(log)
                     return log
@@ -2816,12 +2866,12 @@ class Project(object):
                 return False
             merged_params = {'date': [time.strftime("%Y-%m-%d %H:%M")]}
 
-            for tp in tests_params:
-                for key in tp:
+            for test_par in tests_params:
+                for key in test_par:
                     if key in merged_params:
-                        merged_params[key].append(str(tp[key]))
+                        merged_params[key].append(str(test_par[key]))
                     else:
-                        merged_params[key] = [str(tp.get(key))]
+                        merged_params[key] = [str(test_par.get(key))]
 
             for key in merged_params:
                 if len(set(merged_params[key])) == 1:
@@ -2830,7 +2880,7 @@ class Project(object):
                     to_be_condensed = merged_params[key]
                     condensed = [to_be_condensed[0]]
                     last = to_be_condensed[0]
-                    for i in xrange(1,len(to_be_condensed)):
+                    for i in xrange(1, len(to_be_condensed)):
                         if last != to_be_condensed[i]:
                             condensed.append(to_be_condensed[i])
                             last = to_be_condensed[i]
@@ -2840,52 +2890,54 @@ class Project(object):
                 else:
                     merged_params[key] = ', '.join(merged_params[key])
 
-            logPath = self.users[user]['log_types']['logSummary']
-            logSummary = self.localFs.read_user_file(user, logPath)
+            log_path = self.users[user]['log_types']['logSummary']
+            log_summary = self.localFs.read_user_file(user, log_path)
 
-            if logSummary.startswith('*ERROR*'):
-                log = '*ERROR* Cannot open Summary Log `{}` for reading, on user `{}`!'.format(logPath, user)
+            if log_summary.startswith('*ERROR*'):
+                log = '*ERROR* Cannot open Summary Log `{}` for reading, on user `{}`!'.format(log_path, user)
                 logError(log)
                 return log
 
-            if not logSummary:
+            if not log_summary:
                 log = '*ERROR* Log Summary is empty! Nothing to send for user `{}`!'.format(user)
                 logDebug(log)
                 return log
 
-            logInfo('Preparing e-mail... Server `{SMTPPath}`, user `{SMTPUser}`, from `{From}`, to `{To}`'
-                '...'.format(**eMailConfig))
+            logInfo('Preparing e-mail... Server `{SMTPPath}`, \
+            user `{SMTPUser}`, from `{From}`, to `{To}`'\
+            '...'.format(**email_cfg))
 
             # Subject template string
-            tmpl = Template(eMailConfig['Subject'])
+            tmpl = Template(email_cfg['Subject'])
             try:
-                eMailConfig['Subject'] = tmpl.safe_substitute(merged_params)
-            except Exception as e:
-                log = 'E-mail ERROR! Cannot build e-mail subject for user `{}`! Error on {}!'.format(user, e)
+                email_cfg['Subject'] = tmpl.safe_substitute(merged_params)
+            except Exception as exp_err:
+                log = 'E-mail ERROR! Cannot build e-mail subject for user `{}`! Error on {}!'.format(user, exp_err)
                 logError(log)
                 return log
             del tmpl
 
             # Message template string
-            tmpl = Template(eMailConfig['Message'])
+            tmpl = Template(email_cfg['Message'])
             try:
-                eMailConfig['Message'] = tmpl.safe_substitute(merged_params)
-            except Exception as e:
-                log = 'E-mail ERROR! Cannot build e-mail message for user `{}`! Error on {}!'.format(user, e)
+                email_cfg['Message'] = tmpl.safe_substitute(merged_params)
+            except Exception as exp_err:
+                log = 'E-mail ERROR! Cannot build e-mail message for user `{}`! Error on {}!'.format(user, exp_err)
                 logError(log)
                 return log
             del tmpl
 
-            ROWS = []
+            rows = []
 
-            for line in logSummary.split('\n'):
+            for line in log_summary.split('\n'):
                 rows = line.replace('::', '|').split('|')
                 if not rows[0]:
                     continue
                 rclass = rows[3].strip().replace('*', '')
 
                 rows = ['&nbsp;'+r.strip() for r in rows]
-                ROWS.append( ('<tr class="%s"><td>' % rclass) + '</td><td>'.join(rows) + '</td></tr>\n')
+                rows.append(('<tr class="%s"><td>' % rclass) + \
+                '</td><td>'.join(rows) + '</td></tr>\n')
 
             # Body string
             body_path = os.path.split(self.users[user]['config_path'])[0] +os.sep+ 'e-mail-tmpl.htm'
@@ -2902,62 +2954,62 @@ class Project(object):
 
             body_tmpl = Template(body_txt)
             body_dict = {
-                'texec':  len(logSummary.strip().splitlines()),
-                'tpass':  logSummary.count('*PASS*'),
-                'tfail':  logSummary.count('*FAIL*'),
-                'tabort': logSummary.count('*ABORTED*'),
-                'tnexec': logSummary.count('*NO EXEC*'),
-                'ttimeout': logSummary.count('*TIMEOUT*'),
-                'rate'  : round( (float(logSummary.count('*PASS*'))/ len(logSummary.strip().splitlines())* 100), 2),
-                'table' : ''.join(ROWS),
+                'texec':  len(log_summary.strip().splitlines()),
+                'tpass':  log_summary.count('*PASS*'),
+                'tfail':  log_summary.count('*FAIL*'),
+                'tabort': log_summary.count('*ABORTED*'),
+                'tnexec': log_summary.count('*NO EXEC*'),
+                'ttimeout': log_summary.count('*TIMEOUT*'),
+                'rate'  : round((float(log_summary.count('*PASS*'))/ len(log_summary.strip().splitlines())*100), 2),
+                'table' : ''.join(rows),
             }
 
             # Fix TO and CC
-            eMailConfig['To'] = eMailConfig['To'].replace(';', ',')
-            eMailConfig['To'] = eMailConfig['To'].split(',')
+            email_cfg['To'] = email_cfg['To'].replace(';', ',')
+            email_cfg['To'] = email_cfg['To'].split(',')
 
             msg = MIMEMultipart()
-            msg['From'] = eMailConfig['From']
-            msg['To'] = eMailConfig['To'][0]
-            if len(eMailConfig['To']) > 1:
+            msg['From'] = email_cfg['From']
+            msg['To'] = email_cfg['To'][0]
+            if len(email_cfg['To']) > 1:
                 # Carbon Copy recipients
-                msg['CC'] = ','.join(eMailConfig['To'][1:])
-            msg['Subject'] = eMailConfig['Subject']
+                msg['CC'] = ','.join(email_cfg['To'][1:])
+            msg['Subject'] = email_cfg['Subject']
 
-            msg.attach(MIMEText(eMailConfig['Message'], 'plain'))
+            msg.attach(MIMEText(email_cfg['Message'], 'plain'))
             msg.attach(MIMEText(body_tmpl.substitute(body_dict), 'html'))
 
-            if (not eMailConfig['Enabled']) or (eMailConfig['Enabled'] in ['0', 'false']):
+            if (not email_cfg['Enabled']) or (email_cfg['Enabled'] in ['0', 'false']):
                 e_mail_path = os.path.split(self.users[user]['config_path'])[0] +os.sep+ 'e-mail.htm'
                 self.localFs.write_user_file(user, e_mail_path, msg.as_string())
-                logDebug('E-mail.htm file written, for user `{}`. '
-                    'The message will NOT be sent.'.format(user))
+                logDebug('E-mail.htm file written, for user `{}`. \
+                The message will NOT be sent.'.format(user))
                 return True
 
-            logDebug('SMTP: Preparing to connect to server `{}`, for user `{}`!'.format(eMailConfig['SMTPPath']))
+            logDebug('SMTP: Preparing to connect to server `{}`, for user `{}`!'.format(email_cfg['SMTPPath'], user))
 
             try:
-                server = smtplib.SMTP(eMailConfig['SMTPPath'], timeout=2)
+                server = smtplib.SMTP(email_cfg['SMTPPath'], timeout=2)
                 server.ehlo()
             except Exception:
-                log = 'SMTP: Cannot connect to SMTP server `{}`, for user `{}`!'.format(eMailConfig['SMTPPath'], user)
+                log = 'SMTP: Cannot connect to SMTP server `{}`, for user `{}`!'.format(email_cfg['SMTPPath'], user)
                 logError(log)
                 return log
 
-            if eMailConfig['SMTPUser']:
+            if email_cfg['SMTPUser']:
                 logDebug('SMTP: Preparing to login...')
                 try:
                     server.starttls()
                     server.ehlo()
-                    server.login(eMailConfig['SMTPUser'], eMailConfig['SMTPPwd'])
+                    server.login(email_cfg['SMTPUser'], email_cfg['SMTPPwd'])
                 except Exception:
                     log = 'SMTP: Cannot authenticate to SMTP server for `{}`! ' \
-                        'Invalid user `{}` or password!'.format(user, eMailConfig['SMTPUser'])
+                        'Invalid user `{}` or password!'.format(user, email_cfg['SMTPUser'])
                     logError(log)
                     return log
 
             try:
-                server.sendmail(eMailConfig['From'], eMailConfig['To'], msg.as_string())
+                server.sendmail(email_cfg['From'], email_cfg['To'], msg.as_string())
                 logDebug('SMTP: E-mail sent successfully for user `{}`!'.format(user))
                 server.quit()
                 return True
@@ -2973,8 +3025,8 @@ class Project(object):
         using the DB.XML for the current project.
         """
         logFull('CeProject:save_to_database user `{}`.'.format(user))
-        r = self.authenticate(user)
-        if not r:
+        res = self.authenticate(user)
+        if not res:
             return False
         return self.dbmgr.save_to_database(user)
 
@@ -3069,7 +3121,8 @@ class Project(object):
         # If file size returned error
         if isinstance(fsz, str):
             return '*ERROR* File `{}` doesn\'t exist, user {}! Using master config `{}` and suites config `{}`'.\
-                format(filename, user, self.get_user_info(user, 'config_path'), self.get_user_info(user, 'project_path'))
+                format(filename, user, self.get_user_info(user, 'config_path'),\
+                self.get_user_info(user, 'project_path'))
 
         if not read or read == '0':
             return fsz
@@ -3089,19 +3142,19 @@ class Project(object):
         Parses the log file of one EP and returns the log of one test file.
         """
         log_folder = self.get_user_info(user, 'logs_path')
-        log_types  = self.get_user_info(user, 'log_types')
+        log_types = self.get_user_info(user, 'log_types')
 
         if ltype == 'logCli':
-            _, logCli = os.path.split(log_types.get(ltype, 'CLI.log'))
+            _, log_cli = os.path.split(log_types.get(ltype, 'CLI.log'))
             # Logs Path + EP Name + CLI Name
-            logPath = log_folder + os.sep + epname +'_'+ logCli
+            log_path = log_folder + os.sep + epname +'_'+ log_cli
         elif ltype in log_types:
-            logPath = log_types[ltype]
+            log_path = log_types[ltype]
         else:
             logDebug('Find Log: Cannot find log type `{}` for user `{}`!'.format(ltype, user))
             return '*no log*'
 
-        data = self.localFs.read_user_file(user, logPath)
+        data = self.localFs.read_user_file(user, log_path)
 
         if data.startswith('*ERROR*'):
             logDebug(data)
@@ -3109,7 +3162,7 @@ class Project(object):
 
         fbegin = data.find('<<< START filename: `{}:{}'.format(file_id, file_name))
         if fbegin == -1:
-            logDebug('Find Log: Cannot find `{}:{}` in log `{}`!'.format(file_id, file_name, logPath))
+            logDebug('Find Log: Cannot find `{}:{}` in log `{}`!'.format(file_id, file_name, log_path))
             return '*no log*'
 
         fend = data.find('<<< END filename: `{}:{}'.format(file_id, file_name))
@@ -3118,7 +3171,7 @@ class Project(object):
         return data[fbegin:fend]
 
 
-    def log_message(self, user, logType, logMessage):
+    def log_message(self, user, log_type, log_msg):
         """
         This function is exposed in all tests, all logs are centralized in the HOME of the user.\n
         In order for the user to be able to access the logs written by CE, which runs as ROOT,
@@ -3126,31 +3179,33 @@ class Project(object):
         """
         logFull('CeProject:log_message user `{}`.'.format(user))
 
-        logTypes = self.get_user_info(user, 'log_types')
+        log_types = self.get_user_info(user, 'log_types')
 
-        if logType not in logTypes:
-            logError('Log Error for `{}`! Log type `{}` is not in the list of defined types: `{}`!'.format(user, logType, logTypes))
+        if log_type not in log_types:
+            logError('Log Error for `{}`! Log type `{}` is not in the list of \
+            defined types: `{}`!'.format(user, log_type, log_types))
             return False
 
-        if logType == 'logSummary':
-            logWarning('Log Warning for `{}`! Summary is reserved and cannot be written into!'.format(user))
+        if log_type == 'logSummary':
+            logWarning('Log Warning for `{}`! Summary is reserved and cannot \
+            be written into!'.format(user))
             return False
 
-        logPath = self.get_user_info(user, 'log_types')[logType]
-        return self.localFs.write_user_file(user, logPath, logMessage, 'a')
+        log_path = self.get_user_info(user, 'log_types')[log_type]
+        return self.localFs.write_user_file(user, log_path, log_msg, 'a')
 
 
-    def log_live(self, user, epname, logMessage):
+    def log_live(self, user, epname, log_msg):
         """
         Writes CLI messages in a big log, so all output can be checked LIVE.\n
         Called from the EP.
         """
         logFull('CeProject:log_live user `{}`.'.format(user))
 
-        logFolder = self.get_user_info(user, 'logs_path')
+        log_folder = self.get_user_info(user, 'logs_path')
 
-        if not logFolder:
-            logError('Log Error for `{}`! Invalid logs folder `{}`!'.format(user, logFolder))
+        if not log_folder:
+            logError('Log Error for `{}`! Invalid logs folder `{}`!'.format(user, log_folder))
             return False
 
         if epname not in self.users[user]['eps']:
@@ -3158,7 +3213,7 @@ class Project(object):
             return False
 
         try:
-            log_string = binascii.a2b_base64(logMessage)
+            log_string = binascii.a2b_base64(log_msg)
         except Exception:
             logError('Log Error for `{}`: Invalid base64 log!'.format(user))
             return False
@@ -3169,23 +3224,23 @@ class Project(object):
             plugin = self._build_plugin(user, pname, {'log_type': 'cli'})
             try:
                 plugin.onLog(epname, log_string)
-            except Exception as e:
+            except Exception as exp_err:
                 trace = traceback.format_exc()[34:].strip()
                 logWarning('Error on running plugin `{} onStop` for `{}` - Exception: `{}`!'.format(pname, user, trace))
         del plugins
 
         # Calling Panic Detect
-        pd = self._panic_detect_log_parse(user, epname, log_string)
+        panic_det = self._panic_detect_log_parse(user, epname, log_string)
 
-        logTypes = self.get_user_info(user, 'log_types')
-        _, logCli = os.path.split( logTypes.get('logCli', 'CLI.log') )
+        log_types = self.get_user_info(user, 'log_types')
+        _, log_cli = os.path.split(log_types.get('logCli', 'CLI.log'))
         # Logs Path + EP Name + CLI Name
-        logPath = logFolder + os.sep + epname +'_'+ logCli
+        log_path = log_folder + os.sep + epname +'_'+ log_cli
 
-        if pd:
+        if panic_det:
             self.log_message(user, 'logRunning', 'PANIC DETECT: Execution stopped.')
 
-        return self.localFs.write_user_file(user, logPath, log_string, 'a')
+        return self.localFs.write_user_file(user, log_path, log_string, 'a')
 
 
     def reset_log(self, user, log_name):
@@ -3194,36 +3249,36 @@ class Project(object):
         Called from the Java GUI.
         """
         logFull('CeProject:reset_log user `{}`.'.format(user))
-        logTypes = self.get_user_info(user, 'log_types')
-        logPath = ''
+        log_types = self.get_user_info(user, 'log_types')
+        log_path = ''
 
         # Cycle all log types and paths
-        for logType, logN in logTypes.iteritems():
-            _, logShort = os.path.split(logN)
+        for log_type, log_n in log_types.iteritems():
+            _, log_short = os.path.split(log_n)
             # CLI Logs are special, exploded for each EP
-            if logType.lower() == 'logcli':
+            if log_type.lower() == 'logcli':
                 for epname in self.get_user_info(user, 'eps'):
-                    logCli = epname +'_'+ logShort
-                    if log_name == logCli:
-                        logPath = _ +'/'+ logCli
+                    log_cli = epname +'_'+ log_short
+                    if log_name == log_cli:
+                        log_path = _ +'/'+ log_cli
                         break
             else:
                 # For normal, non-CLI logs...
-                if log_name == logShort:
-                    logPath = logN
+                if log_name == log_short:
+                    log_path = log_n
                     break
 
-        if not logPath:
+        if not log_path:
             logWarning('Log path `{}`, for `{}` cannot be found!'.format(log_name, user))
             return False
 
         # This will overwrite the file completely
-        ret = self.localFs.write_user_file(user, logPath, '')
+        ret = self.localFs.write_user_file(user, log_path, '')
 
         if ret is True:
-            logDebug('Log `{}` reset for user `{}`.'.format(logPath, user))
+            logDebug('Log `{}` reset for user `{}`.'.format(log_path, user))
         else:
-            logWarning('Could not reset log `{}`, for `{}`! UserService returned: `{}`!'.format(logPath, user, ret))
+            logWarning('Could not reset log `{}`, for `{}`! UserService returned: `{}`!'.format(log_path, user, ret))
 
         return ret
 
@@ -3235,18 +3290,18 @@ class Project(object):
         """
         logFull('CeProject:backup_logs user `{}`.'.format(user))
 
-        archiveLogsActive = self.get_user_info(user, 'archive_logs_path_active')
-        archiveLogsPath = self.get_user_info(user, 'archive_logs_path').rstrip('/')
-        logsPath = self.get_user_info(user, 'logs_path')
+        ar_logs_active = self.get_user_info(user, 'archive_logs_path_active')
+        ar_logs_path = self.get_user_info(user, 'archive_logs_path').rstrip('/')
+        logs_path = self.get_user_info(user, 'logs_path')
         start_time = self.get_user_info(user, 'start_time')
         success = True
 
-        if archiveLogsPath and (archiveLogsActive == 'true' or archiveLogsActive == True):
+        if ar_logs_path and (ar_logs_active == 'true' or ar_logs_active == True):
             logDebug('Will backup all logs...')
             # Create path if it doesn't exist
-            self.localFs.create_user_folder(user, archiveLogsPath)
+            self.localFs.create_user_folder(user, ar_logs_path)
             # Find all user log files. Validate first.
-            logs = self.localFs.list_user_files(user, logsPath)
+            logs = self.localFs.list_user_files(user, logs_path)
             if not (logs and isinstance(logs, dict) and logs.get('children')):
                 logError('Cannot list user logs for `{}`!'.format(user))
                 return False
@@ -3256,12 +3311,12 @@ class Project(object):
             logDebug('Found `{}` logs to archive: {} for user {}.'.format(len(logs), logs, user))
 
             for log in logs:
-                archPath = '{}/{}.{}'.format(archiveLogsPath, log, start_time)
-                ret = self.localFs.copy_user_file(user, logsPath + os.sep + log, archPath)
+                arch_path = '{}/{}.{}'.format(ar_logs_path, log, start_time)
+                ret = self.localFs.copy_user_file(user, logs_path + os.sep + log, arch_path)
                 if ret == True:
-                    logDebug('Log file `{}` archived in `{}`.'.format(log, archPath))
+                    logDebug('Log file `{}` archived in `{}`.'.format(log, arch_path))
                 else:
-                    logError('Cannot archive log `{}` in `{}`! Error `{}`!'.format(log, archiveLogsPath, ret))
+                    logError('Cannot archive log `{}` in `{}`! Error `{}`!'.format(log, ar_logs_path, ret))
                     success = False
 
         return success
@@ -3273,10 +3328,11 @@ class Project(object):
         Called every time the project is reset.
         """
         logFull('CeProject:reset_logs user `{}`.'.format(user))
-        logsPath = self.get_user_info(user, 'logs_path')
+        logs_path = self.get_user_info(user, 'logs_path')
+        ar_logs_path = self.get_user_info(user, 'archive_logs_path').rstrip('/')
 
         # Find all user log files. Validate first.
-        logs = self.localFs.list_user_files(user, logsPath)
+        logs = self.localFs.list_user_files(user, logs_path)
         if not (logs and isinstance(logs, dict) and logs.get('children')):
             logError('Cannot list user logs for `{}`!'.format(user))
             return False
@@ -3288,10 +3344,10 @@ class Project(object):
         success = True
 
         for log in logs:
-            ret = self.localFs.write_user_file(user, logsPath +os.sep+ log, "")
+            ret = self.localFs.write_user_file(user, logs_path +os.sep+ log, "")
             if not ret:
                 success = False
-                logError('Cannot reset log `{}` in `{}`! Error `{}`!'.format(log, archiveLogsPath, ret))
+                logError('Cannot reset log `{}` in `{}`! Error `{}`!'.format(log, ar_logs_path, ret))
 
         if success:
             logDebug('All logs reset for user `{}`.'.format(user))
@@ -3309,32 +3365,33 @@ class Project(object):
         status = False
         self.panic_detect_config(user, {'command': 'list'})
 
-        with open(self.pdConfigPath, 'rb') as config:
-            self.panicDetectRegularExpressions = json.load(config)
+        with open(self.panic_cfg_path, 'rb') as config:
+            self.panic_detect_reg_exprs = json.load(config)
 
-        if user not in self.panicDetectRegularExpressions:
+        if user not in self.panic_detect_reg_exprs:
             return status
 
         # Verify if for current suite Panic Detect is enabled
-        suiteID = self.get_ep_info(user, epname).get('curent_suite')
+        suite_id = self.get_ep_info(user, epname).get('curent_suite')
         # When running first, the current_suite is not defined yet
-        if not suiteID:
+        if not suite_id:
             return status
 
-        enabled = self.get_suite_info(user, epname, suiteID).get('pd')
+        enabled = self.get_suite_info(user, epname, suite_id).get('pd')
 
         if not enabled or enabled.lower() == 'false':
             return status
 
-        for key, value in self.panicDetectRegularExpressions[user].iteritems():
+        for key, value in self.panic_detect_reg_exprs[user].iteritems():
             if value.get('enabled') == 'true':
                 try:
                     if re.search(value['expression'], log_string):
                         # Stop EP
-                        self.set_exec_status(user, epname, STATUS_STOP,
-                            msg='Panic detect activated, expression `{}` found in CLI log!'.format(value['expression']))
+                        self.set_exec_status(user, epname, STATUS_STOP,\
+                        msg='Panic detect activated, expression `{}` found in \
+                        CLI log!'.format(value['expression']))
                         status = True
-                except Exception as e:
+                except Exception as exc_err:
                     trace = traceback.format_exc()[34:].strip()
                     logError(trace)
 
@@ -3353,10 +3410,10 @@ class Project(object):
         """
         logFull('CeProject:panic_detect_config user `{}`.'.format(user))
 
-        with open(self.pdConfigPath, 'rb') as config:
-            self.panicDetectRegularExpressions = json.load(config)
+        with open(self.panic_cfg_path, 'rb') as config:
+            self.panic_detect_reg_exprs = json.load(config)
 
-        panicDetectCommands = {
+        pannic_detect_cmds = {
             'simple': [
                 'list',
             ],
@@ -3375,15 +3432,15 @@ class Project(object):
             'data': 'None', # response data
         }
 
-        if (not args.has_key('command') or args['command'] not
-            in panicDetectCommands['argumented'] + panicDetectCommands['simple']):
+        if not args.has_key('command') or args['command'] not \
+        in pannic_detect_cmds['argumented'] + pannic_detect_cmds['simple']:
             response['type'] = 'error reply'
 
             response['status']['success'] = False
             response['status']['message'] = 'unknown command'
 
-        elif (args['command'] in panicDetectCommands['argumented']
-                and not args.has_key('data')):
+        elif args['command'] in pannic_detect_cmds['argumented'] \
+        and not args.has_key('data'):
             response['type'] = 'error reply'
 
             response['status']['success'] = False
@@ -3393,8 +3450,8 @@ class Project(object):
         elif args['command'] == 'list':
             response['type'] = 'list_regular_expressions reply'
 
-            #response['data'] = json.dumps(self.panicDetectRegularExpressions)
-            response = json.dumps(self.panicDetectRegularExpressions)
+            #response['data'] = json.dumps(self.panic_detect_reg_exprs)
+            response = json.dumps(self.panic_detect_reg_exprs)
 
         # Add regular_expression
         elif args['command'] == 'add':
@@ -3402,35 +3459,35 @@ class Project(object):
 
             try:
                 _args = args['data']
-                regExpData = {}
+                reg_exp_data = {}
 
-                regExpData.update([('expression', _args['expression']), ])
+                reg_exp_data.update([('expression', _args['expression']), ])
 
-                if regExpData.has_key('enabled'):
-                    regExpData.update([('enabled', _args['enabled']), ])
+                if reg_exp_data.has_key('enabled'):
+                    reg_exp_data.update([('enabled', _args['enabled']), ])
                 else:
-                    regExpData.update([('enabled', False), ])
+                    reg_exp_data.update([('enabled', False), ])
 
-                regExpID = str(time.time()).replace('.', '|')
+                reg_exp_id = str(time.time()).replace('.', '|')
 
-                if not self.panicDetectRegularExpressions.has_key(user):
-                    self.panicDetectRegularExpressions.update([(user, {}), ])
+                if not self.panic_detect_reg_exprs.has_key(user):
+                    self.panic_detect_reg_exprs.update([(user, {}), ])
 
-                self.panicDetectRegularExpressions[user].update(
-                                                    [(regExpID, regExpData), ])
+                self.panic_detect_reg_exprs[user].\
+                update([(reg_exp_id, reg_exp_data), ])
 
                 with self.panic_lock:
-                    config = open(self.pdConfigPath, 'wb')
-                    json.dump(self.panicDetectRegularExpressions, config)
+                    config = open(self.panic_cfg_path, 'wb')
+                    json.dump(self.panic_detect_reg_exprs, config)
                     config.close()
 
-                #response['data'] = regExpID
-                response = regExpID
-                logDebug('Panic Detect: added regular expression `{e}` for user: `{u}`.'.format(u=user, e=regExpID))
-            except Exception, e:
+                #response['data'] = reg_exp_id
+                response = reg_exp_id
+                logDebug('Panic Detect: added regular expression `{e}` for user: `{u}`.'.format(u=user, e=reg_exp_id))
+            except Exception, exc_err:
                 #response['status']['success'] = False
                 #response['status']['message'] = '{er}'.format(er=e)
-                response = 'error: {er}'.format(er=e)
+                response = 'error: {er}'.format(er=exc_err)
 
         # Update regular_expression
         elif args['command'] == 'update':
@@ -3438,52 +3495,52 @@ class Project(object):
 
             try:
                 _args = args['data']
-                regExpID = _args.pop('id')
-                regExpData = self.panicDetectRegularExpressions[user].pop(regExpID)
+                reg_exp_id = _args.pop('id')
+                reg_exp_data = self.panic_detect_reg_exprs[user].pop(reg_exp_id)
 
-                regExpData.update([('expression', _args['expression']), ])
+                reg_exp_data.update([('expression', _args['expression']), ])
 
                 if _args.has_key('enabled'):
-                    regExpData.update([('enabled', _args['enabled']), ])
+                    reg_exp_data.update([('enabled', _args['enabled']), ])
                 else:
-                    regExpData.update([('enabled', regExpData['enabled']), ])
+                    reg_exp_data.update([('enabled', reg_exp_data['enabled']), ])
 
-                self.panicDetectRegularExpressions[user].update(
-                                                    [(regExpID, regExpData), ])
+                self.panic_detect_reg_exprs[user].\
+                update([(reg_exp_id, reg_exp_data), ])
                 with self.panic_lock:
-                    config = open(self.pdConfigPath, 'wb')
-                    json.dump(self.panicDetectRegularExpressions, config)
+                    config = open(self.panic_cfg_path, 'wb')
+                    json.dump(self.panic_detect_reg_exprs, config)
                     config.close()
 
-                #response['data'] = regExpID
+                #response['data'] = reg_exp_id
                 response = True
-                logDebug('Panic Detect: updated regular expression `{e}` for user: `{u}`.'.format(u=user, e=regExpID))
-            except Exception, e:
+                logDebug('Panic Detect: updated regular expression `{e}` for user: `{u}`.'.format(u=user, e=reg_exp_id))
+            except Exception, exp_err:
                 #response['status']['success'] = False
                 #response['status']['message'] = '{er}'.format(er=e)
-                response = 'error: {er}'.format(er=e)
+                response = 'error: {er}'.format(er=exp_err)
 
         # Remove regular_expression
         elif args['command'] == 'remove':
             response['type'] = 'remove_regular_expression reply'
 
             try:
-                regExpID = args['data']
-                regExpData = self.panicDetectRegularExpressions[user].pop(regExpID)
-                del(regExpData)
+                reg_exp_id = args['data']
+                reg_exp_data = self.panic_detect_reg_exprs[user].pop(reg_exp_id)
+                del reg_exp_data
 
                 with self.panic_lock:
-                    config = open(self.pdConfigPath, 'wb')
-                    json.dump(self.panicDetectRegularExpressions, config)
+                    config = open(self.panic_cfg_path, 'wb')
+                    json.dump(self.panic_detect_reg_exprs, config)
                     config.close()
 
-                #response['data'] = regExpID
+                #response['data'] = reg_exp_id
                 response = True
-                logDebug('Panic Detect: removed regular expresion `{e}` for user: `{u}`.'.format(u=user, e=regExpID))
-            except Exception, e:
+                logDebug('Panic Detect: removed regular expresion `{e}` for user: `{u}`.'.format(u=user, e=reg_exp_id))
+            except Exception, exc_err:
                 #response['status']['success'] = False
                 #response['status']['message'] = '{er}'.format(er=e)
-                response = 'error: {er}'.format(er=e)
+                response = 'error: {er}'.format(er=exc_err)
 
         return response
 

@@ -41,18 +41,18 @@ from thread import allocate_lock
 
 TWISTER_PATH = os.getenv('TWISTER_PATH')
 if not TWISTER_PATH:
-    print('$TWISTER_PATH environment variable is not set! Exiting!')
+    print '$TWISTER_PATH environment variable is not set! Exiting!'
     exit(1)
 if TWISTER_PATH not in sys.path:
     sys.path.append(TWISTER_PATH)
 
 if pexpect.__version__ < '3.1':
-    raise Exception('pExpect version `{}` is too low!'
-        ' ClearCase FS will crash!'.format(pexpect.__version__))
+    raise Exception('pExpect version `{}` is too low!'\
+    ' ClearCase FS will crash!'.format(pexpect.__version__))
 
-from common.helpers    import *
-from common.tsclogging import *
-from CeFs import BaseFS
+from common.helpers    import CcBorg
+from common.tsclogging import logInfo, logError, logWarning, logDebug
+from server.CeFs import BaseFS
 
 # def logDebug(s)   : print s
 # def logInfo(s)    : print s
@@ -133,16 +133,18 @@ class ClearCaseFs(BaseFS, CcBorg):
                         pread()
                         self._services.get(user_view, {})['actv'] = actv
                     return conn
-                except Exception as e:
-                    logWarning('Cannot connect to `{}` ClearCase Service for `{}`: `{}`.'.format(
-                        op, user_view, e))
+                except Exception as exp_err:
+                    logWarning('Cannot connect to `{}` ClearCase Service \
+                    for `{}`: `{}`.'.format(op, user_view, exp_err))
                     self._kill(user)
                     proc = self._services.get(user_view, {}).get('proc', None)
                     PID = proc.pid
                     proc.terminate()
-                    logInfo('Terminated CC User Service `{}` for user `{}`.'.format(PID, user))
+                    logInfo('Terminated CC User Service `{}` for user `{}`.'.\
+                    format(PID, user))
             else:
-                logInfo('Launching a ClearCase Service for `{}`, the first time...'.format(user_view))
+                logInfo('Launching a ClearCase Service for `{}`, the first \
+                time...'.format(user_view))
 
             proc = pexpect.spawn(['bash'], timeout=2.5, maxread=2048)
             time.sleep(1.0)
@@ -211,9 +213,9 @@ class ClearCaseFs(BaseFS, CcBorg):
                     conn_read.root.hello()
                     logDebug('Connected to ClearCase Service for `{}`, operation `read`.'.format(user_view))
                     success = True
-                except Exception as e:
+                except Exception as exp_err:
                     logWarning('Cannot connect to ClearCase Service for `{}`!'\
-                        'Exception: `{}`! Retry...'.format(user_view, e))
+                        'Exception: `{}`! Retry...'.format(user_view, exp_err))
 
                 if success:
                     try:
@@ -222,9 +224,10 @@ class ClearCaseFs(BaseFS, CcBorg):
                         conn_write.root.hello()
                         logDebug('Connected to ClearCase Service for `{}`, operation `write`.'.format(user_view))
                         break
-                    except Exception as e:
-                        logWarning('Cannot connect to ClearCase Service for `{}`!'\
-                                'Exception: `{}`! Retry...'.format(user_view, e))
+                    except Exception as exp_err:
+                        logWarning('Cannot connect to ClearCase Service \
+                        for `{}`! Exception: `{}`! Retry...'.\
+                        format(user_view, exp_err))
                         success = False
 
                 time.sleep(delay)
@@ -236,10 +239,8 @@ class ClearCaseFs(BaseFS, CcBorg):
                 return None
 
             # Save the process inside the block.
-            self._services[user_view] = {'proc': proc, 'port': port,
-                'conn_read': conn_read,
-                'conn_write': conn_write,
-                'actv': actv}
+            self._services[user_view] = {'proc': proc, 'port': port,\
+            'conn_read': conn_read, 'conn_write': conn_write, 'actv': actv}
 
         logDebug('ClearCase Service for `{}` launched on `127.0.0.1:{}`.'.format(user_view, port))
 

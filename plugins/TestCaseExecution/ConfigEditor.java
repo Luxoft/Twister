@@ -1,6 +1,6 @@
 /*
 File: ConfigEditor.java ; This file is part of Twister.
-Version: 3.007
+Version: 3.008
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -1896,35 +1896,36 @@ public class ConfigEditor extends JPanel{
                         }
                     } catch (Exception exception) {exception.printStackTrace();}
                 } else if(type=='i'){
-                    try {
-                        if(newValue.length()>1){
-                            if(string.equals(".")){
-                                if(!Character.isLetter(newValue.charAt(newValue.length()-2))){
-                                    if (newValue.matches("[\\d,\\.a-zA-Z]*")) {
-                                        super.insertString(offset, string, attributes);
-                                    }
-                                }
-                            } else if(string.equals("-")||string.equals(":")){
-                                if(Character.isDigit(newValue.charAt(newValue.length()-2))){
-                                    super.insertString(offset, string, attributes);
-                                }    
-                            }else if(Character.isLetter(string.charAt(string.length()-1))){
-                                if(newValue.charAt(newValue.length()-2)!='.'){
-                                    if (newValue.matches("[\\d,\\.a-zA-Z]*")) {
-                                        super.insertString(offset, string, attributes);
-                                    }
-                                }
-                            } else {
-                                if (newValue.matches("[\\d,\\.a-zA-Z:\\-]*")) {
-                                    super.insertString(offset, string, attributes);
-                                }
-                            }
-                        } else {
-                            if (newValue.matches("[\\d,\\.a-zA-Z:\\-]*")){
-                                super.insertString(offset, string, attributes);
-                            }
-                        }
-                    } catch (Exception exception) {exception.printStackTrace();}
+                    super.insertString(offset, string, attributes);
+//                     try {
+//                         if(newValue.length()>1){
+//                             if(string.equals(".")){
+//                                 if(!Character.isLetter(newValue.charAt(newValue.length()-2))){
+//                                     if (newValue.matches("[\\d,\\.a-zA-Z]*")) {
+//                                         super.insertString(offset, string, attributes);
+//                                     }
+//                                 }
+//                             } else if(string.equals("-")||string.equals(":")){
+//                                 if(Character.isDigit(newValue.charAt(newValue.length()-2))){
+//                                     super.insertString(offset, string, attributes);
+//                                 }    
+//                             }else if(Character.isLetter(string.charAt(string.length()-1))){
+//                                 if(newValue.charAt(newValue.length()-2)!='.'){
+//                                     if (newValue.matches("[\\d,\\.a-zA-Z]*")) {
+//                                         super.insertString(offset, string, attributes);
+//                                     }
+//                                 }
+//                             } else {
+//                                 if (newValue.matches("[\\d,\\.a-zA-Z:\\-]*")) {
+//                                     super.insertString(offset, string, attributes);
+//                                 }
+//                             }
+//                         } else {
+//                             if (newValue.matches("[\\d,\\.a-zA-Z:\\-]*")){
+//                                 super.insertString(offset, string, attributes);
+//                             }
+//                         }
+//                     } catch (Exception exception) {exception.printStackTrace();}
                 }
             }
         }
@@ -1936,19 +1937,20 @@ public class ConfigEditor extends JPanel{
             String after = currentContent.substring(length + offset, currentLength);
             String newValue = before + after;
             if(type=='i'){
-                Pattern p = Pattern.compile("\\.[a-zA-Z]");
-                Matcher m = p.matcher(newValue);
-                boolean cond = m.find();
-                p = Pattern.compile("[a-zA-Z]\\.");
-                m = p.matcher(newValue);
-                boolean cond2 = m.find();
-                p = Pattern.compile("[a-zA-Z]:");
-                m = p.matcher(newValue);
-                boolean cond3 = m.find();
-                p = Pattern.compile("[a-zA-Z]\\-");
-                m = p.matcher(newValue);
-                boolean cond4 = m.find();
-                if(!cond&&!cond2&&!cond3&&!cond4)super.remove(offset, length);
+//                 Pattern p = Pattern.compile("\\.[a-zA-Z]");
+//                 Matcher m = p.matcher(newValue);
+//                 boolean cond = m.find();
+//                 p = Pattern.compile("[a-zA-Z]\\.");
+//                 m = p.matcher(newValue);
+//                 boolean cond2 = m.find();
+//                 p = Pattern.compile("[a-zA-Z]:");
+//                 m = p.matcher(newValue);
+//                 boolean cond3 = m.find();
+//                 p = Pattern.compile("[a-zA-Z]\\-");
+//                 m = p.matcher(newValue);
+//                 boolean cond4 = m.find();
+//                 if(!cond&&!cond2&&!cond3&&!cond4)
+                super.remove(offset, length);
             }
             if(type=='a'){
                 super.remove(offset, length);

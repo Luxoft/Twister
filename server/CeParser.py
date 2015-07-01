@@ -1,7 +1,7 @@
 
 # File: CeParser.py ; This file is part of Twister.
 
-# version: 3.012
+# version: 3.017
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -22,20 +22,27 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+'''
+Module to parse the project file
+'''
+
 import os
 import re
 import copy
 import ast
-import json
+#import json
 from binascii import hexlify
 
-from lxml import etree
 from collections import OrderedDict
 
-from common.helpers import *
-
+from common.helpers import userHome
+from common.tsclogging import logError, logDebug, logWarning
+from lxml import etree
 
 def cartesian(lists):
+    """
+    Helper function to compute cartesian multiply
+    """
     if lists == []:
         return [()]
     return [x + (y,) for x in cartesian(lists[:-1]) for y in lists[-1]]
@@ -50,331 +57,96 @@ class CeXmlParser(object):
         self.project = project
 
 
-    def _edit_suite(self, ep, sut, config_root):
+    def _edit_suite(self, ep_id, sut, suite):
         '''
-        Update suite props with sut name, ep id and id.
-        Delete test cases having running = false.
-        Used only by generate_xml method.
+        @param:
+            ep_id: the id of the ep
+            sut: the name of the sut
+            suite: the suite to be edited
+        @summary:
+            Update suite props with sut name, ep_id
+            Delete test cases having running = false.
+            Delete the empty suite/subsuite
         '''
 
-        for epname in config_root.xpath('//EpId'):
-            epname.text = ep
+        for epname in suite.findall('.//EpId'):
+            epname.text = ep_id
 
-        for sut_name in config_root.xpath('//SutName'):
+        for sut_name in suite.findall('.//SutName'):
             sut_name.text = sut
 
-        # add the ep name to ID
-        for id_name in config_root.xpath('//ID'):
-            if '#' not in id_name.text:
-                id_name.text = id_name.text + "#" + ep
-
         # delete tc if running = false
-        for prop in config_root.xpath("//Property"):
-            if prop.find('propName').text == 'Running' and prop.find('propValue').text == 'false':
+        for prop in suite.findall(".//Property"):
+            if prop.find('propName').text == 'Running' and\
+            prop.find('propValue').text == 'false':
                 grand_parent = (prop.getparent()).getparent()
                 grand_parent.remove(prop.getparent())
 
         # delete empty sub-suites from this suite
-        for suite in config_root.xpath('TestSuite'):
-            if suite.find('TestSuite') is None and suite.find('TestCase') is None:
+        for suite in suite.xpath('//TestSuite'):
+            if suite.find('TestSuite') is None and\
+            suite.find('TestCase') is None:
                 suite_parent = suite.getparent()
                 suite_parent.remove(suite)
 
         return True
 
 
-    def _do_repeat(self, config_root, repeated_dict, ep):
+    def _resolve_dependencies(self, xml, dependency_dict):
+        """
+        @param:
+            xml: the project/last_edited xml in etree format
+            dependency_dict: a dict that stores the link between new and old ids. Old ids are keys.
+        @summary:
+            Replaces the ids in all Dependency tags with the new and updated ones.
+        """
+        dependencies = xml.findall('.//Dependency')
+        for dependency in dependencies:
+            if dependency.text:
+                dep_list = dependency.text.split(';')
+                new_dep_list = ''
+                for dep in dep_list:
+                    condition = dep.split(':')[-1]
+                    dep_id = dep.split(':')[0]
+                    if dep_id in dependency_dict:
+                        new_dep_id = [id+':'+condition for id in dependency_dict[dep_id]]
+                        new_dep_list += ';'.join(new_dep_id)+';'
+                dependency.text = new_dep_list
+
+
+    def _change_ids(self, xml, repeated_dict):
         '''
-        Repeat Test Case or Suites as often as the tag <Repeat>
-        says.
+        @param:
+            xml: the project/last_edited in etree format
+            repeated_dict: the dict that storest the link between old and new IDs. Old ids are keys.
+        @summary:
+            Change IDs for suite/tc. Add them to repeated_dict dictionary to keep track of changes(to be able 
+            to resolve dependencies later)
         '''
-
-        # get all existing ids from the current testsuites.xml
-        generated_ids_elems = copy.deepcopy(config_root.xpath('//ID'))
-        generated_ids = []
-        for g_id in generated_ids_elems:
-            generated_ids.append(g_id.text)
-
-        # get all the repeat tags from this suite
-        repeat_list = config_root.xpath('//Repeat')
-        if not repeat_list:
-            return True
-
-        for repeat in reversed(repeat_list):
-            parent = repeat.getparent()
-
-            # get repeat times and delete Repeat tag because it MUST not
-            # be present in generated xml file
-            repeat_nb = int(repeat.text)
-            parent.remove(repeat)
-
-            #if int(repeat.text) > 1:
-            if repeat_nb > 1:
-                if parent.find('tcName') is not None:
-                    elem_name = parent.find('tcName').text
-                else:
-                    elem_name = parent.find('tsName').text
-
-                logDebug("CeParser: Will repeat element {}, {} times."\
-                    .format(elem_name, repeat_nb))
-
-                for i in range(repeat_nb - 1):
-                    # create a copy to multiplicate the entries
-                    deep_copy = copy.deepcopy(parent)
-
-                    # generate new unique id
-                    new_id = hexlify(os.urandom(5))
-                    while new_id in generated_ids:
-                        new_id = hexlify(os.urandom(5))
-                    # add the id to the already generated ids
-                    generated_ids.append(new_id)
-
-                    # add the new_id to repeated_dict to know how the ids propagated
-                    self._add_to_repeated(copy.deepcopy(deep_copy.find('ID').text), new_id, repeated_dict, ep)
-
-                    # update suite id
-                    deep_copy.find('ID').text = new_id
-
-                    # the suite repeated - add to root
-                    if parent is None:
-                        config_root.append(deep_copy)
-                    else:
-                        parent.addnext(deep_copy)
-
+        suite_no = 100  # Base ID for suites
+        file_no = 1000  # Base ID for tests
+ 
+        # Fix long ugly IDs with short integer IDs
+        for suite_id in xml.xpath('//TestSuite/ID'):
+            suite_no += 1
+            if suite_id.text in repeated_dict:
+                repeated_dict[suite_id.text].append(str(suite_no))
             else:
-                self._add_to_repeated(copy.deepcopy(parent.find('ID').text), copy.deepcopy(parent.find('ID').text), repeated_dict, ep)
-
-        return True
-
-
-    def _resolve_dependencies(self, repeated_dict, config_fs_root):
-        '''
-        Modify the dependency tag with the corresponding ones after
-        exploding the suite.
-        '''
-
-        suites_list =  config_fs_root.xpath('TestSuite')
-        #iterate suites
-        for suite_e in suites_list:
-            old_suite = suite_e
-            suite_e = etree.tostring(suite_e)
-            suite_e = etree.fromstring(suite_e)
-
-            index_ep = suite_e.find('ID').text.find('#')
-            suite_e_id = suite_e.find('ID').text[:index_ep]
-
-            #get dependencies for this suite
-            dependencies = suite_e.xpath('//Dependency')
-            dependencies = [x for x in dependencies if x.text]
-
-            for dep_id in dependencies:
-
-                # get ep of this suite
-                parent = dep_id.getparent()
-                parent_id = parent.find('ID').text
-                parent_id_ep = parent_id.split('#')[1]
-
-                #get the sut used in this suite
-                grandparent_sut = parent.getparent()
-                sut_value = grandparent_sut.find('SutName').text
-
-                #may be multimple dependecies
-                dep_id_list = dep_id.text.split(';')
-                dep_id_list = [x for x in dep_id_list if x]
-
-                # iterate throught dependencies
-                for dep_id_s in dep_id_list:
-                    if "#" in dep_id_s:
-                        continue
-
-                    #separate id and status
-                    clean_id = dep_id_s.split(':')[0]
-                    status = dep_id_s.split(':')[1]
-
-                    if clean_id in repeated_dict:
-                        repeated_dict[clean_id] = list(set(repeated_dict[clean_id]))
-                        dep_string = ''
-                        found_dep = False
-
-                        for elem in repeated_dict[clean_id]:
-                            if ("#" + suite_e_id + "-" + sut_value + "-" + parent_id_ep) in elem:
-                                index = elem.find("#")
-
-                                elem_c = elem[:index] + "#" + parent_id_ep
-                                dep_string = elem_c + ":" + status + ";"
-                                if "#" in dep_id.text:
-                                    dep_id.text = dep_id.text + dep_string
-                                else:
-                                    dep_id.text = dep_string
-
-                                found_dep = True
-
-                        # depends on tc from a another suite
-                        if not found_dep:
-                            for elem in repeated_dict[clean_id]:
-                                index = elem.find("#")
-
-                                # parent_id_ep must be refreshed because it can
-                                # be from a different EP than the one for
-                                # current suite; the good ep can be found after
-                                # second - character in elem
-                                index2 = elem.find('-')
-                                index3 = elem[index2+1:].find('-')
-                                parent_id_ep = elem[index2 + index3 + 2:]
-
-                                elem_c = elem[:index] + "#" + parent_id_ep
-                                dep_string = elem_c + ":" + status + ";"
-                                if '#' in dep_id.text:
-                                    dep_id.text = dep_id.text + dep_string
-                                else:
-                                    dep_id.text = dep_string
-
-            # add the suite to the root element
-            config_fs_root.append(suite_e)
-            config_fs_root.remove(old_suite)
-
-        return True
-
-
-    def _add_to_repeated(self, kid_id, new_id, repeated_dict, ep):
-        '''
-        Add to repeated_dict.
-        '''
-
-        if new_id in ep:
-            return True
-
-        # add suite id, sut and ep
-        if "#" not in new_id:
-            new_id = new_id + "#" + ep
-
-        if kid_id not in repeated_dict.keys():
-            found = False
-            for key, values in repeated_dict.items():
-                for v in values:
-                    #maybe this is a copy with a changed id of another copy
-                    if kid_id in v:
-                        found = True
-                        repeated_dict[key].append(new_id)
-                        break
-            # create a key with the old id
-            if not found:
-                repeated_dict[kid_id] = [new_id]
-        else:
-            # add to the key found
-            repeated_dict[kid_id].append(new_id)
-        return True
-
-
-    def _change_ids(self, config_root, repeated_dict, config_fs_root, ep):
-        '''
-        Change IDs if a suite has to repeat
-        '''
-        generated_ids_elems = copy.deepcopy(config_root.xpath('//ID'))
-        generated_ids = []
-
-        for g_id in generated_ids_elems:
-            generated_ids.append(g_id.text)
-
-        suites_id = config_fs_root.xpath('//TestSuite/ID')
-        for s_id in suites_id:
-            clean_id = s_id.text.split('#')[0]
-            if config_root.find('ID').text != clean_id:
-                return True
-
-        # generate new unique id if necessary
-        new_id = hexlify(os.urandom(5))
-        while new_id in generated_ids:
-            new_id = hexlify(os.urandom(5))
-        generated_ids.append(new_id)
-
-        config_root.find('ID').text = new_id
-        suite_id = config_root.find('ID').text
-
-        kid_ids = config_root.xpath('//ID')
-        for kid_id in kid_ids:
-            if kid_id.text != suite_id:
-                parent = kid_id.getparent()
-
-                # generate new unique id if necessary
-                new_id = hexlify(os.urandom(5))
-                while new_id in generated_ids:
-                    new_id = hexlify(os.urandom(5))
-
-                generated_ids.append(new_id)
-
-                # add to repeated_dict the old id and the new one
-                self._add_to_repeated(copy.deepcopy(kid_id.text), new_id, repeated_dict, suite_id + "-" + ep)
-                kid_id.text = new_id
-
-        return True
-
-
-    def _explode_by_config(self, config_root_deep, parent_tc, ep, repeated_dict, cartesian_list):
-        '''
-        Add iterators if tc has config files.
-        Explode the tc as many times as tuples of iterators..
-        '''
-
-        # will need to add new prop to tc for iterator
-        prop_template = copy.deepcopy(parent_tc.find('Property'))
-        parent_tc_copy = parent_tc
-        #get the ID to know the key in repeated_dict id dependency
-        parent_id_initial = copy.deepcopy(parent_tc.find('ID').text)
-
-        # get all the current ids to avoid creating an identical one
-        generated_ids_elems = copy.deepcopy(config_root_deep.xpath('//ID'))
-        generated_ids = []
-        for g_id in generated_ids_elems:
-            generated_ids.append(g_id.text)
-
-        for item in cartesian_list:
-            if not item or isinstance(item, tuple) and len(item) < 1:
-                continue
-
-            # the tc may alreay have iterator prop because it is a copy -
-            # we have to modify it
-            find_prop = False
-            props_list = parent_tc.findall('Property')
-            for prop_p in props_list:
-                if prop_p.find('propName').text == 'iterationNr':
-                    prop_template = prop_p
-                    prop_value = prop_template.find('propValue')
-                    find_prop = True
-
-            # first time the copy won't have iterator prop so add it
-            if not find_prop:
-                prop_name = prop_template.find('propName')
-                prop_value = prop_template.find('propValue')
-                prop_name.text = 'iterationNr'
-                parent_tc_copy.append(prop_template)
-
-            if isinstance(item, tuple):
-                prop_value.text = ', '.join(str(x) for x in item)
+                repeated_dict[suite_id.text] = [str(suite_no)]
+            suite_id.text = str(suite_no)
+  
+        # Fix long ugly IDs with short integer IDs
+        for file_id in xml.xpath('//TestCase/ID'):
+            file_no += 1
+            if file_id.text in repeated_dict:
+                repeated_dict[file_id.text].append(str(file_no))
             else:
-                prop_value.text = str(item)
-
-            if parent_tc_copy != parent_tc:
-                # generate new unique id
-                new_id = hexlify(os.urandom(5))
-                while new_id in generated_ids:
-                    new_id = hexlify(os.urandom(5))
-
-                generated_ids.append(new_id)
-                # add to repeated dict - needed if dependency
-                self._add_to_repeated(parent_id_initial, new_id, repeated_dict, ep)
-
-                # update parent_tc_copy id
-                parent_tc_copy.find('ID').text = new_id
-
-            parent_tc.addnext(parent_tc_copy)
-            # create a copy for next iteration
-            parent_tc_copy = copy.deepcopy(parent_tc)
-
-        return True
+                repeated_dict[file_id.text] = [str(file_no)]
+            file_id.text = str(file_no)
 
 
-    def _get_iterator_values(self, config_file, iterator_default, interval_values, user, part_interval_values=[], default_values_list=[]):
+    def _get_iterator_values(self, config_file, iterator_default,\
+    interval_values, user, part_interval_values=[], default_values_list=[]):
         """
         Calculates all the possible values for iterators for a test
         """
@@ -401,7 +173,25 @@ class CeXmlParser(object):
         for item in config_types:
             prop_iterator = item.getparent()
 
-            config_name = config_file + '#' + prop_iterator.find('name').text
+            # set the parent component(s) of the iterator
+            comp_parent = prop_iterator.getparent()
+            comp_parent_name = ''
+            if comp_parent.find('fname') is not None:
+                comp_parent_name = comp_parent.find('fname').text
+
+            # if this is a sub-component, we need to go up to get all parents
+            while True:
+                comp_parent = comp_parent.getparent()
+                if comp_parent is None:
+                    # we reached the root; need to break out from this loop
+                    break
+                comp_fname = comp_parent.find('fname')
+                if comp_fname is not None:
+                    comp_parent_name = comp_parent.find('fname').text + '/' +\
+                    comp_parent_name
+
+            config_name = config_file + '#' + comp_parent_name +\
+            '#' + prop_iterator.find('name').text
             values = prop_iterator.find('value').text
             if not values:
                 continue
@@ -424,46 +214,57 @@ class CeXmlParser(object):
                     default_value = values_list[0]
 
             if iterator_default == 'true':
-                part_interval_values.append(['{}={}'.format(config_name, default_value)])
-                default_values_list.append('{}={}'.format(config_name, default_value))
+                part_interval_values.append(['{}={}'.\
+                format(config_name, default_value)])
+                default_values_list.append('{}={}'.\
+                format(config_name, default_value))
             else:
                 iter_interval_values = list()
                 key_default_value = '{}={}'.format(config_name, default_value)
 
                 for interv in values_list:
-                    re_intervals = re.search('(\w*\d*\.?\d+)\.+(\w*\d*\.?\d+)', interv)
+                    re_intervals = re.search('(\w*\d*\.?\d+)\.+(\w*\d*\.?\d+)',\
+                    interv)
                     try:
-                        x = ast.literal_eval(re_intervals.group(1))
-                        y = ast.literal_eval(re_intervals.group(2))
-                        range_res = range(int(x), int(y) + 1)
+                        x_val = ast.literal_eval(re_intervals.group(1))
+                        y_val = ast.literal_eval(re_intervals.group(2))
+                        range_res = range(int(x_val), int(y_val) + 1)
                         # avoid adding default value again ex: 2, 1...4
-                        if default_value in range_res and key_default_value in iter_interval_values:
-                            del(range_res[range_res.index(default_value)])
+                        if default_value in range_res and \
+                        key_default_value in iter_interval_values:
+                            del range_res[range_res.index(default_value)]
                         for i in range_res:
-                            iter_interval_values.append('{}={}'.format(config_name, i))
+                            iter_interval_values.append('{}={}'.\
+                            format(config_name, i))
                     except:
                         try:
-                            x = re_intervals.group(1)
-                            y = re_intervals.group(2)
+                            x_val = re_intervals.group(1)
+                            y_val = re_intervals.group(2)
                             # try to convert to int if possible
                             try:
-                                v = int(ast.literal_eval(x))
-                                iter_interval_values.append('{}={}'.format(config_name, v))
+                                value = int(ast.literal_eval(x_val))
+                                iter_interval_values.append('{}={}'.\
+                                format(config_name, value))
                             except:
-                                iter_interval_values.append('{}={}'.format(config_name, x))
+                                iter_interval_values.append('{}={}'.\
+                                format(config_name, x_val))
                             try:
-                                v = int(ast.literal_eval(y))
-                                iter_interval_values.append('{}={}'.format(config_name, v))
+                                value = int(ast.literal_eval(y_val))
+                                iter_interval_values.append('{}={}'.\
+                                format(config_name, value))
                             except:
-                                iter_interval_values.append('{}={}'.format(config_name, y))
+                                iter_interval_values.append('{}={}'.\
+                                format(config_name, y_val))
                         except:
                             try:
                                 interv = ast.literal_eval(interv)
                             except:
                                 pass
                             # avoid adding default value again ex: 2, 1, 2, 3
-                            if default_value != interv or key_default_value not in iter_interval_values:
-                                iter_interval_values.append('{}={}'.format(config_name, interv))
+                            if default_value != interv or\
+                            key_default_value not in iter_interval_values:
+                                iter_interval_values.append('{}={}'.\
+                                format(config_name, interv))
 
                 part_interval_values.append(iter_interval_values)
 
@@ -474,71 +275,241 @@ class CeXmlParser(object):
                     interval_values[config_name] = part_interval_values
 
 
-    def _get_config_files(self, user, config_root_deep, ep, repeated_dict):
-        '''
-        Get the iterators from all the confing files.
-        Call a method to multiply the test cases.
-        '''
-        # get list of test cases
-        tests_list = config_root_deep.xpath('TestCase')
-
-        for test_case in tests_list:
-            part_interval_values = []
-
-            # get all the ConfigFiles tags for this test case.
-            # A tc can have multiple config files
-            cfg_prop = test_case.xpath('ConfigFiles')
-            for cfg_item in cfg_prop:
-                config_info = cfg_item.findall('Config')
-                if not config_info:
-                    continue
-                parent_tc = cfg_item.getparent()
-                tc_name = parent_tc.find('tcName').text
-
-                interval_values = OrderedDict()
-                default_values_list = []
-
-                for config_entry in config_info:
-                    enabled = config_entry.get('enabled')
-                    if enabled == 'false':
-                        continue
-
-                    config_file = config_entry.get('name')
-                    iterator_default = config_entry.get('iterator_default')
-                    iterator_sof = config_entry.get('iterator_sof')
-                    
-                    self._get_iterator_values(config_file, iterator_default, interval_values, user, part_interval_values, default_values_list)
-
-                # get the cartesian list and explode the test case only if there
-                # are iterators
-                cartesian_list = list()
-                if len(interval_values.values()) > 0:
-                    cartesian_list = cartesian(interval_values.values()[0])
-                    logDebug("CeParser: Will iterate test case `{}`, {} times, from values: {}, user `{}`."\
-                        .format(tc_name, len(cartesian_list), interval_values.values(), user))
-
-                    self._explode_by_config(config_root_deep, parent_tc, ep, repeated_dict, reversed(cartesian_list))
-
-        return True
-
-
-    def get_number_of_iterations(self, user, configs):
+    def _get_cartesian_list(self, user, configs):
         """
-        Computes the number of iterations each time a user manipulates the configs for a test.
+        @param:
+            user: the authenticated twister user
+            configs: the configuration files in xml format
+        @return:
+            cartesian list of the iterators as list of pairs
+        @summary:
+            Computes the cartesian list of the iterators 
         """
         interval_values = OrderedDict()
         part_interval_values = []
         default_values_list = []
-        for config in configs.split(';')[:-1]:
-            c = config.split(',')
-            config_file = c[0].strip()
-            default = c[1].strip()
-            self._get_iterator_values(config_file, default, interval_values, user, part_interval_values, default_values_list)
-        cartesian_list = list()
+        for config in configs:
+            config_file = config.get('name')
+            enabled = config.get('enabled')
+            if enabled == 'false':
+                continue
+            default = config.get('iterator_default')
+            self._get_iterator_values(config_file, default, interval_values,\
+            user, part_interval_values, default_values_list)
+        cartesian_list = []
         if len(interval_values.values()) > 0:
             cartesian_list = cartesian(interval_values.values()[0])
 
-        return len(cartesian_list)
+        return cartesian_list
+
+
+    def _add_property(self, parent, value, inherited_value=''):
+        """
+        @param:
+            parent: element tree node, a TestSuite/TestCase node
+            value: the value to be set
+            inherited_value: the value inherited from the parent suite. 
+                It is used to propagate iterator values on subsuites
+        @return:
+            cartesian list of the iterators as list of pairs
+        @summary:
+            Adds a property node to an existing TestSuite/TestCase element tree node
+        """
+        if value:
+            new_prop = etree.SubElement(parent, 'Property')
+            new_prop_name = etree.SubElement(new_prop, 'propName')
+            new_prop_name.text = 'iterationNr'
+            new_prop_value = etree.SubElement(new_prop, 'propValue')
+            if inherited_value:
+                new_prop_value.text = inherited_value + ', ' + value
+            else:
+                new_prop_value.text = value
+
+
+    def _expand_global_configs(self, user, xml):
+        """
+        @param:
+            user: the twister authenticated user
+            xml: the project/last_edited xml in etree format. When going into recursion, xml becomes a suite.
+        @summary:
+            Suites now support configs, seen as global configs for all test in a suite.
+            It duplicates the suite as many times as the iterator says.
+            The value from the top suite propagates to the subsuites.
+            A property tag is added to store the iteration value.
+            Between tc iterators and suite iterators, the last ones have priority.
+        """
+        for suite in xml.findall('TestSuite'):
+            remove = True
+            ts_name = suite.find('tsName').text
+            cfg_prop = suite.find('ConfigFiles')
+            config_info = cfg_prop.findall('Config')
+            cartesian_list = self._get_cartesian_list(user, config_info)
+            logDebug("CeParser: Will iterate test suite `{}`, {} times, from values: {}, user `{}`."\
+                     .format(ts_name, len(cartesian_list), cartesian_list, user))
+
+            inherited_val = ''
+            parent_property = xml.findall('Property')
+            if len(parent_property) > 0:
+                parent_property = parent_property[0]
+                inherited_val = parent_property.find('propValue').text
+            index = xml.index(suite)
+            # duplicate suites
+            for item in reversed(cartesian_list):
+                deep_copy = copy.deepcopy(suite)
+                suite_st = etree.tostring(deep_copy)
+                newSuite = etree.fromstring(suite_st)
+                xml.insert(index+1, newSuite)
+                if isinstance(item, tuple):
+                    value = ', '.join(str(x) for x in item)
+                else:
+                    value = str(item)
+                self._add_property(newSuite, value, inherited_val)
+                self._expand_global_configs(user, newSuite)
+                self._expand_tc_configs(user, newSuite)
+            if len(cartesian_list) == 0:
+                remove = False
+                if inherited_val:
+                    self._add_property(suite, inherited_val)
+                self._expand_global_configs(user, suite)
+                self._expand_tc_configs(user, suite)
+            # if the suite has iterators, remove the one that is being duplicated
+            if remove:
+                xml.remove(suite)
+
+
+    def _expand_tc_configs(self, user, suite):
+        """
+        @param: 
+            user: the authenticated twister user
+            suite: the suite that contains the tc to duplicate
+        @summary:
+            Explodes the iterators and duplicates the test cases accordingly
+            It is called after a suite is expanded, in _expand_global_configs
+        """
+        for tc in suite.findall('TestCase'):
+            remove = True
+            tc_name = tc.find('tcName').text
+            cfg_prop = tc.find('ConfigFiles')
+            config_info = cfg_prop.findall('Config')
+            cartesian_list = self._get_cartesian_list(user, config_info)
+            logDebug("CeParser: Will iterate test case `{}`, {} times, from values: {}, user `{}`."\
+                     .format(tc_name, len(cartesian_list), cartesian_list, user))
+
+            inherited_val = ''
+            parent_property = suite.findall('Property')
+            if len(parent_property) > 0:
+                parent_property = parent_property[0]
+                inherited_val = parent_property.find('propValue').text
+            index = suite.index(tc)
+            # duplicate suites
+            for item in reversed(cartesian_list):
+                deep_copy = copy.deepcopy(tc)
+                tc_st = etree.tostring(deep_copy)
+                new_tc = etree.fromstring(tc_st)
+                suite.insert(index+1, new_tc)
+                if isinstance(item, tuple):
+                    value = ', '.join(str(x) for x in item)
+                else:
+                    value = str(item)
+                self._add_property(new_tc, value, inherited_val)
+            if len(cartesian_list) == 0:
+                remove = False
+                if inherited_val:
+                    self._add_property(tc, inherited_val)
+            # if the tc has iterators, remove the one that is being duplicated
+            if remove:
+                suite.remove(tc)
+
+
+    def _expand_repeat_tag(self,user, xml):
+        """
+        @param:
+            user: the twister authenticated user
+            xml: the project/last_edited xml in etree format. When going into recursion, xml becomes a suite.
+        @summary:
+            Suites can have a repeat tag. It duplicates the suite as many times as the repeat tag says.
+        """
+        for suite in xml.findall('TestSuite'):
+            suite_name = suite.find('tsName').text
+            repeat = None
+            try:
+                repeat = suite.find('Repeat')
+                nb_repeat = int(repeat.text)
+                logDebug("CeParser: Will repeat suite `{}`, {} times.".format(suite_name, nb_repeat))
+            except:
+                nb_repeat = 1
+
+            # before copying the suite for multiplication, remove the Repeat
+            # tag because it MUST NOT be present in generated xml file
+            if repeat is not None:
+                suite.remove(repeat)
+
+            index = xml.index(suite)
+            for i in range(nb_repeat-1):
+                deep_copy = copy.deepcopy(suite)
+                suite_st = etree.tostring(deep_copy)
+                suite_copy = etree.fromstring(suite_st)
+                xml.insert(index+1, suite_copy)
+                self._expand_repeat_tag(user, suite_copy)
+            self._expand_repeat_tag(user, suite)
+
+
+    def _expand_by_ep(self, user, xml):
+        """
+        @param:
+            user: the twister authenticated user
+            xml: the project/last_edited xml in etree format. When going into recursion, xml becomes a suite.
+        @summary:
+            The sut tag can contain multiple suts and a sut can contain multiple eps. Main suites must be
+            duplicated to run on each ep from each sut.
+        """
+        suites = xml.findall('TestSuite')
+        for suite in suites:
+            # get all suts chosen by user
+            all_suts = suite.find('SutName').text
+            suite_name = suite.find('tsName').text
+            if not all_suts:
+                err = 'User `{}`: Invalid SUT for suite `{}`! Cannot generate project!'.format(user, suite_name)
+                logWarning(err)
+                return '*ERROR* ' + err
+            suts_list = [q.replace('(', '.').replace(')', '') for q in all_suts.split(';') if q]
+            # added get_sut to load the suts in resources dict. get_sut_info\
+            # takes resources from the resources dict
+            index = xml.index(suite)
+            for sut in suts_list:
+                self.project.sut.get_sut(sut, props={'__user': user})
+                sut = '/' + sut
+                sut_eps = self.project.sut.get_info_sut(sut + ':_epnames_' + user, {'__user': user})
+                
+                if sut_eps and '*ERROR*' in sut_eps:
+                    logError(sut_eps)
+                    return sut_eps
+
+                if sut_eps and (isinstance(sut_eps, str) or isinstance(sut_eps, unicode)):
+                    sut_eps_list = [ep for ep in sut_eps.split(';') if ep]
+                    for ep_id in sut_eps_list:
+                        deep_copy = copy.deepcopy(suite)
+                        suite_st = etree.tostring(deep_copy)
+                        suite_copy = etree.fromstring(suite_st)
+                        if suite_copy.find('TestCase') is not None or \
+                            suite_copy.find('TestSuite') is not None:
+                            index += 1
+                            xml.insert(index, suite_copy)
+                            self._edit_suite(ep_id, sut, suite_copy)
+                else:
+                    # Find Anonimous EP in the active EPs
+                    anonim_ep = self.project._find_anonim_ep(user)
+                    if isinstance(anonim_ep, bool):
+                        return anonim_ep
+                    deep_copy = copy.deepcopy(suite)
+                    suite_st = etree.tostring(deep_copy)
+                    suite_copy = etree.fromstring(suite_st)
+                    if suite_copy.find('TestCase') is not None or \
+                        suite_copy.find('TestSuite') is not None:
+                        index += 1
+                        xml.insert(index, suite_copy)
+                        self._edit_suite(anonim_ep, sut, suite_copy)
+            xml.remove(suite)
 
 
     def generate_xml(self, user, filename):
@@ -547,7 +518,8 @@ class CeXmlParser(object):
         Creates testsuites.xml file by multiplying tests depending
         on the suts number and eps.
         '''
-        logDebug("CeParser: preparing to convert project file: `{}`, user `{}`.".format(filename, user))
+        logDebug("CeParser: preparing to convert project file: `{}`,\
+        user `{}`.".format(filename, user))
 
         data = self.project.read_project_file(user, filename)
         if data.startswith('*ERROR*'):
@@ -557,144 +529,29 @@ class CeXmlParser(object):
         # try to parse the project file
         try:
             xml = etree.fromstring(data)
-        except:
-            msg = "The file: '{}' it's not an xml file. Try again!".format(filename)
+        except Exception as e:
+            msg = "The file: '{}' it's not an xml file. Try again!\n{}".\
+            format(filename, e)
             logDebug(msg)
             return '*ERROR* ' + msg
 
-        # write general props to testsuties.xml file
-        root = etree.Element('Root')
-        root.append(xml.find('stoponfail'))
-        root.append(xml.find('PrePostMandatory'))
-        root.append(xml.find('ScriptPre'))
-        root.append(xml.find('ClearCaseView'))
-        root.append(xml.find('libraries'))
-        root.append(xml.find('ScriptPost'))
-        root.append(xml.find('dbautosave'))
-        root.append(xml.find('tcdelay'))
-        if self.project.BRANCH == 'master':
-            root.append(xml.find('DownloadLibraries'))
+        self._expand_global_configs(user, xml)
+        
+        self._expand_repeat_tag(user, xml)
+        
+        self._expand_by_ep(user, xml)
 
-        config_ts_root = etree.tostring(root)
-        config_fs_root = etree.fromstring(config_ts_root)
         repeated_dict = {}
+        self._change_ids(xml, repeated_dict)
 
-        # Get all suites defined in project file
-        for suite in xml.findall('TestSuite'):
-            # get all suts chosen by user
-            all_suts = suite.find('SutName').text
-            suite_name = suite.find('tsName').text
-            if not all_suts:
-                err = 'User `{}`: Invalid SUT for suite `{}`! Cannot generate project!'.format(user, suite_name)
-                logWarning(err)
-                return '*ERROR* ' + err
+        self._resolve_dependencies(xml, repeated_dict)
 
-            suts_list = [q.replace('(', '.').replace(')', '') for q in all_suts.split(';') if q]
-            # added get_sut to load the suts in resources dict. get_sut_info takes resources from the resources dict
-            #logDebug('---- SUTS: {}'.format(suts_list))
-            for sut in suts_list:
-                self.project.sut.get_sut(sut, props={'__user': user})
-            # Multiply suite entry as often as the tag 'Repeat' says
-            repeat = None
-            try:
-                repeat = suite.find('Repeat')
-                nb_repeat = int(repeat.text)
-            except:
-                nb_repeat = 1
-
-            if nb_repeat > 1:
-                logDebug("CeParser: Will repeat suite `{}`, {} times.".format(suite_name, nb_repeat))
-
-            # before copying the suite for multiplication, remove the Repeat
-            # tag because it MUST NOT be present in generated xml file
-            if repeat is not None:
-                suite.remove(repeat)
-
-            for i in range(nb_repeat):
-                deep_copy = copy.deepcopy(suite)
-                config_ts = etree.tostring(deep_copy)
-                config_root = etree.fromstring(config_ts)
-
-                # for every ep of a sut create entry
-                for sut in suts_list:
-                    sut = '/' + sut
-                    sut_eps = self.project.sut.get_info_sut(sut + ':_epnames_' + user, {'__user': user})
-
-                    if sut_eps and '*ERROR*' in sut_eps:
-                        logError(sut_eps)
-                        return sut_eps
-
-                    if sut_eps and (isinstance(sut_eps, str) or isinstance(sut_eps, unicode)):
-                        sut_eps_list = [ep for ep in sut_eps.split(';') if ep]
-
-                        for ep in sut_eps_list:
-                            config_root_deep = copy.deepcopy(config_root)
-
-                            self._change_ids(config_root_deep, repeated_dict, config_fs_root, sut + "-" + ep)
-
-                            suite_id = config_root_deep.find('ID').text
-
-                            # update sut, ep, id, tunning test cases
-                            self._get_config_files(user, config_root_deep, suite_id + "-" + sut + "-" + ep, repeated_dict)
-
-                            self._do_repeat(config_root_deep, repeated_dict, suite_id + "-" + sut + "-" + ep)
-
-                            self._edit_suite(ep, sut, config_root_deep)
-
-                            if config_root_deep.find('TestSuite') is not None or config_root_deep.find('TestCase') is not None:
-                                # append suite to the xml root
-                                root.append(config_root_deep)
-                    else:
-                        # Find Anonimous EP in the active EPs
-                        anonim_ep = self.project._find_anonim_ep(user)
-                        if isinstance(anonim_ep, bool):
-                            return anonim_ep
-
-                        config_root_deep = copy.deepcopy(config_root)
-                        self._change_ids(config_root_deep, repeated_dict, config_fs_root, sut + "-" + anonim_ep)
-
-                        suite_id = config_root_deep.find('ID').text
-
-                        self._get_config_files(user, config_root_deep, suite_id + "-" + sut + "-" + anonim_ep, repeated_dict)
-
-                        self._do_repeat(config_root_deep, repeated_dict, suite_id + "-" + sut + "-" + anonim_ep)
-
-                        self._edit_suite(str(anonim_ep), sut, config_root_deep)
-
-                        if config_root_deep.find('TestSuite') is not None or config_root_deep.find('TestCase') is not None:
-                            # append suite to the xml root
-                            root.append(config_root_deep)
-
-        config_ts_root = etree.tostring(root)
-        config_fs_root = etree.fromstring(config_ts_root)
-        self._resolve_dependencies(repeated_dict, config_fs_root)
-
-        suite_no = 100  # Base ID for suites
-        suite_ids = {}  # Pairs with old -> new suite IDs
-        file_no = 1000  # Base ID for tests
-        file_ids = {}   # Pairs with old -> new file IDs
-
-        # Fix long ugly IDs with short integer IDs
-        for suite_id in config_fs_root.xpath('//TestSuite/ID'):
-            suite_no += 1
-            suite_ids[suite_id.text] = str(suite_no)
-            suite_id.text = str(suite_no)
-
-        # Fix long ugly IDs with short integer IDs
-        for file_id in config_fs_root.xpath('//TestCase/ID'):
-            file_no += 1
-            file_ids[file_id.text] = str(file_no)
-            file_id.text = str(file_no)
-
+        for suite in xml.findall('.//TestSuite'):
+            prop = suite.find('Property')
+            if prop:
+                suite.remove(prop)
         # Final XML string
-        xml_string = etree.tostring(config_fs_root, pretty_print=True)
-
-        # Fix old dependency IDs
-        for old_id, new_id in suite_ids.iteritems():
-            xml_string = xml_string.replace(old_id + ':', new_id + ':')
-
-        for old_id, new_id in file_ids.iteritems():
-            xml_string = xml_string.replace(old_id + ':', new_id + ':')
+        xml_string = etree.tostring(xml, pretty_print=True)
 
         # write the xml file
         xml_file = userHome(user) + '/twister/config/testsuites.xml'
@@ -704,8 +561,30 @@ class CeXmlParser(object):
             logError(resp)
             return '*ERROR* ' + resp
 
-        logDebug('CeParser: Successfully generated: `{}`, user `{}`.'.format(xml_file, user))
+        logDebug('CeParser: Successfully generated: `{}`, user `{}`.'.\
+        format(xml_file, user))
         return True
+
+
+    def get_number_of_iterations(self, user, configs):
+        """
+        Computes the number of iterations each time a user manipulates the
+        configs for a test.
+        """
+        interval_values = OrderedDict()
+        part_interval_values = []
+        default_values_list = []
+        for config in configs.split(';')[:-1]:
+            cfg = config.split(',')
+            config_file = cfg[0].strip()
+            default = cfg[1].strip()
+            self._get_iterator_values(config_file, default, interval_values,\
+            user, part_interval_values, default_values_list)
+        cartesian_list = list()
+        if len(interval_values.values()) > 0:
+            cartesian_list = cartesian(interval_values.values()[0])
+
+        return len(cartesian_list)
 
 
 # Eof()

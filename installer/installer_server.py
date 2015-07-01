@@ -159,6 +159,7 @@ to_copy = [
     'config/users_and_groups.ini',
     'config/server_init.ini',
     'config/shared_db.xml',
+    'config/sut/',
     'plugins/',
     'services/',
 ]

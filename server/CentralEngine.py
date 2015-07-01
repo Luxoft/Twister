@@ -1,6 +1,6 @@
 #!/usr/bin/env python2.7
 
-# version: 3.005
+# version: 3.008
 
 # File: CentralEngine.py ; This file is part of Twister.
 
@@ -42,12 +42,12 @@ import thread
 from rpyc.utils.server import ThreadPoolServer
 
 if not sys.version.startswith('2.7'):
-    print('Python version error! Central Engine must run on Python 2.7!')
+    print 'Python version error! Central Engine must run on Python 2.7!'
     exit(1)
 
 TWISTER_PATH = os.getenv('TWISTER_PATH')
 if not TWISTER_PATH:
-    print('TWISTER_PATH environment variable is not set! Exiting!')
+    print 'TWISTER_PATH environment variable is not set! Exiting!'
     exit(1)
 if TWISTER_PATH not in sys.path:
     sys.path.append(TWISTER_PATH)
@@ -122,7 +122,7 @@ if __name__ == "__main__":
 
     PROJ.ip_port = ('127.0.0.1', SERVER_PORT)
     CE.web = PROJ.web
-    CE.tb = PROJ.tb
+    CE.tb = PROJ.testbeds
     CE.sut = PROJ.sut
     CE.report = PROJ.report
 
@@ -138,28 +138,27 @@ if __name__ == "__main__":
 
     # CherryPy config
     CONF = {
-            'global': {
+        'global': {
             'server.socket_host': '0.0.0.0',
             'server.socket_port': SERVER_PORT,
             'server.thread_pool': 90,
             'engine.autoreload.on': False,
             'log.screen': False,
-
             'tools.sessions.on': True,
             'tools.sessions.timeout': 60*24*365,
             'tools.auth_basic.on': True,
             'tools.auth_basic.realm': 'Twister Server',
             'tools.auth_basic.checkpassword': Project.check_passwd,
-            },
-            '/static': {
+        },
+        '/static': {
             'tools.sessions.on': False,
             'tools.auth_basic.on': False,
             'tools.auth_digest.on': False,
             'tools.auth.on': False,
             'tools.staticdir.on': True,
             'tools.staticdir.dir': TWISTER_PATH + '/server/static',
-            },
-        }
+        },
+    }
 
     # Start !
     cherrypy.engine.signal_handler.handlers['SIGTERM'] = close

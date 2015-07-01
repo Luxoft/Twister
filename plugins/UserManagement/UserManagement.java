@@ -1,6 +1,6 @@
 /*
 File: UserManagement.java ; This file is part of Twister.
-Version: 3.001
+Version: 3.002
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -845,18 +845,22 @@ public class UserManagement implements TwisterPluginInterface {
 			dtm.setRowCount(0);
 			StringBuilder sb = new StringBuilder();
 			for (Object o : groups) {
-				sb.setLength(0);
-				Object[] roles = (Object[]) ((HashMap) hm.get(o.toString()))
-						.get("roles");
-				for (Object ob : roles) {
-					sb.append(ob.toString());
-					sb.append(",");
+				try{
+					sb.setLength(0);
+					Object[] roles = (Object[]) ((HashMap) hm.get(o.toString())).get("roles");
+					for (Object ob : roles) {
+						sb.append(ob.toString());
+						sb.append(",");
+					}
+					if (sb.length() > 0)
+						sb.setLength(sb.length() - 1);
+					dtm.addRow(new String[] { o.toString(), sb.toString() });
+				} catch (Exception e) {
+					System.out.println("There was a problem in getting roles from CE HashMap!");
+					e.printStackTrace();
 				}
-				if (sb.length() > 0)
-					sb.setLength(sb.length() - 1);
-				dtm.addRow(new String[] { o.toString(), sb.toString() });
 			}
-		} catch (XmlRpcException e) {
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 		groupstable.getColumnModel().getColumn(0).setMinWidth(120);

@@ -1,6 +1,6 @@
 # File: CeCommonAllocator.py ; This file is part of Twister.
 
-# version: 3.004
+# version: 3.005
 
 # Copyright (C) 2012-2014, Luxoft
 
@@ -21,6 +21,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+'''
+Common methods for TB or SUT allocator
+'''
+
 import os
 import sys
 import ast
@@ -31,13 +35,12 @@ from binascii import hexlify
 
 TWISTER_PATH = os.getenv('TWISTER_PATH')
 if not TWISTER_PATH:
-    print('TWISTER_PATH environment variable is not set! Exiting!')
+    print 'TWISTER_PATH environment variable is not set! Exiting!'
     exit(1)
 if TWISTER_PATH not in sys.path:
     sys.path.append(TWISTER_PATH)
 
-from common.tsclogging import logFull, logDebug, logInfo, logWarning, logError
-from common.helpers import *
+from common.tsclogging import logFull, logDebug, logError
 
 #
 
@@ -82,7 +85,7 @@ class CommonAllocator(object):
         return [user_roles.get('user'), user_roles]
 
 
-    def fix_path(self, res, path = [], modified = False):
+    def fix_path(self, res, path=[], modified=False):
         """
         Add path to resources that does not have this field.
         """
@@ -123,7 +126,7 @@ class CommonAllocator(object):
             return None
 
         for node in resource.get('children'):
-            result = self.get_id( node_id, resource['children'][node])
+            result = self.get_id(node_id, resource['children'][node])
 
             if result:
                 return result
@@ -230,8 +233,8 @@ class CommonAllocator(object):
             props = props.strip()
             try:
                 props = ast.literal_eval(props)
-            except Exception as e:
-                logError('Cannot parse properties: `{}`, `{}` !'.format(props, e))
+            except Exception as exp_err:
+                logError('Cannot parse properties: `{}`, `{}` !'.format(props, exp_err))
                 return None
         else:
             logError('Invalid properties for set method`{}` !'.format(props))
@@ -265,11 +268,11 @@ class CommonAllocator(object):
 
         meta = ""
         if ':' in query:
-            meta  = query.split(':')[1]
+            meta = query.split(':')[1]
         if not meta:
-            result['children'] = sorted([result['children'][node]['id'] for
-                node in result.get('children') or []],
-                key=lambda node: node.lower())
+            result['children'] = sorted([result['children'][node]['id'] for \
+            node in result.get('children') or []], \
+            key=lambda node: node.lower())
 
             if isinstance(result['path'], list):
                 result['path'] = '/'.join(result.get('path', []))
@@ -293,7 +296,8 @@ class CommonAllocator(object):
             source = 'rpyc' # call from the tests
 
         user_info = self.user_info(props)
-        logDebug('CeCommonAllocator:reserve_resource {} {} {} {}'.format(res_query, props, user_info[0],self.type.upper()))
+        logDebug('CeCommonAllocator:reserve_resource {} {} {} {}'.\
+        format(res_query, props, user_info[0], self.type.upper()))
 
         # in case we recive meta info too
         if ':' in res_query:
@@ -301,10 +305,10 @@ class CommonAllocator(object):
 
         with self.acc_lock:
             # verify if the resource is locked by other user
-            _isResourceLocked = self.is_resource_locked(res_query)
-            if _isResourceLocked:
-                if _isResourceLocked != user_info[0]:
-                    msg = 'User {}: The resource is locked for {} !'.format(user_info[0], _isResourceLocked)
+            _is_res_locked = self.is_resource_locked(res_query)
+            if _is_res_locked:
+                if _is_res_locked != user_info[0]:
+                    msg = 'User {}: The resource is locked for {} !'.format(user_info[0], _is_res_locked)
                     logError(msg)
                     if source == 'rpyc':
                         return (False, 'TB_LOCKED')
@@ -318,10 +322,10 @@ class CommonAllocator(object):
                     else:
                         return True
             #verify is the resource is reserved by other user
-            _isResourceReserved = self.is_resource_reserved(res_query)
-            if _isResourceReserved:
-                if _isResourceReserved != user_info[0]:
-                    msg = 'User {}: The resource is reserved for {}!'.format(user_info[0], _isResourceReserved)
+            _is_res_reserved = self.is_resource_reserved(res_query)
+            if _is_res_reserved:
+                if _is_res_reserved != user_info[0]:
+                    msg = 'User {}: The resource is reserved for {}!'.format(user_info[0], _is_res_reserved)
                     logError(msg)
                     if source == 'rpyc':
                         return (False, '{}_RESERVED'.format(self.type.upper()))
@@ -378,9 +382,9 @@ class CommonAllocator(object):
 
         resources = self.resources
         if '/' not in res_query:
-            reservedForUser = [u for u in self.reservedResources if res_query in self.reservedResources[u]]
+            res_for_user = [u for u in self.reservedResources if res_query in self.reservedResources[u]]
 
-        if '/' in res_query or not reservedForUser:
+        if '/' in res_query or not res_for_user:
             #if res_query contains components unsaved yet, search only for the TB
             if '/' in res_query:
                 parts = [q for q in res_query.split('/') if q]
@@ -401,11 +405,11 @@ class CommonAllocator(object):
                     return False
 
 
-            reservedForUser = [u for u in self.reservedResources if node_path['id'] in self.reservedResources[u]]
+            res_for_user = [u for u in self.reservedResources if node_path['id'] in self.reservedResources[u]]
 
-        if not reservedForUser:
+        if not res_for_user:
             return False
-        return reservedForUser[0]
+        return res_for_user[0]
 
 
     def get_reserved_resource(self, res_query, props={}):
@@ -481,10 +485,10 @@ class CommonAllocator(object):
         with self.acc_lock:
 
             # verify if the resource is locked by other user
-            _isResourceLocked = self.is_resource_locked(res_query)
-            if _isResourceLocked:
-                if _isResourceLocked != user_info[0]:
-                    msg = 'User {}: The resource is locked for {} !'.format(user_info[0], _isResourceLocked)
+            _is_res_locked = self.is_resource_locked(res_query)
+            if _is_res_locked:
+                if _is_res_locked != user_info[0]:
+                    msg = 'User {}: The resource is locked for {} !'.format(user_info[0], _is_res_locked)
                     logError(msg)
                     return '*ERROR* ' + msg
                 else:
@@ -492,10 +496,10 @@ class CommonAllocator(object):
                     logDebug(msg)
                     return True
             #verify is the resource is reserved by other user
-            _isResourceReserved = self.is_resource_reserved(res_query)
-            if _isResourceReserved:
-                if _isResourceReserved != user_info[0]:
-                    msg = 'User {}: The resource is reserved for {}!'.format(user_info[0], _isResourceReserved)
+            _is_res_reserved = self.is_resource_reserved(res_query)
+            if _is_res_reserved:
+                if _is_res_reserved != user_info[0]:
+                    msg = 'User {}: The resource is reserved for {}!'.format(user_info[0], _is_res_reserved)
                     logError(msg)
                     return '*ERROR* ' + msg
                 else:
@@ -552,8 +556,9 @@ class CommonAllocator(object):
                 self.lockedResources[user_info[0]].pop(node['id'])
                 if not self.lockedResources[user_info[0]]:
                     self.lockedResources.pop(user_info[0])
-            except Exception as e:
-                msg = 'User {}: Unlock resource: `{}` !'.format(user_info[0], e)
+            except Exception as exp_err:
+                msg = 'User {}: Unlock resource: `{}` !'.\
+                format(user_info[0], exp_err)
                 logError(msg)
                 return "*ERROR* " + msg
 
@@ -570,9 +575,9 @@ class CommonAllocator(object):
 
         # Having the id we can get it directly
         if '/' not in res_query:
-            lockedForUser = [u for u in self.lockedResources if res_query in self.lockedResources[u]]
+            lock_for_user = [u for u in self.lockedResources if res_query in self.lockedResources[u]]
         # Otherwise get the id from the path or get find the root parent of the resource
-        if '/' in res_query or not lockedForUser:
+        if '/' in res_query or not lock_for_user:
             node = self.get_resource(res_query)
             if not node or isinstance(node, str):
                 msg = "CeCommonAllocator: is_resource_locked: No such resource {}".format(res_query)
@@ -586,12 +591,12 @@ class CommonAllocator(object):
                 logFull('CeCommonAllocator: Cannot find resource path or ID `{}` !'.format(res_query))
                 return  False
 
-            lockedForUser = [u for u in self.lockedResources if node['id'] in self.lockedResources[u]]
+            lock_for_user = [u for u in self.lockedResources if node['id'] in self.lockedResources[u]]
 
-        if not lockedForUser:
+        if not lock_for_user:
             return False
 
-        return lockedForUser[0]
+        return lock_for_user[0]
 
 
     def discard_release_reserved_resource(self, res_query, props={}):
@@ -632,8 +637,8 @@ class CommonAllocator(object):
                 self.reservedResources[user].pop(node_id)
                 if not self.reservedResources[user]:
                     self.reservedResources.pop(user)
-            except Exception as e:
-                logError('CeCommonAllocator:discard_release_reserved_resource: `{}` for user {}!'.format(e, user))
+            except Exception as exp_err:
+                logError('CeCommonAllocator:discard_release_reserved_resource: `{}` for user {}!'.format(exp_err, user))
                 return False
 
         return True #RESOURCE_FREE

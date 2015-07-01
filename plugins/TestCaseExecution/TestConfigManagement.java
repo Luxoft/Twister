@@ -1,6 +1,6 @@
 /*
 File: TestConfigManagement.java ; This file is part of Twister.
-Version: 3.005
+Version: 3.007
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -97,9 +97,9 @@ public class TestConfigManagement extends JPanel{
                 if(parent==null)return;
                 ((DefaultTableModel)jTable1.getModel()).setRowCount(0);
                 parent.getConfigurations().clear();
-                if(parent.getType()==2){
-                    updatedSuiteConfig(true,parent,parent.getConfigurations());
-                }
+//                 if(parent.getType()==2){
+//                     updatedSuiteConfig(true,parent,parent.getConfigurations());
+//                 }
                 RunnerRepository.window.mainpanel.p1.sc.g.repaint();
                 updateIteratorNr();
             }
@@ -293,9 +293,9 @@ public class TestConfigManagement extends JPanel{
                 break;
             }
         }
-        if(parent.getType()==2){
-            updatedSuiteConfig(true,parent,parent.getConfigurations());
-        }
+//         if(parent.getType()==2){
+//             updatedSuiteConfig(true,parent,parent.getConfigurations());
+//         }
         updateIteratorNr();
     }
     
@@ -369,9 +369,9 @@ public class TestConfigManagement extends JPanel{
             parent.getConfigurations().remove(tomove);
             parent.getConfigurations().add(row+move,tomove);
         }
-        if(parent.getType()==2){
-            updatedSuiteConfig(true,parent,parent.getConfigurations());
-        }
+//         if(parent.getType()==2){
+//             updatedSuiteConfig(true,parent,parent.getConfigurations());
+//         }
         RunnerRepository.window.mainpanel.p1.sc.g.repaint();
     }
     
@@ -390,9 +390,9 @@ public class TestConfigManagement extends JPanel{
             parent.getConfigurations().remove(tomove);
             parent.getConfigurations().add(row-move,tomove);    
         }
-        if(parent.getType()==2){
-            updatedSuiteConfig(true,parent,parent.getConfigurations());
-        }
+//         if(parent.getType()==2){
+//             updatedSuiteConfig(true,parent,parent.getConfigurations());
+//         }
         RunnerRepository.window.mainpanel.p1.sc.g.repaint();
     }
     
@@ -413,9 +413,9 @@ public class TestConfigManagement extends JPanel{
                 Collections.swap(parent.getConfigurations(),row,row+1);
             }
         }
-        if(parent.getType()==2){
-            updatedSuiteConfig(true,parent,parent.getConfigurations());
-        }
+//         if(parent.getType()==2){
+//             updatedSuiteConfig(true,parent,parent.getConfigurations());
+//         }
         RunnerRepository.window.mainpanel.p1.sc.g.repaint();
     }
     
@@ -432,9 +432,9 @@ public class TestConfigManagement extends JPanel{
                 jTable1.addRowSelectionInterval(row-1,row-1);
             }
         }
-        if(parent.getType()==2){
-            updatedSuiteConfig(true,parent,parent.getConfigurations());
-        }
+//         if(parent.getType()==2){
+//             updatedSuiteConfig(true,parent,parent.getConfigurations());
+//         }
         RunnerRepository.window.mainpanel.p1.sc.g.repaint();
     }
     
@@ -458,9 +458,9 @@ public class TestConfigManagement extends JPanel{
             tm.removeRow(jTable1.convertRowIndexToModel(row));
         }
         jTable1.clearSelection();
-        if(parent.getType()==2){
-            updatedSuiteConfig(true,parent,parent.getConfigurations());
-        }
+//         if(parent.getType()==2){
+//             updatedSuiteConfig(true,parent,parent.getConfigurations());
+//         }
         RunnerRepository.window.mainpanel.p1.sc.g.repaint();
         updateIteratorNr();
     }
@@ -524,9 +524,9 @@ public class TestConfigManagement extends JPanel{
                 if(parent.getType()==2)conf.setFromSuite(true);
                 parent.getConfigurations().add(conf);
             }
-            if(parent.getType()==2){
-                updatedSuiteConfig(true,parent,parent.getConfigurations());
-            }
+//             if(parent.getType()==2){
+//                 updatedSuiteConfig(true,parent,parent.getConfigurations());
+//             }
             RunnerRepository.window.mainpanel.p1.sc.g.repaint();
         }
         updateIteratorNr();

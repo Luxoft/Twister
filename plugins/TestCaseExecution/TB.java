@@ -148,7 +148,7 @@ public class TB extends JPanel{
                     if(((Node)tn.getUserObject()).getReserved().equals(RunnerRepository.user))return;
                     if(tn.getLevel()==1){
                         new Thread(){
-                            public void run(){    
+                            public void run(){
                                 startProgressBar(ev.getXOnScreen(),ev.getYOnScreen());
                                 DefaultTreeModel model = ((DefaultTreeModel)tree.getModel());
                                 tn.removeAllChildren();

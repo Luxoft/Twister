@@ -1,7 +1,7 @@
 
 # File: CeConfigs.py ; This file is part of Twister.
 
-# version: 3.002
+# version: 3.003
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -36,12 +36,12 @@ from thread import allocate_lock
 
 TWISTER_PATH = os.getenv('TWISTER_PATH')
 if not TWISTER_PATH:
-    print('TWISTER_PATH environment variable is not set! Exiting!')
+    print 'TWISTER_PATH environment variable is not set! Exiting!'
     exit(1)
 if TWISTER_PATH not in sys.path:
     sys.path.append(TWISTER_PATH)
 
-from common.tsclogging import logDebug, logInfo, logWarning, logError
+from common.tsclogging import logDebug, logWarning
 
 
 class CeConfigs(object):
@@ -67,9 +67,9 @@ class CeConfigs(object):
         Recursive parse globals / configs.
         """
         for folder in xml.xpath('folder'):
-            tmp = {gparam.find('name').text: gparam.find('value').text or ''
-                for gparam in folder.xpath('param')}
-            tmp.update( self._parse_common(folder, tmp) )
+            tmp = {gparam.find('name').text: gparam.find('value').text or '' \
+            for gparam in folder.xpath('param')}
+            tmp.update( self._parse_common(folder, tmp))
             gparams[folder.find('fname').text] = tmp
         return gparams
 
@@ -143,7 +143,8 @@ class CeConfigs(object):
         if not var_pointer:
             node_path = '/'.join(node_path)
             if globs_file:
-                logWarning('Global Variable: Invalid variable path `{}` in file `{}`, for user `{}`!'.format(node_path, globs_file, user))
+                logWarning('Global Variable: Invalid variable path `{}` in \
+                file `{}`, for user `{}`!'.format(node_path, globs_file, user))
             else:
                 logWarning('Global Variable: Invalid variable path `{}`, for user `{}`!'.format(node_path, user))
             return False
@@ -208,7 +209,8 @@ class CeConfigs(object):
         """
         # If already locked, return False
         if fpath in self.config_locks:
-            err = '*ERROR* Config file `{}` is already locked by `{}`! Cannot lock!'.format(fpath, self.config_locks[fpath])
+            err = '*ERROR* Config file `{}` is already locked by `{}`! \
+            Cannot lock!'.format(fpath, self.config_locks[fpath])
             logDebug(err)
             return err
         with self.cfg_lock:
@@ -284,8 +286,8 @@ class CeConfigs(object):
                 err = '*ERROR* Cannot save CC config file `{}`, because it\'s not locked!'.format(fpath)
                 logWarning(err)
                 return err
-            return self.project.write_file(user, path + '/' + fpath, content,
-                type='clearcase:{}:{}'.format(view, actv))
+            return self.project.write_file(user, path + '/' + fpath, content,\
+            type='clearcase:{}:{}'.format(view, actv))
         else:
             dirpath = self.project.get_user_info(user, 'tcfg_path')
             # If file exists

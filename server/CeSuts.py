@@ -1,7 +1,7 @@
 
 # File: CeSuts.py ; This file is part of Twister.
 
-# version: 3.011
+# version: 3.012
 
 # Copyright (C) 2012-2014, Luxoft
 
@@ -21,11 +21,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+'''
+Module to manage SUT operations
+'''
 
 import os
 import sys
 import copy
-import time
 import thread
 from binascii import hexlify
 import cherrypy
@@ -39,16 +41,16 @@ except Exception:
 
 TWISTER_PATH = os.getenv('TWISTER_PATH')
 if not TWISTER_PATH:
-    print('TWISTER_PATH environment variable is not set! Exiting!')
+    print 'TWISTER_PATH environment variable is not set! Exiting!'
     exit(1)
 if TWISTER_PATH not in sys.path:
     sys.path.append(TWISTER_PATH)
 
 from common.tsclogging import logFull, logDebug, logInfo, logWarning, logError
-from common.helpers import *
+from common.helpers import userHome
 from server.CeCommonAllocator import CommonAllocator
 
-constant_dictionary = {'version': 0, 'name': '/', 'meta': {}, 'children': {}}
+CONSTANT_DICTIONARY = {'version': 0, 'name': '/', 'meta': {}, 'children': {}}
 
 
 def xml_to_res(xml, gparams):
@@ -60,17 +62,17 @@ def xml_to_res(xml, gparams):
         """
         Recursive method - read the xml and generate a dictionary.
         """
-        nd = {}
+        c_nd = {}
 
         for folder in xml.findall('folder'):
             tb_path = folder.find('path')
             if tb_path is not None:
-                nd = {'path':[], 'meta': {}, 'id': '', 'children': {}}
+                c_nd = {'path':[], 'meta': {}, 'id': '', 'children': {}}
                 tb_path_text = tb_path.text
                 tb_path_list = [q for q in tb_path_text.split('/') if q]
-                nd['path'].extend(tb_path_list)
+                c_nd['path'].extend(tb_path_list)
             else:
-                nd = {'meta': {}, 'id': '', 'children': {}}
+                c_nd = {'meta': {}, 'id': '', 'children': {}}
 
             # Populate META properties
             meta = folder.find('meta')
@@ -80,23 +82,23 @@ def xml_to_res(xml, gparams):
                     if meta_name is not None:
                         meta_value = meta_params.find('value')
                         if meta_value is not None and meta_value.text is not None:
-                            nd['meta'][meta_name.text] = meta_value.text
+                            c_nd['meta'][meta_name.text] = meta_value.text
                         else:
-                            nd['meta'][meta_name.text] = ''
+                            c_nd['meta'][meta_name.text] = ''
 
             # If the XML node contains an ID, use it; else, create a random ID
             tb_id = folder.find('id')
             if tb_id is not None:
                 id_value = tb_id.find('value')
                 if id_value is not None and id_value.text is not None:
-                    nd['id'] = id_value.text
+                    c_nd['id'] = id_value.text
                 else:
-                    nd['id'] = hexlify(os.urandom(5))
+                    c_nd['id'] = hexlify(os.urandom(5))
             else:
-                nd['id'] = hexlify(os.urandom(5))
+                c_nd['id'] = hexlify(os.urandom(5))
 
             # Add children for this node
-            res_dict[folder.find('fname').text] = nd
+            res_dict[folder.find('fname').text] = c_nd
             recursive_xml_to_res(folder, res_dict[folder.find('fname').text]['children'])
 
     # we have to get the information at root level(path, meta, id, version) first
@@ -128,7 +130,7 @@ def xml_to_res(xml, gparams):
     return gparams
 
 
-def res_to_xml(parent_node, xml, skip_header = False):
+def res_to_xml(parent_node, xml, skip_header=False):
     """
     Export TB to xml.
     """
@@ -148,18 +150,18 @@ def res_to_xml(parent_node, xml, skip_header = False):
 
         meta = etree.SubElement(xml, 'meta')
         # meta is a dictionary
-        for k, v in parent_node.get('meta').iteritems():
+        for k_var, v_var in parent_node.get('meta').iteritems():
             tag = etree.SubElement(meta, 'param')
             prop = etree.SubElement(tag, 'name')
-            prop.text = str(k)
-            val  = etree.SubElement(tag, 'value')
-            if v:
-                val.text = str(v)
+            prop.text = str(k_var)
+            val = etree.SubElement(tag, 'value')
+            if v_var:
+                val.text = str(v_var)
             else:
                 val.text = ''
-            typ  = etree.SubElement(tag, 'type')
+            typ = etree.SubElement(tag, 'type')
             typ.text = 'string'
-            desc  = etree.SubElement(tag, 'desc')
+            etree.SubElement(tag, 'desc')
 
         tb_id = etree.SubElement(xml, 'id')
         tb_id.text = parent_node.get('id')
@@ -174,7 +176,7 @@ def res_to_xml(parent_node, xml, skip_header = False):
         return False
 
     for node in sorted(parent_node['children'].keys()):
-        nd = dict(parent_node['children'][node])
+        c_nd = dict(parent_node['children'][node])
 
         # Create empty folder
         folder = etree.SubElement(xml, 'folder')
@@ -182,38 +184,38 @@ def res_to_xml(parent_node, xml, skip_header = False):
         fname = etree.SubElement(folder, 'fname')
         fname.text = node
         # Folder fdesc
-        fdesc = etree.SubElement(folder, 'fdesc')
+        etree.SubElement(folder, 'fdesc')
 
         # get the path if exists
-        if nd.get('path'):
+        if c_nd.get('path'):
             path = etree.SubElement(folder, 'path')
-            path.text = '/'.join(nd.get('path'))
+            path.text = '/'.join(c_nd.get('path'))
 
         # get meta information
         meta = etree.SubElement(folder, 'meta')
-        for k, v in nd['meta'].iteritems():
+        for k_var, v_var in c_nd['meta'].iteritems():
             tag = etree.SubElement(meta, 'param')
             prop = etree.SubElement(tag, 'name')
-            prop.text = str(k)
-            val  = etree.SubElement(tag, 'value')
-            if v:
-                val.text = str(v)
+            prop.text = str(k_var)
+            val = etree.SubElement(tag, 'value')
+            if v_var:
+                val.text = str(v_var)
             else:
                 val.text = ''
-            typ  = etree.SubElement(tag, 'type')
+            typ = etree.SubElement(tag, 'type')
             typ.text = 'string'
-            desc  = etree.SubElement(tag, 'desc')
+            etree.SubElement(tag, 'desc')
 
         # get the id
-        if nd.get('id'):
+        if c_nd.get('id'):
             tag = etree.SubElement(folder, 'id')
-            val  = etree.SubElement(tag, 'value')
-            val.text = nd['id']
-            typ  = etree.SubElement(tag, 'type')
+            val = etree.SubElement(tag, 'value')
+            val.text = c_nd['id']
+            typ = etree.SubElement(tag, 'type')
             typ.text = 'string'
-            desc  = etree.SubElement(tag, 'desc')
+            desc = etree.SubElement(tag, 'desc')
 
-        ch = res_to_xml(nd, folder, True)
+        res_to_xml(c_nd, folder, True)
 
     return xml
 
@@ -227,7 +229,7 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
 
         self.project = project
         self.type = 'sut'
-        self.resources = constant_dictionary
+        self.resources = CONSTANT_DICTIONARY
         self.reservedResources = {}
         self.lockedResources = {}
         self.id_list = {}
@@ -238,7 +240,7 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
         self.load_lock = thread.allocate_lock() # Save lock
 
 
-    def save_sut(self, props={}, resource_name = None):
+    def save_sut(self, props={}, resource_name=None):
         """
         Function used to write the changes on HDD.
         The save is separate for Devices and SUTs, so the version is not incremented
@@ -254,35 +256,35 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
                 resource_name = resource_name[1:]
 
             if resource_name.split('.')[-1] == 'user':
-                sutsPath = self.project.get_user_info(user, 'sut_path')
+                suts_gb_path = self.project.get_user_info(user, 'sut_path')
             else:
-                sutsPath = self.project.get_user_info(user, 'sys_sut_path')
+                suts_gb_path = self.project.get_user_info(user, 'sys_sut_path')
 
-            if not sutsPath:
-                sutsPath = '{}/config/sut/'.format(TWISTER_PATH)
+            if not suts_gb_path:
+                suts_gb_path = '{}/config/sut/'.format(TWISTER_PATH)
 
-            filename = os.path.join(sutsPath, '.'.join(resource_name.split('.')[:-1] + ['json']))
+            filename = os.path.join(suts_gb_path, '.'.join(resource_name.split('.')[:-1] + ['json']))
 
             if resource_name.split('.')[-1] == 'system':
                 try:
                     resp = self.project.localFs.write_system_file(filename, \
                         json.dumps(self.resources['children'][resource_name], indent=4), 'w')
-                except Exception as e:
-                    log.append(e)
-                    logError('User {}: Saving ERROR system:: `{}`.'.format(user, e))
+                except Exception as exp_err:
+                    log.append(exp_err)
+                    logError('User {}: Saving ERROR system:: `{}`.'.format(user, exp_err))
 
             if resource_name.split('.')[-1] == 'user':
                 # user SUT file; we have to check if the cleacase plugin
                 # is activated; if so, use it to write the SUT file; else
                 # use the UserService to read it
-                ccConfig = self.project.get_clearcase_config(user, 'sut_path')
-                if ccConfig:
-                    view = ccConfig['view']
-                    actv = ccConfig['actv']
-                    path = ccConfig['path']
+                cc_cfg = self.project.get_clearcase_config(user, 'sut_path')
+                if cc_cfg:
+                    view = cc_cfg['view']
+                    actv = cc_cfg['actv']
+                    path = cc_cfg['path']
                     user_view_actv = '{}:{}:{}'.format(user, view, actv)
-                    fileName = ''.join(resource_name.split('.')[:-1])
-                    resp = self.project.clearFs.write_user_file(user_view_actv, path +'/'+ fileName + '.json', \
+                    f_name = ''.join(resource_name.split('.')[:-1])
+                    resp = self.project.clearFs.write_user_file(user_view_actv, path +'/'+ f_name + '.json', \
                         json.dumps(self.resources['children'][resource_name], indent=4))
                 else:
                     # Get the user connection
@@ -322,15 +324,15 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
                 msg = 'Path does not exist: {}'.format(path)
                 logError(msg)
                 return '*ERROR* '+msg
-            # remove the '_' added when the sut was created 
+            # remove the '_' added when the sut was created
             real_name = sut_name[1:]
             filename = os.path.join(path, '.'.join(real_name.split('.')[:-1] + ['json']))
             try:
-                resp = self.project.localFs.write_user_file(user, filename, \
-                        json.dumps(self.resources['children'][sut_name], indent=4), 'w')
-            except Exception as e:
-                log.append(e)
-                logError('User {}: Saving ERROR system:: `{}`.'.format(user, e))
+                self.project.localFs.write_user_file(user, filename, \
+                json.dumps(self.resources['children'][sut_name], indent=4), 'w')
+            except Exception as exp_err:
+                log.append(exp_err)
+                logError('User {}: Saving ERROR system:: `{}`.'.format(user, exp_err))
                 # targeted resource is saved now; do not continue with
                 # the rest of resources
         if log:
@@ -359,17 +361,17 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
             self.format_content(content['children'][node], kids_list)
 
 
-    def parse_sut(self, sutContent=None, sutName=None):
+    def parse_sut(self, sut_content=None, sut_name=None):
         """
         Adds elements to id_list.
         """
         kids_list = set()
-        kids_list.add(sutContent['id'])
+        kids_list.add(sut_content['id'])
 
-        self.format_content(sutContent, kids_list)
+        self.format_content(sut_content, kids_list)
 
         kids_list = list(kids_list)
-        self.id_list[sutName] = kids_list
+        self.id_list[sut_name] = kids_list
 
         return True
 
@@ -392,7 +394,7 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
             result = self.format_resource(result, query)
         except Exception:
             logFull('The sut `{}` is already formated !'.format(query))
-            pass
+
         if isinstance(result['path'], list):
             result['path'] = '/'.join(result['path'])
         return result
@@ -402,84 +404,84 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
     def index_suts(self, props={}):
         """
         Open all SUT files and creats dict having
-        entries like: {sutName : [ids]}
+        entries like: {sut_name : [ids]}
         """
         user_info = self.user_info(props)
         user = user_info[0]
-        usrHome = userHome(user)
+        usr_home = userHome(user)
 
-        sutContent = False
+        sut_content = False
 
         try:
             # System SUT path
-            sutsPath = self.project.get_user_info(user, 'sys_sut_path')
-            if not sutsPath:
-                sutsPath = '{}/config/sut/'.format(TWISTER_PATH)
+            suts_gb_path = self.project.get_user_info(user, 'sys_sut_path')
+            if not suts_gb_path:
+                suts_gb_path = '{}/config/sut/'.format(TWISTER_PATH)
 
-            sutPaths = [p for p in os.listdir(sutsPath)\
-                if os.path.isfile(os.path.join(sutsPath, p))\
+            sut_all_pats = [p for p in os.listdir(suts_gb_path)\
+                if os.path.isfile(os.path.join(suts_gb_path, p))\
                      and p.split('.')[-1] == 'json']
-            for sutPath in sutPaths:
-                sutName = '.'.join(['.'.join(sutPath.split('.')[:-1]  + ['system'])])
+            for sut_path in sut_all_pats:
+                sut_name = '.'.join(['.'.join(sut_path.split('.')[:-1]  + ['system'])])
 
-                with open(os.path.join(sutsPath, sutPath), 'r') as f:
-                    sutContent = json.load(f)
-                    self.parse_sut(sutContent, sutName)
-        except Exception as e:
-                logError('_load ERROR:: {} for user {}'.format(e, user))
+                with open(os.path.join(suts_gb_path, sut_path), 'r') as f_p:
+                    sut_content = json.load(f_p)
+                    self.parse_sut(sut_content, sut_name)
+        except Exception as exp_err:
+            logError('_load ERROR:: {} for user {}'.format(exp_err, user))
 
         # User SUT path
-        sutsPath = self.project.get_user_info(user, 'sut_path')
-        if not sutsPath:
-            sutsPath = '{}/twister/config/sut/'.format(usrHome)
+        suts_gb_path = self.project.get_user_info(user, 'sut_path')
+        if not suts_gb_path:
+            suts_gb_path = '{}/twister/config/sut/'.format(usr_home)
 
         # user SUT file; we have to check if the cleacase plugin
         # is activated; if so, use it to read the SUT file; else
         # use the UserService to read it
         # open all the json files and parse them - need to index all the ids
         # that sut contains
-        ccConfig = self.project.get_clearcase_config(user, 'sut_path')
-        if ccConfig:
-            view = ccConfig['view']
-            actv = ccConfig['actv']
-            path = ccConfig['path']
+        cc_cfg = self.project.get_clearcase_config(user, 'sut_path')
+        if cc_cfg:
+            view = cc_cfg['view']
+            actv = cc_cfg['actv']
+            path = cc_cfg['path']
             user_view_actv = '{}:{}:{}'.format(user, view, actv)
 
-            sutPaths = [p for p in os.listdir(sutsPath)\
-                if os.path.isfile(os.path.join(sutsPath, p))\
+            sut_all_pats = [p for p in os.listdir(suts_gb_path)\
+                if os.path.isfile(os.path.join(suts_gb_path, p))\
                      and p.split('.')[-1] == 'json']
 
-            for sutPath in sutPaths:
-                sutName = '.'.join(['.'.join(sutPath.split('.')[:-1]  + ['user'])])
-                resp = self.project.clearFs.read_user_file(user_view_actv, path +'/'+ sutName)
+            for sut_path in sut_all_pats:
+                sut_name = '.'.join(['.'.join(sut_path.split('.')[:-1]  + ['user'])])
+                resp = self.project.clearFs.read_user_file(user_view_actv, path +'/'+ sut_name)
                 try:
-                    sutContent = json.loads(resp)
+                    sut_content = json.loads(resp)
                 except Exception:
-                    msg = "User {}: Cannot load ClearCase SUT `{}`!".format(user, sutName)
+                    msg = "User {}: Cannot load ClearCase SUT `{}`!".format(user, sut_name)
                     logWarning(msg)
                     return '*ERROR* ' + msg
-                self.parse_sut(sutContent, sutName)
+                self.parse_sut(sut_content, sut_name)
 
         else:
-            sutPaths = [p for p in os.listdir(sutsPath)\
-                if os.path.isfile(os.path.join(sutsPath, p))\
+            sut_all_pats = [p for p in os.listdir(suts_gb_path)\
+                if os.path.isfile(os.path.join(suts_gb_path, p))\
                      and p.split('.')[-1] == 'json']
-            for sutPath in sutPaths:
-                sutName = '.'.join(['.'.join(sutPath.split('.')[:-1]  + ['user'])])
+            for sut_path in sut_all_pats:
+                sut_name = '.'.join(['.'.join(sut_path.split('.')[:-1]  + ['user'])])
 
-                if sutsPath[-1] != '/' and sutPath[-1] != '/':
-                    complete_sut_path = sutsPath + '/' + sutPath
+                if suts_gb_path[-1] != '/' and sut_path[-1] != '/':
+                    complete_sut_path = suts_gb_path + '/' + sut_path
                 else:
-                    complete_sut_path = sutsPath + sutPath
+                    complete_sut_path = suts_gb_path + sut_path
 
                 resp = self.project.localFs.read_user_file(user, complete_sut_path)
                 try:
-                    sutContent = json.loads(resp)
+                    sut_content = json.loads(resp)
                 except Exception:
-                    msg = "User {}: Cannot load SUT `{}`!".format(user, sutName)
+                    msg = "User {}: Cannot load SUT `{}`!".format(user, sut_name)
                     logWarning(msg)
                     return '*ERROR* ' + msg
-                self.parse_sut(sutContent, sutName)
+                self.parse_sut(sut_content, sut_name)
 
         return True
 
@@ -502,7 +504,7 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
             del props['follow_links']
 
         logDebug('CeSuts: get_sut {} {} {}'.format(query, username, follow_links))
-        usrHome = userHome(username)
+        usr_home = userHome(username)
         initial_query = None
 
         if not query:
@@ -516,37 +518,38 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
         else:
             meta = ''
 
-        sutType = query.split('.')[-1]
+        sut_type = query.split('.')[-1]
 
         # This is an ID
         # Will return result only if the SUT is in self.resources
-        if '/' not in query and sutType == query:
+        if '/' not in query and sut_type == query:
             initial_query = query
             res_dict = self.get_resource(query)
 
             if isinstance(res_dict, dict):
                 if len(res_dict['path']) > 1:
-                    sutContent = self._format_dict_sut(res_dict, query)
+                    sut_content = self._format_dict_sut(res_dict, query)
 
                     # If this SUT / component is linked with a TB
-                    if sutContent['meta'].get('_id') and follow_links:
+                    if sut_content['meta'].get('_id') and follow_links:
 
                         # Ok, this might be a Device path, instead of SUT path!
-                        tb_id = sutContent['meta']['_id']
-                        self.project.tb.load_tb(verbose=False)
-                        sutContent = self.project.tb.get_tb(tb_id, props)
+                        tb_id = sut_content['meta']['_id']
+                        self.project.testbeds.load_tb(verbose=False)
+                        sut_content = self.project.testbeds.\
+                        get_tb(tb_id, props)
 
                         # If the Device ID is invalid, bye bye!
-                        if not isinstance(sutContent, dict):
+                        if not isinstance(sut_content, dict):
                             return False
 
                     if meta:
-                        return sutContent['meta'].get(meta, '')
+                        return sut_content['meta'].get(meta, '')
                     else:
-                        return sutContent
+                        return sut_content
 
                 query = res_dict['path'][0]
-                sutType = query.split('.')[-1]
+                sut_type = query.split('.')[-1]
 
             else:
                 # Maybe this sut is already indexed
@@ -571,7 +574,7 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
                             return msg
 
                 query = result
-                sutType = query.split('.')[-1]
+                sut_type = query.split('.')[-1]
 
         # if the query is for a component return the entire SUT
         if query[1:].count('/') >= 1:
@@ -580,90 +583,89 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
             query = parts[0]
 
         try:
-            index = sutType.index('/')
-            sutType = sutType[:index]
+            index = sut_type.index('/')
+            sut_type = sut_type[:index]
         except Exception:
             logFull('SutType does not contain any /')
-            pass
 
-        if sutType == 'system':
+        if sut_type == 'system':
             # System SUT path
-            sutPath = self.project.get_user_info(username, 'sys_sut_path')
-            if not sutPath:
-                sutPath = '{}/config/sut/'.format(TWISTER_PATH)
-        elif sutType == 'user':
+            sut_path = self.project.get_user_info(username, 'sys_sut_path')
+            if not sut_path:
+                sut_path = '{}/config/sut/'.format(TWISTER_PATH)
+        elif sut_type == 'user':
             # User SUT path
-            sutPath = self.project.get_user_info(username, 'sut_path')
-            if not sutPath:
-                sutPath = '{}/twister/config/sut/'.format(usrHome)
+            sut_path = self.project.get_user_info(username, 'sut_path')
+            if not sut_path:
+                sut_path = '{}/twister/config/sut/'.format(usr_home)
         else:
-            msg = 'Invalid SUT type `{}`, for user `{}`!'.format(sutType, username)
+            msg = 'Invalid SUT type `{}`, for user `{}`!'.format(sut_type, username)
             logWarning(msg)
             return msg
 
         # avoid having more than one "/" or not having at all
-        if query[0] == '/' and sutPath[-1] == '/':
+        if query[0] == '/' and sut_path[-1] == '/':
             query = query[1:]
-        elif query[0] != '/' and sutPath[-1] != '/':
+        elif query[0] != '/' and sut_path[-1] != '/':
             query = '/' + query
 
-        fileName = '.'.join(query.split('.')[:-1]) + '.json'
-        sutFile = sutPath + fileName
-        sutContent = False
+        f_name = '.'.join(query.split('.')[:-1]) + '.json'
+        sut_file = sut_path + f_name
+        sut_content = False
 
-        if not os.path.isdir(sutPath):
+        if not os.path.isdir(sut_path):
             # Cannot get read access to the SUT directory
-            msg = '*ERROR* Cannot get access to SUT path `{}`, user `{}`!'.format(sutPath, username)
+            msg = '*ERROR* Cannot get access to SUT path `{}`, user `{}`!'.format(sut_path, username)
             logWarning(msg)
             return msg
 
-        if sutType == 'system':
+        if sut_type == 'system':
             # System SUT file
             try:
-                with open(sutFile, 'r') as f:
-                    sutContent = json.load(f)
-            except Exception as e:
+                with open(sut_file, 'r') as f_p:
+                    sut_content = json.load(f_p)
+            except Exception as exp_err:
                 return '*ERROR* User {}: Cannot read SUT file `{}`! Exception {}'.format(
-                    username, sutFile, e)
+                    username, sut_file, exp_err)
 
         else:
             # User SUT file, check if the ClearCase plugin is activated
             # If so, use it to read the SUT file; else use the UserService to read it
-            ccConfig = self.project.get_clearcase_config(username, 'sut_path')
-            if ccConfig:
-                view = ccConfig['view']
-                actv = ccConfig['actv']
-                path = ccConfig['path']
+            cc_cfg = self.project.get_clearcase_config(username, 'sut_path')
+            if cc_cfg:
+                view = cc_cfg['view']
+                actv = cc_cfg['actv']
+                path = cc_cfg['path']
                 user_view_actv = '{}:{}:{}'.format(username, view, actv)
-                sut_path = (path +'/'+ fileName).replace('//', '/')
+                sut_path = (path +'/'+ f_name).replace('//', '/')
                 resp = self.project.clearFs.read_user_file(user_view_actv, sut_path)
                 # Invalid sut file?
                 if resp.startswith('*ERROR*'):
                     logWarning(resp)
                     return resp
                 try:
-                    sutContent = json.loads(resp)
+                    sut_content = json.loads(resp)
                 except Exception:
                     logWarning('User {}: Cannot load ClearCase SUT `{}`!'.format(username, sut_path))
-                    sutContent = False
+                    sut_content = False
             else:
-                sut_path = (sutPath + '/' + fileName).replace('//', '/')
+                sut_path = (sut_path + '/' + f_name).replace('//', '/')
                 resp = self.project.localFs.read_user_file(username, sut_path)
                 # Invalid sut file?
                 if resp.startswith('*ERROR*'):
                     logWarning(resp)
                     return resp
                 try:
-                    sutContent = json.loads(resp)
+                    sut_content = json.loads(resp)
                 except Exception:
                     logWarning('User {}: Cannot load SUT `{}`!'.format(username, sut_path))
-                    sutContent = False
+                    sut_content = False
 
-        if isinstance(sutContent, str) and sutContent.startswith('*ERROR*'):
-            return sutContent
+        if isinstance(sut_content, str) and sut_content.startswith('*ERROR*'):
+            return sut_content
 
-        if (sutContent is False) or (not isinstance(sutContent, dict)):
-            msg = 'User {}: Invalid SUT `{}`!'.format(username, fileName)
+        if (sut_content is False) or (not isinstance(sut_content, dict)):
+            msg = 'User {}: Invalid SUT `{}`!'.format(username, f_name)
             logWarning(msg)
             return '*ERROR* ' + msg
 
@@ -671,12 +673,12 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
         if query[0] == '/':
             query = query[1:]
 
-        if sutContent.get('path'):
-            sutContent['path'] = sutContent['path'][0]
+        if sut_content.get('path'):
+            sut_content['path'] = sut_content['path'][0]
         else:
-            sutContent['path'] = query
+            sut_content['path'] = query
 
-        self.resources['children'][query] = copy.deepcopy(sutContent)
+        self.resources['children'][query] = copy.deepcopy(sut_content)
         # make older resources files that don't have 'path' compatible
         self.resources['children'][query]['path'] = [query]
         modified = self.fix_path(self.resources['children'][query], [query])
@@ -693,7 +695,7 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
             result = self.get_info_sut(initial_query, props)
 
             if isinstance(result, dict):
-                sutContent = self._format_dict_sut(result, query)
+                sut_content = self._format_dict_sut(result, query)
 
             elif follow_links:
                 parts = [p for p in initial_query.split('/') if p]
@@ -723,15 +725,15 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
                     if result['meta'].get('_id'):
                         # Ok, this might be a Device path, instead of SUT path!
                         tb_id = result['meta']['_id']
-                        self.project.tb.load_tb(verbose=False)
-                        result = self.project.tb.get_tb(tb_id, props)
+                        self.project.testbeds.load_tb(verbose=False)
+                        result = self.project.testbeds.get_tb(tb_id, props)
 
                         # If the Device ID is invalid, bye bye!
                         if not isinstance(result, dict):
                             return False
 
                         tb_path = '/' + result['path'] + '/' + '/'.join(parts)
-                        result = self.project.tb.get_tb(tb_path, props)
+                        result = self.project.testbeds.get_tb(tb_path, props)
 
                         # If the Device ID is invalid, bye bye!
                         if not isinstance(result, dict):
@@ -749,28 +751,28 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
                 return msg
 
         try:
-            sutContent = self.format_resource(sutContent, query)
+            sut_content = self.format_resource(sut_content, query)
         except Exception:
             logFull('User {}: The sut is already formated {}.'.format(username, query))
 
         # If this SUT / component is linked with a TB
-        if sutContent['meta'].get('_id'):
+        if sut_content['meta'].get('_id'):
 
             # Ok, this might be a Device path, instead of SUT path!
-            tb_id = sutContent['meta']['_id']
-            self.project.tb.load_tb(verbose=False)
-            sutContent = self.project.tb.get_tb(tb_id, props)
+            tb_id = sut_content['meta']['_id']
+            self.project.testbeds.load_tb(verbose=False)
+            sut_content = self.project.testbeds.get_tb(tb_id, props)
 
             # If the Device ID is invalid, bye bye!
-            if not isinstance(sutContent, dict):
+            if not isinstance(sut_content, dict):
                 msg = '*ERROR* Invalid TB link on SUT `{}`!'.format(initial_query)
                 logWarning(msg)
                 return msg
 
         if meta:
-            return sutContent['meta'].get(meta, '')
+            return sut_content['meta'].get(meta, '')
         else:
-            return sutContent
+            return sut_content
 
 
     @cherrypy.expose
@@ -792,7 +794,7 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
         # If the SUT is reserved, get the latest unsaved changes
         if user_info[0] in self.reservedResources:
             for i in range(len(self.reservedResources[user_info[0]].values())):
-                current_res_reserved  = constant_dictionary
+                current_res_reserved = CONSTANT_DICTIONARY
                 current_path_root = self.reservedResources[user_info[0]].values()[i]['path'][0]
                 current_res_reserved['children'][current_path_root] = self.reservedResources[user_info[0]].values()[i]
 
@@ -840,17 +842,17 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
 
         user_info = self.user_info(props)
 
-        _isResourceReserved = self.is_resource_reserved(parent, props)
-        if _isResourceReserved and _isResourceReserved != user_info[0]:
+        _is_res_reserved = self.is_resource_reserved(parent, props)
+        if _is_res_reserved and _is_res_reserved != user_info[0]:
             msg = 'User {}: Cannot create new component: The SUT is reserved for {} !'\
-            .format(user_info[0], _isResourceReserved)
+            .format(user_info[0], _is_res_reserved)
             logError(msg)
             return '*ERROR* ' + msg
 
-        _isResourceLocked = self.is_resource_locked(parent)
-        if _isResourceLocked and _isResourceLocked != user_info[0]:
+        _is_res_locked = self.is_resource_locked(parent)
+        if _is_res_locked and _is_res_locked != user_info[0]:
             msg = 'User {}: Reserve SUT: The SUT is locked for {} !'\
-            .format(user_info[0], _isResourceLocked)
+            .format(user_info[0], _is_res_locked)
             logError(msg)
             return '*ERROR* ' + msg
 
@@ -876,7 +878,7 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
                 parent_p['path'] = full_path
 
             if '/' in name:
-                logDebug('Stripping slash characters from `{}`...'.format(name, parent))
+                logDebug('Stripping slash characters from `{}` `{}`...'.format(name, parent))
                 name = name.replace('/', '')
 
             # the resource doesn't exist - create it
@@ -911,7 +913,8 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
 
         with self.acc_lock:
             #root can not be reserved so we just take it
-            if (name.split('.')[-1] != 'user' and name.split('.')[-1] != 'system'):
+            if name.split('.')[-1] != 'user' and \
+            name.split('.')[-1] != 'system':
                 name = '.'.join([name, 'user'])
 
             if '/' in name:
@@ -956,36 +959,37 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
 
         # can not verify if reserved '/' because I load only the sut that I need
         if parent == "/" or parent == "1":
-            if (name.split('.')[-1] != 'user' and name.split('.')[-1] != 'system'):
+            if name.split('.')[-1] != 'user' and \
+            name.split('.')[-1] != 'system':
                 name = '.'.join([name, 'user'])
             # we can not reserve the root so we just take the sut we need
-            verifyReserved = name
+            verify_reserved = name
         else:
             # take the sut that has the component we need
-            verifyReserved = parent
+            verify_reserved = parent
 
         # what if this sut is already reserved by other user? We STOP
-        _isResourceReserved = self.is_resource_reserved(verifyReserved, props)
-        if _isResourceReserved and _isResourceReserved != user_info[0]:
+        _is_res_reserved = self.is_resource_reserved(verify_reserved, props)
+        if _is_res_reserved and _is_res_reserved != user_info[0]:
             msg = 'User {}: Cannot update meta: The resource is reserved for {} !'\
-            .format(user_info[0], _isResourceReserved)
+            .format(user_info[0], _is_res_reserved)
             logError(msg)
             return '*ERROR* ' + msg
 
         # what if this sut is already locked by other user? We STOP
-        _isResourceLocked = self.is_resource_locked(verifyReserved)
-        if _isResourceLocked and _isResourceLocked != user_info[0]:
+        _is_res_locked = self.is_resource_locked(verify_reserved)
+        if _is_res_locked and _is_res_locked != user_info[0]:
             msg = 'User {}: Reserve resource: The resource is locked for {} !'\
-            .format(user_info[0], _isResourceLocked)
+            .format(user_info[0], _is_res_locked)
             logError(msg)
             return '*ERROR* ' + msg
 
         with self.acc_lock:
 
-            parent_p = self.get_reserved_resource(verifyReserved, props)
+            parent_p = self.get_reserved_resource(verify_reserved, props)
 
             if not parent_p:
-                logError('Cannot access reserved SUT, path or ID `{}` !'.format(verifyReserved))
+                logError('Cannot access reserved SUT, path or ID `{}` !'.format(verify_reserved))
                 return False
 
             if '/' in name:
@@ -1076,14 +1080,14 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
         if ':' in res_query:
             res_query = res_query.split(':')[0]
 
-        userSutList = self.list_all_suts(user_info[0])
+        usr_sut_list = self.list_all_suts(user_info[0])
 
         # check if res_query exists
         if res_query[0] == '/':
             res_query = res_query[1:]
 
-        foundOldSut = [item for item in userSutList if item['name'] == res_query]
-        if not foundOldSut:
+        found_old_sut = [item for item in usr_sut_list if item['name'] == res_query]
+        if not found_old_sut:
             msg = 'User {}: SUT file {} doesn\'t exist !'.format(user_info[0], res_query)
             logError(msg)
             return '*ERROR* ' + msg
@@ -1096,8 +1100,8 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
                 new_name = '.'.join([new_name, 'user'])
 
         # check that the 'new_name' doesn't exists
-        foundNewSut = [item for item in userSutList if item['name'] == new_name]
-        if foundNewSut:
+        found_new_sut = [item for item in usr_sut_list if item['name'] == new_name]
+        if found_new_sut:
             msg = 'User {}: New SUT file {} already exist !'.format(user_info[0], new_name)
             logError(msg)
             return '*ERROR* ' + msg
@@ -1114,25 +1118,25 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
             return "*ERROR*" + msg
 
         # Check if resource is reserved; if so, it cannot be renamed
-        _isResourceReserved = self.is_resource_reserved(res_query, props)
-        if _isResourceReserved:
+        _is_res_reserved = self.is_resource_reserved(res_query, props)
+        if _is_res_reserved:
             msg = 'User {}: Cannot delete: The resource is reserved for {} !'\
-            .format(user_info[0], _isResourceReserved)
+            .format(user_info[0], _is_res_reserved)
             logError(msg)
             return '*ERROR* ' + msg
 
-        _isResourceLocked = self.is_resource_locked(res_query)
-        if _isResourceLocked and _isResourceLocked != user_info[0]:
+        _is_res_locked = self.is_resource_locked(res_query)
+        if _is_res_locked and _is_res_locked != user_info[0]:
             msg = 'User {}: Reserve resource: The resource is locked for {} !'\
-            .format(user_info[0], _isResourceLocked)
+            .format(user_info[0], _is_res_locked)
             logError(msg)
             return '*ERROR* ' + msg
 
         # Create a new SUT having this new name
-        newSutId = self.create_new_sut(new_name, "/", props)
+        new_sut_id = self.create_new_sut(new_name, "/", props)
 
-        if  isinstance(newSutId, str):
-            if '*ERROR*' in newSutId:
+        if  isinstance(new_sut_id, str):
+            if '*ERROR*' in new_sut_id:
                 msg = 'User {}: New SUT file {} cannot be created!'.format(user_info[0], new_name)
                 logError(msg)
                 return '*ERROR* ' + msg
@@ -1145,7 +1149,7 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
                 return '*ERROR* ' + msg
 
         # method to clean the new SUT if needed
-        def cleanNewSut(new_sut, user):
+        def clean_new_sut(new_sut, user):
             """
             Delete the new SUT if the rename Failed.
             """
@@ -1160,29 +1164,29 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
             if '*ERROR*' in reserve_res:
                 msg = 'User {}: Source SUT file {} cannot be reserved!'.format(user_info[0], res_query)
                 logError(msg)
-                cleanNewSut(newSutId, user_info[0])
+                clean_new_sut(new_sut_id, user_info[0])
                 return '*ERROR* ' + msg
 
         # get the new path
-        newSut = self.reservedResources[user_info[0]][newSutId]
+        new_sut = self.reservedResources[user_info[0]][new_sut_id]
         # get the old sut
-        oldSut = self.get_reserved_resource(res_query, props)
+        old_sut = self.get_reserved_resource(res_query, props)
 
         # get all the structure of the old sut
-        newSut['meta'] = oldSut['meta']
-        newSut['children'] = oldSut['children']
+        new_sut['meta'] = old_sut['meta']
+        new_sut['children'] = old_sut['children']
         # if the sut has children we have to update the path
-        self.change_path(newSut, newSut['path'])
+        self.change_path(new_sut, new_sut['path'])
 
         # release the old sut; and delete if needed
-        self.reservedResources[user_info[0]].pop(oldSut['id'])
+        self.reservedResources[user_info[0]].pop(old_sut['id'])
         if not self.reservedResources[user_info[0]]:
             self.reservedResources.pop(user_info[0])
 
         deleted = self.delete_sut(res_query, props)
         if  isinstance(deleted, str) and deleted.startswith('*ERROR*'):
             #could not delete the old sut so we keep it and delete the new one
-            cleanNewSut(newSutId, user_info[0])
+            clean_new_sut(new_sut_id, user_info[0])
             msg = "User {} :We couldn't delete the old sut so we cannot complete the rename operation."\
             .format(user_info[0])
             logError(msg)
@@ -1204,24 +1208,24 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
         logFull('CeSuts:get_meta_sut {} {}'.format(res_query, props))
 
         if ':' in res_query:
-            meta      = res_query.split(':')[1]
+            meta = res_query.split(':')[1]
             res_query = res_query.split(':')[0]
         else:
             logError("CeSuts:get_meta_sut: User {} called this method without meta!".format(user_info[0]))
             return "false"
 
         #what if this sut is already reserved by other user? We STOP
-        _isResourceReserved = self.is_resource_reserved(res_query, props)
-        if _isResourceReserved and _isResourceReserved != user_info[0]:
+        _is_res_reserved = self.is_resource_reserved(res_query, props)
+        if _is_res_reserved and _is_res_reserved != user_info[0]:
             msg = 'User {}: Cannot update meta: The resource is reserved for {} !'\
-            .format(user_info[0], _isResourceReserved)
+            .format(user_info[0], _is_res_reserved)
             logError(msg)
             return '*ERROR* ' + msg
 
         #what if this sut is already locked by other user? We STOP
-        _isResourceLocked = self.is_resource_locked(res_query)
-        if _isResourceLocked and _isResourceLocked != user_info[0]:
-            msg = 'User {}: Reserve resource: The resource is locked for {} !'.format(user_info[0], _isResourceLocked)
+        _is_res_locked = self.is_resource_locked(res_query)
+        if _is_res_locked and _is_res_locked != user_info[0]:
+            msg = 'User {}: Reserve resource: The resource is locked for {} !'.format(user_info[0], _is_res_locked)
             logError(msg)
             return '*ERROR* ' + msg
 
@@ -1260,23 +1264,23 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
         logFull('CeSuts:delete_component_sut {}'.format(res_query))
 
         if ':' in res_query:
-            meta      = res_query.split(':')[1]
+            meta = res_query.split(':')[1]
             res_query = res_query.split(':')[0]
         else:
             meta = ''
 
         # Check if resource is reserved; if so, it cannot be deleted
-        _isResourceReserved = self.is_resource_reserved(res_query, props)
-        if _isResourceReserved and _isResourceReserved != user:
+        _is_res_reserved = self.is_resource_reserved(res_query, props)
+        if _is_res_reserved and _is_res_reserved != user:
             msg = 'User {}: Cannot delete: The resource is reserved for {} !'.format(
-                user, _isResourceReserved)
+                user, _is_res_reserved)
             logWarning(msg)
             return '*ERROR* ' + msg
 
-        _isResourceLocked = self.is_resource_locked(res_query)
-        if _isResourceLocked and _isResourceLocked != user:
+        _is_res_locked = self.is_resource_locked(res_query)
+        if _is_res_locked and _is_res_locked != user:
             msg = 'User {}: Cannot delete: The resource is locked for {} !'.format(
-                user, _isResourceLocked)
+                user, _is_res_locked)
             logWarning(msg)
             return '*ERROR* ' + msg
 
@@ -1335,21 +1339,21 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
         logFull('CeSuts:delete_sut {}'.format(res_query))
 
         # Check if resource is reserved; if so, it cannot be deleted
-        _isResourceReserved = self.is_resource_reserved(res_query, props)
-        if _isResourceReserved:
+        _is_res_reserved = self.is_resource_reserved(res_query, props)
+        if _is_res_reserved:
             msg = 'User {}: Cannot delete: The resource is reserved for {} !'\
-            .format(user_info[0], _isResourceReserved)
+            .format(user_info[0], _is_res_reserved)
             logError(msg)
             return '*ERROR* ' + msg
 
-        _isResourceLocked = self.is_resource_locked(res_query)
-        if _isResourceLocked:
+        _is_res_locked = self.is_resource_locked(res_query)
+        if _is_res_locked:
             msg = 'User {}: Reserve resource: The resource is locked for {} !'\
-            .format(user_info[0], _isResourceLocked)
+            .format(user_info[0], _is_res_locked)
             logError(msg)
             return '*ERROR* ' + msg
 
-        usrHome = userHome(user_info[0])
+        usr_home = userHome(user_info[0])
 
         # temporary fix; the SUT must be removed from self.resources
         def delete_sut_memory(sut_to_remove):
@@ -1361,22 +1365,22 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
 
         # SUT file can be user or system file
         if res_query.split('.')[-1] == 'system':
-            sutsPath = self.project.get_user_info(user_info[0], 'sys_sut_path')
-            if not sutsPath:
-                sutsPath = '{}/config/sut/'.format(TWISTER_PATH)
+            suts_gb_path = self.project.get_user_info(user_info[0], 'sys_sut_path')
+            if not suts_gb_path:
+                suts_gb_path = '{}/config/sut/'.format(TWISTER_PATH)
             try:
-                os.remove(sutsPath + res_query.split('.')[0] + '.json')
+                os.remove(suts_gb_path + res_query.split('.')[0] + '.json')
                 delete_sut_memory(res_query.split('/')[-1])
                 return "True"
-            except Exception as e:
+            except Exception as exp_err:
                 msg = 'User {}: Cannot delete SUT file: `{}` !'.format(user_info[0], res_query.split('.')[0] + '.json')
-                logError(msg + " ERROR: " + e)
+                logError(msg + " ERROR: " + exp_err)
                 return '*ERROR* ' + msg
             return "True"
         else:
-            usrSutPath = self.project.get_user_info(user_info[0], 'sut_path')
-            if not usrSutPath:
-                usrSutPath = '{}/twister/config/sut/'.format(usrHome)
+            usr_sut_path = self.project.get_user_info(user_info[0], 'sut_path')
+            if not usr_sut_path:
+                usr_sut_path = '{}/twister/config/sut/'.format(usr_home)
             delete_sut_memory(res_query.split('/')[-1])
 
             # delete from id_list if possible
@@ -1388,11 +1392,11 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
             # get user SUT file; we have to check if the cleacase plugin
             # is activated; if so, use it to read the SUT files from view;
             # else use the UserService to read it
-            ccConfig = self.project.get_clearcase_config(user_info[0], 'sut_path')
-            if ccConfig:
-                view = ccConfig['view']
-                actv = ccConfig['actv']
-                path = ccConfig['path']
+            cc_cfg = self.project.get_clearcase_config(user_info[0], 'sut_path')
+            if cc_cfg:
+                view = cc_cfg['view']
+                actv = cc_cfg['actv']
+                path = cc_cfg['path']
                 user_view_actv = '{}:{}:{}'.format(user_info[0], view, actv)
                 if path[-1] != '/' and res_query[-1] != '/':
                     complete_sut_path = path + '/' + res_query.split('.')[0] + '.json'
@@ -1400,10 +1404,10 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
                     complete_sut_path = path + res_query.split('.')[0] + '.json'
                 return self.project.clearFs.delete_user_file(user_view_actv, complete_sut_path)
             else:
-                if usrSutPath[-1] != '/' and res_query[-1] != '/':
-                    complete_sut_path = usrSutPath + '/' + res_query.split('.')[0] + '.json'
+                if usr_sut_path[-1] != '/' and res_query[-1] != '/':
+                    complete_sut_path = usr_sut_path + '/' + res_query.split('.')[0] + '.json'
                 else:
-                    complete_sut_path = usrSutPath + res_query.split('.')[0] + '.json'
+                    complete_sut_path = usr_sut_path + res_query.split('.')[0] + '.json'
                 return self.project.localFs.delete_user_file(user_info[0], complete_sut_path)
 
 
@@ -1414,50 +1418,51 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
         """
         suts = []
         result = []
-        usrHome = userHome(user)
+        usr_home = userHome(user)
 
         # System SUT path
-        sysSutsPath = self.project.get_user_info(user, 'sys_sut_path')
-        if not sysSutsPath:
-            sysSutsPath = '{}/config/sut/'.format(TWISTER_PATH)
+        sys_sut_path = self.project.get_user_info(user, 'sys_sut_path')
+        if not sys_sut_path:
+            sys_sut_path = '{}/config/sut/'.format(TWISTER_PATH)
 
         # User SUT path
-        usrSutPath = self.project.get_user_info(user, 'sut_path')
-        if not usrSutPath:
-            usrSutPath = '{}/twister/config/sut/'.format(usrHome)
+        usr_sut_path = self.project.get_user_info(user, 'sut_path')
+        if not usr_sut_path:
+            usr_sut_path = '{}/twister/config/sut/'.format(usr_home)
 
         # first, get all system SUT files
-        if os.path.isdir(sysSutsPath):
-            s = ['{}.system'.format(os.path.splitext(d)[0]) for d in os.listdir(sysSutsPath) \
-            if os.path.splitext(d)[1]=='.json']
-            suts.extend(s)
+        if os.path.isdir(sys_sut_path):
+            s_suts = ['{}.system'.format(os.path.splitext(d)[0]) \
+            for d in os.listdir(sys_sut_path) \
+            if os.path.splitext(d)[1] == '.json']
+            suts.extend(s_suts)
 
         # get user SUT file; we have to check if the cleacase plugin
         # is activated; if so, use it to read the SUT files from view;
         # else use the UserService to read it
-        ccConfig = self.project.get_clearcase_config(user, 'sut_path')
-        if ccConfig:
-            view = ccConfig['view']
-            actv = ccConfig['actv']
-            path = ccConfig['path']
+        cc_cfg = self.project.get_clearcase_config(user, 'sut_path')
+        if cc_cfg:
+            view = cc_cfg['view']
+            actv = cc_cfg['actv']
+            path = cc_cfg['path']
             user_view_actv = '{}:{}:{}'.format(user, view, actv)
             resp = self.project.clearFs.list_user_files(user_view_actv, path, False, False)
             if isinstance(resp, str):
                 logWarning(resp)
                 return '*ERROR* ' + resp
-            for file in resp['children']:
-                fileName, fileExt = os.path.splitext(file['path'])
-                if fileExt and fileExt == '.json':
-                    suts.append(fileName + '.user')
+            for f_file in resp['children']:
+                f_name, file_ext = os.path.splitext(f_file['path'])
+                if file_ext and file_ext == '.json':
+                    suts.append(f_name + '.user')
         else:
-            if os.path.isdir(usrSutPath):
-                resp = self.project.localFs.list_user_files(user, usrSutPath, False, False)
+            if os.path.isdir(usr_sut_path):
+                resp = self.project.localFs.list_user_files(user, usr_sut_path, False, False)
                 if isinstance(resp, str):
                     logWarning(resp)
-                for file in resp['children']:
-                    fileName, fileExt = os.path.splitext(file['path'])
-                    if fileExt and fileExt == '.json':
-                        suts.append(fileName + '.user')
+                for f_file in resp['children']:
+                    f_name, file_ext = os.path.splitext(f_file['path'])
+                    if file_ext and file_ext == '.json':
+                        suts.append(f_name + '.user')
 
         def quick_find_path(dictionary, spath):
             """
@@ -1472,19 +1477,19 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
                         return usr
             return False
 
-        for s in sorted(suts):
-            ruser = quick_find_path(self.reservedResources, s)
-            luser = quick_find_path(self.lockedResources, s)
+        for s_sut in sorted(suts):
+            ruser = quick_find_path(self.reservedResources, s_sut)
+            luser = quick_find_path(self.lockedResources, s_sut)
 
             if (not ruser) and (not luser):
-                result.append({'name': s, 'status': 'free'})
+                result.append({'name': s_sut, 'status': 'free'})
             elif ruser:
-                result.append({'name': s, 'status': 'reserved', 'user': ruser})
+                result.append({'name': s_sut, 'status': 'reserved', 'user': ruser})
             elif luser:
-                result.append({'name': s, 'status': 'locked', 'user': luser})
+                result.append({'name': s_sut, 'status': 'locked', 'user': luser})
             # Both reserved and locked ?
             else:
-                result.append({'name': s, 'status': 'reserved', 'user': ruser})
+                result.append({'name': s_sut, 'status': 'reserved', 'user': ruser})
 
         logDebug('User {}: Fast listing SUTs... Found {}.'.format(user, suts))
 
@@ -1492,7 +1497,7 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
 
 
     @cherrypy.expose
-    def import_sut_xml(self, xml_file, sutType='user', props={}):
+    def import_sut_xml(self, xml_file, sut_type='user', props={}):
         """
         Import one sut XML file.
         """
@@ -1516,22 +1521,22 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
         sut_file = xml_file.split('/')[-1].split('.')[0]
         sut_file = sut_file + '.json'
 
-        sutPath = None
-        if sutType == 'system':
+        sut_path = None
+        if sut_type == 'system':
             # System SUT path
-            sutPath = self.project.get_user_info(user, 'sys_sut_path')
-            if not sutPath:
-                sutPath = '{}/config/sut/'.format(TWISTER_PATH)
+            sut_path = self.project.get_user_info(user, 'sys_sut_path')
+            if not sut_path:
+                sut_path = '{}/config/sut/'.format(TWISTER_PATH)
         else:
             # User SUT path
-            sutPath = self.project.get_user_info(user, 'sut_path')
-            if not sutPath:
-                usrHome = userHome(user)
-                sutPath = '{}/twister/config/sut/'.format(usrHome)
-        sut_file = sutPath + '/' + sut_file
+            sut_path = self.project.get_user_info(user, 'sut_path')
+            if not sut_path:
+                usr_home = userHome(user)
+                sut_path = '{}/twister/config/sut/'.format(usr_home)
+        sut_file = sut_path + '/' + sut_file
 
         resp = True
-        if sutType == 'system':
+        if sut_type == 'system':
             resp = self.project.localFs.write_system_file(sut_file, json.dumps(xml_ret, indent=4), 'w')
         else:
             resp = self.project.localFs.write_user_file(user, sut_file, json.dumps(xml_ret, indent=4), 'w')
@@ -1549,25 +1554,25 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
 
         logDebug('User {}: export XML file `{}`, query = {}...'.format(user, xml_file, query))
 
-        sutPath = None
-        sutType = query.split('.')[-1]
-        if sutType == 'system':
+        sut_path = None
+        sut_type = query.split('.')[-1]
+        if sut_type == 'system':
             # System SUT path
-            sutPath = self.project.get_user_info(user, 'sys_sut_path')
-            if not sutPath:
-                sutPath = '{}/config/sut/'.format(TWISTER_PATH)
+            sut_path = self.project.get_user_info(user, 'sys_sut_path')
+            if not sut_path:
+                sut_path = '{}/config/sut/'.format(TWISTER_PATH)
         else:
             # User SUT path
-            sutPath = self.project.get_user_info(user, 'sut_path')
-            if not sutPath:
-                usrHome = userHome(user)
-                sutPath = '{}/twister/config/sut/'.format(usrHome)
+            sut_path = self.project.get_user_info(user, 'sut_path')
+            if not sut_path:
+                usr_home = userHome(user)
+                sut_path = '{}/twister/config/sut/'.format(usr_home)
 
-        sut_filename = sutPath + '/' + query.split('/')[1].split('.')[0] + '.json'
+        sut_filename = sut_path + '/' + query.split('/')[1].split('.')[0] + '.json'
         logInfo('User {}: Export SUT file `{}` to `{}`.'.format(user, sut_filename, xml_file))
 
         # read the content of the user SUT file and load it in json
-        if sutType == 'system':
+        if sut_type == 'system':
             resp = self.project.localFs.read_system_file(sut_filename, 'r')
         else:
             resp = self.project.localFs.read_user_file(user, sut_filename, 'r')
@@ -1581,7 +1586,7 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
 
         # generate the xml structure
         xml = etree.Element('root')
-        result = res_to_xml(json_resp, xml)
+        res_to_xml(json_resp, xml)
 
         # write the xml file
         xml_header = '<?xml version="1.0" encoding="UTF-8" standalone="no"?>\n\n'
@@ -1651,43 +1656,43 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
         target_name = '/_'+name+ '.' +res_query.split('.')[-1]#'.user'
 
         # verify if the sut exists
-        userSutList = self.list_all_suts(user)
+        usr_sut_list = self.list_all_suts(user)
         if res_query[0] == '/':
             res_query = res_query[1:]
 
-        foundOldSut = [item for item in userSutList if item['name'] == res_query]
-        if not foundOldSut:
+        found_old_sut = [item for item in usr_sut_list if item['name'] == res_query]
+        if not found_old_sut:
             msg = 'User {}: SUT file {} doesn\'t exist !'.format(user, res_query)
             logError(msg)
             return '*ERROR* ' + msg
 
         res_query = '/' + res_query
         # #verify if a SUT having the same name exists
-        foundNewSut = [item for item in userSutList if item['name'] == target_name]
-        if foundNewSut:
+        found_new_sut = [item for item in usr_sut_list if item['name'] == target_name]
+        if found_new_sut:
             msg = 'User {}: New SUT file {} already exist !'.format(user, target_name)
             logError(msg)
             return '*ERROR* ' + msg
 
         # Check if resource is reserved; if so, it cannot be deleted
-        _isResourceReserved = self.is_resource_reserved(res_query, props)
-        if _isResourceReserved and _isResourceReserved != user:
-            msg = 'User {}: Cannot save as: The resource is reserved for {} !'.format(user,
-                _isResourceReserved)
+        _is_res_reserved = self.is_resource_reserved(res_query, props)
+        if _is_res_reserved and _is_res_reserved != user:
+            msg = 'User {}: Cannot save as: The resource is reserved for {} !'.\
+            format(user, _is_res_reserved)
             logError(msg)
             return '*ERROR* ' + msg
 
-        _isResourceLocked = self.is_resource_locked(res_query)
-        if _isResourceLocked and _isResourceLocked != user:
-            msg = 'User {}: Reserve resource: The resource is locked for {} !'.format(user,
-                _isResourceLocked)
+        _is_res_locked = self.is_resource_locked(res_query)
+        if _is_res_locked and _is_res_locked != user:
+            msg = 'User {}: Reserve resource: The resource is locked for {} !'.\
+            format(user, _is_res_locked)
             logError(msg)
             return '*ERROR* ' + msg
 
         # Create a new SUT having this new name
-        newSutId = self.create_new_sut(target_name, '/', props, False)
+        new_sut_id = self.create_new_sut(target_name, '/', props, False)
 
-        if isinstance(newSutId, str) and '*ERROR*' in newSutId:
+        if isinstance(new_sut_id, str) and '*ERROR*' in new_sut_id:
             msg = 'User {}: New SUT file {} cannot be created!'.format(user, target_name)
             logError(msg)
             return '*ERROR* ' + msg
@@ -1695,19 +1700,19 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
         # Reserve the target SUT
         self.reserve_resource(target_name, props)
         # Get the new path
-        newSut = self.reservedResources[user_info[0]][newSutId]
+        new_sut = self.reservedResources[user_info[0]][new_sut_id]
         # Get the old sut
-        oldSut = self.get_reserved_resource(res_query, props)
+        old_sut = self.get_reserved_resource(res_query, props)
 
         # Get all the structure of the old sut
-        newSut['meta'].update(copy.deepcopy(oldSut['meta']))
+        new_sut['meta'].update(copy.deepcopy(old_sut['meta']))
         # Copy children
-        newSut['children'].update(copy.deepcopy(oldSut['children']))
+        new_sut['children'].update(copy.deepcopy(old_sut['children']))
 
         # Recursive fix children IDs
-        self.change_ids(newSut)
+        self.change_ids(new_sut)
         # Recursive fix children paths
-        self.change_path(newSut, newSut['path'])
+        self.change_path(new_sut, new_sut['path'])
 
         # Exit now
         return self.save_reserved_sut(target_name, '{}', path)
@@ -1753,7 +1758,7 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
         reserved_node = self.reservedResources[user_info[0]][resource_node['id']]
 
         # Maybe the user renamed the TB
-        if (reserved_node['path'][0] != resource_node['path'][0]):
+        if reserved_node['path'][0] != resource_node['path'][0]:
             self.resources['children'][reserved_node['path'][0]] = \
             self.resources['children'].pop(resource_node['path'][0])
         # ...or maybe the name of the resource is the same

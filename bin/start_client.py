@@ -2,7 +2,7 @@
 
 # File: start_client.py ; This file is part of Twister.
 
-# version: 3.018
+# version: 3.019
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -149,6 +149,7 @@ class TwisterClient(object):
         """
         Helper for creating a Central Engine connection, the most basic func.
         """
+        proxy = None
         config = {
             'allow_pickle': True,
             'allow_getattr': True,
@@ -157,14 +158,24 @@ class TwisterClient(object):
             'allow_all_attrs': True,
         }
 
+        def close_conn():
+            try:
+                proxy.close()
+            except Exception:
+                pass
+            proxy = None
+
+
         # Connect to RPyc server
         try:
-            proxy = rpyc.connect(ce_ip, ce_port, service=TwisterClientService, config=config)
+            r_stream = rpyc.SocketStream.connect(ce_ip, ce_port, timeout=3.0)
+            proxy = rpyc.connect_stream(r_stream, service=TwisterClientService, config=config)
             logPrint('Client Debug: Connected to CE at `{}:{}`...'.format(ce_ip, ce_port))
         except Exception as e:
             if debug:
                 logPrint('*ERROR* Cannot connect to CE path `{}:{}`! '\
                     'Exception: `{}`!'.format(ce_ip, ce_port, e))
+            close_conn()
             return None
 
         # Authenticate on RPyc server
@@ -177,7 +188,8 @@ class TwisterClient(object):
 
         if not check:
             if debug:
-                logPrint('*ERROR* Cannot authenticate on CE path `{}:{}`!'.format(ce_ip, ce_port))
+                logPrint('*ERROR* Cannot authenticate on CE path `{}:{}`! Invalid login!'.format(ce_ip, ce_port))
+            close_conn()
             return None
 
         # Say Hello and Register all EPs on the current Central Engine
@@ -187,7 +199,9 @@ class TwisterClient(object):
                 # Call the user status to create the User Project
                 s = proxy.root.get_user_variable('user_roles')
                 if not s:
-                    raise Exception('Cannot get roles for user `{}`!'.format(self.user_name))
+                    logPrint('*ERROR* Cannot register! Cannot get roles for user `{}`!'.format(self.user_name))
+                    close_conn()
+                    return None
                 # Fire up the User Service
                 proxy.root.read_file('~/twister/config/fwmconfig.xml')
             except Exception as e:
@@ -203,7 +217,8 @@ class TwisterClient(object):
 
         if not check:
             if debug:
-                logPrint('*ERROR* Cannot send hello on CE path `{}:{}`!'.format(ce_ip, ce_port))
+                logPrint('*ERROR* Cannot register! Cannot send hello on CE path `{}:{}`!'.format(ce_ip, ce_port))
+            close_conn()
             return None
 
         BgServingThread(proxy)

@@ -180,6 +180,11 @@ try: os.mkdir(INSTALL_PATH + '/logs')
 except: pass
 try: os.mkdir(INSTALL_PATH + '/config/sut')
 except: pass
+try: os.mkdir(INSTALL_PATH + '/config/predefined')
+except: pass
+try: os.mkdir(INSTALL_PATH + '/config/test_config')
+except: pass
+
 # Delete Server config files...
 try: os.remove(INSTALL_PATH +os.sep+ 'config/resources.json')
 except: pass

@@ -18,14 +18,27 @@
 	<div class="span2">
 	<%
 	was_folder = False
+	old_srvr = False
 	%>
-	<ul class="nav nav-pills nav-stacked" style="margin-left:-10px">
+	<ul id="lateral" class="nav nav-pills nav-stacked" style="margin-left:-10px">
 	% for tpl in links:
 	<%
 	link   = tpl['link']
+	name   = tpl['name']
 	ltype  = tpl['type']
-	folder = tpl['folder']
+	folder = tpl.get('folder', '')
+	srvr   = tpl.get('srvr', '')
 	%>
+
+		% if srvr and old_srvr != srvr:
+		<!-- Server ${srvr} -->
+		<div><label class="btn btn-default" style="margin:4px 0 4px;cursor:default;"><i class="icon-stop"></i> ${srvr}</label></div>\
+		% elif not srvr and old_srvr and link != 'Home':
+		<hr style="margin:2px 0 2px;width:92%;" />\
+		% endif
+		<%
+		old_srvr = srvr
+		%>
 
 		% if ltype == 'link' and folder and folder != was_folder:
 			% if was_folder:
@@ -38,9 +51,10 @@
 		<%
 		was_folder = folder
 		%>
-		<li class="collaps"><a><i class="icon-folder-open"></i> ${folder}</a></li>
+		<li class="collaps" data-collapsed="false"><a><i class="icon-folder-open"></i> ${folder}</a></li>
 			<ul class="nav nav-pills nav-stacked" style="margin-bottom:0">
 		% endif
+
 		% if was_folder and folder != was_folder:
 			</ul> <!-- End of folder `${was_folder}` // old `${folder}` -->
 		<%
@@ -48,27 +62,45 @@
 		%>
 		% endif
 
-		% if link == 'Home' and link == title:
-		<li class="active"><button class="btn btn-info" onClick="window.location='/report/home/${usr}'"><i class="icon-home"></i> ${link}</button></li>\
-		% elif link == 'Help' and link == title:
-		<li class="active"><button class="btn btn-info" onClick="window.location='/report/help/${usr}'"><i class="icon-flag"></i> ${link}</button></li>\
+		% if link == 'Home' and name == title:
+		<li class="active"><button class="btn btn-info" onClick="window.location='/report/home/${usr}'">
+			<i class="icon-home"></i> Home
+			</button></li>\
+		% elif link == 'Help' and name == title:
+		<li class="active"><button class="btn btn-info" onClick="window.location='/report/help/${usr}'">
+			<i class="icon-flag"></i> Help
+			</button></li>\
 		% elif link == 'Home':
-		<li><button class="btn btn-link" onClick="window.location='/report/home/${usr}'"><i class="icon-home"></i> ${link}</button></li>
+		<li><button class="btn btn-link" onClick="window.location='/report/home/${usr}'">
+			<i class="icon-home"></i> Home
+			</button></li>
 		% elif link == 'Help':
-		<li><button class="btn btn-link" onClick="window.location='/report/help/${usr}'"><i class="icon-flag"></i> ${link}</button></li>
+		<li><button class="btn btn-link" onClick="window.location='/report/help/${usr}'">
+			<i class="icon-flag"></i> Help
+			</button></li>
 		% elif ltype == 'redir':
-		<li><button class="btn btn-link" onClick="window.location='/report/rep/${link}/${usr}'"><i class="icon-share-alt"></i> ${link}</button></li>
-		% elif link == title:
+		<li><button class="btn btn-link" onClick="window.location='/report/rep/${link}/${usr}'">
+			<i class="icon-share-alt"></i> ${name}
+			</button></li>
+		% elif link == rlink:
 			% if was_folder:
-			<li class="active" style="margin-left:12px"><button class="btn btn-info" onClick="window.location='/report/rep/${link}/${usr}'"><i class="icon-asterisk"></i> ${link}</button></li>
+			<li class="active" style="margin-left:12px"><button class="btn btn-info" onClick="window.location='/report/rep/${link}/${usr}'">
+				<i class="icon-asterisk"></i> ${name}
+				</button></li>
 			% else:
-			<li class="active"><button class="btn btn-info" onClick="window.location='/report/rep/${link}/${usr}'"><i class="icon-asterisk"></i> ${link}</button></li>
+			<li class="active"><button class="btn btn-info" onClick="window.location='/report/rep/${link}/${usr}'">
+				<i class="icon-asterisk"></i> ${name}
+				</button></li>
 			% endif
 		% elif ltype == 'link':
 			% if was_folder:
-			<li style="margin-left:12px"><button class="btn btn-link" onClick="window.location='/report/rep/${link}/${usr}'"><i class="icon-arrow-right"></i> ${link}</button></li>
+			<li style="margin-left:12px"><button class="btn btn-link" onClick="window.location='/report/rep/${link}/${usr}'">
+				<i class="icon-arrow-right"></i> ${name}
+				</button></li>
 			% else:
-			<li><button class="btn btn-link" onClick="window.location='/report/rep/${link}/${usr}'"><i class="icon-arrow-right"></i> ${link}</button></li>
+			<li><button class="btn btn-link" onClick="window.location='/report/rep/${link}/${usr}'">
+				<i class="icon-arrow-right"></i> ${name}
+				</button></li>
 			% endif
 		% else:
 		<p>This should not be here!</p>

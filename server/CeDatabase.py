@@ -1,7 +1,7 @@
 
 # File: CeDatabase.py ; This file is part of Twister.
 
-# version: 3.014
+# version: 3.015
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -42,14 +42,14 @@ from thread import allocate_lock
 
 TWISTER_PATH = os.getenv('TWISTER_PATH')
 if not TWISTER_PATH:
-    print('TWISTER_PATH environment variable is not set! Exiting!')
+    print 'TWISTER_PATH environment variable is not set! Exiting!'
     exit(1)
 if TWISTER_PATH not in sys.path:
     sys.path.append(TWISTER_PATH)
 
 from common.xmlparser import DBParser
 from common.helpers import execScript
-from common.tsclogging import logDebug, logInfo, logWarning, logError
+from common.tsclogging import logDebug, logWarning, logError
 
 
 
@@ -107,12 +107,6 @@ class CeDbManager(object):
         if not db_server and not db_name:
             db_server, db_name, db_user, db_passwd, _ = db_config['default_server']
 
-        # Check server + DB pair
-        if (db_server, db_name) not in db_config['servers']:
-            logWarning('Database: Invalid server + DB pair {} for user `{}`! '\
-                'Cannot connect!'.format((db_server, db_name), user))
-            return False
-
         # Need to magically identify the correct key; the first pair is from private DB.xml;
         if shared_db:
             # Shared DB is True
@@ -124,14 +118,16 @@ class CeDbManager(object):
         # Decode database password
         db_password = self.project.decrypt_text(user, db_passwd, encr_key)
 
-        logDebug('User `{}` connecting to {} MySQL `{} @ {} / {} : {}[...]`.'.format(user,
-                 'shared' if encr_key else 'user', db_user, db_server, db_name, db_passwd[:3]))
+        logDebug('User `{}` connecting to {} MySQL `{} @ {} / {} : {}[...]`.'.\
+        format(user, 'shared' if encr_key else 'user', db_user, db_server,\
+        db_name, db_passwd[:3]))
 
         try:
             conn = MySQLdb.connect(host=db_server, db=db_name, user=db_user, passwd=db_password)
             conn.autocommit = False
-        except MySQLdb.Error as e:
-            logError('MySQL error for user `{}`: `{} - {}`!'.format(user, e.args[0], e.args[1]))
+        except MySQLdb.Error as exp_err:
+            logError('MySQL error for user `{}`: `{} - {}`!'.\
+            format(user, exp_err.args[0], exp_err.args[1]))
             return False
 
         # Keep connection
@@ -153,8 +149,9 @@ class CeDbManager(object):
             timezone = open('/etc/timezone').read().strip()
         except Exception:
             try:
-                timezone = subprocess.check_output('cat /etc/sysconfig/clock | grep ^ZONE=',
-                    shell=True)
+                timezone = subprocess.\
+                check_output('cat /etc/sysconfig/clock | grep ^ZONE=',\
+                shell=True)
                 timezone = timezone.strip().replace('"', '').replace('ZONE=', '')
             except Exception:
                 timezone = time.strftime('%Z')
@@ -195,9 +192,9 @@ class CeDbManager(object):
             if ep_info.get('suites') is None:
                 continue
 
-            SuitesManager = ep_info['suites']
+            suites_manager = ep_info['suites']
 
-            for file_id in SuitesManager.get_files():
+            for file_id in suites_manager.get_files():
 
                 # Default substitute data
                 subst_data = dict(default_subst)
@@ -206,16 +203,16 @@ class CeDbManager(object):
                 del subst_data['suites']
 
                 # Add Suite info
-                file_info = SuitesManager.find_id(file_id)
+                file_info = suites_manager.find_id(file_id)
                 suite_id = file_info['suite']
-                suite_info = SuitesManager.find_id(suite_id)
+                suite_info = suites_manager.find_id(suite_id)
 
                 # This is the root suite data
                 root_suite = dict(suite_info)
 
                 while 1:
                     root_suite_id = root_suite['suite']
-                    root_suite = SuitesManager.find_id(root_suite_id)
+                    root_suite = suites_manager.find_id(root_suite_id)
                     if not root_suite:
                         root_suite = {}
                         break
@@ -263,30 +260,30 @@ class CeDbManager(object):
 
                 # Log CLI for this EP - Suite - Test
                 try:
-                    tc_log = self.project.find_log(user, ltype='logCli', epname=epname,
-                       file_id=file_id, file_name=file_info['file'])
+                    tc_log = self.project.find_log(user, ltype='logCli',\
+                    epname=epname, file_id=file_id, file_name=file_info['file'])
                     subst_data['twister_tc_log'] = fix_log(tc_log)
                 except Exception:
                     subst_data['twister_tc_log'] = '*no log*'
 
                 # The rest of the logs
                 try:
-                    tc_log = self.project.find_log(user, ltype='logRunning', epname=epname,
-                        file_id=file_id, file_name=file_info['file'])
+                    tc_log = self.project.find_log(user, ltype='logRunning',\
+                    epname=epname, file_id=file_id, file_name=file_info['file'])
                     subst_data['twister_tc_log_running'] = fix_log(tc_log)
                 except Exception:
                     subst_data['twister_tc_log_running'] = '*no log*'
 
                 try:
-                    tc_log = self.project.find_log(user, ltype='logDebug', epname=epname,
-                        file_id=file_id, file_name=file_info['file'])
+                    tc_log = self.project.find_log(user, ltype='logDebug',\
+                    epname=epname, file_id=file_id, file_name=file_info['file'])
                     subst_data['twister_tc_log_debug'] = fix_log(tc_log)
                 except Exception:
                     subst_data['twister_tc_log_debug'] = '*no log*'
 
                 try:
-                    tc_log = self.project.find_log(user, ltype='logTest', epname=epname,
-                        file_id=file_id, file_name=file_info['file'])
+                    tc_log = self.project.find_log(user, ltype='logTest', \
+                    epname=epname, file_id=file_id, file_name=file_info['file'])
                     subst_data['twister_tc_log_test'] = fix_log(tc_log)
                 except Exception:
                     subst_data['twister_tc_log_test'] = '*no log*'
@@ -330,7 +327,8 @@ class CeDbManager(object):
         del dbp
 
         if not all_inserts:
-            logWarning('Database: Cannot use inserts defined for user `{}`!'.format(user))
+            logWarning('Database: Cannot use inserts defined for user `{}`!'.\
+            format(user))
             return False
 
         # UserScript cache
@@ -349,17 +347,19 @@ class CeDbManager(object):
         for subst_data in self.static_project_data(user):
 
             # Setup and Teardown files will not be saved to database!
-            if subst_data.get('setup_file')=='true' or subst_data.get('teardown_file')=='true':
-                logDebug("Ignoring `{}` file, because it's setup or teardown.".format(subst_data['twister_tc_name']))
+            if subst_data.get('setup_file') == 'true' or \
+            subst_data.get('teardown_file') == 'true':
+                logDebug("Ignoring `{}` file, because it's setup or teardown.".\
+                format(subst_data['twister_tc_name']))
                 continue
             # Pre-Suite or Post-Suite files will not be saved to database
             if subst_data.get('Pre-Suite') or subst_data.get('Post-Suite'):
                 continue
 
             # If file has iterators, the iteration save==Failed and the status was Failed
-            if subst_data.get('_cfg_files') and subst_data.get('iterationNr') and \
-                    subst_data.get('iterationSave')=='failed' and subst_data['twister_tc_status']=='PASS':
-                logDebug("Ignoring `{}` file, because iterationSave = `failed`.".format(subst_data['twister_tc_name']))
+            if subst_data.get('_cfg_files') and subst_data.get('iterationNr') \
+            and subst_data.get('iterationSave') == 'failed' and \
+            subst_data['twister_tc_status'] == 'PASS':
                 continue
 
             # For every host, build correct data...
@@ -370,8 +370,8 @@ class CeDbManager(object):
                 shared_db = all_inserts[host_db]['shared_db']
 
                 db_server, db_name, db_user, db_passwd, _ = host_db
-                conn = self.connect_db(user, db_server, db_name, db_user, db_passwd,
-                    shared_db=shared_db)
+                conn = self.connect_db(user, db_server, db_name, db_user,\
+                db_passwd, shared_db=shared_db)
                 if not conn:
                     continue
                 curs = conn.cursor()
@@ -383,7 +383,8 @@ class CeDbManager(object):
                 # For every query of the current host
                 for query in c_inserts:
 
-                    # All variables of type `UserScript` must be replaced with the script result
+                    # All variables of type `UserScript` must be replaced
+                    # with the script result
                     try:
                         user_script_fields = re.findall('(\$.+?)[,\.\'"\s]', query)
                     except Exception:
@@ -414,14 +415,14 @@ class CeDbManager(object):
                         if lvl == 'Project':
                             if u_script not in usr_script_cache_p:
                                 # Execute script and use result
-                                r = execScript(u_script)
+                                res = execScript(u_script)
                                 # logDebug('Database: UserScript for `{}` was executed at '\
                                 #     'LVL `{}`.'.format(user, lvl))
                                 # Save result in cache
-                                usr_script_cache_p[u_script] = r
+                                usr_script_cache_p[u_script] = res
                             else:
                                 # Get script result from cache
-                                r = usr_script_cache_p[u_script]
+                                res = usr_script_cache_p[u_script]
                         # Execute for every suite
                         else:
                             suite_id = subst_data['twister_suite_id']
@@ -429,22 +430,22 @@ class CeDbManager(object):
                                 usr_script_cache_s[suite_id] = {}
                             if u_script not in usr_script_cache_s[suite_id]:
                                 # Execute script and use result
-                                r = execScript(u_script)
+                                res = execScript(u_script)
                                 # logDebug('Database: UserScript for `{}` was executed at '\
                                 #     'LVL `{}`.'.format(user, lvl))
                                 # Save result in cache
-                                usr_script_cache_s[suite_id][u_script] = r
+                                usr_script_cache_s[suite_id][u_script] = res
                             else:
                                 # Get script result from cache
-                                r = usr_script_cache_s[suite_id][u_script]
+                                res = usr_script_cache_s[suite_id][u_script]
 
                         # Replace UserScript with with real Script results
-                        if not r:
-                            r = ''
-                        query = query.replace('$'+field, r)
+                        if not res:
+                            res = ''
+                        query = query.replace('$'+field, res)
 
                         # Adding user script fields
-                        subst_data[field] = r
+                        subst_data[field] = res
 
                     # All variables of type `DbSelect` must be replaced with the SQL result
                     try:
@@ -521,9 +522,9 @@ class CeDbManager(object):
                     # Build complete query
                     try:
                         query = tmpl.substitute(subst_data)
-                    except Exception as e:
-                        logError('User `{}`, file `{}`: Cannot build query! '\
-                            'Error on `{}`!'.format(user, subst_data['file'], e))
+                    except Exception as exp_err:
+                        logError('User `{}`, file `{}`: Cannot build query! \
+                        Error on `{}`!'.format(user, subst_data['file'], exp_err))
                         return False
 
                     # Save query in database ?
@@ -533,9 +534,11 @@ class CeDbManager(object):
                             curs.execute(query)
                             logDebug('Executed query\n\t``{}``\n\t on {} OK.'.format(query.strip(), host_db))
                             conn.commit()
-                        except MySQLdb.Error as e:
-                            logError('Error in query ``{}`` , for user `{}`!\n\t'\
-                                'MySQL Error {}: {}!'.format(query, user, e.args[0], e.args[1]))
+                        except MySQLdb.Error as exp_err:
+                            logError('Error in query ``{}`` , for user \
+                            `{}`!\n\t MySQL Error {}: {}!'.\
+                            format(query, user, exp_err.args[0],\
+                            exp_err.args[1]))
                             conn.rollback()
                             return False
 

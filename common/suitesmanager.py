@@ -1,7 +1,7 @@
 
 # File: suitesmanager.py ; This file is part of Twister.
 
-# version: 3.001
+# version: 3.002
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -27,9 +27,6 @@
 Module for general methods
 """
 
-import os
-import sys
-
 from collections import OrderedDict
 
 __all__ = ['SuitesManager']
@@ -49,10 +46,10 @@ class SuitesManager(OrderedDict):
     def _recursive_find_suites(self, nodes, result=[]):
         """ search suites in recursive mode """
         # Nodes are Ordered Dicts
-        for id, node in nodes.iteritems():
+        for n_id, node in nodes.iteritems():
             if node.get('type', 'file') != 'suite':
                 continue
-            result.append(id)
+            result.append(n_id)
             ids = self._recursive_find_suites(node['children'], [])
             result.extend(ids)
         return result
@@ -70,10 +67,10 @@ class SuitesManager(OrderedDict):
     def _recursive_find_files(self, nodes, result=[]):
         """ search for files recursive mode """
         # Nodes are Ordered Dicts
-        for id, node in nodes.iteritems():
+        for n_id, node in nodes.iteritems():
             # This is a file
             if node.get('type', 'file') == 'file':
-                result.append(id)
+                result.append(n_id)
             # This is a suite
             else:
                 self._recursive_find_files(node['children'], result)
@@ -93,10 +90,10 @@ class SuitesManager(OrderedDict):
                 return self._recursive_find_files(suite['children'], [])
             else:
                 result = []
-                for id, node in suite['children'].iteritems():
+                for n_id, node in suite['children'].iteritems():
                     # This is a file
                     if node.get('type', 'file') == 'file':
-                        result.append(id)
+                        result.append(n_id)
                 return result
         else:
             if recursive:
@@ -104,10 +101,10 @@ class SuitesManager(OrderedDict):
                 return self._recursive_find_files(self, [])
             else:
                 result = []
-                for id, node in self.iteritems():
+                for n_id, node in self.iteritems():
                     # This is a file
                     if node.get('type', 'file') == 'file':
-                        result.append(id)
+                        result.append(n_id)
                 return result
 
 
@@ -118,8 +115,8 @@ class SuitesManager(OrderedDict):
         """
         if not nodes:
             nodes = self
-        for id, node in nodes.iteritems():
-            result.append([id, node])
+        for n_id, node in nodes.iteritems():
+            result.append([n_id, node])
             if node.get('type', 'file') == 'suite':
                 self.iter_nodes(node['children'], result)
         return result
@@ -133,9 +130,9 @@ class SuitesManager(OrderedDict):
             nodes = self
         if _found:
             return _found
-        for id, node in nodes.iteritems():
+        for n_id, node in nodes.iteritems():
             # The ID is found!
-            if id == node_id:
+            if n_id == node_id:
                 return node
             if node.get('type', 'file') == 'suite':
                 _found = self.find_id(node_id, node['children'], _found)

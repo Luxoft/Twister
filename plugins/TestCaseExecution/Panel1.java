@@ -1,6 +1,6 @@
 /*
 File: Panel1.java ; This file is part of Twister.
-Version: 3.015
+Version: 3.016
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -387,7 +387,7 @@ public class Panel1 extends JPanel{
         if(!sc.g.getUser().equals("")){
             String user = CustomDialog.showInputDialog(JOptionPane.QUESTION_MESSAGE,
                                                     JOptionPane.OK_CANCEL_OPTION, RunnerRepository.window,
-                                                    "File Name", "Please enter suite file name");
+                                                    "File Name", "Export as predefined suite:");
             if(user!=null&&!user.equals("")){
                 boolean cond;
                 if(RunnerRepository.isMaster()){

@@ -21,11 +21,11 @@ def cleanup(file):
     except: 'Cannot cleanup file `{}`!'.format(file)
 
 
-def check(ra, _xml_file):
+def check(ra_tb, ra_sut, _xml_file):
 
     try:
-        res = ra.get_resource('/')
-        sut = ra.get_sut('/')
+        res = ra_tb.get_tb('/')
+        sut = ra_sut.get_sut('/')
         try: del res['version']
         except: pass
         try: del res['name']
@@ -35,7 +35,7 @@ def check(ra, _xml_file):
         print('Cannot connect to Resource Allocator server!')
         return False
 
-    r = ra.export_xml(_xml_file)
+    r = ra_tb.export_tb_xml(_xml_file)
     if not r:
         print('Cannot export resources into XML!')
         cleanup(_xml_file)
@@ -45,7 +45,7 @@ def check(ra, _xml_file):
 
     time.sleep(0.5)
 
-    r = ra.import_xml(_xml_file)
+    r = ra_tb.import_tb_xml(_xml_file)
     if not r:
         print('Cannot import resources into XML!')
         cleanup(_xml_file)
@@ -57,7 +57,7 @@ def check(ra, _xml_file):
 
     print('Comparing the old resource, with the new resource...')
     # New resources must be the same as the old resources!
-    new_res = ra.get_resource('/')
+    new_res = ra_tb.get_tb('/')
     try: del new_res['version']
     except: pass
     try: del res['meta']
@@ -92,17 +92,22 @@ def test(PROXY, USER):
 
     log_msg('logRunning', 'Starting import...\n')
 
-    ip, port = PROXY.cherryAddr()
-    _proxy = 'http://{}:EP@{}:{}/ra/'.format(USER, ip, port)
-    ra = xmlrpclib.ServerProxy(_proxy)
+    ip, port = PROXY.cherry_addr()
+    print('Params: {} {} {}'.format(USER, ip, port))
+    _proxy_tb = 'http://{}:EP@{}:{}/tb/'.format(USER, ip, port)
+    ra_tb = xmlrpclib.ServerProxy(_proxy_tb)
+    _proxy_sut = 'http://{}:EP@{}:{}/sut/'.format(USER, ip, port)
+    ra_sut = xmlrpclib.ServerProxy(_proxy_sut)
+    print ra_tb
+    print ra_sut
 
     _curr_dir = os.getcwd()
-    _xml_file = _curr_dir + '/textbed.xml'
+    _xml_file = _curr_dir + '/testbed.xml'
 
     # -----
     # Check at the beggining
 
-    r = check(ra, _xml_file)
+    r = check(ra_tb, ra_sut, _xml_file)
     if not r:
         return 'Fail'
 
@@ -114,7 +119,7 @@ def test(PROXY, USER):
     # -----
     # Check after creating a new element
 
-    r = check(ra, _xml_file)
+    r = check(ra_tb, ra_sut, _xml_file)
     if not r:
         return 'Fail'
 
@@ -123,7 +128,7 @@ def test(PROXY, USER):
     # -----
     # Check after the delete of the element
 
-    r = check(ra, _xml_file)
+    r = check(ra_tb, ra_sut, _xml_file)
     if not r:
         return 'Fail'
 

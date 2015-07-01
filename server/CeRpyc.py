@@ -1,7 +1,7 @@
 
 # File: CeRpyc.py ; This file is part of Twister.
 
-# version: 3.027
+# version: 3.033
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -29,24 +29,22 @@ import os
 import sys
 import copy
 import time
-import json
 import thread
 import traceback
 import rpyc
-from pprint import pformat
 from lxml import etree
 
 TWISTER_PATH = os.getenv('TWISTER_PATH')
 if not TWISTER_PATH:
-    print('$TWISTER_PATH environment variable is not set! Exiting!')
+    print '$TWISTER_PATH environment variable is not set! Exiting!'
     exit(1)
 if TWISTER_PATH not in sys.path:
     sys.path.append(TWISTER_PATH)
 
 
-from common.constants  import *
-from common.helpers    import *
-from common.tsclogging import *
+from common.constants  import EXEC_STATUS, STATUS_INTERACT
+from common.helpers    import userHome, re
+from common.tsclogging import logError, logInfo, logFull, logDebug, logWarning
 from common.tsclogging import getLogLevel, setLogLevel
 from common.xmlparser  import PluginParser
 
@@ -122,8 +120,8 @@ class CeRpycService(rpyc.Service):
         try:
             with self.conn_lock:
                 self.conns[str_addr] = {'conn': self._conn, 'time': time.time()}
-        except Exception as e:
-            logError('EE: Connect error: {}.'.format(e))
+        except Exception as exp_err:
+            logError('EE: Connect error: {}.'.format(exp_err))
 
         logDebug('EE: Connected from `{}`.'.format(str_addr))
 
@@ -150,8 +148,8 @@ class CeRpycService(rpyc.Service):
         try:
             with self.conn_lock:
                 del self.conns[str_addr]
-        except Exception as e:
-            logError('EE: Disconnect error: {}.'.format(e))
+        except Exception as exp_err:
+            logError('EE: Disconnect error: {}.'.format(exp_err))
 
         logDebug('EE: Disconnected from `{}{}`, after `{:.2f}` seconds.'.format(
             hello, str_addr, (time.time() - stime)))
@@ -306,7 +304,7 @@ class CeRpycService(rpyc.Service):
         logFull('CeRpyc:_check_login')
         str_addr = self._get_addr()
         check = self.conns[str_addr].get('checked')
-        user  = self.conns[str_addr].get('user')
+        user = self.conns[str_addr].get('user')
         if (not check) or (not user):
             return False
         else:
@@ -421,9 +419,9 @@ class CeRpycService(rpyc.Service):
             return False
         if not epname:
             return False
-        tempSuites = self.project.get_ep_info(user, epname).get('suites', {}).items()
-        suiteList = [str(k)+':'+v['name'] for k, v in tempSuites]
-        return ','.join(suiteList)
+        tmp_suites = self.project.get_ep_info(user, epname).get('suites', {}).items()
+        suite_list = [str(k)+':'+v['name'] for k, v in tmp_suites]
+        return ','.join(suite_list)
 
 
     def exposed_get_suite_variable(self, epname, suite, variable):
@@ -477,7 +475,7 @@ class CeRpycService(rpyc.Service):
 # # #   Persistence   # # #
 
 
-    def exposed_read_file(self, fpath, flag='r', fstart=0, type='fs'):
+    def exposed_read_file(self, fpath, flag='r', fstart=0, f_type='fs'):
         """
         Read a file from TWISTER PATH, user's home folder, or ClearCase.
         Flag r/ rb = ascii/ binary.
@@ -485,13 +483,13 @@ class CeRpycService(rpyc.Service):
         user = self._check_login()
         if not user:
             return False
-        resp = self.project.read_file(user, fpath, flag, fstart, type)
+        resp = self.project.read_file(user, fpath, flag, fstart, f_type)
         if resp and resp.startswith('*ERROR*'):
             logWarning(resp)
         return resp
 
 
-    def exposed_write_file(self, fpath, fdata, flag='w', type='fs'):
+    def exposed_write_file(self, fpath, fdata, flag='w', f_type='fs'):
         """
         Write a file in user's home folder, or ClearCase.
         Flag w/ wb = ascii/ binary.
@@ -499,7 +497,7 @@ class CeRpycService(rpyc.Service):
         user = self._check_login()
         if not user:
             return False
-        resp = self.project.write_file(user, fpath, fdata, flag, type)
+        resp = self.project.write_file(user, fpath, fdata, flag, f_type)
         if resp != True:
             logWarning(resp)
         return resp
@@ -676,15 +674,17 @@ class CeRpycService(rpyc.Service):
         found = bindings_tree.xpath('/root/bind[@config="{}"]'.format(component))
         if len(found) == 0:
             # add the new binding to the xml
-            bindings_xml = bindings_xml[:-7] + '<bind config="{comp}" sut="{s}"/>'.format(comp=component, s=sut) + bindings_xml[-7:]
+            bindings_xml = bindings_xml[:-7] + \
+            '<bind config="{comp}" sut="{s}"/>'.\
+            format(comp=component, s=sut) + bindings_xml[-7:]
         else:
             found = found[0]
             found.set('sut', sut)
             bindings_xml = etree.tostring(bindings_tree)
 
         fdata = self.project.parsers[user].set_binding(cfg_name, bindings_xml)
-        r = self.project.write_file(user, '~/twister/config/bindings.xml', fdata)
-        if isinstance(r, str):
+        ret = self.project.write_file(user, '~/twister/config/bindings.xml', fdata)
+        if isinstance(ret, str):
             logWarning('User `{}` could not update bindings for `{}`!'.format(user, cfg_name))
             return (False, 'DEFAULT_ERROR')
         else:
@@ -718,8 +718,8 @@ class CeRpycService(rpyc.Service):
 
         fdata = self.project.parsers[user].set_binding(cfg_name, bindings_xml)
 
-        r = self.project.write_file(user, '~/twister/config/bindings.xml', fdata)
-        if isinstance(r, str):
+        ret = self.project.write_file(user, '~/twister/config/bindings.xml', fdata)
+        if isinstance(ret, str):
             logWarning('User `{}` could not update bindings for `{}`!'.format(user, cfg_name))
             return (False, 'DEFAULT_ERROR')
         else:
@@ -762,9 +762,9 @@ class CeRpycService(rpyc.Service):
             # And this Addr might be an EP, not a client
             if user is not None and user == data.get('user') and data.get('checked'):
                 # If this connection has registered EPs, append them
-                e = data.get('eps')
-                if e:
-                    eps.extend(e)
+                ep_el = data.get('eps')
+                if ep_el:
+                    eps.extend(ep_el)
 
         return sorted(set(eps))
 
@@ -794,9 +794,9 @@ class CeRpycService(rpyc.Service):
 
         try:
             # Send a Hello and this IP to the remote proxy Service
-            hello = self._conn.root.hello(self.project.ip_port[0])
-        except Exception as e:
-            logWarning('Error: Register client error: {}'.format(e))
+            self._conn.root.hello(self.project.ip_port[0])
+        except Exception as exp_err:
+            logWarning('Error: Register client error: {}'.format(exp_err))
 
         # Register the EPs to this unique client address.
         # On disconnect, this client address will be deleted
@@ -822,9 +822,9 @@ class CeRpycService(rpyc.Service):
                     # If this connection has registered EPs
                     if not data.get('eps'):
                         continue
-                    old_eps   = set(data.get('eps'))
-                    new_eps   = set(eps)
-                    diff_eps  = old_eps - new_eps
+                    old_eps = set(data.get('eps'))
+                    new_eps = set(eps)
+                    diff_eps = old_eps - new_eps
                     intersect = old_eps & new_eps
                     if intersect:
                         logDebug('Un-register EP list {} from `{}` and register them on `{}`.'\
@@ -865,20 +865,20 @@ class CeRpycService(rpyc.Service):
             for epname in eps:
                 try:
                     self.project._unregister_ep(user, epname)
-                except Exception as e:
-                    logError('Error un-register EP: `{}`!'.format(e))
+                except Exception as exp_err:
+                    logError('Error un-register EP: `{}`!'.format(exp_err))
 
             data = self.conns[str_addr]
-            ee = data.get('eps') or sorted(eps)
-            if not ee:
+            s_eps = data.get('eps') or sorted(eps)
+            if not s_eps:
                 return True
 
         remaining = self.exposed_registered_eps(user)
-        if remaining == ee:
+        if remaining == s_eps:
             logInfo('Un-registered all EPs for user `{}`\n\t-> Client from `{}` -- {}.'\
-                    ' No more EPs left for `{}` !'.format(user, str_addr, ee, user))
+                    ' No more EPs left for `{}` !'.format(user, str_addr, s_eps, user))
         else:
-            logInfo('Un-registered EPs for user `{}`\n\t-> Client from `{}` -- {} !'.format(user, str_addr, ee))
+            logInfo('Un-registered EPs for user `{}`\n\t-> Client from `{}` -- {} !'.format(user, str_addr, s_eps))
         return True
 
 
@@ -1000,8 +1000,8 @@ class CeRpycService(rpyc.Service):
             return False
 
         data = self.project.get_user_info(user)
-        reversed = dict((v, k) for k, v in EXEC_STATUS.iteritems())
-        return reversed[data.get('status', 8)]
+        rev_dict = dict((v, k) for k, v in EXEC_STATUS.iteritems())
+        return rev_dict[data.get('status', 8)]
 
 
     def exposed_set_ep_status(self, epname, new_status, msg=''):
@@ -1069,7 +1069,7 @@ class CeRpycService(rpyc.Service):
 # # #   Download Files and Libraries   # # #
 
 
-    def exposed_list_libraries(self, all=True):
+    def exposed_list_libraries(self, all_ep=True):
         """
         Returns the list of exposed libraries, from CE libraries folder.
         This list will be used to syncronize the libs on all EP computers.
@@ -1078,7 +1078,7 @@ class CeRpycService(rpyc.Service):
         user = self._check_login()
         if not user:
             return False
-        return self.project.get_libraries_list(user, all)
+        return self.project.get_libraries_list(user, all_ep)
 
 
     def exposed_download_library(self, name):
@@ -1117,31 +1117,31 @@ class CeRpycService(rpyc.Service):
             # If the required library is a file and isn't inside a folder
             if os.path.isfile(glob_lib_path) and ('/' not in name):
                 try:
-                    with open(glob_lib_path, 'rb') as f:
+                    with open(glob_lib_path, 'rb') as f_p:
                         logDebug('User `{}` requested global lib file `{}`.'.format(user, fname))
-                        return f.read()
-                except Exception as e:
-                    err = '*ERROR* Cannot read file `{}`! {}'.format(glob_lib_path, e)
+                        return f_p.read()
+                except Exception as exp_err:
+                    err = '*ERROR* Cannot read file `{}`! {}'.format(glob_lib_path, exp_err)
                     return err
 
             else:
                 os.chdir(root)
-                io = cStringIO.StringIO()
+                io_s = cStringIO.StringIO()
                 # Write the folder tar.gz into memory
-                with tarfile.open(fileobj=io, mode='w:gz') as binary:
+                with tarfile.open(fileobj=io_s, mode='w:gz') as binary:
                     binary.add(name=fname, recursive=True)
                 if '/' in name:
                     logDebug('User `{}` requested global `deep` library `{}`.'.format(user, fname))
                 else:
                     logDebug('User `{}` requested global lib folder `{}`.'.format(user, fname))
-                return io.getvalue()
+                return io_s.getvalue()
 
         # Auto detect if ClearCase Test Config Path is active
-        ccConfig = self.project.get_clearcase_config(user, 'libs_path')
-        if ccConfig:
-            view = ccConfig['view']
-            actv = ccConfig['actv']
-            cc_lib = ccConfig['path'].rstrip('/') + '/'
+        cc_cfg = self.project.get_clearcase_config(user, 'libs_path')
+        if cc_cfg:
+            view = cc_cfg['view']
+            actv = cc_cfg['actv']
+            cc_lib = cc_cfg['path'].rstrip('/') + '/'
             lib_path = cc_lib + name
             # logDebug('Before downloading ClearCase lib `{}`.'.format(lib_path))
             user_view_actv = '{}:{}:{}'.format(user, view, actv)
@@ -1252,12 +1252,12 @@ class CeRpycService(rpyc.Service):
             filename = data['file']
 
             # Auto detect if ClearCase Test Config Path is active
-            ccConfig = self.project.get_clearcase_config(user, 'tests_path')
-            if ccConfig and data.get('clearcase'):
+            cc_cfg = self.project.get_clearcase_config(user, 'tests_path')
+            if cc_cfg and data.get('clearcase'):
                 logDebug('Execution process `{}:{}` requested ClearCase file `{}`.'.format(user, epname, filename))
                 # Set TC Revision variable
                 self.project.set_file_info(user, epname, file_id, 'twister_tc_revision', -1)
-                view = ccConfig['view']
+                view = cc_cfg['view']
                 # Read ClearCase TestCase file
                 text = self.project.read_file(user, filename, type='clearcase:' + view)
                 return text
@@ -1287,9 +1287,9 @@ class CeRpycService(rpyc.Service):
         if not user:
             return False
         parser = PluginParser(user)
-        pluginsList = parser.getPlugins()
-        logFull('List Plug-ins: user `{}` has: {}.'.format(user, pluginsList))
-        return pluginsList.keys()
+        plugins_list = parser.getPlugins()
+        logFull('List Plug-ins: user `{}` has: {}.'.format(user, plugins_list))
+        return plugins_list.keys()
 
 
     def exposed_run_plugin(self, plugin, args):
@@ -1319,11 +1319,11 @@ class CeRpycService(rpyc.Service):
 
         try:
             return plugin_p.run(args)
-        except Exception as e:
+        except Exception as exp_err:
             trace = traceback.format_exc()[34:].strip()
             logError('*ERROR* Plugin `{}`, ran with arguments `{}` and raised Exception: `{}`!'\
                      .format(plugin, args, trace))
-            return 'Error on running plugin `{}` - Exception: `{}`!'.format(plugin, e)
+            return 'Error on running plugin `{}` - Exception: `{}`!'.format(plugin, exp_err)
 
 
 # # #   Logs   # # #
@@ -1393,7 +1393,7 @@ class CeRpycService(rpyc.Service):
         """
         List.
         """
-        return self.project.tb.list_all_tbs()
+        return self.project.testbeds.list_all_tbs()
 
 
     def exposed_list_all_suts(self):
@@ -1416,9 +1416,10 @@ class CeRpycService(rpyc.Service):
         if not user:
             return False
         try:
-            return self.project.tb.get_tb(query=query, props={'__user': user})
-        except Exception as e:
-            logWarning(e)
+            return self.project.testbeds.\
+            get_tb(query=query, props={'__user': user})
+        except Exception as exp_err:
+            logWarning(exp_err)
             return False
 
 
@@ -1431,7 +1432,7 @@ class CeRpycService(rpyc.Service):
         if not user:
             return False
         props['__user'] = user
-        return self.project.tb.create_new_tb(name, parent, props)
+        return self.project.testbeds.create_new_tb(name, parent, props)
 
 
     def exposed_create_component_tb(self, name, parent, props={}):
@@ -1443,7 +1444,7 @@ class CeRpycService(rpyc.Service):
         if not user:
             return False
         props['__user'] = user
-        return self.project.tb.create_component_tb(name, parent, props)
+        return self.project.testbeds.create_component_tb(name, parent, props)
 
 
     def exposed_update_meta_tb(self, name, parent, props={}):
@@ -1455,7 +1456,7 @@ class CeRpycService(rpyc.Service):
         if not user:
             return False
         props['__user'] = user
-        return self.project.tb.update_meta_tb(name, parent, props)
+        return self.project.testbeds.update_meta_tb(name, parent, props)
 
 
     def exposed_set_tb(self, name, parent='/', props={}):
@@ -1467,7 +1468,7 @@ class CeRpycService(rpyc.Service):
         if not user:
             return False
         props['__user'] = user
-        return self.project.tb.set_tb(name, parent, props)
+        return self.project.testbeds.set_tb(name, parent, props)
 
 
     def exposed_create_new_sut(self, name, parent, props={}):
@@ -1526,7 +1527,8 @@ class CeRpycService(rpyc.Service):
         user = self._check_login()
         if not user:
             return False
-        return self.project.tb.rename_tb(res_query, new_name, props={'__user': user})
+        return self.project.testbeds.\
+        rename_tb(res_query, new_name, props={'__user': user})
 
 
     def exposed_delete_tb(self, query):
@@ -1537,7 +1539,7 @@ class CeRpycService(rpyc.Service):
         user = self._check_login()
         if not user:
             return False
-        return self.project.tb.delete_tb(query, props={'__user': user})
+        return self.project.testbeds.delete_tb(query, props={'__user': user})
 
 
     def exposed_get_sut(self, query, follow_links=False):
@@ -1554,10 +1556,10 @@ class CeRpycService(rpyc.Service):
                 follow_links = True
             else:
                 follow_links = False
-            return self.project.sut.get_sut(query,
-                props={'__user': user, 'follow_links': follow_links})
-        except Exception as e:
-            logWarning(e)
+            return self.project.sut.get_sut(query,\
+            props={'__user': user, 'follow_links': follow_links})
+        except Exception as exp_err:
+            logWarning(exp_err)
             return False
 
 
@@ -1622,7 +1624,8 @@ class CeRpycService(rpyc.Service):
         user = self._check_login()
         if not user:
             return False
-        return self.project.tb.is_tb_reserved(query, props={'__user': user})
+        return self.project.testbeds.\
+        is_tb_reserved(query, props={'__user': user})
 
 
     def exposed_is_sut_reserved(self, query):
@@ -1640,7 +1643,7 @@ class CeRpycService(rpyc.Service):
         user = self._check_login()
         if not user:
             return (False, 'DEFAULT_ERROR')
-        return self.project.tb.reserve_tb(query, props={'__user': user})
+        return self.project.testbeds.reserve_tb(query, props={'__user': user})
 
 
     def exposed_reserve_sut(self, query):
@@ -1658,7 +1661,8 @@ class CeRpycService(rpyc.Service):
         user = self._check_login()
         if not user:
             return False
-        return self.project.tb.save_reserved_tb(query, props={'__user': user})
+        return self.project.testbeds.\
+        save_reserved_tb(query, props={'__user': user})
 
 
     def exposed_save_reserved_sut(self, query):
@@ -1685,7 +1689,8 @@ class CeRpycService(rpyc.Service):
         user = self._check_login()
         if not user:
             return False
-        return self.project.tb.save_release_reserved_tb(query, props={'__user': user})
+        return self.project.testbeds.\
+        save_release_reserved_tb(query, props={'__user': user})
 
 
     def exposed_save_release_reserved_sut(self, query):
@@ -1703,7 +1708,8 @@ class CeRpycService(rpyc.Service):
         user = self._check_login()
         if not user:
             return False
-        return self.project.tb.discard_release_reserved_tb(query, props={'__user': user})
+        return self.project.testbeds.\
+        discard_release_reserved_tb(query, props={'__user': user})
 
 
     def exposed_discard_release_reserved_sut(self, query):
@@ -1715,7 +1721,7 @@ class CeRpycService(rpyc.Service):
         return self.project.sut.discard_release_reserved_sut(query, props={'__user': user})
 
 
-    def exposed_interact(self, id, ep, type, msg, timeout, options):
+    def exposed_interact(self, m_id, ep, m_type, msg, timeout, options):
         """
         Adds interact information in the interaction pool.
         The interaction pool is held in the `interact` variable under each user.
@@ -1723,7 +1729,8 @@ class CeRpycService(rpyc.Service):
         user = self._check_login()
         if not user:
             return False
-        interact_options = {'id': id ,'ep':ep, 'type':type, 'msg':msg, 'timeout':timeout, 'options':options}
+        interact_options = {'id': m_id, 'ep':ep, 'type':m_type, 'msg':msg, \
+        'timeout':timeout, 'options':options}
         with self.project.interact_lock:
             interact_data = self.project.get_user_info(user, 'interact')
             if interact_data:
@@ -1738,7 +1745,7 @@ class CeRpycService(rpyc.Service):
         return True
 
 
-    def exposed_remove_interact(self, id, ep, type, msg, timeout, options, reason=''):
+    def exposed_remove_interact(self, m_id, ep, m_type, msg, timeout, options, reason=''):
         """
         Removes an interaction from the interaction pool.
         The interaction pool is held in the `interact` variable under each user.
@@ -1750,11 +1757,11 @@ class CeRpycService(rpyc.Service):
         with self.project.interact_lock:
             interact_data = self.project.get_user_info(user, 'interact')
             try:
-                elem = filter(lambda interact: interact.get('id') == id, interact_data)[0]
-                i = interact_data.index(elem)
-                removed = interact_data.pop(i)
-            except Exception as e:
-                logDebug('Element has been already removed from queue: {}'.format(e))
+                elem = filter(lambda interact: interact.get('id') == m_id, interact_data)[0]
+                el_index = interact_data.index(elem)
+                interact_data.pop(el_index)
+            except Exception as exp_err:
+                logDebug('Element has been already removed from queue: {}'.format(exp_err))
             self.project.set_user_info(user, 'interact', interact_data)
         return True
 

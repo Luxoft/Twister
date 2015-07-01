@@ -1,6 +1,6 @@
 /*
 File: Grafic.java ; This file is part of Twister.
-Version: 3.0035
+Version: 3.0036
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -18,6 +18,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+import java.awt.FontMetrics;
 import javax.swing.JPanel;
 import java.awt.Color;
 import java.awt.event.MouseAdapter;
@@ -2273,16 +2274,34 @@ public class Grafic extends JPanel{
                             (int)r.getY()+(int)r.getHeight(),
                             (int)r.getY(),(int)r.getY()+(int)r.getHeight()-5};
                 g.fillPolygon(x2,y2,4);}}
-        if(item.getEpId()!=null && item.getEpId().length>0){
-            font = font.deriveFont(11);
-            g.setFont(font);
-            StringBuilder EP = new StringBuilder();
-            for(String s:item.getEpId()){
-                EP.append(s+";");
+        if(item.getType()==2){
+            int x = (int)(item.getRectangle().getX()+item.getRectangle().getWidth());
+            if(item.getEpId()!=null && item.getEpId().length>0){
+                font = font.deriveFont(11);
+                g.setFont(font);
+                StringBuilder EP = new StringBuilder();
+                for(String s:item.getEpId()){
+                    EP.append(s+";");
+                }
+                EP.deleteCharAt(EP.length()-1);
+                g.drawString(" - "+EP.toString(),(int)(item.getRectangle().getX()+item.getRectangle().getWidth()),
+                            (int)(item.getRectangle().getY()+18));
+                FontMetrics metrics = g.getFontMetrics(font);
+                int adv = metrics.stringWidth(" - "+EP.toString());
+                x += adv+2;}
+            StringBuilder sb = new StringBuilder();
+            sb.append("- ");
+            for(Configuration st:item.getConfigurations()){
+                if(st.isEnabled()){
+                    sb.append(st.getFile());
+                    sb.append("; ");
+                }
             }
-            EP.deleteCharAt(EP.length()-1);
-            g.drawString(" - "+EP.toString(),(int)(item.getRectangle().getX()+item.getRectangle().getWidth()),
-                        (int)(item.getRectangle().getY()+18));}}
+            if(sb.length()>0) sb.deleteCharAt(sb.length()-2);
+            g.drawString(sb.toString(),x,
+                        (int)(item.getRectangle().getY()+18));
+        }
+        }
      
     /*
      * changes suites file name and sets

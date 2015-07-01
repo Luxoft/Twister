@@ -1,7 +1,7 @@
 
 # File: helpers.py ; This file is part of Twister.
 
-# version: 3.006
+# version: 3.008
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -35,12 +35,13 @@ import time
 import binascii
 import platform
 import subprocess
+from functools import wraps
 from thread import allocate_lock
 
 from Crypto.Cipher import AES
 from Crypto.Protocol.KDF import PBKDF2
 
-from tsclogging import logFull, logDebug, logWarning
+from common.tsclogging import logFull, logDebug, logWarning
 
 #
 
@@ -66,6 +67,45 @@ class CcBorg(object):
         self.__dict__ = self._shared_state
 
 
+def cache_ttl(ttl=1):
+    """
+    Caching decorator within TTL period in seconds.
+
+    Example use:
+
+        import time, random
+
+        @cache_ttl(60)
+        def randint():
+            # will only be evaluated every 60 sec at maximum.
+            return random.randint(0, 100)
+
+        print randint()
+        print randint()
+        time.sleep(1)
+        print randint()
+        print randint()
+
+    """
+    saved = {}
+
+    def cache(func):
+        @wraps(func)
+        def memoizer(*args, **kwargs):
+            now = time.time()
+            key = str(args) + str(kwargs)
+            if key in saved:
+                last_update = saved[key]['t']
+                if now - last_update <= ttl:
+                    return saved[key]['r']
+            result = func(*args, **kwargs)
+            saved[key] = {'t': now, 'r': result}
+            return result
+        return memoizer
+    return cache
+
+
+@cache_ttl(3600)
 def userHome(user):
     """
     Find the home folder for the given user.
@@ -110,7 +150,7 @@ def getFileTags(fname):
     """
     logFull('helpers:getFileTags')
     try:
-        text = open(fname,'rb').read()
+        text = open(fname, 'rb').read()
     except:
         return ''
 
@@ -135,12 +175,12 @@ def dirList(tests_path, path, newdict):
         flist = [] # Files list
         for fname in sorted(os.listdir(path), key=str.lower):
             short_path = (path + os.sep + fname)[len_path:]
-            nd = {'data': short_path, 'children': []}
+            c_nd = {'data': short_path, 'children': []}
             if os.path.isdir(path + os.sep + fname):
-                nd['attr'] = {'rel': 'folder'}
-                dlist.append(nd)
+                c_nd['attr'] = {'rel': 'folder'}
+                dlist.append(c_nd)
             else:
-                flist.append(nd)
+                flist.append(c_nd)
         # Folders first, files second
         newdict['children'] = dlist + flist
     for nitem in newdict['children']:
@@ -152,35 +192,36 @@ def calcMemory():
     """
     Calculate used memory percentage.
     """
-    memLine = subprocess.check_output(['free', '-o']).split('\n')[1]
-    memUsed  = int(memLine.split()[2])
-    mebBuff  = int(memLine.split()[-2])
-    memCache = int(memLine.split()[-1])
-    Total    = float(memLine.split()[1])
-    memPer = ((memUsed - mebBuff - memCache) * 100.) / Total
-    return float('%.2f' % memPer)
+    mem_line = subprocess.check_output(['free', '-o']).split('\n')[1]
+    mem_used = int(mem_line.split()[2])
+    meb_buff = int(mem_line.split()[-2])
+    mem_cache = int(mem_line.split()[-1])
+    total = float(mem_line.split()[1])
+    mem_per = ((mem_used - meb_buff - mem_cache) * 100.) / total
+    return float('%.2f' % mem_per)
 
 def _getCpuData():
     """ Helper function """
-    statLine = open('/proc/stat', 'r').readline()
-    timeList = statLine.split(' ')[2:6]
-    for i in range(len(timeList)):
-        timeList[i] = float(timeList[i])
-    return timeList
+    stat_line = open('/proc/stat', 'r').readline()
+    time_list = stat_line.split(' ')[2:6]
+    for i in range(len(time_list)):
+        time_list[i] = float(time_list[i])
+    return time_list
 
 def calcCpu():
     """
     Calculate used CPU percentage.
     """
-    x = _getCpuData()
+    x_val = _getCpuData()
     time.sleep(0.5)
-    y = _getCpuData()
-    for i in range(len(x)):
-        y[i] -= x[i]
-    cpuPer = sum(y[:-1]) / sum(y) * 100.
-    return float('%.2f' % cpuPer)
+    y_val = _getCpuData()
+    for i in range(len(x_val)):
+        y_val[i] -= x_val[i]
+    cpu_per = sum(y_val[:-1]) / sum(y_val) * 100.
+    return float('%.2f' % cpu_per)
 
 
+@cache_ttl(3600)
 def systemInfo():
     """
     Returns some system information.
@@ -210,8 +251,9 @@ def execScript(script_path):
     try:
         txt = subprocess.check_output(script_path, shell=True)
         return txt.strip()
-    except Exception as e:
-        logWarning('Exec script `{}`: Exception - `{}`.'.format(script_path, e))
+    except Exception as exp_err:
+        logWarning('Exec script `{}`: Exception - `{}`.'.\
+        format(script_path, exp_err))
         return False
 
 
@@ -240,7 +282,7 @@ def decrypt(bdata, encr_key):
     crypt = AES.new(pwd)
     try:
         data = binascii.unhexlify(bdata)
-    except :
+    except:
         return ''
     try:
         decrypted = crypt.decrypt(data)

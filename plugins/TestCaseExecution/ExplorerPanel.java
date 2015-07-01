@@ -1,6 +1,6 @@
 /*
 File: ExplorerPanel.java ; This file is part of Twister.
-Version: 3.002
+Version: 3.003
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -200,6 +200,8 @@ public class ExplorerPanel extends JPanel{
             reset.addActionListener(new ActionListener(){
                 public void actionPerformed(ActionEvent ev){
                     refreshTree((int)reset.getLocationOnScreen().getX()-200,(int)reset.getLocationOnScreen().getY()-100);
+                    filenamefield.setText("");
+                    tagfield.setText("");
                 }
             });
             reset.setFont(new Font("TimesRoman", Font.PLAIN, 10));

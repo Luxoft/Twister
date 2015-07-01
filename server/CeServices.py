@@ -1,7 +1,7 @@
 
 # File: CeServices.py ; This file is part of Twister.
 
-# version: 3.001
+# version: 3.002
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -27,20 +27,19 @@
 User Service Module
 """
 import os, sys
-import json
 import time
 import signal
 import subprocess
 import binascii
 
-SM_LIST       = 0
-SM_START      = 1
-SM_STOP       = 2
-SM_STATUS     = 3
-SM_DESCRIP    = 4
+SM_LIST = 0
+SM_START = 1
+SM_STOP = 2
+SM_STATUS = 3
+SM_DESCRIP = 4
 SM_GET_CONFIG = 5
 SM_SET_CONFIG = 6
-SM_GET_LOG    = 7
+SM_GET_LOG = 7
 
 SM_COMMAND_MAP = {
     SM_START      : 'start',
@@ -55,12 +54,12 @@ SM_COMMAND_MAP = {
 
 TWISTER_PATH = os.getenv('TWISTER_PATH')
 if not TWISTER_PATH:
-    print('$TWISTER_PATH environment variable is not set! Exiting!')
+    print '$TWISTER_PATH environment variable is not set! Exiting!'
     exit(1)
 if TWISTER_PATH not in sys.path:
     sys.path.append(TWISTER_PATH)
 
-from common.tsclogging import *
+from common.tsclogging import logError, logFull, logWarning, logDebug
 from common import iniparser
 
 #
@@ -114,7 +113,7 @@ class ServiceManager(object):
                 break
 
         if not found:
-            logDebug('SM: Invalid service name: `%s`!'.format(name))
+            logDebug('SM: Invalid service name: `{}`!'.format(name))
             return False
 
         elif command == SM_STATUS or command == SM_COMMAND_MAP[SM_STATUS]:
@@ -164,16 +163,16 @@ class ServiceManager(object):
         # -1 means the app is still running
 
         tprocess = service.get('pid', 0)
-        rc = 0
+        retc = 0
 
         if tprocess:
             tprocess.poll()
-            rc = tprocess.returncode
+            retc = tprocess.returncode
 
-        if rc is None:
-            rc = -1
+        if retc is None:
+            retc = -1
 
-        return rc
+        return retc
 
 
     def service_start(self, service):
@@ -230,9 +229,9 @@ class ServiceManager(object):
         with open(log_path, 'wb') as out:
             try:
                 tprocess = subprocess.Popen(p_cmd, stdout=out, stderr=out, env=env)
-            except Exception as e:
+            except Exception as exp_err:
                 error = 'SM: Cannot start service `{}` with config file `{}`!\n'\
-                    'Exception: `{}`!'.format(service['name'], config_path, e)
+                    'Exception: `{}`!'.format(service['name'], config_path, exp_err)
                 logError(error)
                 return error
 
@@ -258,8 +257,8 @@ class ServiceManager(object):
 
         try:
             tprocess.terminate()
-        except Exception as e:
-            logError('SM: Cannot stop service: `{}`, exception `{}`!'.format(service['name'], e))
+        except Exception as exp_err:
+            logError('SM: Cannot stop service: `{}`, exception `{}`!'.format(service['name'], exp_err))
             return False
 
         try:
@@ -324,7 +323,7 @@ class ServiceManager(object):
         filename = '{0}/services/{1}/{2}'.format(TWISTER_PATH, service['name'], service['logfile'])
 
         if not os.path.exists(filename):
-            return '*ERROR for {0}!* No such log file `{0}`!'.format(service['name'], filename)
+            return '*ERROR for {}!* No such log file `{}`!'.format(service['name'], filename)
 
         if not read or read == '0':
             return os.path.getsize(filename)
