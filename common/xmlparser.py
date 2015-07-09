@@ -1,7 +1,7 @@
 
 # File: xmlparser.py ; This file is part of Twister.
 
-# version: 3.038
+# version: 3.039
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -245,11 +245,11 @@ class TSCParser(object):
         return activeEPs
 
 
-    def listSettings(self, xmlFile, xFilter=''):
+    def list_settings(self, xmlFile, xFilter=''):
         """
         High level function for listing all settings from a Twister XML config file.
         """
-        logFull('xmlparser:listSettings')
+        logFull('xmlparser:list_settings')
         if not os.path.isfile(xmlFile):
             logError('User {}: Parse settings error! File path `{}` does not exist!'.format(self.user, xmlFile))
             return False
@@ -262,11 +262,11 @@ class TSCParser(object):
             return [x.tag for x in xmlSoup.xpath('//*')]
 
 
-    def getSettingsValue(self, xmlFile, key):
+    def get_settings_value(self, xmlFile, key):
         """
         High level function for getting a value from a Twister XML config file.
         """
-        logFull('xmlparser:getSettingsValue')
+        logFull('xmlparser:get_settings_value')
         if not os.path.isfile(xmlFile):
             logError('User {}: Parse settings error! File path `{}` does not exist!'.format(self.user, xmlFile))
             return False
@@ -284,11 +284,11 @@ class TSCParser(object):
             return False
 
 
-    def setSettingsValue(self, xmlFile, key, value):
+    def set_settings_value(self, xmlFile, key, value):
         """
         High level function for setting a value in a Twister XML config file.
         """
-        logFull('xmlparser:setSettingsValue')
+        logFull('xmlparser:set_settings_value')
         if not os.path.isfile(xmlFile):
             logError('User {}: Parse settings error! File path `{}` does not exist!'.format(self.user, xmlFile))
             return False
@@ -331,14 +331,14 @@ class TSCParser(object):
         return dumpXML(self.user, xmlFile, xmlSoup)
 
 
-    def delSettingsKey(self, xmlFile, key, index=0):
+    def del_settings_key(self, xmlFile, key, index=0):
         """
         High level function for deleting a value from a Twister XML config file.
         If the `index` is specified and the `key` returns more values, only the
         index-th value is deleted; unless the `index` is -1, in this case, all
         values are deleted.
         """
-        logFull('xmlparser:delSettingsKey')
+        logFull('xmlparser:del_settings_key')
         if not os.path.isfile(xmlFile):
             logError('User {}: Parse settings error! File path `{}` does not exist!'.format(self.user, xmlFile))
             return False
@@ -380,11 +380,11 @@ class TSCParser(object):
         return dumpXML(self.user, xmlFile, xmlSoup)
 
 
-    def setPersistentSuite(self, xmlFile, suite, info={}, order=-1):
+    def set_persistent_suite(self, xmlFile, suite, info={}, order=-1):
         """
         This function writes in TestSuites.XML file.
         """
-        logFull('xmlparser:setPersistentSuite')
+        logFull('xmlparser:set_persistent_suite')
         if not os.path.isfile(xmlFile):
             logError('User {}: Parse settings error! File path `{}` does not exist!'.format(self.user, xmlFile))
             return False
@@ -455,11 +455,11 @@ class TSCParser(object):
         return dumpXML(self.user, xmlFile, xmlSoup)
 
 
-    def setPersistentFile(self, xmlFile, suite, fname, info={}, order=-1):
+    def set_persistent_file(self, xmlFile, suite, fname, info={}, order=-1):
         """
         This function writes in TestSuites.XML file.
         """
-        logFull('xmlparser:setPersistentFile')
+        logFull('xmlparser:set_persistent_file')
         if not os.path.isfile(xmlFile):
             logError('User {}: Parse settings error! File path `{}` does not exist!'.format(self.user, xmlFile))
             return False

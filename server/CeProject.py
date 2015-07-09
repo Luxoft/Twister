@@ -1,7 +1,7 @@
 
 # File: CeProject.py ; This file is part of Twister.
 
-# version: 3.082
+# version: 3.083
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -2498,7 +2498,7 @@ class Project(object):
             suite['children'][file_id] = finfo
 
             # Add the file in suites.xml ?
-            # self.setPersistentFile(self, user, suite, fname)
+            # self.set_persistent_file(self, user, suite, fname)
 
         self._dump()
         logDebug('File ID `{}` added at the end of suite `{}`.'.format(file_id, suite_id))
