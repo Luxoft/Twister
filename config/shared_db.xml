@@ -1,28 +1,21 @@
-<?xml version="1.0"?>
 <root>
-
-<db_config>
-	<!-- All this info can be updated with `setup_shared_db.py` -->
-	<server>localhost</server>
-	<database>twister_demo</database>
-	<user>user</user>
-	<password>b90346e1c1adf09cce6395904f4598ad</password>
-</db_config>
-
-<insert_section>
-	<field ID="Run_Number"  FieldName="" FromTable="" SQLQuery="" Label="Run Number:" Type="UserText" GUIDefined="true" Mandatory="true" />
-	<sql_statement>
+  <db_config>
+    <!-- All this info can be updated with `setup_shared_db.py` -->
+    <server>localhost</server>
+    <database>twister_demo</database>
+    <user>user</user>
+    <password>51cfe2213b2f57cd14758123671b17da</password>
+  </db_config>
+  <insert_section>
+    <field ID="Run_Number" FieldName="" FromTable="" SQLQuery="" Label="Run Number:" Type="UserText" GUIDefined="true" Mandatory="true"/>
+    <sql_statement>
 INSERT INTO results
 ( run_nb,username,ce_hostname,ce_ip,ep_ip,ep_hostname,ep_name,suite_name,tc_name,tc_path,tc_status,tc_time_elapsed,tc_date_started,tc_date_finished,tc_log )
 VALUES ($Run_Number, '$twister_user', '$twister_ce_hostname', '$twister_ce_ip', '$twister_ep_ip', '$twister_ep_hostname', '$twister_ep_name', '$twister_suite_name', '$twister_tc_name', '$twister_tc_full_path', '$twister_tc_status', '$twister_tc_time_elapsed', '$twister_tc_date_started', '$twister_tc_date_finished', '$twister_tc_log')
 	</sql_statement>
-</insert_section>
-
-<reports_section>
-	<field ID="Run_Number" Label="Select build" Type="UserSelect" SQLQuery="SELECT DISTINCT run_nb FROM `results` ORDER BY run_nb" />
-	<report ID="Summary" Type="PieChart"
-	SQLQuery="SELECT tc_status AS 'Status',COUNT(tc_status) AS 'Count' FROM results  WHERE run_nb = '@Run_Number@' group by tc_status "
-	/>
-</reports_section>
-
+  </insert_section>
+  <reports_section>
+    <field ID="Run_Number" Label="Select build" Type="UserSelect" SQLQuery="SELECT DISTINCT run_nb FROM `results` ORDER BY run_nb"/>
+    <report ID="Shared Summary" Type="PieChart" SQLQuery="SELECT tc_status AS 'Status',COUNT(tc_status) AS 'Count' FROM results  WHERE run_nb = '@Run_Number@' group by tc_status "/>
+  </reports_section>
 </root>

@@ -1,6 +1,6 @@
 #!/usr/bin/env python2.7
 
-# version: 3.035
+# version: 3.036
 
 # File: ExecutionProcess.py ; This file is part of Twister.
 
@@ -167,7 +167,7 @@ class EpService(rpyc.Service):
         """
         Sets the response from the user for a user interaction
         """
-        RUNNER.commonLib.interact = copy.deepcopy(msg)
+        RUNNER.commonLib.interact_data = copy.deepcopy(msg)
         return None
 
 

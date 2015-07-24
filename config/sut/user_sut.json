@@ -1,0 +1,44 @@
+{
+    "path": [
+        "user_sut.user"
+    ],
+    "meta": {
+        "_epnames_user": ""
+    },
+    "id": "7b92547f54",
+    "children": {
+        "dev_1": {
+            "path": [
+                "user_sut.user",
+                "dev_1"
+            ],
+            "meta": {
+                "_id": "0c651e3670"
+            },
+            "id": "322e317f2e",
+            "children": {}
+        },
+        "dev_3": {
+            "path": [
+                "user_sut.user",
+                "dev_3"
+            ],
+            "meta": {
+                "_id": "2b68f278eb"
+            },
+            "id": "7071341928",
+            "children": {}
+        },
+        "dev_2": {
+            "path": [
+                "user_sut.user",
+                "dev_2"
+            ],
+            "meta": {
+                "_id": "020a090a58"
+            },
+            "id": "68ef2799dc",
+            "children": {}
+        }
+    }
+}

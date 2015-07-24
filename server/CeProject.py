@@ -667,6 +667,7 @@ class Project(object):
         logInfo('Project: Reload user operation took `{:.4f}` seconds.'.format(time.clock() - t_init))
         return True
 
+
     def rename_user(self, name, new_name):
         """
         Rename 1 user.
@@ -811,8 +812,7 @@ class Project(object):
             return self.roles
 
         try:
-            cfg = iniparser.ConfigObj(cfg_path, create_empty=True,\
-            write_empty_values=True)
+            cfg = iniparser.ConfigObj(cfg_path, create_empty=True, write_empty_values=True)
         except Exception as exp_err:
             logError('Users and Groups parsing error `{}`!'.format(exp_err))
             return {'users': {}, 'groups': {}}

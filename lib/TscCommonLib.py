@@ -1,6 +1,6 @@
 # File: TscCommonLib.py ; This file is part of Twister.
 
-# version: 3.023
+# version: 3.024
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -116,7 +116,7 @@ class TscCommonLib(object):
     global_vars = {}
     """ All global variables, shared between tests and libaries. """
 
-    interact = None
+    interact_data = None
     _SUITE_ID = 0
     _FILE_ID = 0
 
@@ -302,13 +302,13 @@ class TscCommonLib(object):
         msg: the message that will be printed in the window
         return: True/False or a string
         """
-        self.interact = None
+        self.interact_data = None
         print('\n>> Waiting for user interaction >>')
         id = binascii.hexlify(os.urandom(4))
         self.ce_proxy.interact(id, self.epName, type, msg, timeout, options)
         time.sleep(1)
         counter = 0.0
-        while self.interact == None:
+        while self.interact_data == None:
             time.sleep(0.5)
             if timeout > 0:
                 counter += 0.5
@@ -316,9 +316,9 @@ class TscCommonLib(object):
                     break
         counter = 0.0
         reason = 'User action'
-        if type == 'decide' and self.interact in [None, 'false']:
+        if type == 'decide' and self.interact_data in [None, 'false']:
             # abort test!
-            if self.interact == None:
+            if self.interact_data == None:
                 reason = 'Decide timeout expired!'
             else:
                 reason = 'Test aborted by user!'
@@ -328,18 +328,18 @@ class TscCommonLib(object):
             self.ce_proxy.remove_interact(id, self.epName, type, msg, timeout, options, reason)
             raise ExceptionTestAbort(reason)
 
-        if self.interact == None:
+        if self.interact_data == None:
             reason = 'Timeout expired'
             print('Interaction timeout expired!')
             if type == 'msg':
-                self.interact = True
+                self.interact_data = True
             elif type == 'options' and options:
-                self.interact = options['default']
+                self.interact_data = options['default']
 
         self.ce_proxy.set_ep_status(self.epName, 2)
         self.ce_proxy.remove_interact(id, self.epName, type, msg, timeout, options, reason)
-        print('\n>> Interaction response: {} >>'.format(self.interact))
-        return self.interact
+        print('\n>> Interaction response: {} >>'.format(self.interact_data))
+        return self.interact_data
 
 
     def log_msg(self, log_type, log_message):

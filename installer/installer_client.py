@@ -1,5 +1,5 @@
 
-# version: 3.005
+# version: 3.006
 
 # File: installer.py ; This file is part of Twister.
 
@@ -125,10 +125,10 @@ to_copy = [
     'bin/start_client',
     'bin/start_client.py',
     'bin/start_packet_sniffer.py',
-    'doc/',
     'demo/',
     'config/',
-    'client/',
+    'client/__init__.py',
+    'client/executionprocess/',
     'services/PacketSniffer/',
     'services/__init__.py',
     'common/__init__.py',
@@ -162,6 +162,18 @@ for fname in to_copy:
         except:
             print('Cannot copy dir `%s` to `%s`!' % (fpath, INSTALL_PATH+dpath))
 
+        # the file twister.key must be deleted from config directory if the
+        # current user is different than 'user'
+        if fname == 'config/':
+            if user_name != 'user':
+                try:
+                    os.remove(INSTALL_PATH + dpath + '/twister.key')
+                    print("Removed file '{}'".\
+                    format(INSTALL_PATH + dpath + '/twister.key'))
+                except:
+                    print("Failed to remove file '{}' !".\
+                    format(INSTALL_PATH + dpath + '/twister.key'))
+
     elif os.path.isfile(fpath):
         try:
             file_util.copy_file(fpath, INSTALL_PATH + dpath)
@@ -178,11 +190,7 @@ try: os.mkdir(INSTALL_PATH + '/.twister_cache')
 except: pass
 try: os.mkdir(INSTALL_PATH + '/logs')
 except: pass
-try: os.mkdir(INSTALL_PATH + '/config/sut')
-except: pass
 try: os.mkdir(INSTALL_PATH + '/config/predefined')
-except: pass
-try: os.mkdir(INSTALL_PATH + '/config/test_config')
 except: pass
 
 # Delete Server config files...

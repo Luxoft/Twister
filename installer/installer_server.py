@@ -159,7 +159,6 @@ to_copy = [
     'config/users_and_groups.ini',
     'config/server_init.ini',
     'config/shared_db.xml',
-    'config/sut/',
     'plugins/',
     'services/',
 ]
@@ -198,6 +197,9 @@ for fname in to_copy:
     else:
         print('Path `{}` does not exist and will not be copied!'.format(fpath))
 
+# create config/sut path
+try: os.mkdir(INSTALL_PATH + '/config/sut')
+except: pass
 
 # Restore CONFIG folder, if any
 if os.path.exists(tmp_config):

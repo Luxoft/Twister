@@ -1,119 +1,48 @@
 {
-    "meta": {},
-    "id": "1",
     "path": [],
+    "version": 4,
+    "meta": {},
+    "name": "/",
     "children": {
         "tb1": {
-            "meta": {
-                "epnames": "EP-1001;"
-            },
-            "id": "f119f3cf8f",
-            "path": ["tb1"],
+            "path": [
+                "tb1"
+            ],
+            "meta": {},
+            "id": "f1950165cd",
             "children": {
-                "dev3": {
+                "dev_1": {
+                    "path": [
+                        "tb1",
+                        "dev_1"
+                    ],
                     "meta": {
-                        "type": "device"
+                        "name": "switch"
                     },
-                    "id": "8eef07259e",
+                    "id": "0c651e3670",
                     "children": {}
                 },
-                "dev2": {
+                "dev_3": {
+                    "path": [
+                        "tb1",
+                        "dev_3"
+                    ],
                     "meta": {
-                        "epnames": "",
-                        "type": "device"
+                        "type": "L3"
                     },
-                    "id": "6f1bf6a142",
+                    "id": "2b68f278eb",
                     "children": {}
                 },
-                "dev1": {
+                "dev_2": {
+                    "path": [
+                        "tb1",
+                        "dev_2"
+                    ],
                     "meta": {
-                        "epnames": "",
-                        "User": "Test",
-                        "Pass": "test123"
+                        "IP": "10.0.0.1",
+                        "port": "23"
                     },
-                    "id": "ec3020a19c",
-                    "children": {
-                        "module3": {
-                            "meta": {
-                                "type": "module"
-                            },
-                            "id": "463714be04",
-                            "children": {}
-                        },
-                        "module2": {
-                            "meta": {
-                                "type": "module"
-                            },
-                            "id": "06261b0953",
-                            "children": {}
-                        },
-                        "module1": {
-                            "meta": {
-                                "type": "module"
-                            },
-                            "id": "ed097d6d56",
-                            "children": {}
-                        }
-                    }
-                }
-            }
-        },
-        "tb3": {
-            "meta": {
-                "epnames": "EP-1003;"
-            },
-            "id": "1c58657785",
-            "path": ["tb3"],
-            "children": {
-                "dev3.1": {
-                    "meta": {
-                        "type": "device"
-                    },
-                    "id": "c170ed8769",
-                    "children": {}
-                },
-                "dev3.2": {
-                    "meta": {
-                        "type": "device"
-                    },
-                    "id": "9bec7d2a51",
-                    "children": {}
-                },
-                "dev3.3": {
-                    "meta": {
-                        "type": "device"
-                    },
-                    "id": "62a9926b29",
-                    "children": {}
-                }
-            }
-        },
-        "tb2": {
-            "meta": {
-                "epnames": "EP-1002;"
-            },
-            "id": "2d0d54183d",
-            "path": ["tb2"],
-            "children": {
-                "dev3": {
-                    "meta": {
-                        "type": "device"
-                    },
-                    "id": "f0c773c611",
-                    "children": {}
-                },
-                "dev2": {
-                    "meta": {
-                        "type": "device"
-                    },
-                    "id": "a8a4e11cea",
-                    "children": {}
-                },
-                "dev1": {
-                    "meta": {
-                        "type": "device"
-                    },
-                    "id": "b6c05f6bc0",
+                    "id": "020a090a58",
                     "children": {}
                 }
             }

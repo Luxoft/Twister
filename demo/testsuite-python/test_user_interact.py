@@ -25,11 +25,11 @@ time.sleep(3)
 interact('input', 'This is first input!', 8)
 time.sleep(3)
 
-interact('decide', 'Please decide first!', 8)
+interact('decide', 'Do you want to continue ?', 8)
 time.sleep(3)
 
-options = {'options':[1,2,3,4,5], 'default':5}
-interact('options', 'Select the option1!', 20, options)
+options = {'options':[4,2,3,5], 'default':7}
+interact('options', 'Select one option !', 20, options)
 
 _RESULT = 'PASS'
 

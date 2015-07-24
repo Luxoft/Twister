@@ -17,6 +17,10 @@ cfg_path = PROXY.get_user_variable('tcfg_path')
 for cfg in os.listdir(cfg_path):
 	print 'All params for `{}`:'.format(cfg)
 	print pformat(get_config(cfg, ''), indent=4, width=60), '\n'
+        print 'ITERATION value is: ' + ITERATION
+        print 'First iterator value is: ' + FIRST_ITERATOR_VAL
+        print 'First iterator name is: ' + FIRST_ITERATOR_NAME
+        print 'First iterator component is: ' + FIRST_ITERATOR_COMP
 
 #
 

@@ -1,7 +1,7 @@
 
 # File: CeRpyc.py ; This file is part of Twister.
 
-# version: 3.033
+# version: 3.034
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -280,11 +280,19 @@ class CeRpycService(rpyc.Service):
         """
         logFull('CeRpyc:exposed_login user `{}`.'.format(user))
         str_addr = self._get_addr()
-        resp = self.project.rpyc_check_passwd(user, passwd)
 
         user_home = userHome(user)
-        if not os.path.exists('{}/twister'.format(user_home)):
-            logError('*ERROR* Cannot find Twister for user `{}`, in path `{}/twister`!'.format(user, user_home))
+        if not os.path.isdir('{}/twister/config'.format(user_home)):
+            logError('Cannot find Twister for user `{}`!'.format(user))
+            return False
+
+        # Check SSH password
+        resp = self.project.rpyc_check_passwd(user, passwd)
+        # List of roles for user
+        user_roles = self.project.authenticate(user)
+        # This user doesn't exist in users and groups
+        if (not user_roles) or (not user_roles.get('roles')):
+            logWarning('Username `{}` doesn\'t have any roles!'.format(user))
             return False
 
         with self.conn_lock:

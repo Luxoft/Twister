@@ -1,24 +1,21 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!--
-Master config file for Twister.
--->
-<Root>
+ Master config file for TSC.
+ 
+ Logs Path: Where CE and PE write their getLogs(). Reports Path: Where all reports are saved.
+ Test Suite Config: All info about the current Test Suite (Test Plan).
+--><Root>
     <FileType>config</FileType>
-    <TestCaseSourcePath>$HOME/twister/demo</TestCaseSourcePath>
-    <UsersPath>$HOME/twister/config/projects</UsersPath>
-    <GlobalParams>$HOME/twister/config/globals.xml</GlobalParams>
-    <DbConfigFile>$HOME/twister/config/db.xml</DbConfigFile>
     <UseSharedDb>false</UseSharedDb>
-    <EmailConfigFile>$HOME/twister/config/email.xml</EmailConfigFile>
-    <LibsPath>$HOME/twister/libs</LibsPath>
-    <PredefinedSuitesPath>$HOME/twister/config/predefined</PredefinedSuitesPath>
-    <TestConfigPath>$HOME/twister/config/test_config</TestConfigPath>
-    <ArchiveLogsPath>$HOME/twister/logs_archive</ArchiveLogsPath>
-    <ArchiveLogsPathActive>false</ArchiveLogsPathActive>
     <SysSutPath>/opt/twister/config/sut</SysSutPath>
-    <SutPath>$HOME/twister/config/sut</SutPath>
-
-    <LogsPath>$HOME/twister/logs</LogsPath>
+    <SutPath>/exports/home/user/twister/config/sut</SutPath>
+    <TestCaseSourcePath>/exports/home/user/twister/demo</TestCaseSourcePath>
+    <LibsPath>/exports/home/user/twister/libs</LibsPath>
+    <UsersPath>/exports/home/user/twister/config/projects</UsersPath>
+    <PredefinedSuitesPath>/exports/home/user/twister/config/predefined</PredefinedSuitesPath>
+    <ArchiveLogsPath>/exports/home/user/twister/logs_archive</ArchiveLogsPath>
+    <ArchiveLogsPathActive>false</ArchiveLogsPathActive>
+    <LogsPath>/exports/home/user/twister/logs</LogsPath>
     <LogFiles>
         <logRunning>log_running.log</logRunning>
         <logDebug>log_debug.log</logDebug>
@@ -26,4 +23,8 @@ Master config file for Twister.
         <logTest>log_test.log</logTest>
         <logCli>CLI.log</logCli>
     </LogFiles>
+    <DbConfigFile>/exports/home/user/twister/config/db.xml</DbConfigFile>
+    <EmailConfigFile>/exports/home/user/twister/config/email.xml</EmailConfigFile>
+    <GlobalParams>/exports/home/user/twister/config/globals.xml</GlobalParams>
+    <TestConfigPath>/exports/home/user/twister/config/test_config</TestConfigPath>
 </Root>
