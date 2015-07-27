@@ -22,7 +22,7 @@
             <propValue>1</propValue>
         </UserDefined>
         <TestCase>
-            <tcName>/exports/home/user/twister/demo/smoke-test-twister/test01_connect.py</tcName>
+            <tcName>$HOME/twister/demo/smoke-test-twister/test01_connect.py</tcName>
             <Repeat>1</Repeat>
             <ID>ef3e56cc-c209-4a67-8620-b02a1a16f2b0</ID>
             <Dependency/>
@@ -38,7 +38,7 @@
             </Property>
         </TestCase>
         <TestCase>
-            <tcName>/exports/home/user/twister/demo/smoke-test-twister/test02_logs.py</tcName>
+            <tcName>$HOME/twister/demo/smoke-test-twister/test02_logs.py</tcName>
             <Repeat>1</Repeat>
             <ID>d003e4d1-ad43-460c-a2f8-af7f7522ce9e</ID>
             <Dependency/>
@@ -54,7 +54,7 @@
             </Property>
         </TestCase>
         <TestCase>
-            <tcName>/exports/home/user/twister/demo/smoke-test-twister/test04_suite.py</tcName>
+            <tcName>$HOME/twister/demo/smoke-test-twister/test04_suite.py</tcName>
             <Repeat>1</Repeat>
             <ID>663cb825-a91f-412f-9e8f-b05bf61cda4a</ID>
             <Dependency/>
@@ -70,7 +70,7 @@
             </Property>
         </TestCase>
         <TestCase>
-            <tcName>/exports/home/user/twister/demo/smoke-test-twister/test05_file.py</tcName>
+            <tcName>$HOME/twister/demo/smoke-test-twister/test05_file.py</tcName>
             <Repeat>1</Repeat>
             <ID>2967074c-eecf-4ac1-a410-03ddd6d6c17c</ID>
             <Dependency/>
@@ -86,7 +86,7 @@
             </Property>
         </TestCase>
         <TestCase>
-            <tcName>/exports/home/user/twister/demo/smoke-test-twister/test06_users_and_groups.py</tcName>
+            <tcName>$HOME/twister/demo/smoke-test-twister/test06_users_and_groups.py</tcName>
             <Repeat>1</Repeat>
             <ID>64593ec8-8f22-43cb-a532-ea2a07331dd6</ID>
             <Dependency/>
@@ -102,7 +102,7 @@
             </Property>
         </TestCase>
         <TestCase>
-            <tcName>/exports/home/user/twister/demo/smoke-test-twister/test07_resources.py</tcName>
+            <tcName>$HOME/twister/demo/smoke-test-twister/test07_resources.py</tcName>
             <Repeat>1</Repeat>
             <ID>2d710077-42fb-4f03-8708-a612b1a4fc44</ID>
             <Dependency/>
@@ -118,7 +118,7 @@
             </Property>
         </TestCase>
         <TestCase>
-            <tcName>/exports/home/user/twister/demo/smoke-test-twister/test08_suts.py</tcName>
+            <tcName>$HOME/twister/demo/smoke-test-twister/test08_suts.py</tcName>
             <Repeat>1</Repeat>
             <ID>30f27346-a794-45af-a4b4-8e77de95434f</ID>
             <Dependency/>
@@ -134,7 +134,7 @@
             </Property>
         </TestCase>
         <TestCase>
-            <tcName>/exports/home/user/twister/demo/smoke-test-twister/test09_imp_exp_tb.py</tcName>
+            <tcName>$HOME/twister/demo/smoke-test-twister/test09_imp_exp_tb.py</tcName>
             <Repeat>1</Repeat>
             <ID>690122a0-de00-44fb-9843-a018104087cc</ID>
             <Dependency/>
@@ -150,7 +150,7 @@
             </Property>
         </TestCase>
         <TestCase>
-            <tcName>/exports/home/user/twister/demo/testsuite-python/test_py_config_files.py</tcName>
+            <tcName>$HOME/twister/demo/testsuite-python/test_py_config_files.py</tcName>
             <Repeat>1</Repeat>
             <ID>80f43f1e-a44a-433a-9b7f-425064c5540c</ID>
             <Dependency/>
@@ -168,7 +168,7 @@
             </Property>
         </TestCase>
         <TestCase>
-            <tcName>/exports/home/user/twister/demo/testsuite-python/test_user_interact.py</tcName>
+            <tcName>$HOME/twister/demo/testsuite-python/test_user_interact.py</tcName>
             <Repeat>1</Repeat>
             <ID>35d8a920-ff79-4542-ba37-d3001707bc9c</ID>
             <Dependency/>

@@ -8,14 +8,14 @@
     <FileType>config</FileType>
     <UseSharedDb>false</UseSharedDb>
     <SysSutPath>/opt/twister/config/sut</SysSutPath>
-    <SutPath>/exports/home/user/twister/config/sut</SutPath>
-    <TestCaseSourcePath>/exports/home/user/twister/demo</TestCaseSourcePath>
-    <LibsPath>/exports/home/user/twister/libs</LibsPath>
-    <UsersPath>/exports/home/user/twister/config/projects</UsersPath>
-    <PredefinedSuitesPath>/exports/home/user/twister/config/predefined</PredefinedSuitesPath>
-    <ArchiveLogsPath>/exports/home/user/twister/logs_archive</ArchiveLogsPath>
+    <SutPath>$HOME/twister/config/sut</SutPath>
+    <TestCaseSourcePath>$HOME/twister/demo</TestCaseSourcePath>
+    <LibsPath>$HOME/twister/libs</LibsPath>
+    <UsersPath>$HOME/twister/config/projects</UsersPath>
+    <PredefinedSuitesPath>$HOME/twister/config/predefined</PredefinedSuitesPath>
+    <ArchiveLogsPath>$HOME/twister/logs_archive</ArchiveLogsPath>
     <ArchiveLogsPathActive>false</ArchiveLogsPathActive>
-    <LogsPath>/exports/home/user/twister/logs</LogsPath>
+    <LogsPath>$HOME/twister/logs</LogsPath>
     <LogFiles>
         <logRunning>log_running.log</logRunning>
         <logDebug>log_debug.log</logDebug>
@@ -23,8 +23,8 @@
         <logTest>log_test.log</logTest>
         <logCli>CLI.log</logCli>
     </LogFiles>
-    <DbConfigFile>/exports/home/user/twister/config/db.xml</DbConfigFile>
-    <EmailConfigFile>/exports/home/user/twister/config/email.xml</EmailConfigFile>
-    <GlobalParams>/exports/home/user/twister/config/globals.xml</GlobalParams>
-    <TestConfigPath>/exports/home/user/twister/config/test_config</TestConfigPath>
+    <DbConfigFile>$HOME/twister/config/db.xml</DbConfigFile>
+    <EmailConfigFile>$HOME/twister/config/email.xml</EmailConfigFile>
+    <GlobalParams>$HOME/twister/config/globals.xml</GlobalParams>
+    <TestConfigPath>$HOME/twister/config/test_config</TestConfigPath>
 </Root>

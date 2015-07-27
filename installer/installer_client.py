@@ -1,5 +1,5 @@
 
-# version: 3.006
+# version: 3.007
 
 # File: installer.py ; This file is part of Twister.
 
@@ -247,6 +247,11 @@ os.system('find %s -name "start_client" -exec chmod +x {} \;' % INSTALL_PATH)
 # Fix FWM Config XML
 fwm = Template( open(INSTALL_PATH + 'config/fwmconfig.xml', 'r').read() )
 open(INSTALL_PATH + 'config/fwmconfig.xml', 'w').write( fwm.substitute(HOME=userHome(user_name)) )
+del fwm
+
+# Fix default project file
+fwm = Template( open(INSTALL_PATH + 'config/projects/default.xml', 'r').read() )
+open(INSTALL_PATH + 'config/projects/default.xml', 'w').write( fwm.substitute(HOME=userHome(user_name)) )
 del fwm
 
 
