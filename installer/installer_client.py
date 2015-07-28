@@ -254,6 +254,11 @@ fwm = Template( open(INSTALL_PATH + 'config/projects/default.xml', 'r').read() )
 open(INSTALL_PATH + 'config/projects/default.xml', 'w').write( fwm.substitute(HOME=userHome(user_name)) )
 del fwm
 
+# Fix default testsuites.xml file
+fwm = Template( open(INSTALL_PATH + 'config/testsuites.xml', 'r').read() )
+open(INSTALL_PATH + 'config/testsuites.xml', 'w').write( fwm.substitute(HOME=userHome(user_name)) )
+del fwm
+
 
 # Check user's encr key
 user_key = '{}config/twister.key'.format(INSTALL_PATH)

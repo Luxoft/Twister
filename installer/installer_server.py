@@ -1,5 +1,5 @@
 
-# version: 3.005
+# version: 3.006
 
 # File: installer.py ; This file is part of Twister.
 
@@ -68,15 +68,23 @@ except:
 
 print('Welcome to the Twister Installer !\n')
 
-print('Please type where you wish to install the servers.')
-print('Don\'t forget to add `twister` at the end of the path!')
-print('Leave EMPTY to install in default path `/opt/twister`:')
-selected = raw_input('Path : ')
-selected = selected.rstrip('/')
+# if --default argument is passed, we use /opt/twister as install path
+USE_DEFAULT = False
+if len(sys.argv) == 2:
+    if sys.argv[1] == '--default':
+        USE_DEFAULT = True
 
-if selected and not os.path.isdir( os.path.split(selected)[0] ):
-    print('The path to `{}` does not exist! Exiting!\n'.format(os.path.split(selected)[0]))
-    exit(1)
+selected = ''
+if not USE_DEFAULT:
+    print('Please type where you wish to install the servers.')
+    print('Don\'t forget to add `twister` at the end of the path!')
+    print('Leave EMPTY to install in default path `/opt/twister`:')
+    selected = raw_input('Path : ')
+    selected = selected.rstrip('/')
+
+    if selected and not os.path.isdir( os.path.split(selected)[0] ):
+        print('The path to `{}` does not exist! Exiting!\n'.format(os.path.split(selected)[0]))
+        exit(1)
 
 # Twister server path
 if selected:
@@ -91,12 +99,13 @@ if os.path.exists(INSTALL_PATH):
     print('If you continue, all files from that folder will be PERMANENTLY DELETED!!')
     print('If you created custom libs (in lib/ folder) and plugins (in plugin/ folder),')
     print('you should make a back-up, then restart the installer.')
-    selected = raw_input('Are you sure you want to continue? (yes/no): ')
+    if not USE_DEFAULT:
+        selected = raw_input('Are you sure you want to continue? (yes/no): ')
 
-    if selected.strip().lower() not in ['y', 'yes']:
-        print('\nPlease backup your data, then restart the installer.')
-        print('Exiting.\n')
-        exit(0)
+        if selected.strip().lower() not in ['y', 'yes']:
+            print('\nPlease backup your data, then restart the installer.')
+            print('Exiting.\n')
+            exit(0)
 
 # Backup CONFIG folder for server
 cfg_path = INSTALL_PATH + 'config/'
