@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
 
-# if the machine is behind a proxy server, the http_proxy and https_proxy must be set
+# if the machine is behind a proxy server, the http_proxy and https_proxy
+# must be set
 # replace username, password, proxy_server and proxy_port with valid ones
-export http_proxy="http://<username>:<password>@<proxy_server>:<proxy_port>/"
-export https_proxy="http://<username>:<password>@<proxy_server>:<proxy_port>/"
+# and comment out the following couple of lines
+# export http_proxy="http://<username>:<password>@<proxy_server>:<proxy_port>/"
+# export https_proxy="http://<username>:<password>@<proxy_server>:<proxy_port>/"
 
 
 # install git and a few dependencies

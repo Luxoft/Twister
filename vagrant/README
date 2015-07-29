@@ -1,6 +1,7 @@
 1. Download and install vagrant from https://www.vagrantup.com/
 2. Create a directory and copy the files Vagrantfile and twister.sh into 
-that directory
+that directory; if you are behind a proxy server, edit twister.sh to
+set the username, password and proxy server
 3. Run 'vagrant up'
 4. Once vagrant is up, open browser on host machine and go to
 http://127.0.0.1:8080
