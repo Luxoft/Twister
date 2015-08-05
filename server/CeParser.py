@@ -1,12 +1,12 @@
 
 # File: CeParser.py ; This file is part of Twister.
 
-# version: 3.017
+# version: 3.018
 
 # Copyright (C) 2012-2014 , Luxoft
 
 # Authors:
-#    Andreea Proca <aproca@luxoft.com>
+#    Mihai Dobre <mihdobre@luxoft.com>
 #    Andrei Costachi <acostachi@luxoft.com>
 #    Cristi Constantin <crconstantin@luxoft.com>
 
@@ -326,7 +326,7 @@ class CeXmlParser(object):
                 new_prop_value.text = value
 
 
-    def _expand_global_configs(self, user, xml):
+    def _expand_global_configs(self, user, xml, config_list=[]):
         """
         @param:
             user: the twister authenticated user
@@ -364,20 +364,20 @@ class CeXmlParser(object):
                 else:
                     value = str(item)
                 self._add_property(newSuite, value, inherited_val)
-                self._expand_global_configs(user, newSuite)
-                self._expand_tc_configs(user, newSuite)
+                self._expand_global_configs(user, newSuite, config_list+copy.deepcopy(config_info))
+                self._expand_tc_configs(user, newSuite, config_list+copy.deepcopy(config_info))
             if len(cartesian_list) == 0:
                 remove = False
                 if inherited_val:
                     self._add_property(suite, inherited_val)
-                self._expand_global_configs(user, suite)
-                self._expand_tc_configs(user, suite)
+                self._expand_global_configs(user, suite, config_list+copy.deepcopy(config_info))
+                self._expand_tc_configs(user, suite, config_list+copy.deepcopy(config_info))
             # if the suite has iterators, remove the one that is being duplicated
             if remove:
                 xml.remove(suite)
 
 
-    def _expand_tc_configs(self, user, suite):
+    def _expand_tc_configs(self, user, suite, config_list):
         """
         @param: 
             user: the authenticated twister user
@@ -392,6 +392,13 @@ class CeXmlParser(object):
             cfg_prop = tc.find('ConfigFiles')
             config_info = cfg_prop.findall('Config')
             cartesian_list = self._get_cartesian_list(user, config_info)
+            cfg_names = []
+            for elem in config_list:
+                new_cfg_name = elem.get('name')
+                cfg_names = [cfg.get('name') for cfg in cfg_prop.findall('Config')]
+                if new_cfg_name not in cfg_names:
+                    cfg_prop.insert(-1,copy.deepcopy(elem))
+
             logDebug("CeParser: Will iterate test case `{}`, {} times, from values: {}, user `{}`."\
                      .format(tc_name, len(cartesian_list), cartesian_list, user))
 

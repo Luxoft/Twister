@@ -1,7 +1,7 @@
 
 # File: CeRpyc.py ; This file is part of Twister.
 
-# version: 3.034
+# version: 3.035
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -247,7 +247,7 @@ class CeRpycService(rpyc.Service):
         """
         Used by a Client for setting a name and other props.
         """
-        logFull('CeRpyc:exposed_hello')
+        logFull("CeRpyc:exposed_hello extra '{}'".format(extra))
         str_addr = self._get_addr()
         extra = dict(extra)
         extra.update({'hello': str(hello)})
@@ -798,6 +798,12 @@ class CeRpycService(rpyc.Service):
         else:
             eps = sorted(set(eps))
 
+        # if there is no EP registered for user, we have to reset the project
+        # for user
+        if self.project.users[user].get('eps') is None or \
+        len(self.project.users[user]['eps']) == 0:
+            self.project.reset_project(user)
+
         logDebug('Begin to register EPs: {} ...'.format(eps))
 
         try:
@@ -844,7 +850,6 @@ class CeRpycService(rpyc.Service):
 
         logInfo('Registered client manager for user `{}`\n\t-> Client from `{}` ++ {}.'.format(user, str_addr, eps))
         return True
-
 
     def unregister_eps(self, eps=[]):
         """
