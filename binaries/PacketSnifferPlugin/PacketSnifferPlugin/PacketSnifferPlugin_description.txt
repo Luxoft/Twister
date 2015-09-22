@@ -1,0 +1,2 @@
+Packet Sniffer is a Twister plugin that captures 
+network packets and list them to users.

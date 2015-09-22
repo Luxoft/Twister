@@ -49,6 +49,8 @@ cp /home/vagrant/Twister-git_hub_branch/binaries/JiraPlugin/Jira /opt/twister/pl
 cp /home/vagrant/Twister-git_hub_branch/binaries/SchedulerPlugin/Scheduler /opt/twister/plugins
 # Svn plugin
 cp /home/vagrant/Twister-git_hub_branch/binaries/SvnPlugin/Svn /opt/twister/plugins
+# PacketSniffer plugin
+cp /home/vagrant/Twister-git_hub_branch/binaries/PacketSnifferPlugin/PacketSnifferPlugin
 
 # start the server
 cd /opt/twister/bin
