@@ -1,7 +1,7 @@
 
 # File: CeParser.py ; This file is part of Twister.
 
-# version: 3.018
+# version: 3.019
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -75,20 +75,30 @@ class CeXmlParser(object):
         for sut_name in suite.findall('.//SutName'):
             sut_name.text = sut
 
-        # delete tc if running = false
-        for prop in suite.findall(".//Property"):
-            if prop.find('propName').text == 'Running' and\
-            prop.find('propValue').text == 'false':
-                grand_parent = (prop.getparent()).getparent()
-                grand_parent.remove(prop.getparent())
+        return True
 
-        # delete empty sub-suites from this suite
-        for suite in suite.xpath('//TestSuite'):
-            if suite.find('TestSuite') is None and\
-            suite.find('TestCase') is None:
-                suite_parent = suite.getparent()
-                suite_parent.remove(suite)
 
+    def _remove_empty_suites_tc(self, root):
+        """
+        Removes all the empty suites and tcs that have running = False
+        """
+        suites = root.findall('TestSuite')
+        for suite in suites:
+            # delete tc if running = false
+            for prop in suite.findall(".//Property"):
+                if prop.find('propName').text == 'Running' and prop.find('propValue').text == 'false':
+                    grand_parent = (prop.getparent()).getparent()
+                    grand_parent.remove(prop.getparent())
+
+            # delete empty sub-suites from this suite
+            for s in suite.xpath('//TestSuite'):
+                if s.find('TestSuite') is None and s.find('TestCase') is None:
+                    suite_parent = s.getparent()
+                    suite_parent.remove(s)
+
+            # delete the suite if it remains empty
+            if suite.find('TestSuite') is None and suite.find('TestCase') is None:
+                root.remove(suite)
         return True
 
 
@@ -552,6 +562,8 @@ class CeXmlParser(object):
         self._change_ids(xml, repeated_dict)
 
         self._resolve_dependencies(xml, repeated_dict)
+        
+        self._remove_empty_suites_tc(xml)
 
         for suite in xml.findall('.//TestSuite'):
             prop = suite.find('Property')

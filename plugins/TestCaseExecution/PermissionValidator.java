@@ -1,6 +1,6 @@
 /*
 File: PermissionValidator.java ; This file is part of Twister.
-Version: 2.008
+Version: 2.009
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -23,7 +23,8 @@ public class PermissionValidator{
     private static String [] permissions;
     private static boolean crete_project,change_project,delete_project,change_fwm_cfg,
                            change_globals,run_tests,edit_tc,change_db_cfg,change_email,
-                           changes_services,view_reports,change_plugins,change_sut,change_tb,lock_tb,lock_sut;
+                           changes_services,view_reports,change_plugins,change_sut,change_tb,
+                           lock_tb,lock_sut,restart_ce;
     
     public static void init(String permissions){
         try{String str[] = permissions.split(",");
@@ -32,6 +33,7 @@ public class PermissionValidator{
         } catch (Exception e){
             e.printStackTrace();
         }
+        restart_ce = getPermission("RESTART_SERVER");
         lock_sut = getPermission("LOCK_SUT");
         change_plugins = getPermission("CHANGE_PLUGINS");
         lock_tb = getPermission("LOCK_TESTBED");
@@ -57,6 +59,10 @@ public class PermissionValidator{
         } catch (Exception e){
             return false;
         }
+    }
+    
+    public static boolean canRestartCE(){
+        return restart_ce;
     }
     
     public static boolean canCreateProject(){

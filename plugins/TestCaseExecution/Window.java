@@ -1,6 +1,6 @@
 /*
 File: Window.java ; This file is part of Twister.
-Version: 2.009
+Version: 2.010
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -51,7 +51,7 @@ public class Window extends JFrame{
     private static final long serialVersionUID = 1L;
     Container container;
     JPanel appletpanel;
-    public JButton logout, controlpanel;
+    public JButton logout, controlpanel, restartCE;
     
     /*
      * applet - true if starts from applet, false otherwie
@@ -64,6 +64,28 @@ public class Window extends JFrame{
         RunnerRepository.introscreen.setStatus("Started Frame initialization");
         RunnerRepository.introscreen.addPercent(0.035);
         RunnerRepository.introscreen.repaint();
+        
+        
+        restartCE = new JButton("Restart Server");
+        restartCE.setBounds(710,3,150,20);
+        restartCE.addActionListener(new ActionListener(){
+            public void actionPerformed(ActionEvent ev){
+                if(!mainpanel.p2.restarted){
+                    try{
+                        String respons = RunnerRepository.getRPCClient().execute("admin_restart", new Object[]{}).toString();
+                        if(respons.indexOf("*ERROR*")!=-1){
+                            CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE, 
+                                                  Window.this, "ERROR", 
+                                                  respons);
+                        }   
+                    } catch(Exception e){
+                        e.printStackTrace();
+                    }
+                }
+            }
+        });
+        
+        
         
         logout = new JButton("Logout");
         logout.setBounds(500,3,100,20);
@@ -81,7 +103,11 @@ public class Window extends JFrame{
         });
         
         
+        
+        
+        
         mainpanel = new MainPanel(applet);
+        
         if(container!=null){
             appletpanel = new JPanel();
             Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
@@ -90,14 +116,19 @@ public class Window extends JFrame{
             appletpanel.setLayout(null);
             appletpanel.add(logout);
             appletpanel.add(controlpanel);
+            if(PermissionValidator.canRestartCE()){
+                appletpanel.add(restartCE);   
+            }
             appletpanel.add(mainpanel);
             container.removeAll();
             container.setLayout(null);
             container.add(appletpanel);
         }
         else{
-            
             setLayout(null);
+            if(PermissionValidator.canRestartCE()){
+                add(restartCE);                 
+            }
             add(logout);
             add(controlpanel);
             add(mainpanel);
@@ -148,7 +179,6 @@ public class Window extends JFrame{
         RunnerRepository.introscreen.setStatus("Starting applet");
         RunnerRepository.introscreen.addPercent(1);
         RunnerRepository.introscreen.repaint();
-//         RunnerRepository.introscreen.dispose();
     }
     
     /*

@@ -1,6 +1,6 @@
 # File: CeTestBeds.py ; This file is part of Twister.
 
-# version: 3.004
+# version: 3.005
 
 # Copyright (C) 2012-2014, Luxoft
 
@@ -50,7 +50,7 @@ from common.tsclogging import logFull, logDebug, logWarning, logError
 #from common.helpers import user_info
 from server.CeCommonAllocator import CommonAllocator
 
-CONSTANT_DICTIONARY = {'version': 0, 'name': '/', 'path' : [], 'meta': {}, 'children': {}}
+CONSTANT_DICTIONARY = {'version': 0, 'name': '/', 'id':"", 'path' : [], 'meta': {}, 'children': {}}
 
 
 def xml_to_res(xml, gparams, skip_header=False):
@@ -66,12 +66,12 @@ def xml_to_res(xml, gparams, skip_header=False):
         for folder in xml.findall('folder'):
             tb_path = folder.find('path')
             if tb_path is not None:
-                c_nd = {'path':[], 'meta': {}, 'id': '', 'children': {}}
+                c_nd = {'path':[], 'meta': {}, 'id': "", 'children': {}}
                 tb_path_text = tb_path.text
                 tb_path_list = [q for q in tb_path_text.split('/') if q]
                 c_nd['path'].extend(tb_path_list)
             else:
-                c_nd = {'meta': {}, 'id': '', 'children': {}}
+                c_nd = {'meta': {}, 'id': "", 'children': {}}
 
             # Populate META properties
             meta = folder.find('meta')
@@ -103,7 +103,7 @@ def xml_to_res(xml, gparams, skip_header=False):
     # we have to get the information at root level(path, meta, id, version) first
     # version is added only if it exists in xml;
     if not skip_header:
-        root_dict = {'path':[], 'meta':{}, 'id':'', 'children':{}}
+        root_dict = {'path':[], 'meta':{}, 'id':"", 'children':{}}
         tb_path_text = xml.find('path').text
         if tb_path_text:
             tb_path = [q for q in tb_path_text.split('/') if q]
@@ -116,7 +116,10 @@ def xml_to_res(xml, gparams, skip_header=False):
                 root_dict['meta'][key] = val
             else:
                 root_dict['meta'][key] = ''
-        root_dict['id'] = xml.find('id').text
+        id_value = xml.find('id').text
+        if id_value is None:
+            id_value = ""
+        root_dict['id'] = id_value
         if xml.find('version') is not None and xml.find('version').text is not None:
             root_dict['version'] = int(xml.find('version').text)
         #else:

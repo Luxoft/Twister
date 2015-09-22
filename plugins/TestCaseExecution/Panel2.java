@@ -1,6 +1,6 @@
 /*
 File: Panel2.java ; This file is part of Twister.
-Version: 3.008
+Version: 3.011
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -44,6 +44,7 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import javax.swing.JTextField;
 import java.awt.BorderLayout;
+import javax.swing.JComboBox;
 
 
 public class Panel2 extends JPanel{
@@ -60,6 +61,7 @@ public class Panel2 extends JPanel{
     private boolean first = true;
     private String savedb;
     private HashMap<String,JDialog> interactionid = new HashMap();
+    public boolean restarted = false;//boolean used to prevent restarting popup multiple times
 
     public Panel2(final boolean applet){
         RunnerRepository.introscreen.setStatus("Started Monitoring interface initialization");
@@ -121,6 +123,7 @@ public class Panel2 extends JPanel{
             String user = "   Started by: "+result.split(";")[3];
             result = result.split(";")[0];
             if(result.equals("paused")){
+                restarted = false;
                 RunnerRepository.window.mainpanel.p1.setGenerate(false);
                 cestatus.setText("CE status: paused"+startedtime+elapsedtime+user);
                 cleared=false;
@@ -132,6 +135,7 @@ public class Panel2 extends JPanel{
                 }
             }
             else if(result.equals("stopped")){
+                restarted = false;                
                 if(first){
                     while(!RunnerRepository.initialized){
                         try{Thread.sleep(1000);}
@@ -165,6 +169,7 @@ public class Panel2 extends JPanel{
                 }
                 stoppushed = false;}
             else if(result.equals("running")){
+                restarted = false;                
                 if(first){
                     while(!RunnerRepository.initialized){
                         try{Thread.sleep(1000);}
@@ -203,6 +208,11 @@ public class Panel2 extends JPanel{
                 cleared=false;
                 play.setText("Pause");
                 play.setIcon(new ImageIcon(RunnerRepository.pauseicon));
+            } else if(result.equals("restart")){
+                if(!restarted){
+                    CustomDialog.showInfo(JOptionPane.WARNING_MESSAGE,tabbed,"WARNING", "Server is being restarted, please log out and login to reflect changes!");
+                    restarted = true;
+                }
             }
             if(!play.isEnabled()){
                 play.setEnabled(true);
@@ -314,35 +324,72 @@ public class Panel2 extends JPanel{
             
     private void displayOptions(final String ep, String message,final String [] buttons,final String id){
         //remove last element which is default
-        JButton options[] = new JButton [buttons.length-2];
-        for(int i=0;i<options.length;i++){
-            options[i] = new JButton(buttons[i]);
+//         JButton options[] = new JButton [buttons.length-2];
+        String [] selections = new String[buttons.length-1];
+        for(int i=0;i<selections.length;i++){
+            selections[i] = buttons[i];
         }
+        final JComboBox combo = new JComboBox(selections);
+        JPanel panel = new JPanel();
+        panel.add(combo);
+        JButton ok = new JButton("Select");
+        panel.add(ok);
         
-        final JDialog dialog = CustomDialog.getDialog(message, options,
+        
+//         int resp = (Integer)CustomDialog.showDialog(panel,JOptionPane.PLAIN_MESSAGE,
+//                                                         JOptionPane.OK_CANCEL_OPTION, 
+//                                                         RunnerRepository.window, ep+" interact",
+//                                                         null);
+//         if(resp == JOptionPane.OK_OPTION){
+//             respondToInteraction(combo.getSelectedItem().toString(),ep, id);
+//         }
+        
+        
+//         final JDialog dialog = CustomDialog.getDialog(message, options,
+//                                                     JOptionPane.PLAIN_MESSAGE,
+//                                                     JOptionPane.OK_CANCEL_OPTION,
+//                                                     null,//RunnerRepository.window
+//                                                     ep+" interact", null);
+                                                    
+        final JDialog dialog = CustomDialog.getDialog(message, new Object[]{panel},
                                                     JOptionPane.PLAIN_MESSAGE,
                                                     JOptionPane.OK_CANCEL_OPTION,
                                                     null,//RunnerRepository.window
                                                     ep+" interact", null);
-        
-        
-        for(final JButton but:options){
-            but.addActionListener(new ActionListener() {
-              @Override
-              public void actionPerformed(ActionEvent arg0) {
-              java.awt.EventQueue.invokeLater(new Runnable() {
-                public void run() {
-                      dialog.dispose();
-                    }
-                });
-              respondToInteraction(but.getText(),ep, id);
-              }
+                                                    
+                                                    
+                                                    
+        ok.addActionListener(new ActionListener() {
+          @Override
+          public void actionPerformed(ActionEvent arg0) {
+          java.awt.EventQueue.invokeLater(new Runnable() {
+            public void run() {
+                  dialog.dispose();
+                }
             });
-        }
+          respondToInteraction(combo.getSelectedItem().toString(),ep, id);
+          }
+        });
+        
+        
+//         for(final JButton but:options){
+//             but.addActionListener(new ActionListener() {
+//               @Override
+//               public void actionPerformed(ActionEvent arg0) {
+//               java.awt.EventQueue.invokeLater(new Runnable() {
+//                 public void run() {
+//                       dialog.dispose();
+//                     }
+//                 });
+//               respondToInteraction(but.getText(),ep, id);
+//               }
+//             });
+//         }
         
         dialog.addWindowListener(new WindowAdapter(){
-          public void windowClosing(WindowEvent e){
-              respondToInteraction(buttons[buttons.length-1],ep,id);
+          public void windowClosing(WindowEvent e){            
+//              respondToInteraction(buttons[buttons.length-1],ep,id);
+              respondToInteraction(combo.getSelectedItem().toString(),ep,id);
            }
         });
         interactionid.put(id, dialog);

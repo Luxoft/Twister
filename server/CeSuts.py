@@ -1,7 +1,7 @@
 
 # File: CeSuts.py ; This file is part of Twister.
 
-# version: 3.012
+# version: 3.013
 
 # Copyright (C) 2012-2014, Luxoft
 
@@ -1490,6 +1490,25 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
             # Both reserved and locked ?
             else:
                 result.append({'name': s_sut, 'status': 'reserved', 'user': ruser})
+        
+        suts_on_disk = [s['name'] for s in result]
+
+        # if the status of the CE is stopped for the current user
+        # update the CE memory; check for consistency
+        status = self.project.users[user]['status']
+        if status == 0:
+            suts_in_memory = self.resources['children'].keys()
+            for sut in suts_in_memory:
+                if sut not in suts_on_disk:
+                    id = self.resources['children'][sut].get('id')
+                    if user in self.reservedResources and id in self.reservedResources[user]:
+                        logDebug('Removed sut `{}` from reserved resources.'.format(sut))
+                        self.reservedResources[user].pop(id)
+                    if user in self.lockedResources and id in self.lockedResources[user]:
+                        logDebug('Removed sut `{}` from locked resources.'.format(sut))
+                        self.lockedResources[user].pop(id)
+                    logDebug('Removed sut `{}` from memory.'.format(sut))
+                    self.resources['children'].pop(sut)
 
         logDebug('User {}: Fast listing SUTs... Found {}.'.format(user, suts))
 
@@ -1826,6 +1845,50 @@ class Suts(_cptools.XMLRPCController, CommonAllocator):
         Delete entry from reservedResources.
         """
         return self.discard_release_reserved_resource(res_query, props)
+
+
+    @cherrypy.expose
+    def consistency_check_suts(self, user):
+        """
+        Makes a diff between the content of the self.resources dictionary and what is on the disk.
+        If a sut is in dictionary and is not on the disk anymore, then it is deleted form the self.resources.
+        If a new sut is on the disk, it is loaded in memory.
+        """
+        def get_disk_sut_names(suts_on_disk):
+            sut_names = []
+            for sut_d in suts_on_disk:
+                sut_names.append(sut_d['name'])
+            return sut_names
+        
+        # listing all suts
+        result = self.list_all_suts(user)
+
+        suts_on_disk = get_disk_sut_names(result)
+
+        # if the status of the CE is stopped for the current user
+        # update the CE memory
+        status = self.project.users[user]['status']
+        if status == 0:
+            suts_in_memory = self.resources['children'].keys()
+            for sut in suts_in_memory:
+                if sut not in suts_on_disk:
+                    id = self.resources['children'][sut].get('id')
+                    if user in self.reservedResources and id in self.reservedResources[user]:
+                        logDebug('Removed sut `{}` from reserved resources.'.format(sut))
+                        self.reservedResources[user].pop(id)
+                    else:
+                        logDebug('Sut `{}` cannot be removed from the reserved resources.'.format(sut))
+                        continue
+                    if user in self.lockedResources and id in self.lockedResources[user]:
+                        logDebug('Removed sut `{}` from locked resources.'.format(sut))
+                        self.lockedResources[user].pop(id)
+                    else:
+                        logDebug('Sut `{}` cannot be removed from the locked resources.'.format(sut))
+                        continue
+                    logDebug('Removed sut `{}` from memory.'.format(sut))
+                    self.resources['children'].pop(sut)
+
+        return result
 
 
 # Eof()

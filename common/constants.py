@@ -1,5 +1,5 @@
 
-# version: 3.007
+# version: 3.008
 
 # Major list of constants.
 
@@ -11,6 +11,7 @@ STATUS_RUNNING = 2 # The suite is running
 STATUS_RESUME  = 3 # Continue the paused tests
 STATUS_INTERACT = 4 # Execution is paused, waiting for the user interaction
 STATUS_INVALID = 8 # Invalid status
+STATUS_RESTART = 5 # Restarting central engine
 
 # Test statuses :
 
@@ -49,12 +50,13 @@ ROLES = [
 	'CHANGE_USERS',		# Can create, change and delete users ? (server + applet)
 	'LOCK_TESTBED',		# Can lock testbed
 	'LOCK_SUT',			# Can lock sut
+	'RESTART_SERVER'	# Can restart the central engine
 ]
 
 # Status translations :
 
 EXEC_STATUS = {'stopped':STATUS_STOP, 'paused':STATUS_PAUSED, 'running':STATUS_RUNNING, 'resume':STATUS_RESUME,
-	'invalid':STATUS_INVALID, 'interact': STATUS_INTERACT}
+	'invalid':STATUS_INVALID, 'interact': STATUS_INTERACT, 'restart': STATUS_RESTART}
 
 testStatus = {'pending':STATUS_PENDING, 'working':STATUS_WORKING, 'pass':STATUS_PASS, 'fail':STATUS_FAIL,
 	'skipped':STATUS_SKIPPED, 'aborted':STATUS_ABORTED, 'not executed':STATUS_NOT_EXEC, 'timeout':STATUS_TIMEOUT,

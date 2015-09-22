@@ -1,6 +1,6 @@
 /*
 File: Plugins.java ; This file is part of Twister.
-Version: 2.014
+Version: 2.015
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -70,6 +70,8 @@ import javax.xml.transform.Transformer;
 import javax.xml.transform.OutputKeys;
 import java.io.FileInputStream;
 import com.twister.Item;
+import javax.swing.JOptionPane;
+import com.twister.CustomDialog;
 
 /*
  * plugins panel displayed
@@ -699,6 +701,16 @@ public class Plugins extends JPanel{
      */
     public void pluginClicked(final MyCheck check){
         String pluginname = check.getName();
+        try{
+            System.out.println("Notifying CE that "+pluginname.replace(".jar", "")+" is in a "+check.isSelected()+" state");
+            String result = RunnerRepository.getRPCClient().execute("start_stop_plugin", new Object[]{RunnerRepository.user,
+                                                                         pluginname.replace(".jar", ""),check.isSelected()}).toString();
+            if(result.indexOf("*ERROR*")!=-1){
+                CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,RunnerRepository.window,"ERROR", result);
+            }
+        } catch (Exception e){
+                e.printStackTrace();  
+        }
         if(pluginname.equals("ClearCase")){
             clearcase = check.isSelected();
             if(clearcase){

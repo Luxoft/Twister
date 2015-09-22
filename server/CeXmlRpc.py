@@ -1,7 +1,7 @@
 
 # File: CeXmlRpc.py ; This file is part of Twister.
 
-# version: 3.020
+# version: 3.024
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -60,7 +60,7 @@ if TWISTER_PATH not in sys.path:
     sys.path.append(TWISTER_PATH)
 
 
-from common.constants  import STATUS_RUNNING, EXEC_STATUS, STATUS_STOP
+from common.constants  import STATUS_RUNNING, EXEC_STATUS, STATUS_STOP, STATUS_RESTART
 from common.helpers    import systemInfo, userHome, execScript
 from common.helpers    import setFileOwner, getFileTags
 from common.tsclogging import logFull, logWarning, logError, logDebug, logInfo
@@ -77,6 +77,12 @@ class CeXmlRpc(_cptools.XMLRPCController):
     def __init__(self, proj):
 
         self.project = proj
+
+
+    def __del__(self):
+        """
+        """
+        pass
 
 
     @cherrypy.expose
@@ -105,6 +111,41 @@ class CeXmlRpc(_cptools.XMLRPCController):
         if msg != 'ping':
             logInfo(':: %s' % str(msg))
         return 'CE reply: ' + msg
+
+
+    @cherrypy.expose
+    def admin_restart(self):
+        """
+        Restars the CE.
+        """
+        # check for user rights
+        user = cherrypy.session.get('username')
+        user_roles = self.project.authenticate(user)
+        if not user_roles:
+            return False
+        if 'RESTART_SERVER' not in user_roles['roles']:
+            msg = 'You don\'t have the permissions to restart the central engine!'
+            return '*ERROR* ' + msg
+
+        # check if the central engine is in running mode
+        statuses = self.project.users
+        sum = 0
+        for u in statuses:
+            sum += statuses[u]['status']
+        if sum != 0:
+            msg = 'There are users running tests. Server CANNOT be restarted !'
+            logWarning(msg)
+            return '*ERROR* ' + msg
+
+        emptyrow = '#'+42*' '+'#\n'
+        filledrow = '############################################\n'
+        logInfo('\n'+filledrow+emptyrow+'#    User {} - Restarting CE!    #\n'.format(user)+emptyrow+filledrow[:-1])
+        statuses = self.project.users
+        for u in statuses:
+            self.project.set_exec_status_all(u, STATUS_RESTART, msg='Restarting server!')
+        time.sleep(5)
+        sys.exit()
+        return True
 
 
     @cherrypy.expose
@@ -296,14 +337,14 @@ class CeXmlRpc(_cptools.XMLRPCController):
 
 
     @cherrypy.expose
-    def read_file(self, fpath, flag='r', fstart=0, type='fs'):
+    def read_file(self, fpath, flag='r', fstart=0, f_type='fs'):
         """
         Read a file from TWISTER PATH, user's home folder, or ClearCase.
         Flag r/ rb = ascii/ binary.
         """
         user = cherrypy.session.get('username')
         logDebug('GUI ReadFile: user {}; flag {}; path {}; start {}; {}'.format(user, flag, fpath, fstart, type))
-        resp = self.project.read_file(user, fpath, flag, fstart, type)
+        resp = self.project.read_file(user, fpath, flag, fstart, f_type)
         if resp.startswith('*ERROR*'):
             logWarning(resp)
         return binascii.b2a_base64(resp)
@@ -1471,6 +1512,50 @@ class CeXmlRpc(_cptools.XMLRPCController):
             return 'Error on running plugin `{}` - Exception: `{}`!'.format(plugin, exp_err)
 
 
+    def _start_plugin(self, user, plugin):
+        """
+        Starts a plugin.
+        For future use.
+        """
+        logDebug('Starting `{}` plugin for user `{}`.'.format(plugin, user))
+        return True
+
+
+    def _stop_plugin(self, user, plugin):
+        """
+        Stops a started plugin.
+        """
+        logDebug('Stopping plugin `{}` for user `{}`.'.format(plugin, user))
+
+        plugin_p = self.project._pop_plugin(user, plugin)
+
+        if not plugin_p:
+            msg = 'Plugin `{}` does not exist for user `{}`!'.format(plugin, user)
+            logWarning(msg)
+            return True
+
+        try:
+            del plugin_p
+        except Exception as exp_err:
+            trace = traceback.format_exc()[34:].strip()
+            logError('*ERROR* Plugin `{}`raised Exception: `{}`!'.format(plugin, trace))
+            return 'Error on stopping plugin `{}` - Exception: `{}`!'.format(plugin, exp_err)
+
+        return True
+
+
+
+    @cherrypy.expose
+    def start_stop_plugin(self, user, plugin, checked):
+        """
+        Starts or stops a plugin.
+        """
+        if checked:
+            return self._start_plugin(user, plugin)
+        else:
+            return self._stop_plugin(user, plugin)
+
+
     @cherrypy.expose
     def get_libraries_list(self, user='', all=True):
         """
@@ -1503,7 +1588,7 @@ class CeXmlRpc(_cptools.XMLRPCController):
         if user_roles and cc_cfg:
             view = cc_cfg['view']
             actv = cc_cfg['actv']
-            text = self.project.read_file(user, fname, type='clearcase:' + view)
+            text = self.project.read_file(user, fname, f_type='clearcase:' + view)
             tags = re.findall('^[ ]*?[#]*?[ ]*?<(?P<tag>\w+)>([ -~\n]+?)</(?P=tag)>', text, re.MULTILINE)
             result = '<br>\n'.join(['<b>' + title + '</b> : ' + descr.replace('<', '&lt;') for title, descr in tags])
             # Hack `cleartool ls` data

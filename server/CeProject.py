@@ -1,7 +1,7 @@
 
 # File: CeProject.py ; This file is part of Twister.
 
-# version: 3.083
+# version: 3.085
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -1299,7 +1299,7 @@ class Project(object):
         """
         # Auto detect if ClearCase Test Config Path is active
         cc_config = self.get_clearcase_config(user, 'projects_path')
-        if cc_config:
+        if cc_config and fpath != 'last_edited.xml':
             view = cc_config['view']
             actv = cc_config['actv']
             path = cc_config['path'].rstrip('/')
@@ -3029,6 +3029,13 @@ class Project(object):
         if not res:
             return False
         return self.dbmgr.save_to_database(user)
+
+
+    def _pop_plugin(self, user, plugin):
+        """
+        Returns the instance of a plugin.
+        """
+        return self.plugins.pop(user + ' ' + plugin, None)
 
 
     def _build_plugin(self, user, plugin, extra_data={}):

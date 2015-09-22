@@ -1,7 +1,7 @@
 
 # File: CeFs.py ; This file is part of Twister.
 
-# version: 3.025
+# version: 3.026
 
 # Copyright (C) 2012-2014, Luxoft
 
@@ -36,6 +36,7 @@ from plumbum import local
 import rpyc
 import pwd
 import grp
+import signal
 
 socket.setdefaulttimeout(3)
 
@@ -61,6 +62,37 @@ class BaseFS(object):
         This method is overwritten by the child classes
         """
         pass
+
+
+    def __del__(self):
+        """
+        Kill all services for a user.
+        """
+        logInfo('Killing all services for the current CE.')
+        for user in self._services:
+            proc = self._services[user]['proc']
+            read_conn = self._services[user]['conn_read']
+            write_conn = self._services[user]['conn_write']
+            try:
+                read_conn.close()
+            except Exception as err:
+                logError('Cannot close connection: `{}`, exception `{}`!'.format(read_conn, err))
+            try:
+                write_conn.close()
+            except Exception as err:
+                logError('Cannot close connection: `{}`, exception `{}`!'.format(write_conn, err))
+            try:
+                proc.terminate()
+            except Exception as err:
+                logError('Cannot stop service: `{}`, exception `{}`!'.format(proc, err))
+            try:
+                time.sleep(0.1)
+                os.killpg(proc.pid, signal.SIGTERM)
+                time.sleep(0.1)
+                proc.kill()
+            except:
+                pass
+
 
     def _kill(self, user):
         """

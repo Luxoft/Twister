@@ -91,14 +91,6 @@ print 'File index in the project:', current_file_index()
 print 'Files in This suite:', count_suite_files()
 print 'File index in the suite:', current_fsuite_index()
 
-print
-print d.ra_proxy1, '==', PROXY, d.ra_proxy1 == PROXY
-assert d.ra_proxy1 == PROXY, 'Central Engine connection does not match!'
-
-print
-print d.ra_proxy2, '==', PROXY, d.ra_proxy2 == PROXY
-assert d.ra_proxy2 == PROXY, 'Central Engine connection does not match!'
-
 log_msg('logRunning', 'Finished lib test. Everything OK.\n')
 
 # ---------------------------------------------------------------------------- #

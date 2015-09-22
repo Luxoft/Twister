@@ -1,6 +1,6 @@
 #!/usr/bin/env python2.7
 
-# version: 3.008
+# version: 3.011
 
 # File: CentralEngine.py ; This file is part of Twister.
 
@@ -38,6 +38,7 @@ cherrypy.log.error_log.setLevel(10)
 
 import os
 import sys
+import time
 import thread
 from rpyc.utils.server import ThreadPoolServer
 
@@ -100,42 +101,6 @@ if __name__ == "__main__":
         'allow_all_attrs': True,
         }
 
-    # Diff RPyc port
-    RPYC_PORT = SERVER_PORT + 10
-    try:
-        RPYC_SERVER = ThreadPoolServer(CeRpycService, port=RPYC_PORT, protocol_config=CONFIG)
-        RPYC_SERVER.logger.setLevel(30)
-    except Exception:
-        logCritical('Twister Server: Cannot launch the RPyc server on port `{}`!'.format(RPYC_PORT))
-        exit(1)
-
-    # Project manager does everything
-    PROJ = Project()
-    PROJ.rsrv = RPYC_SERVER
-    # CE is the XML-RPC interface
-    CE = CeXmlRpc(PROJ)
-
-    def close():
-        """ Close server. """
-        RPYC_SERVER.close()
-        del PROJ.manager
-
-    PROJ.ip_port = ('127.0.0.1', SERVER_PORT)
-    CE.web = PROJ.web
-    CE.tb = PROJ.testbeds
-    CE.sut = PROJ.sut
-    CE.report = PROJ.report
-
-    # EE Manager is the helper for EPs and Clients
-    # Inject the project as variable for EE
-    RPYC_SERVER.service.inject_object('project', PROJ)
-    RPYC_SERVER.service.inject_object('cherry', CE)
-
-    # Start rpyc server
-    thread.start_new_thread(RPYC_SERVER.start, ())
-    logInfo('RPYC Serving on 0.0.0.0:{}'.format(RPYC_PORT))
-
-
     # CherryPy config
     CONF = {
         'global': {
@@ -148,7 +113,7 @@ if __name__ == "__main__":
             'tools.sessions.timeout': 60*24*365,
             'tools.auth_basic.on': True,
             'tools.auth_basic.realm': 'Twister Server',
-            'tools.auth_basic.checkpassword': Project.check_passwd,
+            'tools.auth_basic.checkpassword': Project.check_passwd
         },
         '/static': {
             'tools.sessions.on': False,
@@ -156,12 +121,72 @@ if __name__ == "__main__":
             'tools.auth_digest.on': False,
             'tools.auth.on': False,
             'tools.staticdir.on': True,
-            'tools.staticdir.dir': TWISTER_PATH + '/server/static',
-        },
+            'tools.staticdir.dir': TWISTER_PATH + '/server/static'
+        }
     }
 
-    # Start !
-    cherrypy.engine.signal_handler.handlers['SIGTERM'] = close
-    cherrypy.quickstart(CE, '/', config=CONF)
+    while 1:
+        # Diff RPyc port
+        RPYC_PORT = SERVER_PORT + 10
+        try:
+            RPYC_SERVER = ThreadPoolServer(CeRpycService, port=RPYC_PORT, protocol_config=CONFIG)
+            RPYC_SERVER.logger.setLevel(30)
+        except Exception:
+            logCritical('Twister Server: Cannot launch the RPyc server on port `{}`!'.format(RPYC_PORT))
+            exit(1)
+    
+        # Project manager does everything
+        PROJ = Project()
+        PROJ.rsrv = RPYC_SERVER
+        # CE is the XML-RPC interface
+        CE = CeXmlRpc(PROJ)
+    
+        def close():
+            """ Close server. """
+            RPYC_SERVER.close()
+            logDebug('---- RPYC CLOSED')
+            del PROJ.manager
+            logDebug('---- PROJ MANAGER CLOSED')
+            del PROJ.testbeds
+            logDebug('---- PROJ TESTBEDS CLOSED')
+            del PROJ.sut
+            logDebug('---- PROJ SUTS CLOSED')
+            del PROJ.rsrv
+            logDebug('---- PROJ RSRV CLOSED')
+            time.sleep(2)
+            del PROJ.clearFs
+            logDebug('---- PROJ CLEARFS CLOSED')
+            del PROJ.localFs
+            logDebug('---- PROJ LOCALFS CLOSED')
+
+        PROJ.ip_port = ('127.0.0.1', SERVER_PORT)
+        CE.web = PROJ.web
+        CE.tb = PROJ.testbeds
+        CE.sut = PROJ.sut
+        CE.report = PROJ.report
+    
+        # EE Manager is the helper for EPs and Clients
+        # Inject the project as variable for EE
+        RPYC_SERVER.service.inject_object('project', PROJ)
+        RPYC_SERVER.service.inject_object('cherry', CE)
+    
+        # Start rpyc server
+        thread.start_new_thread(RPYC_SERVER.start, ())
+        logInfo('RPYC Serving on 0.0.0.0:{}'.format(RPYC_PORT))
+
+        # Start !
+#         cherrypy.engine.signal_handler.handlers['SIGTERM'] = close
+#         cherrypy.engine.subscribe('exit', close)
+        cherrypy.quickstart(CE, '/', config=CONF)
+        time.sleep(30)
+        cherrypy.server.stop();
+        time.sleep(10)
+        cherrypy.engine.exit()
+        time.sleep(30)
+        close()
+        time.sleep(5)
+#         del PROJ
+        
+
 
 #

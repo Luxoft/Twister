@@ -1,7 +1,7 @@
 
 # File: CeRpyc.py ; This file is part of Twister.
 
-# version: 3.035
+# version: 3.036
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -1272,7 +1272,7 @@ class CeRpycService(rpyc.Service):
                 self.project.set_file_info(user, epname, file_id, 'twister_tc_revision', -1)
                 view = cc_cfg['view']
                 # Read ClearCase TestCase file
-                text = self.project.read_file(user, filename, type='clearcase:' + view)
+                text = self.project.read_file(user, filename, f_type='clearcase:' + view)
                 return text
             # End of ClearCase hack !
 

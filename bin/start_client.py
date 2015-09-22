@@ -2,7 +2,7 @@
 
 # File: start_client.py ; This file is part of Twister.
 
-# version: 3.019
+# version: 3.020
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -589,7 +589,11 @@ class TwisterClientService(rpyc.Service):
 
         if tproc:
             logPrint('Error: Process {} is already started for user {}! (proc={})'.format(epname, USER_NAME, tproc))
-            return False
+            ret = self.exposed_stop_ep(epname)
+            if ret is False:
+                logPrint('Error: Failed to stop process {} for user {}!'.\
+                format(tproc, USER_NAME))
+                return False
 
         exec_str = CLIENT.ep_names[epname]['exec_str']
         logPrint('Executing: `{}`.'.format(exec_str))

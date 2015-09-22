@@ -1,6 +1,6 @@
 /*
 File: Main.java ; This file is part of Twister.
-Version: 3.001
+Version: 3.002
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -48,7 +48,7 @@ public class Main{
         readLogoTxt();
         PermissionValidator.init("CREATE_PROJECT,CHANGE_PROJECT,DELETE_PROJECT,CHANGE_PLUGINS,"+
                                  "CHANGE_FWM_CFG,CHANGE_GLOBALS,RUN_TESTS,EDIT_TC,"+
-                                 "CHANGE_DB_CFG,CHANGE_EML_CFG,CHANGE_SERVICES,CHANGE_SUT,CHANGE_TESTBED,LOCK_SUT,LOCK_TESTBED");
+                                 "CHANGE_DB_CFG,CHANGE_EML_CFG,CHANGE_SERVICES,CHANGE_SUT,CHANGE_TESTBED,LOCK_SUT,LOCK_TESTBED,RESTART_SERVER");
         final JFrame f = new JFrame();
         f.setVisible(true);
         f.setBounds(0,0,800,600);
@@ -82,14 +82,14 @@ public class Main{
 //         RunnerRepository.user = "twister";
 //         RunnerRepository.password = "twister";
         RunnerRepository.host = "tsc-server";
-        RunnerRepository.user = "tscguest";
-        RunnerRepository.password = "tscguest";
+//         RunnerRepository.user = "tscguest";
+//         RunnerRepository.password = "tscguest";
 //         RunnerRepository.host = "11.126.32.14";
 //         RunnerRepository.host = "11.126.32.21";
 //         RunnerRepository.user = "user";
 //         RunnerRepository.password = "password";
-//         RunnerRepository.user = "bpopescu";
-//         RunnerRepository.password = "cnp_IOA1974";
+        RunnerRepository.user = "bogdan";
+        RunnerRepository.password = "atmneuro";
 //         RunnerRepository.user = "guest";
 //         RunnerRepository.password = "guest";
         RunnerRepository.CENTRALENGINEPORT = "8000";
