@@ -2,7 +2,7 @@
 File: GITPlugin.java ; This file is part of Twister.
 
 Copyright (C) 2012 , Luxoft
-Version: 3.003
+Version: 3.004
 Authors: Andrei Costachi <acostachi@luxoft.com>
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -221,22 +221,25 @@ public class GITPlugin extends BasePlugin implements TwisterPluginInterface {
             e.printStackTrace();
             if(ob!=null)System.out.println("Server response: "+ob.toString());
         }
-        
-        System.out.println("List files GIT plugin for: "+dir);
-        try{ob = client.execute("list_files", new Object[]{dir,true});
-            if(ob.toString().indexOf("*ERROR*")!=-1){
-                CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,p,"ERROR", ob.toString());
+        if(!dir.equals("")){
+        	System.out.println("List files GIT plugin for: "+dir);
+            try{ob = client.execute("list_files", new Object[]{dir,true});
+                if(ob.toString().indexOf("*ERROR*")!=-1){
+                    CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,p,"ERROR", ob.toString());
+                }else{
+                	try{HashMap hash = (HashMap)ob;
+                		getList(root, hash,dir);
+                	} catch (Exception e){
+                		System.out.println("Could not build directory");
+                		e.printStackTrace();
+                	}
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+                if(ob!=null)System.out.println("Server response: "+ob.toString());
             }
-        } catch (Exception e) {
-            e.printStackTrace();
-            if(ob!=null)System.out.println("Server response: "+ob.toString());
         }
-		try{HashMap hash = (HashMap)ob;
-        	getList(root, hash,dir);
-		} catch (Exception e){
-			System.out.println("Could not build directory");
-			e.printStackTrace();
-		}
+        
         
         tree = new JTree(root);
 		tree.expandRow(1);
@@ -395,98 +398,34 @@ public class GITPlugin extends BasePlugin implements TwisterPluginInterface {
 		}.start();
 	}
 	
+	/*
+	 * get folder structure from CE
+	 */
 	public void refreshStructure(String home) {
 		try {
-			//c.cd(home);
 			root.remove(0);
-			//getList(root,c,true);
-			//getList(root,home,true);
-			Object ob = null;
-            System.out.println("List files GIT");
-	        try{ob = client.execute("list_files", new Object[]{home,true});
-	            if(ob.toString().indexOf("*ERROR*")!=-1){
-	                CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,p,"ERROR", ob.toString());
-	            }
-	        } catch (Exception e) {
-	            System.out.println("Server response: "+ob.toString());
-	            e.printStackTrace();
-	        }
-			HashMap hash = (HashMap)ob;
-            getList(root, hash,home);
+			if(!home.equals("")){
+				Object ob = null;
+	            System.out.println("List files GIT");
+		        try{ob = client.execute("list_files", new Object[]{home,true});
+		            if(ob.toString().indexOf("*ERROR*")!=-1){
+		                CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,p,"ERROR", ob.toString());
+		            }else{
+		            	HashMap hash = (HashMap)ob;
+			            getList(root, hash,home);
+			            ((DefaultTreeModel) tree.getModel()).reload();
+			    		tree.expandRow(0);
+		            }
+		        } catch (Exception e) {
+		            System.out.println("Server response: "+ob.toString());
+		            e.printStackTrace();
+		        }
+			}
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-		((DefaultTreeModel) tree.getModel()).reload();
-		tree.expandRow(0);
+		
 	}
-	
-	/*
-	 * construct the list for folders representation in jtree
-	 */
-//	public void getList(DefaultMutableTreeNode node,
-//						ChannelSftp c, boolean addfirst) {
-//		try {
-//			DefaultMutableTreeNode child = new DefaultMutableTreeNode(c.pwd());
-//			Vector<LsEntry> vector1 = c.ls(".");
-//			Vector<String> vector = new Vector<String>();
-//			Vector<String> folders = new Vector<String>();
-//			Vector<String> files = new Vector<String>();
-//			int lssize = vector1.size();
-//			if(addfirst){
-//				node.add(child);
-//				addfirst=false;
-//			}
-//			else{
-//				if (lssize > 2) {
-//					node.add(child);
-//				}
-//			}			
-//			String current;
-//			for (int i = 0; i < lssize; i++) {
-//				if (vector1.get(i).getFilename().split("\\.").length == 0) {
-//					continue;
-//				}
-//				try {
-//				    current = c.pwd();
-//					c.cd(vector1.get(i).getFilename());
-//					c.cd(current);
-//					folders.add(vector1.get(i).getFilename());
-//				} catch (SftpException e) {
-//					if (e.id == 4) {
-//						files.add(vector1.get(i).getFilename());
-//					}
-//					else{
-//					       e.printStackTrace();
-//					   }
-//				}
-//			}
-//			Collections.sort(folders);
-//			Collections.sort(files);
-//			for (int i = 0; i < folders.size(); i++) {
-//				vector.add(folders.get(i));
-//			}
-//			for (int i = 0; i < files.size(); i++) {
-//				vector.add(files.get(i));
-//			}
-//			for (int i = 0; i < vector.size(); i++) {
-//				try {
-//				    current = c.pwd();
-//					c.cd(vector.get(i));
-//					getList(child, c,false);
-//					c.cd(current);
-//				} catch (SftpException e) {
-//					if (e.id == 4) {
-//						child2 = new DefaultMutableTreeNode(vector.get(i));
-//						child.add(child2);
-//					} else {
-//						e.printStackTrace();
-//					}
-//				}
-//			}
-//		} catch (Exception e) {
-//			e.printStackTrace();
-//		}
-//	}
 		
 	
 	/*
@@ -532,13 +471,6 @@ public class GITPlugin extends BasePlugin implements TwisterPluginInterface {
 				System.out.println("Server response: "+ob.toString());
 				e.printStackTrace();
 			}
-			
-			
-			//try{c.cd(folder);}
-			//catch(Exception e){
-			//	e.printStackTrace();
-			//	exists = false;
-			//}
 			if(exists){
 				int response = JOptionPane.showConfirmDialog(this, "Warning, "+folder+
 															 " allready exist, continue?","Warning",
@@ -599,33 +531,5 @@ public class GITPlugin extends BasePlugin implements TwisterPluginInterface {
 			e.printStackTrace();
 		}
 	}
-	
-//	/*
-//     * method to copy plugins configuration file
-//     * to server 
-//     */
-//    public boolean uploadPluginsFile(){
-//        try{
-//            DOMSource source = new DOMSource(pluginsConfig);
-//            File file = new File(variables.get("pluginslocalgeneralconf"));
-//            Result result = new StreamResult(file);
-//            TransformerFactory transformerFactory = TransformerFactory.newInstance();
-//            Transformer transformer = transformerFactory.newTransformer();
-//            transformer.setOutputProperty(OutputKeys.INDENT, "yes");
-//            transformer.setOutputProperty("{http:xml.apache.org/xslt}indent-amount",
-//            																	 "4");
-//            transformer.transform(source, result);
-//            c.cd(variables.get("remoteuserhome")+"/twister/config/");
-//            FileInputStream in = new FileInputStream(file);
-//            c.put(in, file.getName());
-//            in.close();
-//            System.out.println("Saved "+file.getName()+" to: "+
-//					variables.get("remoteuserhome")+"/twister/config/");
-//            return true;}
-//        catch(Exception e){
-//            e.printStackTrace();
-//            return false;
-//        }
-//    }
 }
 

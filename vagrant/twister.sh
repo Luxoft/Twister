@@ -44,13 +44,13 @@ cp /home/vagrant/Twister-git_hub_branch/binaries/GitPlugin/Git/* /opt/twister/pl
 # Jenkins plugin
 cp /home/vagrant/Twister-git_hub_branch/binaries/JenkinsPlugin/Jenkins/Jenkins* /opt/twister/plugins
 # Jira plugin
-cp /home/vagrant/Twister-git_hub_branch/binaries/JiraPlugin/Jira /opt/twister/plugins
+cp /home/vagrant/Twister-git_hub_branch/binaries/JiraPlugin/Jira/* /opt/twister/plugins
 # Scheduler plugin
-cp /home/vagrant/Twister-git_hub_branch/binaries/SchedulerPlugin/Scheduler /opt/twister/plugins
+cp /home/vagrant/Twister-git_hub_branch/binaries/SchedulerPlugin/Scheduler/* /opt/twister/plugins
 # Svn plugin
-cp /home/vagrant/Twister-git_hub_branch/binaries/SvnPlugin/Svn /opt/twister/plugins
+cp /home/vagrant/Twister-git_hub_branch/binaries/SvnPlugin/Svn/* /opt/twister/plugins
 # PacketSniffer plugin
-cp /home/vagrant/Twister-git_hub_branch/binaries/PacketSnifferPlugin/PacketSnifferPlugin /opt/twister/plugins
+cp /home/vagrant/Twister-git_hub_branch/binaries/PacketSnifferPlugin/PacketSnifferPlugin/* /opt/twister/plugins
 
 # start the server
 cd /opt/twister/bin
