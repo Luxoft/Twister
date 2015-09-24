@@ -14,6 +14,8 @@ apt-get install -y git
 apt-get install -y python-pip
 apt-get install -y python-dev
 apt-get install -y unzip
+apt-get install -y usermod
+apt-get install -y tshark
 
 # install mysql server; the prompt for password must not be displayed
 export DEBIAN_FRONTEND=noninteractive
@@ -28,6 +30,9 @@ mkdir /home/user
 useradd -d /home/user -s /bin/bash user
 chown -R user:user /home/user
 echo "user:password" | chpasswd
+
+# add user to sudo group
+usermod -a -G sudo user
 
 # download Twister from github as zip archive
 wget https://github.com/Luxoft/Twister/archive/git_hub_branch.zip
