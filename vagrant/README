@@ -1,16 +1,18 @@
 1. Download and install vagrant from https://www.vagrantup.com/
-2. Create a directory and copy the files Vagrantfile and twister.sh into 
+2. Install Oracle Java plugin for your browser
+3. Add a Java security exception for 127.0.0.1:8080 
+4. Create a directory and copy the files Vagrantfile and twister.sh into 
 that directory; if you are behind a proxy server, edit twister.sh to
 set the username, password and proxy server
-3. Run 'vagrant up'
-4. Once vagrant is up, open browser on host machine and go to
+5. Run 'vagrant up'
+6. Once vagrant is up, open browser on host machine and go to
 http://127.0.0.1:8080
-5. Java security settings must be edited to add exception
+7. Java security settings must be edited to add exception
  for http://127.0.0.1:8080 site
-6. Connect to Tiwster with username 'user' and password 'password'
-7. Select 'Test execution'
-8. Ignore ( press OK ) the warnings
-9. Use the default project when you are prompted to select a project file
-10. Now you have a project opened, to run press 'Run' button
-11. To stop Twister virtual machine, run 'vagrant destroy'; Other options to
+8. Connect to Tiwster with username 'user' and password 'password'
+9. Select 'Test execution'
+10. Ignore ( press OK ) the warnings
+11. Use the default project when you are prompted to select a project file
+12. Now you have a project opened, to run press 'Run' button
+13. To stop Twister virtual machine, run 'vagrant destroy'; Other options to
  stop the machine, please read vagrant documentation
