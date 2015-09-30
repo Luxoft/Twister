@@ -1,6 +1,6 @@
 /*
 File: Scheduler.java ; This file is part of Twister.
-Version: 2.004
+Version: 2.005
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -578,7 +578,11 @@ public class Scheduler extends BasePlugin implements TwisterPluginInterface {
 					isforced = "0";
 				}
 				String type = ttype.getSelectedItem().toString();
-				
+				if(!type.equals("daily") && selecteddate.equals("")){
+					CustomDialog.showInfo(JOptionPane.ERROR_MESSAGE,Scheduler.this,"ERROR", "Please select date!");
+					return;
+					
+				}
 				if(type.equals("daily")){
 					selecteddate = "";
 				} else if(type.equals("weekley")){
