@@ -6,21 +6,21 @@
 
 Default:
  - twister server side path: /opt/twister
- - twister client side path: /home/user/twister
+ - twister client side path: /home/<username>/twister
 
 
 	---- SERVER side ----
 
-1. sudo cp /path/to/SchedulerPlugin/Scheduler/* /opt/twister/plugins
+1. sudo cp /<twister_repository>/binaries/SchedulerPlugin/Scheduler/* /opt/twister/plugins
 
-2. vim /path/to/twister/config/plugins.xml
+2. vim /home/<username>/twister/config/plugins.xml
 
 append config:
-
 <Plugin>
-	<name>SCHEDULER</name>
+	<name>Scheduler</name>
 	<jarfile>Scheduler.jar</jarfile>
-	<pyfile></pyfile>
+	<pyfile>Scheduler.py</pyfile>
 	<status>enabled</status>
 </Plugin>
+
 
