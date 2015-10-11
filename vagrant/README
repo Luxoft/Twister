@@ -9,9 +9,9 @@ set the username, password and proxy server
 http://127.0.0.1:8080
 7. Java security settings must be edited to add exception
  for http://127.0.0.1:8080 site
-8. Connect to Tiwster with username 'user' and password 'password'
+8. Connect to Twister with username 'user' and password 'password'
 9. Select 'Test execution'
-10. Ignore ( press OK ) the warnings
+10. Ignore the warnings ( press OK )
 11. Use the default project when you are prompted to select a project file
 12. Now you have a project opened, to run press 'Run' button
 13. To stop Twister virtual machine, run 'vagrant destroy'; Other options to
