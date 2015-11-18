@@ -1,6 +1,6 @@
 /*
 File: Panel1.java ; This file is part of Twister.
-Version: 3.016
+Version: 3.017
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -1661,6 +1661,10 @@ public class Panel1 extends JPanel{
                     repaint();}}
             catch(Exception e){e.printStackTrace();}}
         catch(Exception e){e.printStackTrace();}}
+		
+	public TCDetails getTcDetails(){
+        return this.tcdetails;
+    }
     
     /*
      * filename - the name of the file

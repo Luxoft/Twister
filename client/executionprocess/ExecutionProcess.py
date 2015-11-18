@@ -1,6 +1,6 @@
 #!/usr/bin/env python2.7
 
-# version: 3.036
+# version: 3.037
 
 # File: ExecutionProcess.py ; This file is part of Twister.
 
@@ -168,6 +168,10 @@ class EpService(rpyc.Service):
         Sets the response from the user for a user interaction
         """
         RUNNER.commonLib.interact_data = copy.deepcopy(msg)
+        return None
+
+    def exposed_update_suites(self, updated_suite):
+        RUNNER.update_suites(updated_suite)
         return None
 
 
@@ -426,6 +430,8 @@ class TwisterRunner(object):
         self.commonLib = None
         self.exit_on_test_fail = False
         self.tc_delay = 0
+        self.run_tests_list = []
+        self.tests_lock = allocate_lock() # lock for test queue
 
 
     def __del__(self):
@@ -734,6 +740,20 @@ class TwisterRunner(object):
         proxy().log_message('logTest', msg + '\n')
         return True
 
+    def update_suites(self, updated_suite):
+        """
+        Queue new test case to a suite
+        """
+        existing_tests = []
+        for test_item in self.run_tests_list:
+            existing_tests.append(test_item[0])
+
+        for id,node in updated_suite.items():
+            if id not in existing_tests:
+                with self.tests_lock:
+                    self.run_tests_list.append([id, node])
+
+        return True
 
     def tests(self):
         """
@@ -781,13 +801,22 @@ class TwisterRunner(object):
         from TscCommonLib import ExceptionTestFail, ExceptionTestAbort, ExceptionTestTimeout, ExceptionTestSkip
 
 
-        for id, node in suitesManager.iter_nodes(None, []):
+        self.run_tests_list = suitesManager.iter_nodes(None, [])
+        iter_tests = iter(self.run_tests_list)
 
+        while True:
+            with self.tests_lock:
+                try:
+                    current_test = iter_tests.next()
+                except Exception as e:
+                    break
+
+            id = current_test[0]
+            node = current_test[1]
             # When starting a new suite or sub-suite ...
             # Some files don't belong to this suite, they might belong to the parent of this suite,
             # so each file must update the suite ID!
             if node['type'] == 'suite':
-
                 if not node['children']:
                     print('TC warning: Nothing to do in suite `{}`!\n'.format(id))
                     continue
@@ -815,13 +844,11 @@ class TwisterRunner(object):
                 # The suite does not execute, so this is the end
                 continue
 
-
             # Files section
             file_id = id
             suite_id = node['suite']
             # Update suite name from CE
             suite_name = proxy().get_suite_variable(self.epName, suite_id, 'name')
-
             # The name of the file
             filename = node['file']
             # If the file is NOT runnable, download it, but don't execute!
@@ -833,9 +860,11 @@ class TwisterRunner(object):
             # Test-case dependency, if any
             dependency = node.get('_depend').strip()
             # Is this test file optional?
+
             optional_test = node.get('Optional')
             # Configuration files?
             config_files = [c['name'] for c in node.get('_cfg_files', [])]
+
             # If ANY config file has Iteration Stop on Fail, this will be True
             iteration_sof = 'true' in [it['iter_sof'].lower() for it in node.get('_cfg_files', [])]
             # Iteration number
@@ -927,7 +956,6 @@ class TwisterRunner(object):
                 continue
             else:
                 abort_iter = False
-
 
             try:
                 STATUS = proxy().get_ep_status(self.epName)
@@ -1177,7 +1205,6 @@ class TwisterRunner(object):
             if self.tc_delay:
                 print('EP Debug: Waiting {} seconds before starting the test...\n'.format(self.tc_delay))
                 time.sleep(self.tc_delay)
-
 
             # Check the general status again...
             try:

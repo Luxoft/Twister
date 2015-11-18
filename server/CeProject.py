@@ -1,7 +1,7 @@
 
 # File: CeProject.py ; This file is part of Twister.
 
-# version: 3.085
+# version: 3.086
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -72,6 +72,7 @@ Information about *Test Files*:
 """
 from __future__ import with_statement
 
+import traceback
 import os
 import sys
 import re
@@ -84,7 +85,6 @@ socket.setdefaulttimeout(5)
 #import platform
 import smtplib
 import binascii
-import traceback
 import threading
 import paramiko
 
@@ -2465,7 +2465,9 @@ class Project(object):
         suites_manager = False
 
         # Try to find the suite name
+        update_ep = ''
         for epname in eps:
+            update_ep = epname
             manager = eps[epname]['suites']
             suites = manager.get_suites()
             for s_id in suites:
@@ -2492,6 +2494,9 @@ class Project(object):
             finfo['suite'] = suite_id
             finfo['file'] = fname
             finfo['Runnable'] = "true"
+            finfo['Running'] = "false"
+            finfo['_depend'] = ''
+            finfo['clearcase'] = ''
 
             # Add file for the user, in a specific suite
             suite = suites_manager.find_id(suite_id)
@@ -2499,6 +2504,13 @@ class Project(object):
 
             # Add the file in suites.xml ?
             # self.set_persistent_file(self, user, suite, fname)
+
+        ep_runner = self._find_specific_ep(user, update_ep)
+        try:
+            ep_runner.root.update_suites(suite['children'])
+        except Exception as e:
+            logDebug("Cannot get EP connection to queue files. Error: {}".\
+            format(e))
 
         self._dump()
         logDebug('File ID `{}` added at the end of suite `{}`.'.format(file_id, suite_id))

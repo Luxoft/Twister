@@ -1,7 +1,7 @@
 
 # File: CeParser.py ; This file is part of Twister.
 
-# version: 3.019
+# version: 3.020
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -122,6 +122,28 @@ class CeXmlParser(object):
                         new_dep_id = [id+':'+condition for id in dependency_dict[dep_id]]
                         new_dep_list += ';'.join(new_dep_id)+';'
                 dependency.text = new_dep_list
+
+
+    def _inherit_suite_dependency(self, xml):
+        """
+        All the tests under a suite inherits the suite's dependencies.
+        """
+        logDebug('Inherit dependencies from suites.')
+
+        suites = xml.findall('.//TestSuite')
+        for suite in suites:
+            suitedependency = suite.find('Dependency')
+            if suitedependency.text:
+                tcs = suite.findall('.//TestCase')
+                for tc in tcs:
+                    tcdependency = tc.find('Dependency')
+                    if tcdependency.text:
+                        suitedeplist = suitedependency.text.split(';')
+                        for suitedep in suitedeplist:
+                            if not suitedep in tcdependency.text:
+                                tcdependency.text += suitedep + ';'
+                    else:
+                        tcdependency.text = suitedependency.text
 
 
     def _change_ids(self, xml, repeated_dict):
@@ -562,7 +584,9 @@ class CeXmlParser(object):
         self._change_ids(xml, repeated_dict)
 
         self._resolve_dependencies(xml, repeated_dict)
-        
+
+        self._inherit_suite_dependency(xml)
+
         self._remove_empty_suites_tc(xml)
 
         for suite in xml.findall('.//TestSuite'):

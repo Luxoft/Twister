@@ -1,3 +1,7 @@
+18th November 2015:
+
+- fix for issue #181
+
 22nd April 2015:
 
 - fix for issue #174

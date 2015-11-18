@@ -18,7 +18,7 @@ Default:
 append config:
 
 <Plugin>
-	<name>GITPlugin</name>
+	<name>GIT</name>
 	<jarfile>GITPlugin.jar</jarfile>
 	<pyfile>GITPlugin.py</pyfile>
 	<status>enabled</status>

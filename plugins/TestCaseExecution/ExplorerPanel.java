@@ -1,6 +1,6 @@
 /*
 File: ExplorerPanel.java ; This file is part of Twister.
-Version: 3.003
+Version: 3.004
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -287,10 +287,10 @@ public class ExplorerPanel extends JPanel{
                     String result = RunnerRepository.getRPCClient().execute(
                             "get_test_description", new Object[] { thefile })
                             + "";
-                    Container pan1 = (Container) RunnerRepository.window.mainpanel.p1.splitPane
-                            .getComponent(1);
-                    TCDetails pan2 = (TCDetails) pan1.getComponents()[1];
-                    pan2.text.setText(result);
+//                    Container pan1 = (Container) RunnerRepository.window.mainpanel.p1.splitPane
+//                            .getComponent(1);
+                    TCDetails tcdetails = RunnerRepository.window.mainpanel.p1.getTcDetails();
+                    tcdetails.text.setText(result);
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
