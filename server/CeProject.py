@@ -1,7 +1,7 @@
 
 # File: CeProject.py ; This file is part of Twister.
 
-# version: 3.086
+# version: 3.087
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -1806,6 +1806,10 @@ class Project(object):
             defined statuses: `{}`!'.format(new_status, EXEC_STATUS.values()))
             return False
 
+        # get current status for ep
+        curr_ep_status = self.get_ep_info(user, epname).\
+            get('status', STATUS_INVALID)
+
         # Status resume => start running
         if new_status == STATUS_RESUME:
             new_status = STATUS_RUNNING
@@ -1831,7 +1835,7 @@ class Project(object):
         intersect_eps = sorted(set(real_eps) & set(project_eps))
 
         # Send start/ stop command to EP !
-        if new_status == STATUS_RUNNING:
+        if new_status == STATUS_RUNNING and curr_ep_status != STATUS_INTERACT:
             self.rsrv.service.exposed_start_ep(epname, user)
         elif new_status == STATUS_STOP:
             # Call the backup logs
