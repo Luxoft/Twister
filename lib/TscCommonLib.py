@@ -1,6 +1,6 @@
 # File: TscCommonLib.py ; This file is part of Twister.
 
-# version: 3.024
+# version: 3.025
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -316,6 +316,7 @@ class TscCommonLib(object):
                     break
         counter = 0.0
         reason = 'User action'
+        self.ce_proxy.remove_interact(id, self.epName, type, msg, timeout, options, reason)
         if type == 'decide' and self.interact_data in [None, 'false']:
             # abort test!
             if self.interact_data == None:
@@ -323,9 +324,8 @@ class TscCommonLib(object):
             else:
                 reason = 'Test aborted by user!'
             self.ce_proxy.set_file_status(self.epName, self._FILE_ID, 5, timeout)
-            self.ce_proxy.set_ep_status(self.epName, 2)
+            #self.ce_proxy.set_ep_status(self.epName, 2)
             print('\n>> Test aborted by user! >>')
-            self.ce_proxy.remove_interact(id, self.epName, type, msg, timeout, options, reason)
             raise ExceptionTestAbort(reason)
 
         if self.interact_data == None:
@@ -336,8 +336,6 @@ class TscCommonLib(object):
             elif type == 'options' and options:
                 self.interact_data = options['default']
 
-        self.ce_proxy.set_ep_status(self.epName, 2)
-        self.ce_proxy.remove_interact(id, self.epName, type, msg, timeout, options, reason)
         print('\n>> Interaction response: {} >>'.format(self.interact_data))
         return self.interact_data
 

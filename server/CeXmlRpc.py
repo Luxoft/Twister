@@ -1,7 +1,7 @@
 
 # File: CeXmlRpc.py ; This file is part of Twister.
 
-# version: 3.024
+# version: 3.026
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -299,10 +299,11 @@ class CeXmlRpc(_cptools.XMLRPCController):
             return False
         try:
             ep_conn.root.set_interact(response)
+            time.sleep(1)
             logDebug('User `{}` sent EP response continue.'.format(user))
         except Exception as exp_err:
             logWarning('User `{}` - exception on EP continue: `{}`!'.format(user, exp_err))
-        self.project.set_exec_status(user, epname, STATUS_RUNNING)
+        #self.project.set_exec_status(user, epname, STATUS_RUNNING)
         return True
 
 
