@@ -1,6 +1,6 @@
 # File: TscCommonLib.py ; This file is part of Twister.
 
-# version: 3.025
+# version: 3.026
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -337,6 +337,7 @@ class TscCommonLib(object):
                 self.interact_data = options['default']
 
         print('\n>> Interaction response: {} >>'.format(self.interact_data))
+        self.ce_proxy.set_ep_status(self.epName, 2)
         return self.interact_data
 
 

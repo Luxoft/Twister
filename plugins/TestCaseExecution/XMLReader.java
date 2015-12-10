@@ -1,6 +1,6 @@
 /*
 File: XMLReader.java ; This file is part of Twister.
-Version: 2.029
+Version: 2.030
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -140,7 +140,7 @@ public class XMLReader{
                     fstNmElmnt = (Element)fstNmElmntLst.item(0);
                     fstNm = fstNmElmnt.getChildNodes();
                     if(fstNm.getLength()>0)theone.setRepeat(Integer.parseInt(fstNm.item(0).getNodeValue().toString()));
-                    if(theone.getRepeat()>1){
+                    if(theone.getRepeat()>1 && !test){
                         width = metrics.stringWidth(theone.getRepeat()+"X "+theone.getName())+40;
                         theone.getRectangle().setSize(width,(int)theone.getRectangle().getHeight());
                     }
@@ -592,7 +592,7 @@ public class XMLReader{
                 fstNmElmnt = (Element)fstNmElmntLst.item(0);
                 fstNm = fstNmElmnt.getChildNodes();
                 if(fstNm.getLength()>0)suitatemp.setRepeat(Integer.parseInt(fstNm.item(0).getNodeValue().toString()));
-                if(suitatemp.getRepeat()>1){
+                if(suitatemp.getRepeat()>1 && !test){
                     width = metrics.stringWidth(suitatemp.getRepeat()+"X "+suitatemp.getName())+40;
                     suitatemp.getRectangle().setSize(width,(int)suitatemp.getRectangle().getHeight());
                 }

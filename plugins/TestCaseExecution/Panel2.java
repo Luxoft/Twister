@@ -1,6 +1,6 @@
 /*
 File: Panel2.java ; This file is part of Twister.
-Version: 3.011
+Version: 3.012
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -298,6 +298,7 @@ public class Panel2 extends JPanel{
                 }
             }
             for(String str:interactions){
+                if(!str.contains("*"))continue;
                 String [] comps = str.split("\\*");
                 final String id = comps[0];
                 if(interactionid.get(id)!=null)continue;

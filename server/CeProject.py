@@ -2946,14 +2946,14 @@ class Project(object):
             rows = []
 
             for line in log_summary.split('\n'):
-                rows = line.replace('::', '|').split('|')
-                if not rows[0]:
+                temp_rows = line.replace('::', '|').split('|')
+                if not temp_rows[0]:
                     continue
-                rclass = rows[3].strip().replace('*', '')
+                rclass = temp_rows[3].strip().replace('*', '')
 
-                rows = ['&nbsp;'+r.strip() for r in rows]
+                temp_rows = ['&nbsp;'+r.strip() for r in temp_rows]
                 rows.append(('<tr class="%s"><td>' % rclass) + \
-                '</td><td>'.join(rows) + '</td></tr>\n')
+                '</td><td>'.join(temp_rows) + '</td></tr>\n')
 
             # Body string
             body_path = os.path.split(self.users[user]['config_path'])[0] +os.sep+ 'e-mail-tmpl.htm'

@@ -1,6 +1,6 @@
 /*
 File: Panel1.java ; This file is part of Twister.
-Version: 3.017
+Version: 3.018
 
 Copyright (C) 2012-2013 , Luxoft
 
@@ -1102,17 +1102,17 @@ public class Panel1 extends JPanel{
             }
             
             if(!cli){ // if not for cli populate runner suite with the new created suites and continue generating file
-                RunnerRepository.getSuite().clear();//populate the suites array with the new duplicated suites
-                for(Item i:clone){
-                    RunnerRepository.addSuita(i);
-                }
-                HashMap<String,ArrayList<Item>> duplicate = new HashMap();
-                for(Item i:RunnerRepository.getSuite()){//store duplicates based on id
-                    saveID(i,duplicate);
-                }
-                for(Item i:RunnerRepository.getSuite()){//remap dependencies
-                    remapDependency(i,duplicate);
-                }
+//                 RunnerRepository.getSuite().clear();//populate the suites array with the new duplicated suites
+//                 for(Item i:clone){
+//                     RunnerRepository.addSuita(i);
+//                 }
+//                 HashMap<String,ArrayList<Item>> duplicate = new HashMap();
+//                 for(Item i:RunnerRepository.getSuite()){//store duplicates based on id
+//                     saveID(i,duplicate);
+//                 }
+//                 for(Item i:RunnerRepository.getSuite()){//remap dependencies
+//                     remapDependency(i,duplicate);
+//                 }
                 
                 //leave it for CE to generate
                 //if(!sc.g.printXML(RunnerRepository.getTestXMLDirectory(),true,false,

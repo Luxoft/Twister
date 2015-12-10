@@ -1,7 +1,7 @@
 
 # File: CeParser.py ; This file is part of Twister.
 
-# version: 3.020
+# version: 3.021
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -459,8 +459,34 @@ class CeXmlParser(object):
             if remove:
                 suite.remove(tc)
 
+    def _expand_repeat_tag_on_tc(self, suite):
+        """
+        Expand the test cases by the repeat tag.
+        """
+        for tc in suite.findall('TestCase'):
+            tcName = tc.find('tcName').text
+            repeat = None
+            try:
+                repeat = tc.find('Repeat')
+                nb_repeat = int(repeat.text)
+                logDebug("CeParser: Will repeat suite `{}`, {} times.".format(tcName, nb_repeat))
+            except:
+                nb_repeat = 1
 
-    def _expand_repeat_tag(self,user, xml):
+            # before copying the suite for multiplication, remove the Repeat
+            # tag because it MUST NOT be present in generated xml file
+            if repeat is not None:
+                tc.remove(repeat)
+
+            index = suite.index(tc)
+            for i in range(nb_repeat-1):
+                deep_copy = copy.deepcopy(tc)
+                tc_st = etree.tostring(deep_copy)
+                tc_copy = etree.fromstring(tc_st)
+                suite.insert(index+1, tc_copy)
+
+
+    def _expand_repeat_tag(self, xml):
         """
         @param:
             user: the twister authenticated user
@@ -489,8 +515,10 @@ class CeXmlParser(object):
                 suite_st = etree.tostring(deep_copy)
                 suite_copy = etree.fromstring(suite_st)
                 xml.insert(index+1, suite_copy)
-                self._expand_repeat_tag(user, suite_copy)
-            self._expand_repeat_tag(user, suite)
+                self._expand_repeat_tag_on_tc(suite_copy)
+                self._expand_repeat_tag(suite_copy)
+            self._expand_repeat_tag_on_tc(suite)
+            self._expand_repeat_tag(suite)
 
 
     def _expand_by_ep(self, user, xml):
@@ -576,7 +604,7 @@ class CeXmlParser(object):
 
         self._expand_global_configs(user, xml)
         
-        self._expand_repeat_tag(user, xml)
+        self._expand_repeat_tag(xml)
         
         self._expand_by_ep(user, xml)
 

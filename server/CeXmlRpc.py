@@ -1,7 +1,7 @@
 
 # File: CeXmlRpc.py ; This file is part of Twister.
 
-# version: 3.025
+# version: 3.026
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -293,6 +293,7 @@ class CeXmlRpc(_cptools.XMLRPCController):
         """
         Send remote response to a test interaction.
         """
+        logDebug('epname: {} response: {}'.format(epname, response))
         user = cherrypy.session.get('username')
         ep_conn = self.project._find_specific_ep(user, epname)
         if not ep_conn:
@@ -303,7 +304,6 @@ class CeXmlRpc(_cptools.XMLRPCController):
             logDebug('User `{}` sent EP response continue.'.format(user))
         except Exception as exp_err:
             logWarning('User `{}` - exception on EP continue: `{}`!'.format(user, exp_err))
-        self.project.set_exec_status(user, epname, STATUS_RUNNING)
         return True
 
 
