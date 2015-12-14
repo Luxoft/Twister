@@ -1,7 +1,7 @@
 
 # File: CeParser.py ; This file is part of Twister.
 
-# version: 3.021
+# version: 3.022
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -91,14 +91,18 @@ class CeXmlParser(object):
                     grand_parent.remove(prop.getparent())
 
             # delete empty sub-suites from this suite
-            for s in suite.xpath('//TestSuite'):
-                if s.find('TestSuite') is None and s.find('TestCase') is None:
-                    suite_parent = s.getparent()
-                    suite_parent.remove(s)
-
+            subsuites = suite.findall('.//TestSuite')
+            if subsuites:
+                subsuites.reverse()
+                for s in subsuites:
+                    if s.find('TestSuite') is None and s.find('TestCase') is None:
+                        suite_parent = s.getparent()
+                        suite_parent.remove(s)
+    
             # delete the suite if it remains empty
             if suite.find('TestSuite') is None and suite.find('TestCase') is None:
-                root.remove(suite)
+                parent = suite.getparent()
+                parent.remove(suite)
         return True
 
 
