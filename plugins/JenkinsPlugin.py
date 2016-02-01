@@ -1,5 +1,5 @@
 
-# version: 2.002
+# version: 2.003
 
 import os
 import subprocess
@@ -29,13 +29,12 @@ class Plugin(BasePlugin):
     """
     Jenkins Plugin.
     """
-
     def run(self, args):
-
         # This script will load the build on the DUT
         script = self.data['script']
-        # This is the list of test suites and files
-        tests  = self.data['tests']
+        # This project will run after the above script finishes
+        project = self.data['project']
+
         # This is the build number from Jenkins
         if isinstance(args['build'], str) or isinstance(args['build'], int):
             build = str(args['build'])
@@ -44,19 +43,13 @@ class Plugin(BasePlugin):
         else:
             return 'Jenkins Plugin: Invalid build number `{}` !'.format(args['build'])
 
-        if not os.path.isfile(script):
-            return 'Jenkins Plugin: Invalid script file `{}` !'.format(script)
-
-        if not os.path.isfile(tests):
-            return 'Jenkins Plugin: Invalid tests file `{}` !'.format(tests)
 
         with open('{}/plugins/build_number.tmp~'.format(TWISTER_PATH), 'w') as build_file:
             build_file.write(str(build))
 
         subprocess.Popen([ 'chmod', '644', ('{}/plugins/build_number.tmp~'.format(TWISTER_PATH)) ])
 
-        status = self.data['ce'].project.get_user_info(self.user, 'status')
-
+        status = self.data['ce'].get_user_info(self.user, 'status')
         # If the status for this user is 'Running' or 'Paused', don't do anything
         if status in [1, 2]:
             return 'Jenkins Plugin: The Central Engine is already running! Cannot start suite!'
@@ -64,11 +57,12 @@ class Plugin(BasePlugin):
         try:
             txt = subprocess.check_output(script, shell=True)
             print txt.strip()
-        except Exception, e:
-            return 'Jenkins Plugin: Execute `{}` returned exception - {}'.format(script, str(e))
+        except Exception as err:
+            #return 'Jenkins Plugin: Execute `{}` returned exception - {}'.format(script, str(err))
+            print 'Jenkins Plugin: Execute `{}` returned exception - {}'.format(script, str(err))
 
         # Start Central Engine !
-        self.data['ce'].set_exec_status_all(self.user, 2, ',' + tests)
+        self.data['ce'].set_exec_status_all(self.user, 2, project)
 
         return True
 

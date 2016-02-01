@@ -398,5 +398,8 @@ if TO_INSTALL == 'client':
     open(INSTALL_PATH + 'config/fwmconfig.xml', 'w').write( fwm.substitute(HOME=userHome(user_name)) )
     del fwm
 
+    project = Template( open(INSTALL_PATH + 'config/projects/default.xml', 'r').read() )
+    open(INSTALL_PATH + 'config/projects/default.xml', 'w').write( project.substitute(HOME=userHome(user_name)) )
+    del project
 
 print('\nTwister installation done!\n')

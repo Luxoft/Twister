@@ -492,7 +492,7 @@ class TwisterRunner(object):
         # Inject all known info about this EP
         ep_host = socket.gethostname()
         try: ep_ip = socket.gethostbyname(ep_host)
-        except Exception: ep_ip = ''
+        except Exception: ep_ip = ep_host
         if platform.system().lower() == 'windows':
             system = platform.machine() +' '+ platform.system() +', '+ platform.release()
         else:

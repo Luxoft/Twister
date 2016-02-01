@@ -2,7 +2,7 @@
 File: SVNPlugin.java ; This file is part of Twister.
 
 Copyright (C) 2012 , Luxoft
-Version: 2.004
+Version: 2.005
 Authors: Andrei Costachi <acostachi@luxoft.com>
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -214,22 +214,6 @@ public class SVNPlugin extends BasePlugin implements TwisterPluginInterface {
         
         root = new DefaultMutableTreeNode("root", true);
         
-//        if(c!=null){
-//        	try{c.cd(tsnapshot.getText());}
-//        	catch(Exception e){e.printStackTrace();
-//        		try {
-//					c.cd(variables.get("remoteuserhome")+
-//							"/twister/config/");
-//				} catch (SftpException e1) {
-//					e1.printStackTrace();
-//				}
-//        	}
-//        	getList(root, c, true);
-//        }
-//        else{
-//        	System.out.println("SFTP connection not initialized");
-//        }
-        
         
         String dir = tsnapshot.getText();
         Object ob = null;
@@ -250,8 +234,13 @@ public class SVNPlugin extends BasePlugin implements TwisterPluginInterface {
             e.printStackTrace();
             if(ob!=null)System.out.println("Server response: "+ob.toString());
         }
-		HashMap hash = (HashMap)ob;
-		getList(root, hash,dir);
+        try{
+        	HashMap hash = (HashMap)ob;
+        	getList(root, hash,dir);
+        } catch(Exception e){
+        	e.printStackTrace();
+        }
+		
         
         
         

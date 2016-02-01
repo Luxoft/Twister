@@ -1,7 +1,7 @@
 
 # File: CeXmlRpc.py ; This file is part of Twister.
 
-# version: 3.026
+# version: 3.027
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -715,7 +715,7 @@ class CeXmlRpc(_cptools.XMLRPCController):
         db_parser = DBParser(user, db_file, shared_db_path, use_shared_db)
         query = db_parser.get_query(field_id)
         db_config = db_parser.db_config
-        db_server, db_name, db_user, db_passwd = db_config['default_server']
+        db_server, db_name, db_user, db_passwd, encoding = db_config['default_server']
         del db_parser
 
         if not query:

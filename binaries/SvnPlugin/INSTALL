@@ -2,6 +2,10 @@
 ---------------------------------
 |||| Svn PLugin Installation ||||
 ---------------------------------
+SVN CONFIG
+ - enable store-passwords = no in config file /etc/subversion/config
+ - enable store-auth-cred = no in config file /etc/subversion/config
+
 
 
 Default:

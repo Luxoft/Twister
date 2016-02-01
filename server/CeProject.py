@@ -1891,8 +1891,7 @@ class Project(object):
                     parser = PluginParser(user)
                     plugins = parser.getPlugins()
                     for pname in plugins:
-                        plugin = self._build_plugin(user, pname,\
-                        {'ce_stop': 'automatic'})
+                        plugin = self._build_plugin(user, pname, {'ce_stop': 'automatic'})
                         try:
                             plugin.onStop()
                         except Exception:
@@ -3098,7 +3097,6 @@ class Project(object):
             del data['plugin']
         except Exception:
             pass
-
         # Initialize the plug
         if not plug_ptr:
             plugin = pdict['plugin'](user, data)

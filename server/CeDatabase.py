@@ -1,7 +1,7 @@
 
 # File: CeDatabase.py ; This file is part of Twister.
 
-# version: 3.015
+# version: 3.016
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -123,7 +123,12 @@ class CeDbManager(object):
         db_name, db_passwd[:3]))
 
         try:
-            conn = MySQLdb.connect(host=db_server, db=db_name, user=db_user, passwd=db_password)
+            conn = MySQLdb.connect(host=db_server,
+                                   db=db_name,
+                                   user=db_user,
+                                   passwd=db_password,
+                                   charset='utf8',
+                                   use_unicode=True)
             conn.autocommit = False
         except MySQLdb.Error as exp_err:
             logError('MySQL error for user `{}`: `{} - {}`!'.\
@@ -370,8 +375,7 @@ class CeDbManager(object):
                 shared_db = all_inserts[host_db]['shared_db']
 
                 db_server, db_name, db_user, db_passwd, _ = host_db
-                conn = self.connect_db(user, db_server, db_name, db_user,\
-                db_passwd, shared_db=shared_db)
+                conn = self.connect_db(user, db_server, db_name, db_user, db_passwd, shared_db=shared_db)
                 if not conn:
                     continue
                 curs = conn.cursor()
@@ -517,7 +521,15 @@ class CeDbManager(object):
                     tmpl = Template(query)
 
                     # Fix None values to NULL
-                    subst_data = {k: 'NULL' if v is None else v for k, v in subst_data.iteritems()}
+                    for k, v in subst_data.iteritems():
+                        if k == 'twister_tc_log':
+                            try:
+                                subst_data[k] = unicode(v, errors='ignore')
+                            except Exception as err:
+                                subst_data[k] = v
+                                logDebug('ERROR converting to unicode: {} | {}'.format(err, v))
+                        else:
+                            subst_data[k] = 'NULL' if v is None else v
 
                     # Build complete query
                     try:
