@@ -1,7 +1,7 @@
 
 # File: CeProject.py ; This file is part of Twister.
 
-# version: 3.087
+# version: 3.089
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -1633,11 +1633,44 @@ class Project(object):
         return file_node
 
 
+    def set_custom_file_info(self, user, epname, file_id, key, value):
+        """
+        Create or overwrite a custom defined variable for one test file.
+        """
+        logDebug('user: {} variable: {} value: {}.'.format(user, key, value))
+        res = self.authenticate(user)
+        if not res:
+            return False
+        eps = self.users[user]['eps']
+
+        if epname not in eps:
+            logWarning('Project: Invalid EP name `{}` !'.format(epname))
+            return False
+        if file_id not in eps[epname]['suites'].get_files():
+            logWarning('Project: Invalid File ID `{}` !'.format(file_id))
+            return False
+        if not key:
+            logWarning('Project: Invalid Key `{}` !'.format(key))
+            return False
+
+        file_node = eps[epname]['suites'].find_id(file_id)
+        if not file_node:
+            logWarning('Project: Invalid File node `{}` !'.format(file_id))
+            return False
+        if 'custom_vars' in file_node:
+            file_node['custom_vars'][key] = value
+        else:
+            file_node['custom_vars'] = {key: value}
+
+        self._dump()
+        return True
+
+
     def set_file_info(self, user, epname, file_id, key, value):
         """
         Create or overwrite a variable with a value, for one Test File.
         """
-        logFull('CeProject:set_file_info user `{}`.'.format(user))
+        logDebug('user `{}`.'.format(user))
         res = self.authenticate(user)
         if not res:
             return False
@@ -2696,18 +2729,19 @@ class Project(object):
                 path, hidden=False, recursive=True, accept=['.py', '.zip'],\
                 reject=['__init__.py', '__init__.pyc'])
             else:
-                user_libs_all = self.localFs.list_user_files(user, user_path,\
-                hidden=False, recursive=True, accept=['.py', '.zip'],\
-                reject=['__init__.py', '__init__.pyc'])
+                for tmp_lib_path in user_path.split(';'):
+                    user_libs_all = self.localFs.list_user_files(user, tmp_lib_path,\
+                    hidden=False, recursive=True, accept=['.py', '.zip', 'egg'],\
+                    reject=['__init__.py', '__init__.pyc'])
 
-            # All files + all folders
-            if isinstance(user_libs_all, dict):
-                user_libs = dict(user_libs_all)
-            else:
-                user_libs = {'children': []}
-                logWarning(user_libs_all)
+                    # All files + all folders
+                    if isinstance(user_libs_all, dict):
+                        user_libs = dict(user_libs_all)
+                    else:
+                        user_libs = {'children': []}
+                        logWarning(user_libs_all)
 
-            glob_libs['children'].extend(user_libs['children'])
+                    glob_libs['children'].extend(user_libs['children'])
             return glob_libs
 
         # All libraries for user

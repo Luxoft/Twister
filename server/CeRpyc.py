@@ -1,7 +1,7 @@
 
 # File: CeRpyc.py ; This file is part of Twister.
 
-# version: 3.036
+# version: 3.039
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -42,7 +42,7 @@ if TWISTER_PATH not in sys.path:
     sys.path.append(TWISTER_PATH)
 
 
-from common.constants  import EXEC_STATUS, STATUS_INTERACT
+from common.constants  import EXEC_STATUS, STATUS_INTERACT, DATABASE_EXPORT_VARS
 from common.helpers    import userHome, re
 from common.tsclogging import logError, logInfo, logFull, logDebug, logWarning
 from common.tsclogging import getLogLevel, setLogLevel
@@ -460,15 +460,31 @@ class CeRpycService(rpyc.Service):
         return data.get(variable, False)
 
 
-    def exposed_set_file_variable(self, epname, filename, variable, value):
+    def exposed_set_custom_file_variable(self, epname, file_id, variable, value):
         """
-        Create or overwrite a file variable
+        Create a custom variable for a specific test case.
+        Can be created only from tests and it is stored under `custom_vars` key.
         """
-        logFull('CeRpyc:exposed_set_file_variable')
+        logDebug('epname: {}, file_id: {}, variable: {}, value: {}'.format(epname, file_id, variable, value))
         user = self._check_login()
         if not user:
             return False
-        return self.project.set_file_info(user, epname, filename, variable, value)
+        data = self.project.get_file_info(user, epname, file_id)
+        if variable in DATABASE_EXPORT_VARS or variable in data:
+            logWarning('Variable `{}` is already used by Twister. Choose another name.'.format(variable))
+            return False
+        return self.project.set_custom_file_info(user, epname, file_id, variable, value)
+
+
+    def exposed_set_file_variable(self, epname, file_id, variable, value):
+        """
+        Create or overwrite a file variable
+        """
+        logDebug('epname: {}, file_id: {}, variable: {}, value: {}'.format(epname, file_id, variable, value))
+        user = self._check_login()
+        if not user:
+            return False
+        return self.project.set_file_info(user, epname, file_id, variable, value)
 
 
     def exposed_get_dependency_info(self, dep_id):
@@ -1099,7 +1115,7 @@ class CeRpycService(rpyc.Service):
         Sends required library to the EP, to be syncronized.
         The library can be global for all users, or per user.
         """
-        logFull('CeRpyc:exposed_download_library')
+        logFull('CeRpyc:exposed_download_library {}'.format(name))
         user = self._check_login()
         if not user:
             return False
@@ -1181,28 +1197,32 @@ class CeRpycService(rpyc.Service):
 
         # User's home path
         else:
-            user_lib = self.project.get_user_info(user, 'libs_path').rstrip('/') + '/'
-            lib_path = user_lib + name
-            # logDebug('Before downloading local lib `{}`.'.format(lib_path))
-            is_folder = self.project.localFs.is_folder(user, lib_path)
-            is_global_folder = os.path.isdir(glob_lib_path)
+            all_user_lib = self.project.get_user_info(user, 'libs_path').split(';')
+            for user_lib in all_user_lib:
+                user_lib = user_lib.rstrip('/') + '/'
+                lib_path = user_lib + name
+                if not os.path.exists(lib_path) and \
+                not os.path.exists(glob_lib_path):
+                    continue
+                is_folder = self.project.localFs.is_folder(user, lib_path)
+                is_global_folder = os.path.isdir(glob_lib_path)
 
-            # If is folder, or "deep" file or folder, compress in memory and return the data
-            if is_folder == True or is_global_folder == True or '/' in name:
-                logDebug('User `{}` requested local lib folder `{}`.'.format(user, name))
-                resp = self.project.localFs.targz_user_folder(user, lib_path, user_lib)
-                # Try as ROOT
-                if resp.startswith('*ERROR*'):
-                    return _download_lib()
-                return resp
-            # If is root library file, read the file directly
-            else:
-                logDebug('User `{}` requested local lib file `{}`.'.format(user, name))
-                resp = self.project.localFs.read_user_file(user, lib_path)
-                # Try as ROOT
-                if resp.startswith('*ERROR*'):
-                    return _download_lib()
-                return resp
+                # If is folder, or "deep" file or folder, compress in memory and return the data
+                if is_folder == True or is_global_folder == True or '/' in name:
+                    logDebug('User `{}` requested local lib folder `{}`.'.format(user, name))
+                    resp = self.project.localFs.targz_user_folder(user, lib_path, user_lib)
+                    # Try as ROOT
+                    if resp.startswith('*ERROR*'):
+                        return _download_lib()
+                    return resp
+                # If is root library file, read the file directly
+                else:
+                    logDebug('User `{}` requested local lib file `{}`.'.format(user, name))
+                    resp = self.project.localFs.read_user_file(user, lib_path)
+                    # Try as ROOT
+                    if resp.startswith('*ERROR*'):
+                        return _download_lib()
+                    return resp
 
 
     def exposed_get_ep_files(self, epname):

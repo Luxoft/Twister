@@ -1,5 +1,5 @@
 
-# version: 3.008
+# version: 3.009
 
 # Major list of constants.
 
@@ -115,3 +115,55 @@ TESTS_TAGS = (
 	{'name':'clearcase',	'tag':'ClearCase',			'default':''},
 	{'name':'iterationSave','tag':'iterationSave',		'default':''},
 )
+
+DATABASE_EXPORT_VARS = {
+	'twister_user': '',
+	'twister_rf_fname': '',
+	'twister_pf_fname': '',
+	'twister_ce_type': '',
+	'twister_ce_os': '',
+	'twister_ce_hostname':'',
+	'twister_ce_ip': '',
+	'twister_ce_timezone': '',
+	'twister_server_location': '',
+	'twister_ce_python_revision': '',
+	'twister_ep_name': '',
+	'twister_ep_os':'',
+	'twister_ep_ip':'',
+	'twister_ep_hostname':'',
+	'twister_ep_python_revision': '',
+	'twister_suite_id': '',
+	'twister_suite_name': '',
+	'twister_tc_reason': '',
+	'twister_tc_iteration': '',
+	'twister_tc_full_path': '',
+	'twister_tc_name': '',
+	'twister_tc_id': '',
+	'twister_tc_log': '',
+	'twister_tc_log_running': '',
+	'twister_tc_log_debug': '',
+	'twister_tc_log_test': '',
+	'twister_tc_status': '',
+	'twister_tc_crash_detected': '',
+	'twister_tc_time_elapsed': '',
+	'twister_tc_date_started': '',
+	'twister_tc_date_finished': '',
+	'twister_tc_revision': ''
+	}
+
+EMAIL_EXPORT_VARS = {
+	'date': '',
+	'twister_user': '',
+	'twister_ce_hostname': '',
+	'twister_ce_ip': '',
+	'twister_ce_os': '',
+	'twister_ce_python_revision': '',
+	'twister_ce_type': '',
+	'twister_ep_hostname': '',
+	'twister_ep_ip': '',
+	'twister_ep_os': '',
+	'twister_ep_python_revision': '',
+	'twister_pf_fname': '',
+	'twister_rf_fname': '',
+	'twister_server_location': ''
+	}

@@ -1,6 +1,6 @@
 # File: TscCommonLib.py ; This file is part of Twister.
 
-# version: 3.026
+# version: 3.028
 
 # Copyright (C) 2012-2013 , Luxoft
 
@@ -291,6 +291,23 @@ class TscCommonLib(object):
         Gracefully crash test with status `Skip`.
         """
         raise ExceptionTestSkip(reason)
+
+
+    def set_details(self, details):
+        """
+        Set additional information for a test.
+        Ex: a return value, a parameter to be inserted in the database, etc
+        """
+        flag = True
+        if isinstance(details, dict):
+            for key in details:
+                if not self.ce_proxy.set_custom_file_variable(self.epName, self.FILE_ID, key, details[key]):
+                    print('*ERROR* Unable to set variable: `{}`. It may be used for internal use only.'.format(key))
+                    flag = False
+        else:
+            print('*ERROR* Usage: set_details({"key1":"value1","key2":"value2"...})')
+            flag = False
+        return flag
 
 
     def interact(self, type, msg, timeout=0, options={}):

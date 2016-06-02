@@ -1,6 +1,6 @@
 #!/usr/bin/env python2.7
 
-# version: 3.037
+# version: 3.039
 
 # File: ExecutionProcess.py ; This file is part of Twister.
 
@@ -896,6 +896,7 @@ class TwisterRunner(object):
             # Extra properties, from the applet
             props = dict(node)
             props.update(suite_data)
+            db_fields = dict()
             for prop in ['type', 'ep', 'sut', 'name', 'pd', 'libraries',\
             'children', 'clearcase', 'twister_tc_revision', 'status', 'file',\
             'suite', '_depend', '_dep_id', 'Runnable', 'setup_file',\
@@ -905,6 +906,11 @@ class TwisterRunner(object):
                     del props[prop]
                 except Exception:
                     pass
+
+            # build DB_FIELDS dictionary
+            for item in props:
+                if item != 'Running' and item != 'iterationSave':
+                    db_fields[item] = props[item]
 
             # Re-create the ce_libs file
             self.makeCeLibs(suite_id, suite_name, file_id, os.path.split(filename)[1])
@@ -1248,6 +1254,7 @@ class TwisterRunner(object):
                 'FIRST_ITERATOR_NAME' : first_iterator_name,
                 'FIRST_ITERATOR_COMP' : first_iterator_comp,
                 'PROXY'     : proxy(),
+                'DB_FIELDS' : db_fields,
                 'breakpoint' : dbg_breakpoint
             }
 

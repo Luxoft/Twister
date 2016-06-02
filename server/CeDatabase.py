@@ -1,7 +1,7 @@
 
 # File: CeDatabase.py ; This file is part of Twister.
 
-# version: 3.016
+# version: 3.018
 
 # Copyright (C) 2012-2014 , Luxoft
 
@@ -33,6 +33,7 @@ import os
 import re
 import sys
 import time
+import copy
 import socket
 import platform
 import subprocess
@@ -50,6 +51,7 @@ if TWISTER_PATH not in sys.path:
 from common.xmlparser import DBParser
 from common.helpers import execScript
 from common.tsclogging import logDebug, logWarning, logError
+from common.constants import DATABASE_EXPORT_VARS
 
 
 
@@ -168,7 +170,7 @@ class CeDbManager(object):
             ce_ip = ''
 
         # Default substitute dict
-        default_subst = {}
+        default_subst = copy.deepcopy(DATABASE_EXPORT_VARS)
         default_subst['twister_user'] = user
         default_subst['twister_ce_type'] = self.project.server_init['ce_server_type'].lower()
         default_subst['twister_server_location'] = self.project.server_init.get('ce_server_location', '')
@@ -209,6 +211,10 @@ class CeDbManager(object):
 
                 # Add Suite info
                 file_info = suites_manager.find_id(file_id)
+                if 'custom_vars' in file_info:
+                    custom_vars = file_info.pop('custom_vars')
+                    for var in custom_vars:
+                        file_info[var] = custom_vars[var]
                 suite_id = file_info['suite']
                 suite_info = suites_manager.find_id(suite_id)
 
@@ -242,8 +248,6 @@ class CeDbManager(object):
                 subst_data['twister_tc_full_path'] = file_info['file']
                 subst_data['twister_tc_name'] = os.path.split(file_info['file'])[1]
                 subst_data['twister_tc_id'] = file_id
-                # subst_data['twister_tc_title'] = ''
-                # subst_data['twister_tc_description'] = ''
 
                 # Delete obsolete keys
                 try:
@@ -530,7 +534,7 @@ class CeDbManager(object):
                                 logDebug('ERROR converting to unicode: {} | {}'.format(err, v))
                         else:
                             subst_data[k] = 'NULL' if v is None else v
-
+                    logDebug('---- SUBST_DATA: {}'.format(subst_data))
                     # Build complete query
                     try:
                         query = tmpl.substitute(subst_data)
